@@ -44,6 +44,8 @@ export default defineConfig({
       DOMAIN: bindings.text(domain ? `https://${domain}` : 'https://vault.example.com'),
       SIGNUPS_ALLOWED: bindings.text(env.SIGNUPS_ALLOWED || 'false'),
       ADMIN_ENABLED: bindings.text(env.ADMIN_ENABLED || 'false'),
+      // D1 Sessions API wrapper, off by default; needs read replication (docs/d1-sessions.md).
+      D1_SESSIONS: bindings.text(env.D1_SESSIONS || 'false'),
       ICONS_ENABLED: bindings.text(env.ICONS_ENABLED || 'true'),
       MAIL_FROM: bindings.text(env.MAIL_FROM || 'Cloudwarden <noreply@example.com>'),
       // Cloudflare Email Service (TASKS #141). Onboard the sending domain first.

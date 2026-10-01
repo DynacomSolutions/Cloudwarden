@@ -19,6 +19,8 @@ export interface Bindings {
   ADMIN_ENABLED: string
   /** Icon proxy switch; anything other than 'false' enables it (TASKS #142). */
   ICONS_ENABLED?: string
+  /** `true` runs requests on D1 sessions with a bookmark header (TASKS #165). Default off. */
+  D1_SESSIONS?: string
   /** Minimum log level: debug, info (default), warn or error (TASKS #164). */
   LOG_LEVEL?: string
   /** Build commit hash reported by /api/config. Optional. */

@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { d1Sessions } from './db/sessions'
 import type { Env } from './env'
 import { ApiError, errorBody } from './errors'
 import { errorKind, log, requestLogger } from './log'
@@ -38,6 +39,7 @@ const app = new Hono<Env>()
 
 app.use('*', requestLogger)
 app.use('*', securityHeaders)
+app.use('*', d1Sessions)
 
 app.route('/', alive)
 app.route('/', appId)

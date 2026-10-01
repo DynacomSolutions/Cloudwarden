@@ -915,29 +915,42 @@ describe('security hardening', () => {
   })
 
   it('falls back to a D1 window when the limiter binding is missing', async () => {
-    const hit = () =>
+    // Seed the fixed-window counters directly (previous, current and next window) so the
+    // outcome does not depend on request volume or on where a window boundary falls.
+    const seed = async (key: string) => {
+      const base = Math.floor(Date.now() / 60_000) * 60_000
+      for (const w of [base - 60_000, base, base + 60_000]) {
+        await env.DB.prepare(
+          'insert or replace into admin_rate_limits (key, window_start, count) values (?, ?, 1000)',
+        )
+          .bind(key, w)
+          .run()
+      }
+    }
+    const recover = (ip: string) =>
       withEnv({}, '/api/two-factor/recover', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': '198.51.100.77' },
+        headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': ip },
         body: JSON.stringify({
           email: 'x@example.com',
           masterPasswordHash: 'a',
           recoveryCode: 'b',
         }),
       })
-    let limited = 0
-    for (let i = 0; i < 70; i++) if ((await hit()).status === 429) limited++
-    expect(limited).toBeGreaterThan(0)
+    await seed('two-factor-manage:198.51.100.77')
+    expect((await recover('198.51.100.77')).status).toBe(429)
+    expect((await recover('198.51.100.78')).status).toBe(400)
 
     clock.now = () => FIXED
     const email = 'tf-sec-d1@example.com'
     const s = await createSession(email)
     await enableTotp(s)
-    let tripped = false
-    for (let i = 0; i < 25 && !tripped; i++) {
-      const r = await login(email, PW, { twoFactorProvider: '0', twoFactorToken: '000000' })
-      tripped = r.status === 429
-    }
-    expect(tripped).toBe(true)
+    const user = await env.DB.prepare('select uuid from users where email = ?')
+      .bind(email)
+      .first<{ uuid: string }>()
+    const attempt = () => login(email, PW, { twoFactorProvider: '0', twoFactorToken: '000000' })
+    expect((await attempt()).status).toBe(400)
+    await seed(`two-factor:${user?.uuid}`)
+    expect((await attempt()).status).toBe(429)
   })
 })

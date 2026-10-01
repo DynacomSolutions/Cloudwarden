@@ -15,3 +15,10 @@ it('flags keys under the backups prefix', () => {
   expect(() => assertUserBlobKey('backups/x')).toThrow()
   expect(assertUserBlobKey('sends/s/f')).toBe('sends/s/f')
 })
+
+it('vault key builders refuse ids that point into backups/', async () => {
+  const { attachmentKey, sendFileKey } = await import('../src/vault/blobs')
+  expect(attachmentKey('c1', 'a1')).toBe('attachments/c1/a1')
+  expect(sendFileKey('s1', 'f1')).toBe('sends/s1/f1')
+  expect(() => attachmentKey('x/../../backups', 'y')).toThrow()
+})

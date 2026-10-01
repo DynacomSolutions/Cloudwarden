@@ -4,7 +4,6 @@ import { ApiError, errorBody } from './errors'
 import { errorKind, log, requestLogger } from './log'
 import { securityHeaders } from './middleware'
 import { orgChangeNotifier } from './orgs/notify'
-import { scheduled } from './scheduled'
 import { accounts } from './routes/accounts'
 import { admin } from './routes/admin'
 import { alive } from './routes/alive'
@@ -32,6 +31,7 @@ import { settings } from './routes/settings'
 import { sync } from './routes/sync'
 import { token } from './routes/token'
 import { twofactor } from './routes/twofactor'
+import { scheduled } from './scheduled'
 
 const app = new Hono<Env>()
 

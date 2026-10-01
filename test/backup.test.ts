@@ -1,14 +1,14 @@
 import { env } from 'cloudflare:workers'
-import { scheduled } from '../src/scheduled'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
+  BACKUP_CRON,
   EXCLUDED_TABLES,
   exportDatabase,
   listTables,
   pruneBackups,
   runBackup,
-  scheduled,
 } from '../src/backup'
+import { scheduled } from '../src/scheduled'
 
 const NOW = new Date('2026-10-01T03:17:00Z')
 
@@ -145,28 +145,25 @@ describe('D1 export to R2', () => {
     expect(await env.ATTACHMENTS.get('attachments/keep-me')).not.toBeNull()
   })
 
-  it('the scheduled handler awaits the export so failures surface', async () => {
-    const broken = {
-      DB: {
-        prepare: () => {
-          throw new Error('db down')
-        },
+  const ctx = { waitUntil() {}, passThroughOnException() {} } as unknown as ExecutionContext
+  const controller = (cron: string) =>
+    ({ scheduledTime: NOW.getTime(), cron, type: 'scheduled', noRetry() {} }) as ScheduledController
+  const brokenEnv = {
+    ...env,
+    DB: {
+      prepare: () => {
+        throw new Error('db down')
       },
-      ATTACHMENTS: env.ATTACHMENTS,
-    } as unknown as typeof env
-    const ctx = { waitUntil() {}, passThroughOnException() {} } as unknown as ExecutionContext
-    await expect(
-      scheduled(
-        {
-          scheduledTime: NOW.getTime(),
-          cron: '',
-          type: 'scheduled',
-          noRetry() {},
-        } as ScheduledController,
-        broken,
-        ctx,
-      ),
-    ).rejects.toThrow('db down')
+    },
+  } as unknown as typeof env
+
+  it('the daily cron awaits the export so failures surface', async () => {
+    await expect(scheduled(controller(BACKUP_CRON), brokenEnv, ctx)).rejects.toThrow('db down')
+  })
+
+  it('the hourly cron runs the purge and never a backup', async () => {
+    // Purge failures are logged, never thrown; no backup is attempted on the hourly trigger.
+    await expect(scheduled(controller('17 * * * *'), brokenEnv, ctx)).resolves.toBeUndefined()
   })
 
   it('runBackup reports totals', async () => {

@@ -61,7 +61,6 @@ const DOMAIN_ALLOWLIST = new Set([
   'hono.dev',
   'orm.drizzle.team',
   'zod.dev',
-  'securityscorecards.dev',
   'openssf.org',
   'shields.io',
   'schema.org',

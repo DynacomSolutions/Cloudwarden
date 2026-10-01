@@ -1,4 +1,4 @@
-import type { MiddlewareHandler } from 'hono'
+import type { Context, MiddlewareHandler } from 'hono'
 import type { Env } from './env'
 import { errorBody } from './errors'
 
@@ -21,3 +21,17 @@ export const rateLimit =
     }
     await next()
   }
+
+/**
+ * Counts one attempt against the limiter for `scope` and `subject` (for example a user id).
+ * Returns true when the caller is over the limit. Always false when no limiter is bound.
+ */
+export async function overLimit(c: Context<Env>, scope: string, subject: string): Promise<boolean> {
+  const limiter = c.env.LOGIN_LIMITER
+  if (!limiter) return false
+  const { success } = await limiter.limit({ key: `${scope}:${subject}` })
+  return !success
+}
+
+export const tooManyRequests = (c: Context<Env>) =>
+  c.json(errorBody('Too many requests. Try again later.'), 429, { 'Retry-After': '60' })

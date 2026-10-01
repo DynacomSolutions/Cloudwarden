@@ -42,3 +42,15 @@ export function inviteEmail(registerUrl: string): Template {
 export function genericEmail(subject: string, paragraphs: string[]): Template {
   return { subject, text: plain(paragraphs), html: shell(subject, paragraphs) }
 }
+
+export function twoFactorCodeEmail(code: string, minutes: number): Template {
+  const lines = [
+    `Your Cloudwarden verification code is ${code}.`,
+    `It expires in ${minutes} minutes. If you did not request it, you can ignore this message.`,
+  ]
+  return {
+    subject: 'Your Cloudwarden verification code',
+    text: plain(lines),
+    html: shell('Verification code', lines),
+  }
+}

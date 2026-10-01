@@ -16,6 +16,7 @@ import { settings } from './routes/settings'
 import { stubs } from './routes/stubs'
 import { sync } from './routes/sync'
 import { token } from './routes/token'
+import { twofactor } from './routes/twofactor'
 
 const app = new Hono<Env>()
 
@@ -33,6 +34,7 @@ app.route('/', sync)
 app.route('/', ciphers)
 app.route('/', folders)
 app.route('/', settings)
+app.route('/', twofactor)
 app.route('/', stubs)
 app.route('/', admin)
 

@@ -6,6 +6,7 @@ import { masterPasswordPolicyFor } from '../orgs/policies'
 import { randomB64u, sha256B64u } from './crypto'
 import { signingSecret, signJwt } from './jwt'
 import { issuerFor } from './middleware'
+import type { prfOptionJson } from './passkeys'
 
 export const ACCESS_TOKEN_TTL_SECONDS = 3600
 /** Refresh tokens expire this long after the device last logged in or refreshed. */
@@ -107,7 +108,14 @@ export function accountKeysJson(user: User) {
 export async function tokenResponse(
   env: Bindings,
   user: User,
-  opts: { deviceIdentifier: string; scope: string[]; refreshToken?: string; clientId?: string },
+  opts: {
+    deviceIdentifier: string
+    scope: string[]
+    refreshToken?: string
+    clientId?: string
+    /** Passkey login: the PRF keyset of the credential used, so the client can unlock. */
+    webAuthnPrf?: ReturnType<typeof prfOptionJson>
+  },
 ) {
   return {
     access_token: await signAccessToken(
@@ -134,6 +142,7 @@ export async function tokenResponse(
     UserDecryptionOptions: {
       HasMasterPassword: true,
       MasterPasswordUnlock: masterPasswordUnlockJson(user),
+      ...(opts.webAuthnPrf ? { WebAuthnPrfOption: opts.webAuthnPrf } : {}),
       Object: 'userDecryptionOptions',
     },
     UnofficialServer: true,

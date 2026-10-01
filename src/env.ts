@@ -5,6 +5,8 @@ export interface Bindings {
   // Bindings
   DB: D1Database
   ATTACHMENTS: R2Bucket
+  /** Set by the D1 sessions middleware: the plain binding, which always reads the primary. */
+  DB_PRIMARY?: D1Database
   NOTIFICATIONS: DurableObjectNamespace
   /** Cloudflare Email Service `send_email` binding. Optional: absent means no mail is sent. */
   EMAIL?: SendEmail
@@ -19,6 +21,8 @@ export interface Bindings {
   ADMIN_ENABLED: string
   /** Icon proxy switch; anything other than 'false' enables it (TASKS #142). */
   ICONS_ENABLED?: string
+  /** `true` runs requests on D1 sessions with a bookmark header (TASKS #165). Default off. */
+  D1_SESSIONS?: string
   /** Minimum log level: debug, info (default), warn or error (TASKS #164). */
   LOG_LEVEL?: string
   /** Build commit hash reported by /api/config. Optional. */

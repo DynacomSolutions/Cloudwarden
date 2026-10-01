@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, isNotNull, isNull, ne, notInArray, or } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { z } from 'zod'
 import { authenticationData, checkNested, toKdfParams, unlockData } from '../auth/credentials'
@@ -375,6 +375,92 @@ type RotationInput = Omit<z.infer<typeof rotateSchema>, 'masterPasswordHash'> & 
   publicKey?: string | null
   /** New master password credentials (key-management endpoint rotates them together). */
   credentials?: { hash: string; kdf: KdfParams; hint: string | null }
+  /** Re-wrapped passkey keysets (key-management endpoint only). */
+  passkeys?: z.infer<typeof passkeyUnlock>
+}
+
+/**
+ * Passkey keysets wrap the user key, so a rotation must re-wrap each one. The client sends the
+ * new wrapped user and public keys per credential; a credential with a keyset that is missing
+ * from the request cannot unlock the new key and loses its keyset (it stays usable as a login
+ * credential and can enable encryption again).
+ */
+export async function passkeyRotation(
+  db: ReturnType<typeof createDb>,
+  userUuid: string,
+  given: z.infer<typeof passkeyUnlock> | undefined,
+) {
+  // Callers that do not carry passkey data (the legacy rotation) cannot re-wrap anything, so
+  // every keyset is dropped rather than left wrapping the old user key.
+  const items = given ?? []
+  const table = schema.webauthnCredentials
+  const owned = await db.select().from(table).where(eq(table.userUuid, userUuid))
+  const byId = new Map(owned.map((r) => [r.uuid, r]))
+  const seen = new Set<string>()
+  for (const g of items) {
+    if (!byId.get(g.id)?.encryptedUserKey || seen.has(g.id)) {
+      throw new ApiError(400, 'Rotation names a passkey that has no keyset.')
+    }
+    seen.add(g.id)
+  }
+  const now = Date.now()
+  const none = {
+    encryptedUserKey: null,
+    encryptedPublicKey: null,
+    encryptedPrivateKey: null,
+    updatedAt: now,
+  }
+  const mine = eq(table.userUuid, userUuid)
+  return [
+    // Re-wrap, guarded by the row version read above: a concurrent keyset update changes
+    // `updated_at`, so this misses it and the next statement removes the old-key wrap.
+    ...items.map((g) =>
+      db
+        .update(table)
+        .set({
+          encryptedUserKey: g.encryptedUserKey,
+          encryptedPublicKey: g.encryptedPublicKey,
+          updatedAt: now,
+        })
+        .where(
+          and(
+            mine,
+            eq(table.uuid, g.id),
+            eq(table.updatedAt, (byId.get(g.id) as (typeof owned)[0]).updatedAt),
+          ),
+        ),
+    ),
+    ...items.map((g) =>
+      db
+        .update(table)
+        .set(none)
+        .where(
+          and(
+            mine,
+            eq(table.uuid, g.id),
+            or(isNull(table.encryptedUserKey), ne(table.encryptedUserKey, g.encryptedUserKey)),
+          ),
+        ),
+    ),
+    // Everything not re-wrapped, including keysets stored after the read above, is cleared.
+    db
+      .update(table)
+      .set(none)
+      .where(
+        and(
+          mine,
+          isNotNull(table.encryptedUserKey),
+          ...(items.length
+            ? [
+                notInArray(
+                  table.uuid,
+                  items.map((g) => g.id),
+                ),
+              ]
+            : []),
+        ),
+      ),
+  ]
 }
 
 async function applyRotation(c: Ctx, user: User, body: RotationInput) {
@@ -418,8 +504,11 @@ async function applyRotation(c: Ctx, user: User, body: RotationInput) {
     throw new ApiError(400, 'Cipher type cannot change during key rotation.')
   }
 
+  const passkeyStatements = await passkeyRotation(db, user.uuid, body.passkeys)
+
   const now = Date.now()
   await runBatch(db, [
+    ...passkeyStatements,
     db
       .update(schema.users)
       .set({
@@ -477,6 +566,13 @@ accounts.post('/api/accounts/key', requireAuth, async (c) => {
 })
 
 // Rotation as sent by clients 2026.9 (web vault).
+const passkeyUnlock = z.array(
+  z.object({
+    id: z.string(),
+    encryptedPublicKey: z.string().min(1),
+    encryptedUserKey: z.string().min(1),
+  }),
+)
 const rotateAccountKeys = z.object({
   oldMasterKeyAuthenticationHash: z.string().min(1),
   accountUnlockData: z.object({
@@ -490,6 +586,7 @@ const rotateAccountKeys = z.object({
       masterKeyEncryptedUserKey: z.string().min(1),
       masterPasswordHint: z.string().max(50).nullish(),
     }),
+    passkeyUnlockData: passkeyUnlock.default([]),
   }),
   accountKeys: z.object({
     userKeyEncryptedAccountPrivateKey: z.string().min(1),
@@ -526,6 +623,7 @@ accounts.post('/api/accounts/key-management/rotate-user-account-keys', requireAu
     privateKey: body.accountKeys.userKeyEncryptedAccountPrivateKey,
     publicKey: body.accountKeys.accountPublicKey,
     ...body.accountData,
+    passkeys: body.accountUnlockData.passkeyUnlockData,
     credentials: {
       hash: m.masterKeyAuthenticationHash,
       kdf,

@@ -7,6 +7,7 @@ import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { setTimeout as sleep } from 'node:timers/promises'
+import { migrateLocal } from '../scripts/local-migrate.mjs'
 import { buildAccount } from './crypto.mjs'
 import { makeCert } from './tls-proxy.mjs'
 
@@ -37,50 +38,6 @@ function run(cmd, args, opts = {}) {
   return res
 }
 
-// `cf d1 migrations apply --local` prints the result as JSON but does not exit on its own, so
-// stop it once the output parses and every migration reports success.
-function migrate(env, state) {
-  return new Promise((ok, fail) => {
-    const child = spawn(
-      bin('cf'),
-      [
-        'd1',
-        'migrations',
-        'apply',
-        '00000000-0000-4000-8000-000000000000',
-        '--local',
-        '--persist-to',
-        state,
-        '--dir',
-        'migrations',
-      ],
-      { cwd: root, env, stdio: ['ignore', 'pipe', 'pipe'] },
-    )
-    let out = ''
-    const timer = setTimeout(() => {
-      child.kill('SIGKILL')
-      fail(new Error(`migrations timed out\n${out}`))
-    }, 90000)
-    child.stdout.on('data', (d) => {
-      out += d
-      try {
-        const rows = JSON.parse(out)
-        if (Array.isArray(rows)) {
-          clearTimeout(timer)
-          child.kill('SIGKILL')
-          rows.every((r) => r.status === '✅') ? ok() : fail(new Error(out))
-        }
-      } catch {}
-    })
-    child.on('exit', (code) => {
-      if (code && code !== 137) {
-        clearTimeout(timer)
-        fail(new Error(`cf exited ${code}\n${out}`))
-      }
-    })
-  })
-}
-
 async function main() {
   const port = await freePort()
   const tlsPort = await freePort()
@@ -100,7 +57,7 @@ async function main() {
   }
 
   // Local D1 migrations through the cf CLI.
-  await migrate(env, state)
+  await migrateLocal(root, env, state)
   pass('local D1 migrations applied with cf')
 
   const server = spawn(

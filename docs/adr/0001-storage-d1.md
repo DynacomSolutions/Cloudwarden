@@ -31,7 +31,7 @@ The Bitwarden API contract (TASKS #14) defines the resources and relationships t
 
 - **No interactive transactions.** D1 does not support `BEGIN ... COMMIT` across awaits. Multi-statement writes that must be atomic (key rotation, organisation sharing, account deletion) use `db.batch([...])`, which runs as one implicit transaction. Code review must reject read-modify-write sequences that rely on isolation.
 - **Size ceiling.** 10 GB is far above any personal or small-team vault (ciphers are typically a few KB). Large multi-tenant hosting would need sharding or a move to per-tenant Durable Objects; that is out of scope until there is demand.
-- **Read replicas.** If read replication is enabled, every request must use the D1 Sessions API with a bookmark so a client never reads older data than it just wrote (revision-date regressions break client sync).
+- **Read replicas.** Replication is off. If it is enabled, requests must use the D1 Sessions API with a bookmark so a client never reads older data than it just wrote (revision-date regressions break client sync). `D1_SESSIONS=true` enables the wrapper; see `docs/d1-sessions.md`.
 - **Backups.** Time Travel gives 30 days of point-in-time restore. A scheduled export to R2 is still planned for portability (see TASKS.md).
 
 ## Related constraint: server-side password hashing

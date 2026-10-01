@@ -1,6 +1,13 @@
 import { and, eq, isNull } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { randomB64u, safeEqualStrings, sha256B64u } from '../auth/crypto'
+import {
+  assertionCredentialId,
+  PASSKEY_LOGIN,
+  prfOptionJson,
+  spendAssertion,
+  verifyPasskeyAssertion,
+} from '../auth/passkeys'
 import { verifyMasterPassword } from '../auth/passwords'
 import {
   type DeviceInput,
@@ -10,6 +17,7 @@ import {
 } from '../auth/session'
 import { enforceTwoFactor, issueRememberToken } from '../auth/twofactor'
 import { findUserByEmail } from '../auth/users'
+import { WebAuthnError } from '../auth/webauthn'
 import { createDb, schema } from '../db'
 import type { Env, User } from '../env'
 import { oauthError } from '../errors'
@@ -142,6 +150,70 @@ async function passwordGrant(c: Ctx, form: Form) {
   return c.json(body)
 }
 
+/**
+ * `webauthn` grant: passkey login. The assertion (user verified) is both factors, so no second
+ * step follows. When the credential holds a PRF keyset it is returned for unlocking.
+ */
+async function webauthnGrant(c: Ctx, form: Form) {
+  const db = createDb(c.env.DB)
+  const bad = () => oauthError(c, 'invalid_grant', 'Passkey could not be verified.')
+  const device = deviceFrom(form)
+  if (!device) return oauthError(c, 'invalid_request', 'Device information is required.')
+  let deviceResponse: unknown
+  try {
+    deviceResponse = JSON.parse(form.deviceResponse ?? '')
+  } catch {
+    return bad()
+  }
+  if (!form.token) return bad()
+  const [credential] = await db
+    .select()
+    .from(schema.webauthnCredentials)
+    .where(eq(schema.webauthnCredentials.credentialId, assertionCredentialId(deviceResponse)))
+    .limit(1)
+  if (!credential) return bad()
+  let verified: Awaited<ReturnType<typeof verifyPasskeyAssertion>>
+  try {
+    verified = await verifyPasskeyAssertion(c.env, {
+      purpose: PASSKEY_LOGIN,
+      subject: 'anonymous',
+      token: form.token,
+      deviceResponse,
+      credential,
+    })
+  } catch (err) {
+    if (err instanceof WebAuthnError) return bad()
+    throw err
+  }
+  const [user] = await db
+    .select()
+    .from(schema.users)
+    .where(eq(schema.users.uuid, credential.userUuid))
+    .limit(1)
+  if (!user) return bad()
+  if (!user.enabled) {
+    return oauthError(
+      c,
+      'invalid_grant',
+      'this account has been disabled',
+      'This account has been disabled.',
+    )
+  }
+  // Spend the challenge only now: a replayed response finds it used and fails here.
+  if (!(await spendAssertion(db, verified))) return bad()
+
+  const refreshToken = await registerDevice(db, user.uuid, device)
+  return c.json(
+    await tokenResponse(c.env, user, {
+      deviceIdentifier: device.identifier,
+      scope: ['api', 'offline_access'],
+      refreshToken,
+      clientId: form.client_id,
+      webAuthnPrf: prfOptionJson(credential),
+    }),
+  )
+}
+
 async function refreshGrant(c: Ctx, form: Form) {
   const db = createDb(c.env.DB)
   const invalid = () => oauthError(c, 'invalid_grant', 'invalid_grant', 'Invalid refresh token.')
@@ -258,6 +330,8 @@ token.post('/identity/connect/token', rateLimit('token'), async (c) => {
   switch (form.grant_type) {
     case 'password':
       return passwordGrant(c, form)
+    case 'webauthn':
+      return webauthnGrant(c, form)
     case 'refresh_token':
       return refreshGrant(c, form)
     case 'client_credentials':

@@ -18,7 +18,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",
-    "@cloudflare/vite-plugin": "^2.0.0-beta.sha-ad79608dd",
+    "@cloudflare/vite-plugin": "^2.0.0-beta.sha-805ec1ff3",
     "@cloudflare/vitest-pool-workers": "^0.22.0",
     "@commitlint/cli": "^21.2.3",
     "@commitlint/config-conventional": "^21.2.3",
@@ -27,7 +27,7 @@
     "lefthook": "^2.1.15",
     "typescript": "^7.0.2",
     "vite": "^8.3.0",
-    "vitest": "^4.1.11"
+    "vitest": "^5.0.2"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.3",

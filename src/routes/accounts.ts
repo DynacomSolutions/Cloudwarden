@@ -5,7 +5,7 @@ import { authenticationData, checkNested, toKdfParams, unlockData } from '../aut
 import { randomB64u } from '../auth/crypto'
 import { requireAuth } from '../auth/middleware'
 import { hashMasterPassword, verifyMasterPassword } from '../auth/passwords'
-import { stampRotationStatements } from '../auth/session'
+import { accountKeysJson, stampRotationStatements } from '../auth/session'
 import { findUserByEmail, normalizeEmail } from '../auth/users'
 import { createDb, runBatch, schema } from '../db'
 import { createEmailTransport, genericEmail } from '../email'
@@ -44,6 +44,7 @@ export async function profileJson(c: Ctx, user: User) {
     twoFactorEnabled: tf !== undefined,
     key: user.akey,
     privateKey: user.privateKey,
+    accountKeys: accountKeysJson(user),
     securityStamp: user.securityStamp,
     forcePasswordReset: false,
     usesKeyConnector: false,

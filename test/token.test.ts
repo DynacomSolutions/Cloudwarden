@@ -14,6 +14,15 @@ it('password grant returns the client-expected shape', async () => {
     scope: 'api offline_access',
     Key: '2.encryptedSymmetricKey',
     PrivateKey: '2.pk',
+    AccountKeys: {
+      publicKeyEncryptionKeyPair: {
+        wrappedPrivateKey: '2.pk',
+        publicKey: 'public-key',
+        signedPublicKey: null,
+      },
+      signatureKeyPair: null,
+      securityState: null,
+    },
     Kdf: 0,
     KdfIterations: 600000,
     KdfMemory: null,

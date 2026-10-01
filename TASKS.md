@@ -26,7 +26,7 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 | 6 | Git hooks (lefthook): Biome, identifiers, gitleaks, author email, commitlint, pre-push typecheck and tests | done | agent | Hooks install on `pnpm install` |
 | 7 | CI: lint, typecheck, test, identifiers, commitlint, secret scan, actionlint, zizmor | done | agent | Workflows pass on `main` |
 | 13 | Move all CI to the self-hosted `k3s-runners` scale set; gitleaks replaces trufflehog; drop GitHub Advanced Security workflows (CodeQL, dependency review, Scorecard) and CODEOWNERS (owner decision: security is gitleaks, own CI and local hooks only) | done | coordinator | All workflows green on `k3s-runners`; no GitHub-hosted jobs |
-| 8 | Repo settings: Dependabot alerts and updates, `main` ruleset (PR required, `CI Status` required, no force push, linear history) | done | coordinator | Settings visible via API; see evidence log |
+| 8 | Repo settings: Dependabot alerts (no update PRs), `main` ruleset (PR required, `CI Status` required, no force push, linear history) | done | coordinator | Settings visible via API; see evidence log |
 | 9 | Architecture doc and storage ADR | done | coordinator | `docs/architecture.md`, `docs/adr/0001-storage-d1.md` |
 | 10 | Choose licence. AGPL-3.0 is a placeholder; with no ported code the choice is open (AGPL-3.0 forces hosted forks to publish changes; MIT or Apache-2.0 maximise adoption) | todo | owner | Owner decision recorded; LICENSE updated |
 | 11 | ~~Create `maintainers` team for CODEOWNERS~~ (never requested; CODEOWNERS removed under #13) | dropped | | |
@@ -147,6 +147,7 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 
 Newest first. One line per verified fact.
 
+- 2026-10-01 · #8 · Owner decision: no Dependabot branches or PRs. Dependabot security updates disabled via API, `dependabot.yml` removed, its open PR closed. Alerts remain on.
 - 2026-10-01 · #140, #141 · `pnpm lint`, `pnpm typecheck`, `pnpm test` (32 tests, 6 files), `pnpm check:identifiers` green on branch `feat/admin`; migration `0002_admin`.
 - 2026-10-01 · #13 · PR #2: all 9 jobs on `k3s-runners` green (Lint, Typecheck, Test, Identifier Check, Commit Lint, CI Status, Gitleaks full history, Lint Actions, Zizmor) plus Dependabot config validation. `pnpm/action-setup` held at v4 because v5+ needs libatomic, absent from the runner image.
 - 2026-10-01 · #13 · GitHub secret scanning and push protection disabled via API (owner decision: no GitHub Advanced Security features).

@@ -4,6 +4,7 @@ import { html } from 'hono/html'
 import { isReservedBlobKey } from '../blob-keys'
 import { createEmailTransport, type EmailTransport, inviteEmail, magicLinkEmail } from '../email'
 import type { Bindings } from '../env'
+import { log } from '../log'
 import { SERVER_VERSION } from '../routes/config'
 import {
   isAdminEmail,
@@ -250,7 +251,7 @@ ${kvTable(await serverRows(c))}`,
         await transportFor(c.env).send({ to: email, ...magicLinkEmail(url, MAGIC_TTL_MS / 60_000) })
       } catch {
         // Same response either way. Never log the address or link.
-        console.error('admin magic link delivery failed')
+        log('error', 'admin.magic_link_delivery_failed', {}, c.env)
       }
     }
     return c.html(linkSentPage(c.get('nonce')))
@@ -392,7 +393,7 @@ ${
         ...inviteEmail(`${base(c.env)}/#/register?email=${encodeURIComponent(email)}`),
       })
     } catch {
-      console.error('invitation email delivery failed')
+      log('error', 'admin.invite_delivery_failed', {}, c.env)
       return c.redirect('/admin/users?m=invite-failed', 303)
     }
     return c.redirect('/admin/users?m=invited', 303)

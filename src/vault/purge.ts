@@ -1,6 +1,7 @@
 import { and, inArray, isNotNull, isNull, lt, lte } from 'drizzle-orm'
 import { createDb, runBatch, schema } from '../db'
 import type { Bindings } from '../env'
+import { errorKind, log } from '../log'
 import { deleteBlobsNow } from './blobs'
 import { chunk } from './ciphers'
 
@@ -144,7 +145,7 @@ async function step(name: string, run: () => Promise<number>): Promise<number> {
   try {
     return await run()
   } catch (err) {
-    console.error(`purge step ${name} failed`, err)
+    log('error', 'purge.step_failed', { step: name, errorKind: errorKind(err) })
     return 0
   }
 }

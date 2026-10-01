@@ -28,6 +28,8 @@ export default defineConfig(async () => {
     ],
     test: {
       include: ['test/**/*.test.ts'],
+      // Organisation flows register several accounts, each costing a password hash.
+      testTimeout: 30_000,
       setupFiles: ['./test/setup.ts'],
     },
   }

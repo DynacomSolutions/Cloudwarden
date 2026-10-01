@@ -190,12 +190,14 @@ export const usersOrganizations = sqliteTable(
   'users_organizations',
   {
     uuid: id(),
-    userUuid: text('user_uuid')
-      .notNull()
-      .references(() => users.uuid, { onDelete: 'cascade' }),
+    // Null while an invited address has no account yet; set when the invitation is accepted.
+    userUuid: text('user_uuid').references(() => users.uuid, { onDelete: 'cascade' }),
     organizationUuid: text('organization_uuid')
       .notNull()
       .references(() => organizations.uuid, { onDelete: 'cascade' }),
+    email: text('email'),
+    // JSON of custom permissions (role 4); null for other roles.
+    permissions: text('permissions'),
     accessAll: integer('access_all', { mode: 'boolean' }).notNull().default(false),
     akey: text('akey').notNull(),
     status: integer('status').notNull(),
@@ -208,6 +210,7 @@ export const usersOrganizations = sqliteTable(
   (t) => [
     uniqueIndex('users_organizations_user_org_unique').on(t.userUuid, t.organizationUuid),
     index('users_organizations_org_idx').on(t.organizationUuid),
+    index('users_organizations_email_idx').on(t.email),
   ],
 )
 
@@ -245,9 +248,9 @@ export const ciphersCollections = sqliteTable(
 export const usersCollections = sqliteTable(
   'users_collections',
   {
-    userUuid: text('user_uuid')
+    organizationUserUuid: text('organization_user_uuid')
       .notNull()
-      .references(() => users.uuid, { onDelete: 'cascade' }),
+      .references(() => usersOrganizations.uuid, { onDelete: 'cascade' }),
     collectionUuid: text('collection_uuid')
       .notNull()
       .references(() => collections.uuid, { onDelete: 'cascade' }),
@@ -256,7 +259,7 @@ export const usersCollections = sqliteTable(
     manage: integer('manage', { mode: 'boolean' }).notNull().default(false),
   },
   (t) => [
-    primaryKey({ columns: [t.userUuid, t.collectionUuid] }),
+    primaryKey({ columns: [t.organizationUserUuid, t.collectionUuid] }),
     index('users_collections_collection_idx').on(t.collectionUuid),
   ],
 )
@@ -321,6 +324,9 @@ export const events = sqliteTable(
     organizationUuid: text('organization_uuid'),
     cipherUuid: text('cipher_uuid'),
     collectionUuid: text('collection_uuid'),
+    groupUuid: text('group_uuid'),
+    policyUuid: text('policy_uuid'),
+    organizationUserUuid: text('organization_user_uuid'),
     actingUserUuid: text('acting_user_uuid'),
     deviceType: integer('device_type'),
     ipAddress: text('ip_address'),
@@ -330,6 +336,98 @@ export const events = sqliteTable(
     index('events_organization_idx').on(t.organizationUuid),
     index('events_user_idx').on(t.userUuid),
     index('events_date_idx').on(t.eventDate),
+  ],
+)
+
+export const policies = sqliteTable(
+  'policies',
+  {
+    uuid: id(),
+    organizationUuid: text('organization_uuid')
+      .notNull()
+      .references(() => organizations.uuid, { onDelete: 'cascade' }),
+    atype: integer('atype').notNull(),
+    enabled: integer('enabled', { mode: 'boolean' }).notNull().default(false),
+    // JSON object with the policy settings, or null.
+    data: text('data'),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex('policies_org_type_unique').on(t.organizationUuid, t.atype)],
+)
+
+export const groups = sqliteTable(
+  'groups',
+  {
+    uuid: id(),
+    organizationUuid: text('organization_uuid')
+      .notNull()
+      .references(() => organizations.uuid, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    accessAll: integer('access_all', { mode: 'boolean' }).notNull().default(false),
+    externalId: text('external_id'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index('groups_organization_idx').on(t.organizationUuid)],
+)
+
+export const groupsUsers = sqliteTable(
+  'groups_users',
+  {
+    groupUuid: text('group_uuid')
+      .notNull()
+      .references(() => groups.uuid, { onDelete: 'cascade' }),
+    organizationUserUuid: text('organization_user_uuid')
+      .notNull()
+      .references(() => usersOrganizations.uuid, { onDelete: 'cascade' }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.groupUuid, t.organizationUserUuid] }),
+    index('groups_users_member_idx').on(t.organizationUserUuid),
+  ],
+)
+
+export const collectionsGroups = sqliteTable(
+  'collections_groups',
+  {
+    collectionUuid: text('collection_uuid')
+      .notNull()
+      .references(() => collections.uuid, { onDelete: 'cascade' }),
+    groupUuid: text('group_uuid')
+      .notNull()
+      .references(() => groups.uuid, { onDelete: 'cascade' }),
+    readOnly: integer('read_only', { mode: 'boolean' }).notNull().default(false),
+    hidePasswords: integer('hide_passwords', { mode: 'boolean' }).notNull().default(false),
+    manage: integer('manage', { mode: 'boolean' }).notNull().default(false),
+  },
+  (t) => [
+    primaryKey({ columns: [t.collectionUuid, t.groupUuid] }),
+    index('collections_groups_group_idx').on(t.groupUuid),
+  ],
+)
+
+/** Emergency access grants. `status`: 0 invited, 1 accepted, 2 confirmed, 3 initiated, 4 approved. */
+export const emergencyAccess = sqliteTable(
+  'emergency_access',
+  {
+    uuid: id(),
+    grantorUuid: text('grantor_uuid')
+      .notNull()
+      .references(() => users.uuid, { onDelete: 'cascade' }),
+    granteeUuid: text('grantee_uuid').references(() => users.uuid, { onDelete: 'cascade' }),
+    email: text('email').notNull(),
+    // The grantor's user key encrypted to the grantee's public key (set on confirm).
+    keyEncrypted: text('key_encrypted'),
+    atype: integer('atype').notNull(),
+    status: integer('status').notNull(),
+    waitTimeDays: integer('wait_time_days').notNull(),
+    recoveryInitiatedAt: integer('recovery_initiated_at'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index('emergency_access_grantor_idx').on(t.grantorUuid),
+    index('emergency_access_grantee_idx').on(t.granteeUuid),
   ],
 )
 

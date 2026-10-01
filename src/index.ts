@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import type { Env } from './env'
 import { ApiError, errorBody } from './errors'
 import { securityHeaders } from './middleware'
+import { orgChangeNotifier } from './orgs/notify'
 import { accounts } from './routes/accounts'
 import { admin } from './routes/admin'
 import { alive } from './routes/alive'
@@ -9,15 +10,22 @@ import { appId } from './routes/app-id'
 import { downloadAttachment } from './routes/attachments'
 import { authRequests } from './routes/auth-requests'
 import { ciphers } from './routes/ciphers'
+import { collectionsRouter } from './routes/collections'
 import { config } from './routes/config'
 import { devices } from './routes/devices'
+import { emergencyAccess } from './routes/emergency-access'
+import { events } from './routes/events'
 import { folders } from './routes/folders'
+import { groupsRouter } from './routes/groups'
 import { notifications } from './routes/notifications'
+import { orgCiphers } from './routes/org-ciphers'
+import { orgUsers } from './routes/org-users'
+import { organizations } from './routes/organizations'
+import { policies, publicPolicies } from './routes/policies'
 import { prelogin } from './routes/prelogin'
 import { register } from './routes/register'
 import { downloadSendFile, sends } from './routes/sends'
 import { settings } from './routes/settings'
-import { stubs } from './routes/stubs'
 import { sync } from './routes/sync'
 import { token } from './routes/token'
 import { twofactor } from './routes/twofactor'
@@ -36,6 +44,17 @@ app.route('/', token)
 app.route('/', devices)
 app.route('/', accounts)
 app.route('/', sync)
+// Public and organisation routes come first: org-ciphers hands personal items on to `ciphers`.
+app.use('/api/organizations/:orgId/*', orgChangeNotifier)
+app.route('/', publicPolicies)
+app.route('/', organizations)
+app.route('/', orgUsers)
+app.route('/', collectionsRouter)
+app.route('/', groupsRouter)
+app.route('/', policies)
+app.route('/', events)
+app.route('/', emergencyAccess)
+app.route('/', orgCiphers)
 app.route('/', ciphers)
 app.route('/', folders)
 app.route('/', sends)
@@ -45,7 +64,6 @@ app.route('/', settings)
 app.route('/', twofactor)
 app.route('/', authRequests)
 app.route('/', notifications)
-app.route('/', stubs)
 app.route('/', admin)
 
 app.notFound((c) => c.json({ message: 'Not found', validationErrors: null, object: 'error' }, 404))

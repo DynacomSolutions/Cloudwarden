@@ -82,9 +82,8 @@ const createWithCollections = z.object({
   collectionIds: z.array(z.string()).nullish(),
 })
 ciphers.post('/api/ciphers/create', async (c) => {
+  // Organisation items are handled earlier by `routes/org-ciphers.ts`; this is the personal path.
   const body = await parseBody(c, createWithCollections)
-  // TODO(TASKS #62): collections arrive with Phase 3; personal ciphers have none.
-  if (body.collectionIds?.length) throw new ApiError(400, 'Collections are not supported yet.')
   return createCipher(c, body.cipher)
 })
 

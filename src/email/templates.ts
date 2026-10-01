@@ -54,3 +54,30 @@ export function twoFactorCodeEmail(code: string, minutes: number): Template {
     html: shell('Verification code', lines),
   }
 }
+
+export function orgInviteEmail(orgName: string, acceptUrl: string): Template {
+  const lines = [
+    `You have been invited to join the organization ${orgName} on this Cloudwarden server.`,
+    'Choose the link below to accept. The link expires in five days.',
+  ]
+  return {
+    subject: `Join ${orgName}`,
+    text: plain(lines, acceptUrl),
+    html: shell('Join an organization', lines, { url: acceptUrl, label: 'Join organization' }),
+  }
+}
+
+export function emergencyInviteEmail(grantorName: string, acceptUrl: string): Template {
+  const lines = [
+    `${grantorName} has invited you to become an emergency contact on this Cloudwarden server.`,
+    'Choose the link below to accept. The link expires in five days.',
+  ]
+  return {
+    subject: 'Emergency access invitation',
+    text: plain(lines, acceptUrl),
+    html: shell('Emergency access invitation', lines, {
+      url: acceptUrl,
+      label: 'Accept invitation',
+    }),
+  }
+}

@@ -154,7 +154,7 @@ it('validates cipher bodies and ownership', async () => {
   expect(
     (await call('/api/ciphers', 'POST', { ...login(), organizationId: crypto.randomUUID() }))
       .status,
-  ).toBe(400)
+  ).toBe(404)
   expect((await call(`/api/ciphers/${crypto.randomUUID()}`)).status).toBe(404)
 
   const other = await setup('val2@example.com')

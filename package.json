@@ -15,6 +15,9 @@
     "web-vault:fetch": "node scripts/fetch-web-vault.mjs",
     "web-vault:update": "node scripts/fetch-web-vault.mjs --update",
     "check:identifiers": "node scripts/check-identifiers.mjs",
+    "lint:api": "redocly lint docs/api/openapi.yaml",
+    "api:build": "redocly build-docs docs/api/openapi.yaml --output docs/api/build/index.html",
+    "api:preview": "pnpm api:build && echo Built docs/api/build/index.html: open it in a browser",
     "test:scripts": "node --test scripts/*.test.mjs",
     "prepare": "lefthook install || true"
   },
@@ -24,6 +27,7 @@
     "@cloudflare/vitest-pool-workers": "^0.22.0",
     "@commitlint/cli": "^21.2.3",
     "@commitlint/config-conventional": "^21.2.3",
+    "@redocly/cli": "^2.57.0",
     "cf": "^1.0.0-beta.5",
     "drizzle-kit": "^0.31.11",
     "lefthook": "^2.1.15",

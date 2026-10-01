@@ -1,0 +1,20 @@
+extends:
+  - recommended
+apis:
+  main:
+    root: docs/api/openapi.yaml
+rules:
+  # Paths mirror the real Bitwarden API, which has both literal and templated
+  # siblings (for example /ciphers/move and /ciphers/{id}).
+  no-ambiguous-paths: off
+  # Match the wire contract exactly, including the clients' trailing slashes.
+  no-path-trailing-slash: off
+  # Many endpoints legitimately return an empty 200 or 204 body.
+  # The WebSocket upgrade answers 101, which has no 2xx equivalent.
+  operation-2xx-response: off
+  operation-4xx-response: error
+  operation-operationId-unique: error
+  operation-summary: error
+  no-unused-components: error
+  no-invalid-media-type-examples: off
+  info-license-strict: off

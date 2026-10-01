@@ -287,3 +287,56 @@ export const events = sqliteTable(
     index('events_date_idx').on(t.eventDate),
   ],
 )
+
+// ---------------------------------------------------------------------------
+// Admin UI and invites (TASKS #140). Kept in one block at the end of the file.
+// ---------------------------------------------------------------------------
+
+/** Single-use magic-link tokens. Only the SHA-256 hash of the token is stored. */
+export const adminLoginTokens = sqliteTable(
+  'admin_login_tokens',
+  {
+    tokenHash: text('token_hash').primaryKey(),
+    email: text('email').notNull(),
+    expiresAt: integer('expires_at').notNull(),
+    usedAt: integer('used_at'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('admin_login_tokens_expires_idx').on(t.expiresAt)],
+)
+
+/** Admin sessions. Only the SHA-256 hash of the cookie value is stored. */
+export const adminSessions = sqliteTable(
+  'admin_sessions',
+  {
+    sessionHash: text('session_hash').primaryKey(),
+    subject: text('subject').notNull(),
+    csrfToken: text('csrf_token').notNull(),
+    expiresAt: integer('expires_at').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index('admin_sessions_expires_idx').on(t.expiresAt)],
+)
+
+/** Fixed-window counters for admin login throttling. */
+export const adminRateLimits = sqliteTable(
+  'admin_rate_limits',
+  {
+    key: text('key').notNull(),
+    windowStart: integer('window_start').notNull(),
+    count: integer('count').notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.key, t.windowStart] })],
+)
+
+/** Email invitations created by an admin. Registration gating (TASKS #22) consumes these. */
+export const invitations = sqliteTable(
+  'invitations',
+  {
+    uuid: id(),
+    email: text('email').notNull(),
+    invitedBy: text('invited_by').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex('invitations_email_unique').on(t.email)],
+)

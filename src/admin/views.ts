@@ -18,6 +18,7 @@ a{color:var(--accent)}
 .side nav{display:flex;flex-direction:column;gap:2px}
 .side nav a{color:var(--side-fg);text-decoration:none;padding:9px 12px;border-radius:6px;font-weight:500}
 .side nav a:hover{background:rgba(255,255,255,.08);color:#fff}
+.side nav a.back{margin-top:12px;border-top:1px solid rgba(255,255,255,.12);border-radius:0 0 6px 6px}
 .side nav a.active{background:var(--side-active);color:#fff}
 .content{flex:1;min-width:0;display:flex;flex-direction:column}
 .top{background:var(--card);border-bottom:1px solid var(--line);padding:10px 24px;display:flex;align-items:center;gap:12px;min-height:56px}
@@ -96,9 +97,9 @@ export function layout(title: string, nonce: string, body: unknown, nav?: Nav) {
 ${
   nav
     ? html`<div class="shell">
-<aside class="side">${logo}<nav>${NAV_ITEMS.map(([label, href]) => html`<a href="${href}"${label === title ? raw(' class="active" aria-current="page"') : ''}>${label}</a>`)}</nav></aside>
+<aside class="side">${logo}<nav>${NAV_ITEMS.map(([label, href]) => html`<a href="${href}"${label === title ? raw(' class="active" aria-current="page"') : ''}>${label}</a>`)}<a class="back" href="/#/vault">Back to vault</a></nav></aside>
 <div class="content">
-<header class="top"><span class="title">${title}</span><span class="who">${nav.subject}</span>
+<header class="top"><span class="title">${title}</span><span class="who">Signed in as ${nav.subject}</span>
 <form class="inline" method="post" action="/admin/logout"><input type="hidden" name="csrf" value="${nav.csrf}"><button type="submit">Sign out</button></form></header>
 <main>${body}</main>
 </div></div>`
@@ -117,18 +118,30 @@ export const loginPage = (nonce: string, error?: string) =>
     nonce,
     html`<div>
 ${error ? html`<div class="flash" role="alert">${error}</div>` : ''}
+<div class="card"><h1>Recovery sign-in</h1>
+<p class="muted">For when no admin can sign in to the web vault. Normal admin access is through the vault: <a href="/#/login">sign in</a> and choose Instance admin.</p></div>
 <div class="card"><h1>Email me a sign-in link</h1>
-<form method="post" action="/admin/login/magic">
+<form method="post" action="/admin/recovery/magic-link">
 <label for="email">Email address</label>
 <input id="email" type="email" name="email" autocomplete="email" required>
 <p><button class="primary" type="submit">Send link</button></p>
 </form></div>
 <div class="card"><h1>Admin token</h1>
-<form method="post" action="/admin/login/token">
+<form method="post" action="/admin/recovery/token">
 <label for="token">Token</label>
 <input id="token" type="password" name="token" autocomplete="current-password" required>
 <p><button class="primary" type="submit">Sign in</button></p>
 </form></div></div>`,
+  )
+
+export const landingPage = (nonce: string) =>
+  layout(
+    'Sign in',
+    nonce,
+    html`<div class="card"><h1>Admin sign-in</h1>
+<p>Instance admins sign in with their normal vault account. Sign in to the web vault, then choose <b>Instance admin</b> in the side navigation.</p>
+<p><a class="btn" href="/#/login">Go to the web vault</a></p>
+<p class="muted">Locked out? Use <a href="/admin/recovery">recovery sign-in</a>.</p></div>`,
   )
 
 export const linkSentPage = (nonce: string) =>
@@ -137,7 +150,7 @@ export const linkSentPage = (nonce: string) =>
     nonce,
     html`<div class="card"><h1>Check your email</h1>
 <p>If that address is an admin, a link was sent. It works once and expires in 15 minutes.</p>
-<p><a href="/admin">Back</a></p></div>`,
+<p><a href="/admin/recovery">Back</a></p></div>`,
   )
 
 export const magicConfirmPage = (nonce: string, token: string) =>
@@ -146,7 +159,7 @@ export const magicConfirmPage = (nonce: string, token: string) =>
     nonce,
     html`<div class="card"><h1>Confirm sign-in</h1>
 <p>Press the button to finish signing in to the admin area.</p>
-<form method="post" action="/admin/magic"><input type="hidden" name="token" value="${token}">
+<form method="post" action="/admin/recovery/magic"><input type="hidden" name="token" value="${token}">
 <button class="primary" type="submit">Sign in</button></form></div>`,
   )
 

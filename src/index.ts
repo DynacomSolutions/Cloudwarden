@@ -3,6 +3,7 @@ import type { Env } from './env'
 import { securityHeaders } from './middleware'
 import { admin } from './routes/admin'
 import { alive } from './routes/alive'
+import { appId } from './routes/app-id'
 import { config } from './routes/config'
 import { prelogin } from './routes/prelogin'
 import { stubs } from './routes/stubs'
@@ -12,6 +13,7 @@ const app = new Hono<Env>()
 app.use('*', securityHeaders)
 
 app.route('/', alive)
+app.route('/', appId)
 app.route('/', config)
 app.route('/', prelogin)
 app.route('/', stubs)

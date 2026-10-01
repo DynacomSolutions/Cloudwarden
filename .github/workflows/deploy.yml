@@ -48,6 +48,8 @@ jobs:
           pnpm check:identifiers
       - name: Apply D1 migrations
         run: pnpm exec cf d1 migrations apply "$CF_D1_DATABASE_ID" --dir migrations
+      - name: Fetch web vault
+        run: pnpm web-vault:fetch
       - name: Deploy Worker
         run: pnpm exec cf deploy
       - name: Smoke check

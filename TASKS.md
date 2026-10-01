@@ -109,7 +109,7 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 | 140 | Admin UI behind `ADMIN_ENABLED`: magic-link (`ADMIN_EMAILS`) and hashed `ADMIN_TOKEN_HASH` login; users, orgs, invites, diagnostics. See `docs/admin.md` | done | agent | Disabled returns 404; enabled requires login. Tests in `test/admin-ui.test.ts` |
 | 141 | Email transport: Cloudflare Email Service `EMAIL` binding (legacy `EmailMessage` fallback), `MAIL_FROM`, no-op when unbound, templates in `src/email/` | done | agent | Fake-transport tests green; other HTTP providers not implemented |
 | 142 | Icon proxy with SSRF protection and Cache API | todo | | Private and link-local targets refused |
-| 143 | Serve the Bitwarden web vault via Workers static assets (build-time fetch, integrity check, licence notice) | todo | | Web vault loads and logs in |
+| 143 | Serve the Bitwarden web vault via Workers static assets (build-time fetch, integrity check, licence notice) | done | agent | `pnpm web-vault:fetch` pins and verifies the official image (docs/web-vault.md); worker-first routes keep the API unshadowed; browser login not yet exercised end to end |
 
 ## Phase 8: Operations
 

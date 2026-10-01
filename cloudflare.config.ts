@@ -12,6 +12,24 @@ export default defineConfig({
     compatibilityFlags: ['nodejs_compat'],
     entrypoint: 'src/index.ts',
     ...(domain ? { domains: [domain] } : {}),
+    // Official Bitwarden web vault, populated by `pnpm web-vault:fetch` (TASKS #143). Vite copies
+    // `web-vault/` (its publicDir) into the client build output, which is what gets deployed.
+    assets: {
+      htmlHandling: 'auto-trailing-slash',
+      notFoundHandling: 'single-page-application',
+      // The Worker handles API, auth, admin, push, icon, events and health routes first, so a
+      // static file can never shadow them.
+      runWorkerFirst: [
+        '/api/*',
+        '/identity/*',
+        '/admin*',
+        '/notifications/*',
+        '/icons/*',
+        '/events/*',
+        '/alive',
+        '/app-id.json',
+      ],
+    },
     env: {
       DOMAIN: bindings.text(domain ? `https://${domain}` : 'https://vault.example.com'),
       SIGNUPS_ALLOWED: bindings.text(env.SIGNUPS_ALLOWED || 'false'),

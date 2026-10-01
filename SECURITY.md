@@ -4,9 +4,7 @@
 
 If you have discovered a security vulnerability in Cloudwarden, please report it responsibly.
 
-Once public, use GitHub's private vulnerability reporting feature via the Security tab to report privately. Until then, report privately to the maintainers through the organisation.
-
-Do not open a public issue or discussion for security vulnerabilities.
+Report vulnerabilities privately to the maintainers. Do not open public issues. A private reporting channel will be published when the repository goes public.
 
 ## Scope
 

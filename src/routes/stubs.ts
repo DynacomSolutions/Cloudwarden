@@ -6,9 +6,6 @@ export const stubs = new Hono<Env>()
 const notImplemented = (c: import('hono').Context<Env>) =>
   c.json({ message: 'Not implemented' }, 501)
 
-// TODO(TASKS #1): authentication (password grant, refresh, 2FA)
-stubs.post('/identity/connect/token', notImplemented)
-
 // TODO(TASKS #2): full vault sync
 stubs.get('/api/sync', notImplemented)
 

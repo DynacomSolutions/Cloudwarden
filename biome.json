@@ -18,5 +18,8 @@
     "formatter": { "quoteStyle": "single", "semicolons": "asNeeded", "trailingCommas": "all" }
   },
   "linter": { "enabled": true, "rules": { "preset": "recommended" } },
+  "overrides": [
+    { "includes": ["test/**"], "linter": { "rules": { "suspicious": { "noExplicitAny": "off" } } } }
+  ],
   "assist": { "actions": { "source": { "organizeImports": "on" } } }
 }

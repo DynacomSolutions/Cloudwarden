@@ -37,16 +37,16 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 
 | # | Task | Status | Owner | Acceptance |
 |---|---|---|---|---|
-| 20 | Decide server-side password hashing (Workers PBKDF2 caps at 100k iterations; options: capped PBKDF2, WASM Argon2id, pure-JS PBKDF2 for imports). Measure CPU time | todo | | ADR written with benchmark numbers |
-| 21 | `POST /identity/accounts/prelogin` and `/api/accounts/prelogin` backed by D1 | todo | | Returns stored KDF settings; unknown users get defaults (no enumeration) |
-| 22 | Registration (`/identity/accounts/register`, `register/finish`) gated by `SIGNUPS_ALLOWED` and invites | todo | | Official client can create an account |
-| 23 | Token endpoint: `password` grant, `refresh_token` grant, `client_credentials` (API key) | todo | | Browser extension, desktop and CLI can log in and refresh |
-| 24 | JWT signing and key management (algorithm choice, rotation, `JWT_SECRET` handling) | todo | | Tokens validate; rotation documented |
-| 25 | Devices: register, list, known-device check, trust, deactivate | todo | | Device list matches clients |
-| 26 | Account: profile, change password, change email, KDF change, key rotation (atomic via `db.batch`) | todo | | Key rotation is all-or-nothing under test |
-| 27 | Security stamp and session invalidation on credential change | todo | | Old tokens rejected after password change |
-| 28 | Account deletion and recovery-code flows | todo | | |
-| 29 | Rate limiting on login, prelogin and 2FA (Workers Rate Limiting binding) | todo | | Exceeding limit returns 429 |
+| 20 | Decide server-side password hashing (Workers PBKDF2 caps at 100k iterations; options: capped PBKDF2, WASM Argon2id, pure-JS PBKDF2 for imports). Measure CPU time | done | | ADR written with benchmark numbers |
+| 21 | `POST /identity/accounts/prelogin` and `/api/accounts/prelogin` backed by D1 | done | | Returns stored KDF settings; unknown users get defaults (no enumeration) |
+| 22 | Registration (`/identity/accounts/register`, `register/finish`) gated by `SIGNUPS_ALLOWED` and invites | done | | Official client can create an account |
+| 23 | Token endpoint: `password` grant, `refresh_token` grant, `client_credentials` (API key) | done | | Browser extension, desktop and CLI can log in and refresh |
+| 24 | JWT signing and key management (algorithm choice, rotation, `JWT_SECRET` handling) | done | | Tokens validate; rotation documented |
+| 25 | Devices: register, list, known-device check, trust, deactivate | done | | Device list matches clients |
+| 26 | Account: profile, change password, change email, KDF change, key rotation (atomic via `db.batch`) | done | | Key rotation is all-or-nothing under test |
+| 27 | Security stamp and session invalidation on credential change | done | | Old tokens rejected after password change |
+| 28 | Account deletion and recovery-code flows | done | | |
+| 29 | Rate limiting on login, prelogin and 2FA (Workers Rate Limiting binding) | done | | Exceeding limit returns 429 |
 
 ## Phase 2: Vault data
 
@@ -148,6 +148,11 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 Newest first. One line per verified fact.
 
 - 2026-10-01 · #140, #141 · `pnpm lint`, `pnpm typecheck`, `pnpm test` (32 tests, 6 files), `pnpm check:identifiers` green on branch `feat/admin`; migration `0002_admin`.
+- 2026-10-01 · #20 to #29 · Branch `feat/identity`: `pnpm lint`, `pnpm typecheck`, `pnpm test` (60 tests across 12 files) and `pnpm check:identifiers` green. Covers register, prelogin, password, refresh and API-key grants, devices, profile, password, KDF, email, key rotation (all-or-nothing) and deletion, stamp invalidation of access and refresh tokens, and 429 limiting.
+- 2026-10-01 · #20 · PBKDF2-SHA256 at 100000 iterations measured at about 15 ms median (Node 22); see ADR 0002. Production timing to be re-measured after deploy.
+- 2026-10-01 · #29 · `LOGIN_LIMITER` declared through `bindings.rateLimit` in `cloudflare.config.ts` (20 requests per 60 s per client address); the limiter is skipped when the binding is absent and tested with a stub binding.
+- 2026-10-01 · #28 · Recovery-code flows depend on two-factor (Phase 6) and are not implemented; account deletion is. Attachment and Send blob cleanup is deferred to #80.
+
 - 2026-10-01 · #13 · PR #2: all 9 jobs on `k3s-runners` green (Lint, Typecheck, Test, Identifier Check, Commit Lint, CI Status, Gitleaks full history, Lint Actions, Zizmor) plus Dependabot config validation. `pnpm/action-setup` held at v4 because v5+ needs libatomic, absent from the runner image.
 - 2026-10-01 · #13 · GitHub secret scanning and push protection disabled via API (owner decision: no GitHub Advanced Security features).
 - 2026-10-01 · #8 · Ruleset active on the default branch: no deletion, no force push, linear history, signed commits, PR required (squash only, threads resolved), `CI Status` required and up to date. Admin bypass only through a PR. Main commits show as verified on GitHub.

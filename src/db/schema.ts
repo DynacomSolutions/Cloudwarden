@@ -1,7 +1,7 @@
 import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core'
 
 // Conventions: text UUID primary keys, integer timestamps in epoch milliseconds,
-// booleans as integer 0/1. Modelled on Vaultwarden's schema; it will evolve.
+// booleans as integer 0/1. Derived from the Bitwarden API contract (TASKS #14); it will evolve.
 
 const id = () => text('uuid').primaryKey()
 const createdAt = () => integer('created_at').notNull()

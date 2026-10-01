@@ -35,7 +35,7 @@ Cloudwarden is a single Cloudflare Worker that implements the Bitwarden server A
 ## Principles
 
 1. **The server never sees plaintext.** Vault data is encrypted client-side. The server stores and returns opaque strings. Never log request bodies.
-2. **Behavioural compatibility over reinvention.** The Bitwarden clients define the contract. Vaultwarden's observable behaviour is the reference when Bitwarden's own server and Vaultwarden differ.
+2. **Built from the contract.** The Bitwarden API contract (`docs/api/openapi.yaml`, TASKS #14) is the single source of truth. No code or logic is ported from other server implementations.
 3. **Everything optional is off by default.** Signups, admin UI, icon proxy, web vault, email and push are opt-in via configuration.
 4. **No identifying data in the repository.** Real hosts, IDs and secrets live only in deploy-time configuration and secrets. See `CONTRIBUTING.md`.
 

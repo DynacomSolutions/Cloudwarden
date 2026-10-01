@@ -69,6 +69,8 @@ tags:
   description: Real-time push over a SignalR WebSocket hub. Served under `/notifications`.
 - name: Icons
   description: Website favicon service. Served under `/icons`.
+- name: x-cloudwarden
+  description: 'Cloudwarden extensions, not part of the Bitwarden API: the admin JSON API under `/api/cloudwarden`. Admin routes need a vault access token whose account address is listed in `ADMIN_EMAILS` with `ADMIN_ENABLED` true, otherwise 403. Responses are `no-store`, camelCase, and rate limited per admin (120 per minute).'
 paths:
   /api/accounts:
     delete:
@@ -5656,6 +5658,344 @@ paths:
       - hubAccessToken: []
       x-source-version: web-v2026.9.1
       x-source-file: libs/common/src/platform/server-notifications/internal/signalr-connection.service.ts
+  /api/cloudwarden/me:
+    get:
+      tags:
+      - x-cloudwarden
+      operationId: cloudwardenMe
+      summary: Current user admin status
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CloudwardenMe'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/cloudwarden/admin/overview:
+    get:
+      tags:
+      - x-cloudwarden
+      operationId: adminOverview
+      summary: Counts, version and configuration flags
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminOverview'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/cloudwarden/admin/diagnostics:
+    get:
+      tags:
+      - x-cloudwarden
+      operationId: adminDiagnostics
+      summary: Storage and configuration diagnostics
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminDiagnostics'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/cloudwarden/admin/users:
+    get:
+      tags:
+      - x-cloudwarden
+      operationId: adminListUsers
+      summary: List users, newest first
+      parameters:
+      - name: page
+        in: query
+        description: 1-based page number.
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: pageSize
+        in: query
+        description: Rows per page, at most 100.
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUserList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/cloudwarden/admin/users/{id}/disable:
+    post:
+      tags:
+      - x-cloudwarden
+      operationId: adminDisableUser
+      summary: Disable a user (not yourself)
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: User id.
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Success, empty body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/cloudwarden/admin/users/{id}/enable:
+    post:
+      tags:
+      - x-cloudwarden
+      operationId: adminEnableUser
+      summary: Enable a user
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: User id.
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Success, empty body.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/cloudwarden/admin/users/{id}/deauthorize:
+    post:
+      tags:
+      - x-cloudwarden
+      operationId: adminDeauthorizeUser
+      summary: Sign a user out everywhere
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: User id.
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Success, empty body.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/cloudwarden/admin/users/{id}/remove-2fa:
+    post:
+      tags:
+      - x-cloudwarden
+      operationId: adminRemoveTwoFactor
+      summary: Remove all two-factor providers of a user and sign them out
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: User id.
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Success, empty body.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/cloudwarden/admin/users/{id}:
+    delete:
+      tags:
+      - x-cloudwarden
+      operationId: adminDeleteUser
+      summary: Delete a user and their data. Refuses your own account and the sole owner of an organization
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: User id.
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Success, empty body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/cloudwarden/admin/invitations:
+    get:
+      tags:
+      - x-cloudwarden
+      operationId: adminListInvitations
+      summary: List invitations
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminInvitationList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags:
+      - x-cloudwarden
+      operationId: adminCreateInvitation
+      summary: Record and email an invitation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminInvitationRequest'
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminInvitation'
+        '200':
+          description: The address was already invited.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminInvitation'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/cloudwarden/admin/invitations/{email}:
+    delete:
+      tags:
+      - x-cloudwarden
+      operationId: adminDeleteInvitation
+      summary: Delete an invitation
+      parameters:
+      - name: email
+        in: path
+        required: true
+        description: URL-encoded email address.
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Success, empty body.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/cloudwarden/admin/organizations:
+    get:
+      tags:
+      - x-cloudwarden
+      operationId: adminListOrganizations
+      summary: List organizations
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminOrganizationList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/cloudwarden/admin/organizations/{id}:
+    delete:
+      tags:
+      - x-cloudwarden
+      operationId: adminDeleteOrganization
+      summary: Delete an organization, its collections and shared items (members are kept)
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Organization id.
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Success, empty body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
 components:
   securitySchemes:
     bearerAuth:
@@ -10813,3 +11153,280 @@ components:
       - endpoint
       - p256dh
       - auth
+    CloudwardenMe:
+      type: object
+      description: Whether the bearer may use the admin API.
+      properties:
+        isAdmin:
+          type: boolean
+        email:
+          type: string
+      required:
+      - isAdmin
+      - email
+    AdminServerConfig:
+      type: object
+      description: Server version and configuration flags (never secret values).
+      properties:
+        version:
+          type: string
+        domain:
+          type: string
+        signupsAllowed:
+          type: boolean
+        adminEnabled:
+          type: boolean
+        emailConfigured:
+          type: boolean
+        magicLinkAdminsConfigured:
+          type: boolean
+        adminTokenConfigured:
+          type: boolean
+        jwtSecretConfigured:
+          type: boolean
+      required:
+      - version
+      - domain
+      - signupsAllowed
+      - adminEnabled
+      - emailConfigured
+      - magicLinkAdminsConfigured
+      - adminTokenConfigured
+      - jwtSecretConfigured
+    AdminCounts:
+      type: object
+      description: Row counts.
+      properties:
+        users:
+          type: integer
+        organizations:
+          type: integer
+        ciphers:
+          type: integer
+        sends:
+          type: integer
+      required:
+      - users
+      - organizations
+      - ciphers
+      - sends
+    AdminOverview:
+      type: object
+      description: Dashboard data.
+      properties:
+        version:
+          type: string
+        domain:
+          type: string
+        signupsAllowed:
+          type: boolean
+        adminEnabled:
+          type: boolean
+        emailConfigured:
+          type: boolean
+        magicLinkAdminsConfigured:
+          type: boolean
+        adminTokenConfigured:
+          type: boolean
+        jwtSecretConfigured:
+          type: boolean
+        counts:
+          $ref: '#/components/schemas/AdminCounts'
+      required:
+      - version
+      - domain
+      - signupsAllowed
+      - adminEnabled
+      - emailConfigured
+      - magicLinkAdminsConfigured
+      - adminTokenConfigured
+      - jwtSecretConfigured
+      - counts
+    AdminStorage:
+      type: object
+      description: Storage figures.
+      properties:
+        attachments:
+          type: integer
+        attachmentBytes:
+          type: integer
+        fileSends:
+          type: integer
+        r2Bound:
+          type: boolean
+        dbRoundTripMs:
+          type: integer
+      required:
+      - attachments
+      - attachmentBytes
+      - fileSends
+      - r2Bound
+      - dbRoundTripMs
+    AdminDiagnostics:
+      type: object
+      description: Diagnostics.
+      properties:
+        storage:
+          $ref: '#/components/schemas/AdminStorage'
+        server:
+          $ref: '#/components/schemas/AdminServerConfig'
+        pendingInvitations:
+          type: integer
+        activeAdminSessions:
+          type: integer
+      required:
+      - storage
+      - server
+      - pendingInvitations
+      - activeAdminSessions
+    AdminTwoFactorProvider:
+      type: object
+      description: An enabled second factor.
+      properties:
+        type:
+          type: integer
+        name:
+          type: string
+      required:
+      - type
+      - name
+    AdminUser:
+      type: object
+      description: A user row.
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        lastActive:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        itemCount:
+          type: integer
+        twoFactorProviders:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminTwoFactorProvider'
+        enabled:
+          type: boolean
+        emailVerified:
+          type: boolean
+      required:
+      - id
+      - email
+      - name
+      - createdAt
+      - lastActive
+      - itemCount
+      - twoFactorProviders
+      - enabled
+      - emailVerified
+    AdminUserList:
+      type: object
+      description: One page of users.
+      properties:
+        object:
+          type: string
+          const: list
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminUser'
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        total:
+          type: integer
+        hasMore:
+          type: boolean
+      required:
+      - object
+      - data
+      - page
+      - pageSize
+      - total
+      - hasMore
+    AdminInvitationRequest:
+      type: object
+      description: Invitation to create.
+      properties:
+        email:
+          type: string
+      required:
+      - email
+    AdminInvitation:
+      type: object
+      description: An invitation.
+      properties:
+        email:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        emailStatus:
+          type: string
+          enum:
+          - sent
+          - not-configured
+          - failed
+          description: Present on create only.
+      required:
+      - email
+      - createdAt
+    AdminInvitationList:
+      type: object
+      description: Invitations.
+      properties:
+        object:
+          type: string
+          const: list
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminInvitation'
+      required:
+      - object
+      - data
+    AdminOrganization:
+      type: object
+      description: An organization row.
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        memberCount:
+          type: integer
+        itemCount:
+          type: integer
+      required:
+      - id
+      - name
+      - createdAt
+      - memberCount
+      - itemCount
+    AdminOrganizationList:
+      type: object
+      description: Organizations.
+      properties:
+        object:
+          type: string
+          const: list
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminOrganization'
+      required:
+      - object
+      - data

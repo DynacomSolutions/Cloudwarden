@@ -2,11 +2,10 @@ import { type Context, Hono } from 'hono'
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import { html } from 'hono/html'
 import { authenticateAccessToken } from '../auth/middleware'
-import { isReservedBlobKey } from '../blob-keys'
-import { createEmailTransport, type EmailTransport, inviteEmail, magicLinkEmail } from '../email'
+import { createEmailTransport, type EmailTransport, magicLinkEmail } from '../email'
 import type { Bindings } from '../env'
+import { ApiError } from '../errors'
 import { log } from '../log'
-import { SERVER_VERSION } from '../routes/config'
 import {
   isAdminEmail,
   isPlausibleEmail,
@@ -17,6 +16,23 @@ import {
   sha256Hex,
   verifyAdminToken,
 } from './security'
+import {
+  type Audit,
+  createInvitation,
+  deauthorizeUser,
+  deleteOrganization,
+  deleteUser,
+  diagnostics,
+  listInvitations,
+  listOrganizations,
+  listUsers,
+  overviewCounts,
+  parseTfa,
+  removeTwoFactor,
+  serverConfig,
+  setUserEnabled,
+  tfaName,
+} from './service'
 import {
   badge,
   confirmPage,
@@ -39,14 +55,6 @@ const VAULT_SESSION_TTL_MS = 3600_000
 const WINDOW_MS = 15 * 60_000
 const COOKIE = 'cw_admin'
 const PAGE_SIZE = 50
-const TFA_NAMES: Record<number, string> = {
-  0: 'Authenticator',
-  1: 'Email',
-  2: 'Duo',
-  3: 'YubiKey',
-  6: 'Duo (organisation)',
-  7: 'Passkey',
-}
 
 interface Session {
   hash: string
@@ -73,6 +81,8 @@ const MESSAGES: Record<string, string> = {
   'invited-nomail': 'Invitation recorded. No email transport is configured, so nothing was sent.',
   'invite-failed': 'Invitation recorded, but the email could not be sent.',
   'invite-bad': 'Enter a valid email address.',
+  'sole-owner':
+    'That user is the only owner of an organisation. Transfer ownership or delete the organisation first.',
 }
 
 const base = (env: Bindings) => env.DOMAIN.replace(/\/+$/, '')
@@ -269,14 +279,7 @@ export function createAdmin(deps: AdminDeps = {}) {
     const session = await loadSession(c)
     if (!session) return c.html(landingPage(c.get('nonce')))
     c.set('session', session)
-    const db = c.env.DB
-    const count = async (sql: string) => (await db.prepare(sql).first<{ n: number }>())?.n ?? 0
-    const [users, orgs, ciphers, sends] = await Promise.all([
-      count('SELECT COUNT(*) AS n FROM users'),
-      count('SELECT COUNT(*) AS n FROM organizations'),
-      count('SELECT COUNT(*) AS n FROM ciphers'),
-      count('SELECT COUNT(*) AS n FROM sends'),
-    ])
+    const { users, organizations: orgs, ciphers, sends } = await overviewCounts(c.env.DB)
     return page(
       c,
       'Dashboard',
@@ -293,17 +296,16 @@ ${kvTable(await serverRows(c))}`,
   })
 
   async function serverRows(c: Ctx): Promise<[string, string | number | boolean][]> {
-    const env = c.env
-    const transport = transportFor(env)
+    const cfg = serverConfig(c.env, transportFor(c.env))
     return [
-      ['Version', SERVER_VERSION],
-      ['Domain', env.DOMAIN],
-      ['Signups allowed', env.SIGNUPS_ALLOWED === 'true'],
-      ['Admin UI enabled', env.ADMIN_ENABLED === 'true'],
-      ['Email transport configured', transport.configured],
-      ['Magic-link admins configured', Boolean(env.ADMIN_EMAILS?.trim())],
-      ['Admin token configured', Boolean(env.ADMIN_TOKEN_HASH)],
-      ['JWT secret configured', Boolean(env.JWT_SECRET)],
+      ['Version', cfg.version],
+      ['Domain', cfg.domain],
+      ['Signups allowed', cfg.signupsAllowed],
+      ['Admin UI enabled', cfg.adminEnabled],
+      ['Email transport configured', cfg.emailConfigured],
+      ['Magic-link admins configured', cfg.magicLinkAdminsConfigured],
+      ['Admin token configured', cfg.adminTokenConfigured],
+      ['JWT secret configured', cfg.jwtSecretConfigured],
     ]
   }
 
@@ -429,42 +431,16 @@ ${kvTable(await serverRows(c))}`,
   // Users ---------------------------------------------------------------
   app.get('/admin/users', async (c) => {
     const pageNo = Math.max(1, Number(c.req.query('page')) || 1)
-    const { results } = await c.env.DB.prepare(
-      `SELECT u.uuid, u.email, u.name, u.created_at, u.enabled,
-        (SELECT MAX(d.updated_at) FROM devices d WHERE d.user_uuid = u.uuid) AS last_active,
-        (SELECT COUNT(*) FROM ciphers x WHERE x.user_uuid = u.uuid) AS items,
-        (SELECT GROUP_CONCAT(t.atype) FROM twofactor t WHERE t.user_uuid = u.uuid AND t.enabled = 1 AND t.atype != 8) AS tfa
-       FROM users u ORDER BY u.created_at DESC LIMIT ?1 OFFSET ?2`,
-    )
-      .bind(PAGE_SIZE + 1, (pageNo - 1) * PAGE_SIZE)
-      .all<{
-        uuid: string
-        email: string
-        name: string
-        created_at: number
-        enabled: number
-        last_active: number | null
-        items: number
-        tfa: string | null
-      }>()
-    const rows = results.slice(0, PAGE_SIZE)
+    const { rows, hasMore } = await listUsers(c.env.DB, pageNo, PAGE_SIZE)
     const csrf = c.get('session').csrf
     const act = (uuid: string, action: string, label: string) =>
       html`<form class="inline" method="post" action="/admin/users/${uuid}/${action}"><input type="hidden" name="csrf" value="${csrf}"><button class="sm" type="submit">${label}</button></form>`
-    const providers = (tfa: string | null) =>
-      tfa
-        ? tfa
-            .split(',')
-            .map((n) => TFA_NAMES[Number(n)] ?? `Type ${n}`)
-            .join(', ')
-        : ''
+    const providers = (tfa: string | null) => parseTfa(tfa).map(tfaName).join(', ')
     const tfaCell = (tfa: string | null) =>
       tfa
         ? html`${badge('ok', '2FA on')} <span class="muted">${providers(tfa)}</span>`
         : badge('off', '2FA off')
-    const { results: invites } = await c.env.DB.prepare(
-      'SELECT email, created_at FROM invitations ORDER BY created_at DESC LIMIT 50',
-    ).all<{ email: string; created_at: number }>()
+    const invites = await listInvitations(c.env.DB)
     return page(
       c,
       'Users',
@@ -478,7 +454,7 @@ ${rows.map(
 <td><div class="actions">${u.enabled ? act(u.uuid, 'disable', 'Disable') : act(u.uuid, 'enable', 'Enable')}${act(u.uuid, 'deauth', 'Deauthorise sessions')}${u.tfa ? html`<a class="btn sm" href="/admin/users/${u.uuid}/remove-2fa">Remove 2FA</a>` : ''}<a class="btn sm danger" href="/admin/users/${u.uuid}/delete">Delete</a></div></td></tr>`,
 )}
 </tbody></table></div>
-<p>${pageNo > 1 ? html`<a href="/admin/users?page=${pageNo - 1}">Previous</a> ` : ''}${results.length > PAGE_SIZE ? html`<a href="/admin/users?page=${pageNo + 1}">Next</a>` : ''}</p>
+<p>${pageNo > 1 ? html`<a href="/admin/users?page=${pageNo - 1}">Previous</a> ` : ''}${hasMore ? html`<a href="/admin/users?page=${pageNo + 1}">Next</a>` : ''}</p>
 <div class="card"><h2>Invite a user</h2>
 <form method="post" action="/admin/users/invite"><input type="hidden" name="csrf" value="${csrf}">
 <label for="invite-email">Email address</label><input id="invite-email" type="email" name="email" required>
@@ -491,19 +467,21 @@ ${
     )
   })
 
-  const setEnabled = (enabled: 0 | 1, msg: string) => async (c: Ctx) => {
-    await c.env.DB.prepare('UPDATE users SET enabled = ?1, updated_at = ?2 WHERE uuid = ?3')
-      .bind(enabled, now(), c.req.param('id'))
-      .run()
+  // The HTML admin session carries no user id, so its events have no acting user.
+  const auditOf = (c: Ctx): Audit => ({
+    actor: null,
+    ipAddress: c.req.header('CF-Connecting-IP') ?? null,
+    now: now(),
+  })
+  const setEnabled = (enabled: boolean, msg: string) => async (c: Ctx) => {
+    await setUserEnabled(c.env.DB, c.req.param('id') ?? '', enabled, auditOf(c))
     return c.redirect(`/admin/users?m=${msg}`, 303)
   }
-  app.post('/admin/users/:id/disable', setEnabled(0, 'disabled'))
-  app.post('/admin/users/:id/enable', setEnabled(1, 'enabled'))
+  app.post('/admin/users/:id/disable', setEnabled(false, 'disabled'))
+  app.post('/admin/users/:id/enable', setEnabled(true, 'enabled'))
 
   app.post('/admin/users/:id/deauth', async (c) => {
-    await c.env.DB.prepare('UPDATE users SET security_stamp = ?1, updated_at = ?2 WHERE uuid = ?3')
-      .bind(crypto.randomUUID(), now(), c.req.param('id'))
-      .run()
+    await deauthorizeUser(c.env.DB, c.req.param('id') ?? '', auditOf(c))
     return c.redirect('/admin/users?m=deauth', 303)
   })
 
@@ -511,24 +489,15 @@ ${
     const body = await c.req.parseBody()
     const email = normaliseEmail(body.email)
     if (!isPlausibleEmail(email)) return c.redirect('/admin/users?m=invite-bad', 303)
-    await c.env.DB.prepare(
-      `INSERT INTO invitations (uuid, email, invited_by, created_at) VALUES (?1, ?2, ?3, ?4)
-       ON CONFLICT (email) DO NOTHING`,
+    const { mail } = await createInvitation(
+      c.env,
+      email,
+      c.get('session').subject,
+      auditOf(c),
+      transportFor(c.env),
     )
-      .bind(crypto.randomUUID(), email, c.get('session').subject, now())
-      .run()
-    const transport = transportFor(c.env)
-    if (!transport.configured) return c.redirect('/admin/users?m=invited-nomail', 303)
-    try {
-      await transport.send({
-        to: email,
-        ...inviteEmail(`${base(c.env)}/#/signup?email=${encodeURIComponent(email)}`),
-      })
-    } catch {
-      log('error', 'admin.invite_delivery_failed', {}, c.env)
-      return c.redirect('/admin/users?m=invite-failed', 303)
-    }
-    return c.redirect('/admin/users?m=invited', 303)
+    const code = { 'not-configured': 'invited-nomail', failed: 'invite-failed', sent: 'invited' }
+    return c.redirect(`/admin/users?m=${code[mail]}`, 303)
   })
 
   app.get('/admin/users/:id/remove-2fa', async (c) => {
@@ -551,16 +520,7 @@ ${
   })
 
   app.post('/admin/users/:id/remove-2fa', async (c) => {
-    const id = c.req.param('id')
-    await c.env.DB.batch([
-      c.env.DB.prepare('DELETE FROM twofactor WHERE user_uuid = ?1').bind(id),
-      c.env.DB.prepare('UPDATE devices SET twofactor_remember = NULL WHERE user_uuid = ?1').bind(
-        id,
-      ),
-      c.env.DB.prepare(
-        'UPDATE users SET totp_recover = NULL, security_stamp = ?2, updated_at = ?3 WHERE uuid = ?1',
-      ).bind(id, crypto.randomUUID(), now()),
-    ])
+    await removeTwoFactor(c.env.DB, c.req.param('id'), auditOf(c))
     return c.redirect('/admin/users?m=2fa-removed', 303)
   })
 
@@ -583,29 +543,18 @@ ${
   })
 
   app.post('/admin/users/:id/delete', async (c) => {
-    const id = c.req.param('id')
-    const { results } = await c.env.DB.prepare(
-      `SELECT a.r2_key AS k FROM attachments a JOIN ciphers c ON c.uuid = a.cipher_uuid WHERE c.user_uuid = ?1
-       UNION SELECT r2_key FROM sends WHERE user_uuid = ?1 AND r2_key IS NOT NULL`,
-    )
-      .bind(id)
-      .all<{ k: string }>()
-    await deleteBlobs(
-      c.env,
-      results.map((r) => r.k),
-    )
-    await c.env.DB.prepare('DELETE FROM users WHERE uuid = ?1').bind(id).run()
+    try {
+      await deleteUser(c.env, c.req.param('id'), auditOf(c))
+    } catch (e) {
+      if (e instanceof ApiError) return c.redirect('/admin/users?m=sole-owner', 303)
+      throw e
+    }
     return c.redirect('/admin/users?m=deleted', 303)
   })
 
   // Organisations -------------------------------------------------------
   app.get('/admin/orgs', async (c) => {
-    const { results } = await c.env.DB.prepare(
-      `SELECT o.uuid, o.name, o.created_at,
-        (SELECT COUNT(*) FROM users_organizations m WHERE m.organization_uuid = o.uuid) AS members,
-        (SELECT COUNT(*) FROM ciphers x WHERE x.organization_uuid = o.uuid) AS ciphers
-       FROM organizations o ORDER BY o.created_at DESC LIMIT 200`,
-    ).all<{ uuid: string; name: string; created_at: number; members: number; ciphers: number }>()
+    const results = (await listOrganizations(c.env.DB)).map((o) => o)
     return page(
       c,
       'Organisations',
@@ -635,59 +584,33 @@ ${results.map((o) => html`<tr><td>${o.name}</td><td>${o.members}</td><td>${o.cip
   })
 
   app.post('/admin/orgs/:id/delete', async (c) => {
-    const id = c.req.param('id')
-    const { results } = await c.env.DB.prepare(
-      `SELECT a.r2_key AS k FROM attachments a JOIN ciphers c ON c.uuid = a.cipher_uuid WHERE c.organization_uuid = ?1
-       UNION SELECT r2_key FROM sends WHERE organization_uuid = ?1 AND r2_key IS NOT NULL`,
-    )
-      .bind(id)
-      .all<{ k: string }>()
-    await deleteBlobs(
-      c.env,
-      results.map((r) => r.k),
-    )
-    await c.env.DB.prepare('DELETE FROM organizations WHERE uuid = ?1').bind(id).run()
+    await deleteOrganization(c.env, c.req.param('id'), auditOf(c))
     return c.redirect('/admin/orgs?m=deleted', 303)
   })
 
   // Diagnostics ---------------------------------------------------------
   app.get('/admin/diagnostics', async (c) => {
-    const db = c.env.DB
-    const started = Date.now()
-    const one = async (sql: string) => (await db.prepare(sql).first<Record<string, number>>()) ?? {}
-    const att = await one(
-      'SELECT COUNT(*) AS n, COALESCE(SUM(file_size),0) AS bytes FROM attachments',
-    )
-    const fileSends = await one('SELECT COUNT(*) AS n FROM sends WHERE r2_key IS NOT NULL')
-    const inv = await one('SELECT COUNT(*) AS n FROM invitations')
-    const sess = await one(`SELECT COUNT(*) AS n FROM admin_sessions WHERE expires_at > ${now()}`)
-    const dbMs = Date.now() - started
+    const d = await diagnostics(c.env.DB, now())
     return page(
       c,
       'Diagnostics',
       html`<h1>Diagnostics</h1>
 <div class="card"><h2>Storage</h2></div>
 ${kvTable([
-  ['Attachments', att.n ?? 0],
-  ['Attachment bytes (recorded)', fmtBytes(att.bytes ?? 0)],
-  ['File sends', fileSends.n ?? 0],
+  ['Attachments', d.attachments],
+  ['Attachment bytes (recorded)', fmtBytes(d.attachmentBytes)],
+  ['File sends', d.fileSends],
   ['R2 bucket bound', Boolean(c.env.ATTACHMENTS)],
-  ['D1 round trips timing (ms)', dbMs],
+  ['D1 round trips timing (ms)', d.dbRoundTripMs],
 ])}
 <div class="card"><h2>Server and configuration</h2></div>
 ${kvTable([
   ...(await serverRows(c)),
-  ['Pending invitations', inv.n ?? 0],
-  ['Active admin sessions', sess.n ?? 0],
+  ['Pending invitations', d.pendingInvitations],
+  ['Active admin sessions', d.activeAdminSessions],
 ])}`,
     )
   })
-
-  async function deleteBlobs(env: Bindings, keys: string[]) {
-    const safe = keys.filter((k) => !isReservedBlobKey(k))
-    for (let i = 0; i < safe.length; i += 1000)
-      await env.ATTACHMENTS.delete(safe.slice(i, i + 1000))
-  }
 
   // Used by the injected web vault script to decide whether to show the admin link.
   app.get('/api/cloudwarden/me', async (c) => {
@@ -700,7 +623,7 @@ ${kvTable([
     const isAdmin =
       c.env.ADMIN_ENABLED === 'true' &&
       isAdminEmail(c.env.ADMIN_EMAILS, normaliseEmail(authed.user.email))
-    return c.json({ isAdmin })
+    return c.json({ isAdmin, email: authed.user.email })
   })
 
   return app

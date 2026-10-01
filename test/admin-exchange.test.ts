@@ -192,16 +192,21 @@ describe('exchanged session lifecycle', () => {
 
 describe('GET /api/cloudwarden/me', () => {
   it('reports admin status for the bearer', async () => {
-    const { token, over } = await adminSession()
+    const { email, token, over } = await adminSession()
     const res = await me(token, over)
     expect(res.status).toBe(200)
     expect(res.headers.get('cache-control')).toBe('no-store')
-    expect(await res.json()).toEqual({ isAdmin: true })
+    expect(await res.json()).toEqual({ isAdmin: true, email })
     expect(await (await me(token, { ...over, ADMIN_ENABLED: 'false' })).json()).toEqual({
       isAdmin: false,
+      email,
     })
-    const plain = await createSession(unique('plain'))
-    expect(await (await me(plain.access_token)).json()).toEqual({ isAdmin: false })
+    const plainEmail = unique('plain')
+    const plain = await createSession(plainEmail)
+    expect(await (await me(plain.access_token)).json()).toEqual({
+      isAdmin: false,
+      email: plainEmail,
+    })
   })
 
   it('requires a valid bearer', async () => {

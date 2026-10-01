@@ -361,7 +361,7 @@ describe('user and org management', () => {
     )
     expect(res.headers.get('location')).toContain('m=invited')
     expect(sent).toHaveLength(1)
-    expect(sent[0]?.text).toContain(`${ORIGIN}/#/register?email=new.user%40example.com`)
+    expect(sent[0]?.text).toContain(`${ORIGIN}/#/signup?email=new.user%40example.com`)
     const row = await env.DB.prepare('SELECT email FROM invitations').first<{ email: string }>()
     expect(row?.email).toBe('new.user@example.com')
   })

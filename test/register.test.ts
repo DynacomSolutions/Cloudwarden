@@ -223,3 +223,21 @@ it('emails the email-change code to the new address', async () => {
   expect(m.sent[0]?.to).toBe('chg2@example.com')
   expect(m.sent[0]?.text).toContain(row?.t as string)
 })
+
+it('verification-email-clicked validates the token', async () => {
+  const send = await json('/identity/accounts/register/send-verification-email', {
+    email: 'click@example.com',
+  })
+  const token = (await send.json()) as string
+  const clicked = (email: string, emailVerificationToken: string) =>
+    json('/identity/accounts/register/verification-email-clicked', {
+      email,
+      emailVerificationToken,
+    })
+  expect((await clicked('click@example.com', token)).status).toBe(200)
+  expect((await clicked('Click@Example.com', token)).status).toBe(200)
+  expect((await clicked('other@example.com', token)).status).toBe(400)
+  expect((await clicked('click@example.com', 'garbage')).status).toBe(400)
+  expect((await registerUser('click@example.com')).status).toBe(200)
+  expect((await clicked('click@example.com', token)).status).toBe(400)
+})

@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { z } from 'zod'
+import { authenticationData, checkNested, unlockData } from '../auth/credentials'
 import { signingSecret, signJwt, verifyJwt } from '../auth/jwt'
 import { hashMasterPassword } from '../auth/passwords'
 import { findUserByEmail, normalizeEmail } from '../auth/users'
@@ -9,7 +10,7 @@ import { createEmailTransport, genericEmail } from '../email'
 import type { Bindings, Env } from '../env'
 import { ApiError } from '../errors'
 import { rateLimit } from '../ratelimit'
-import { kdfProblem, parseBody } from '../validation'
+import { type KdfParams, kdfProblem, parseBody } from '../validation'
 
 export const register = new Hono<Env>()
 
@@ -54,7 +55,10 @@ const keysSchema = z.object({
 const registerSchema = z.object({
   email: z.string().email(),
   name: z.string().max(50).nullish(),
-  masterPasswordHash: z.string().min(1),
+  masterPasswordHash: z.string().min(1).nullish(),
+  // Nested shape sent by clients 2026.9 and later.
+  masterPasswordAuthentication: authenticationData.nullish(),
+  masterPasswordUnlock: unlockData.nullish(),
   masterPasswordHint: z.string().max(50).nullish(),
   // Current clients send key/keys; the finish flow sends userSymmetricKey/userAsymmetricKeys.
   key: z.string().min(1).nullish(),
@@ -86,17 +90,29 @@ async function createAccount(c: import('hono').Context<Env>) {
   }
   if (!permitted) throw new ApiError(400, 'Registration is not allowed.')
 
-  const key = body.key ?? body.userSymmetricKey
-  if (!key) throw new ApiError(400, 'The request is invalid.', { key: ['key is required'] })
   const keys = body.keys ?? body.userAsymmetricKeys
-  const problem = kdfProblem(body)
+  let key = body.key ?? body.userSymmetricKey
+  let masterPasswordHash = body.masterPasswordHash
+  let kdfSettings: KdfParams = body
+  if (body.masterPasswordAuthentication && body.masterPasswordUnlock) {
+    kdfSettings = checkNested(body.masterPasswordAuthentication, body.masterPasswordUnlock, email)
+    masterPasswordHash = body.masterPasswordAuthentication.masterPasswordAuthenticationHash
+    key = body.masterPasswordUnlock.masterKeyWrappedUserKey
+  }
+  if (!masterPasswordHash) {
+    throw new ApiError(400, 'The request is invalid.', {
+      masterPasswordHash: ['masterPasswordHash is required'],
+    })
+  }
+  if (!key) throw new ApiError(400, 'The request is invalid.', { key: ['key is required'] })
+  const problem = kdfProblem(kdfSettings)
   if (problem) throw new ApiError(400, problem)
 
   if (await findUserByEmail(db, email)) throw new ApiError(400, 'Email is already registered.')
 
   const now = Date.now()
-  const stored = await hashMasterPassword(body.masterPasswordHash)
-  const argon = body.kdf === 1
+  const stored = await hashMasterPassword(masterPasswordHash)
+  const argon = kdfSettings.kdf === 1
   try {
     // The invitation (if any) is consumed in the same batch as the account insert.
     const insert = db.insert(schema.users).values({
@@ -108,10 +124,10 @@ async function createAccount(c: import('hono').Context<Env>) {
       akey: key,
       publicKey: keys?.publicKey ?? null,
       privateKey: keys?.encryptedPrivateKey ?? null,
-      kdfType: body.kdf,
-      kdfIterations: body.kdfIterations,
-      kdfMemory: argon ? (body.kdfMemory ?? null) : null,
-      kdfParallelism: argon ? (body.kdfParallelism ?? null) : null,
+      kdfType: kdfSettings.kdf,
+      kdfIterations: kdfSettings.kdfIterations,
+      kdfMemory: argon ? (kdfSettings.kdfMemory ?? null) : null,
+      kdfParallelism: argon ? (kdfSettings.kdfParallelism ?? null) : null,
       securityStamp: crypto.randomUUID(),
       // Verified: either the address was proven by the emailed token or no mail is configured.
       verifiedAt: now,
@@ -171,5 +187,30 @@ register.post(
       ]),
     })
     return c.body(null, 204)
+  },
+)
+
+const clickedSchema = z.object({
+  email: z.string().email(),
+  emailVerificationToken: z.string().min(1),
+})
+
+// The web vault calls this when the emailed link is opened, before showing the finish form.
+register.post(
+  '/identity/accounts/register/verification-email-clicked',
+  rateLimit('register'),
+  async (c) => {
+    const body = await parseBody(c, clickedSchema)
+    const email = normalizeEmail(body.email)
+    const claims = await verifyJwt<RegisterClaims>(body.emailVerificationToken, [
+      registerSecret(c.env),
+    ])
+    if (claims?.purpose !== 'register' || claims.email !== email) {
+      throw new ApiError(400, 'Invalid or expired email verification token.')
+    }
+    if (await findUserByEmail(createDb(c.env.DB), email)) {
+      throw new ApiError(400, 'Email is already registered.')
+    }
+    return c.body(null, 200)
   },
 )

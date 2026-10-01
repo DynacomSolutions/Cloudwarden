@@ -14,13 +14,30 @@ it('password grant returns the client-expected shape', async () => {
     scope: 'api offline_access',
     Key: '2.encryptedSymmetricKey',
     PrivateKey: '2.pk',
+    AccountKeys: {
+      publicKeyEncryptionKeyPair: {
+        wrappedPrivateKey: '2.pk',
+        publicKey: 'public-key',
+        signedPublicKey: null,
+      },
+      signatureKeyPair: null,
+      securityState: null,
+    },
     Kdf: 0,
     KdfIterations: 600000,
     KdfMemory: null,
     KdfParallelism: null,
     ResetMasterPassword: false,
     ForcePasswordReset: false,
-    UserDecryptionOptions: { HasMasterPassword: true, Object: 'userDecryptionOptions' },
+    UserDecryptionOptions: {
+      HasMasterPassword: true,
+      MasterPasswordUnlock: {
+        kdf: { kdfType: 0, iterations: 600000, memory: null, parallelism: null },
+        masterKeyEncryptedUserKey: '2.encryptedSymmetricKey',
+        salt: 'shape@example.com',
+      },
+      Object: 'userDecryptionOptions',
+    },
     MasterPasswordPolicy: { Object: 'masterPasswordPolicy' },
   })
   expect(typeof body.refresh_token).toBe('string')

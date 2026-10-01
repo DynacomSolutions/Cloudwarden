@@ -144,6 +144,15 @@ it('round-trips every cipher type through sync', async () => {
   expect(list.data).toHaveLength(5)
 })
 
+it('returns the legacy data field as a JSON string', async () => {
+  const { call } = await setup('legacy-data@example.com')
+  const body = await j(await call('/api/ciphers', 'POST', login()))
+  expect(typeof body.data).toBe('string')
+  expect(JSON.parse(body.data)).toMatchObject({ username: '2.u', password: '2.p' })
+  const note2 = await j(await call('/api/ciphers', 'POST', { type: 2, name: '2.n' }))
+  expect(note2.data).toBeNull()
+})
+
 it('validates cipher bodies and ownership', async () => {
   const { call } = await setup('val@example.com')
   expect((await call('/api/ciphers', 'POST', { type: 9, name: 'x' })).status).toBe(400)

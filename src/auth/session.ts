@@ -75,6 +75,34 @@ export async function signAccessToken(
   return signJwt(claims, signingSecret(env))
 }
 
+/** Master password unlock data: KDF settings, salt and the wrapped user key (token and sync). */
+export function masterPasswordUnlockJson(user: User) {
+  return {
+    kdf: {
+      kdfType: user.kdfType,
+      iterations: user.kdfIterations,
+      memory: user.kdfMemory,
+      parallelism: user.kdfParallelism,
+    },
+    masterKeyEncryptedUserKey: user.akey,
+    salt: user.email,
+  }
+}
+
+/** V1 account keys (no signature key pair), or null while the account has no key pair yet. */
+export function accountKeysJson(user: User) {
+  if (!user.privateKey || !user.publicKey) return null
+  return {
+    publicKeyEncryptionKeyPair: {
+      wrappedPrivateKey: user.privateKey,
+      publicKey: user.publicKey,
+      signedPublicKey: null,
+    },
+    signatureKeyPair: null,
+    securityState: null,
+  }
+}
+
 /** Token endpoint success body, in the shape the official clients read. */
 export async function tokenResponse(
   env: Bindings,
@@ -95,6 +123,7 @@ export async function tokenResponse(
     scope: opts.scope.join(' '),
     Key: user.akey,
     PrivateKey: user.privateKey,
+    AccountKeys: accountKeysJson(user),
     Kdf: user.kdfType,
     KdfIterations: user.kdfIterations,
     KdfMemory: user.kdfMemory,
@@ -102,7 +131,11 @@ export async function tokenResponse(
     ResetMasterPassword: false,
     ForcePasswordReset: false,
     MasterPasswordPolicy: await masterPasswordPolicyJson(env, user.uuid),
-    UserDecryptionOptions: { HasMasterPassword: true, Object: 'userDecryptionOptions' },
+    UserDecryptionOptions: {
+      HasMasterPassword: true,
+      MasterPasswordUnlock: masterPasswordUnlockJson(user),
+      Object: 'userDecryptionOptions',
+    },
     UnofficialServer: true,
     Object: 'token',
   }

@@ -33,6 +33,22 @@ const slot = async (token: string, cipherId: string, size: number) =>
     })
   ).json()) as { attachmentId: string; url: string; fileUploadType: number; object: string }
 
+it('lists the reserved attachment in the v2 slot cipher but not yet in sync', async () => {
+  const { token, cipherId } = await setup('att-slot@example.com')
+  const res = (await (
+    await authed(`/api/ciphers/${cipherId}/attachment/v2`, token, 'POST', {
+      fileName: '2.fname',
+      key: '2.fkey',
+      fileSize: 10,
+    })
+  ).json()) as { attachmentId: string; cipherResponse: { attachments: { id: string }[] } }
+  expect(res.cipherResponse.attachments.map((a) => a.id)).toEqual([res.attachmentId])
+  const got = (await (await authed(`/api/ciphers/${cipherId}`, token)).json()) as {
+    attachments: unknown[] | null
+  }
+  expect(got.attachments ?? []).toEqual([])
+})
+
 it('round-trips an attachment through v2 upload and signed download', async () => {
   const { token, cipherId } = await setup('att1@example.com')
   const bytes = new Uint8Array(200_000).map((_, i) => i % 251)

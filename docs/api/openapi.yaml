@@ -6226,15 +6226,21 @@ components:
           - $ref: '#/components/schemas/PassportApi'
           - type: 'null'
         fields:
-          type: array
+          type:
+          - array
+          - 'null'
           items:
             $ref: '#/components/schemas/FieldApi'
         attachments:
-          type: array
+          type:
+          - array
+          - 'null'
           items:
             $ref: '#/components/schemas/AttachmentResponse'
         passwordHistory:
-          type: array
+          type:
+          - array
+          - 'null'
           items:
             $ref: '#/components/schemas/PasswordHistoryApi'
         data:
@@ -9458,8 +9464,10 @@ components:
           - string
           - 'null'
         server:
-          type: object
-          description: Third party server, present only for hosted deployments.
+          type:
+          - object
+          - 'null'
+          description: Third party server, present only for hosted deployments; null otherwise.
           properties:
             name:
               type: string

@@ -89,3 +89,6 @@ export function notifyUser(c: Ctx, type: PushType, revision: number): void {
     ),
   )
 }
+
+/** Send create, update and delete share the folder payload shape. */
+export const notifySend = notifyFolder

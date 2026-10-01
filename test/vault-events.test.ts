@@ -121,3 +121,24 @@ it('does not notify for failed writes', async () => {
   expect(t.other).toHaveLength(0)
   t.close()
 })
+
+it('announces Send create, update and delete', async () => {
+  const t = await twoDevices('ev-send@example.com')
+  const send = {
+    type: 0,
+    key: '2.key',
+    name: '2.name',
+    text: { text: '2.text', hidden: false },
+    deletionDate: new Date(Date.now() + 86_400_000).toISOString(),
+    disabled: false,
+    hideEmail: false,
+  }
+  const created = await j(await t.call('/api/sends', 'POST', send))
+  expect((await t.next())[0]).toMatchObject({ Type: 12, Payload: { Id: created.id } })
+  await t.call(`/api/sends/${created.id}`, 'PUT', send)
+  expect((await t.next())[0]).toMatchObject({ Type: 13, Payload: { Id: created.id } })
+  await t.call(`/api/sends/${created.id}`, 'DELETE')
+  expect((await t.next())[0]).toMatchObject({ Type: 14, Payload: { Id: created.id } })
+  expect(t.own).toHaveLength(0)
+  t.close()
+})

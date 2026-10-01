@@ -8,6 +8,8 @@ import { errorKind, log } from './log'
 
 export const BACKUP_PREFIX = 'backups/'
 export const RETENTION_DAYS = 14
+/** Cron expression (see cloudflare.config.ts) that triggers the export; other crons skip it. */
+export const BACKUP_CRON = '17 3 * * *'
 export const PAGE_SIZE = 500
 
 /** Short-lived auth state that is useless after a restore and sensitive to keep. */
@@ -164,12 +166,4 @@ export async function runBackup(
     log('error', 'backup.failed', { errorKind: errorKind(err) })
     throw err
   }
-}
-
-export const scheduled = async (
-  controller: ScheduledController,
-  env: { DB: D1Database; ATTACHMENTS: R2Bucket },
-  ctx: ExecutionContext,
-): Promise<void> => {
-  ctx.waitUntil(runBackup(env, new Date(controller.scheduledTime)))
 }

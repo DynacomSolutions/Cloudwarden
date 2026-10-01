@@ -30,10 +30,17 @@ export default defineConfig({
         '/app-id.json',
       ],
     },
+    // Workers Logs: structured JSON lines from src/log.ts (TASKS #164), see docs/observability.md.
+    observability: {
+      enabled: true,
+      logs: { enabled: true, invocationLogs: false },
+      headSamplingRate: 1,
+    },
     env: {
       DOMAIN: bindings.text(domain ? `https://${domain}` : 'https://vault.example.com'),
       SIGNUPS_ALLOWED: bindings.text(env.SIGNUPS_ALLOWED || 'false'),
       ADMIN_ENABLED: bindings.text(env.ADMIN_ENABLED || 'false'),
+      ICONS_ENABLED: bindings.text(env.ICONS_ENABLED || 'true'),
       MAIL_FROM: bindings.text(env.MAIL_FROM || 'Cloudwarden <noreply@example.com>'),
       // Cloudflare Email Service (TASKS #141). Onboard the sending domain first.
       EMAIL: bindings.sendEmail(),
@@ -54,8 +61,13 @@ export default defineConfig({
         exportName: 'NotificationHub',
       }),
     },
-    // Hourly purge of expired Sends and orphaned blobs (TASKS #84).
-    triggers: [triggers.scheduled({ schedule: '17 * * * *' })],
+    // Hourly purge of expired Sends and orphaned blobs (TASKS #84) and a daily D1 export to R2 at
+    // 03:17 UTC (TASKS #162, see docs/backup.md). src/scheduled.ts dispatches on the cron string, so
+    // the daily expression must equal BACKUP_CRON in src/backup.ts.
+    triggers: [
+      triggers.scheduled({ schedule: '17 * * * *' }),
+      triggers.scheduled({ schedule: '17 3 * * *' }),
+    ],
     exports: {
       NotificationHub: exports.durableObject({ storage: 'sqlite' }),
     },

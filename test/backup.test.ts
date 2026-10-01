@@ -1,4 +1,5 @@
 import { env } from 'cloudflare:workers'
+import { scheduled } from '../src/scheduled'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { EXCLUDED_TABLES, exportDatabase, listTables, pruneBackups, runBackup } from '../src/backup'
 

@@ -3,6 +3,8 @@ import { env } from 'cloudflare:workers'
 import { afterEach, describe, expect, it } from 'vitest'
 import { toB64u } from '../src/auth/crypto'
 import { clock } from '../src/auth/twofactor'
+import { createDb, runBatch } from '../src/db'
+import { passkeyRotation } from '../src/routes/accounts'
 import { assert as assertion, newAuthenticator, register } from './authenticator'
 import { authed, BASE, createSession, form, json, login, type Session } from './helpers'
 
@@ -253,6 +255,24 @@ describe('credential management', () => {
     })
     expect(res.status).toBe(400)
     expect((await list(b)).data).toEqual([])
+  })
+
+  it('spends the creation token: a replay after deletion is refused', async () => {
+    const s = await createSession('pk-spent@example.com')
+    const first = await addPasskey(s, { supportsPrf: false })
+    expect(first.res.status).toBe(200)
+    const id = ((await list(s)).data[0] as any).id
+    expect((await call(s, `/api/webauthn/${id}/delete`, { masterPasswordHash: PW })).status).toBe(
+      200,
+    )
+    const replay = await call(s, '/api/webauthn', {
+      deviceResponse: first.deviceResponse,
+      name: 'again',
+      token: first.opts.token,
+      supportsPrf: false,
+    })
+    expect(replay.status).toBe(400)
+    expect((await list(s)).data).toEqual([])
   })
 
   it('limits an account to five passkeys', async () => {
@@ -708,6 +728,79 @@ describe('key rotation', () => {
       EncryptedPrivateKey: KEYS.encryptedPrivateKey,
     })
     expect(login1.body.Key).toBe('2.newkey')
+  })
+
+  it('drops every keyset on the legacy rotation endpoint', async () => {
+    const email = 'pk-rot-legacy@example.com'
+    const s = await createSession(email)
+    await addPasskey(s)
+    const res = await authed('/api/accounts/key', s.access_token, 'POST', {
+      masterPasswordHash: PW,
+      key: '2.legacykey',
+      privateKey: '2.pk2',
+      folders: [],
+      ciphers: [],
+      sends: [],
+    })
+    expect(res.status).toBe(200)
+    const fresh = (await (await login(email)).json()) as Session
+    expect(((await list(fresh)).data as any[])[0]).toMatchObject({
+      prfStatus: 1,
+      encryptedUserKey: null,
+    })
+  })
+
+  it('does not leave an old-key keyset when one is written during the rotation', async () => {
+    const email = 'pk-rot-race@example.com'
+    const s = await createSession(email)
+    const { auth } = await addPasskey(s, { supportsPrf: true, keys: null })
+    const user = await env.DB.prepare('select uuid from users where email = ?')
+      .bind(email)
+      .first<{ uuid: string }>()
+    const db = createDb(env.DB)
+    // Rotation reads the credentials (no keyset yet) and builds its statements ...
+    const statements = await passkeyRotation(db, user?.uuid as string, [])
+    // ... a concurrent PUT /api/webauthn then stores a keyset wrapping the old user key ...
+    await env.DB.prepare(
+      "update webauthn_credentials set encrypted_user_key = '4.old', encrypted_public_key = '2.old', encrypted_private_key = '2.old', updated_at = ? where user_uuid = ?",
+    )
+      .bind(Date.now() + 5, user?.uuid)
+      .run()
+    // ... and the rotation batch still removes it.
+    await runBatch(db, statements)
+    const row = await env.DB.prepare(
+      'select encrypted_user_key k from webauthn_credentials where user_uuid = ?',
+    )
+      .bind(user?.uuid)
+      .first<{ k: string | null }>()
+    expect(row?.k).toBeNull()
+    expect(auth).toBeTruthy()
+  })
+
+  it('removes a stale re-wrap when the credential changed after it was read', async () => {
+    const email = 'pk-rot-race2@example.com'
+    const s = await createSession(email)
+    await addPasskey(s)
+    const user = await env.DB.prepare('select uuid from users where email = ?')
+      .bind(email)
+      .first<{ uuid: string }>()
+    const id = ((await list(s)).data[0] as any).id
+    const db = createDb(env.DB)
+    const statements = await passkeyRotation(db, user?.uuid as string, [
+      { id, encryptedPublicKey: '2.newpub', encryptedUserKey: '4.newuser' },
+    ])
+    await env.DB.prepare(
+      "update webauthn_credentials set encrypted_user_key = '4.raced', updated_at = updated_at + 7 where uuid = ?",
+    )
+      .bind(id)
+      .run()
+    await runBatch(db, statements)
+    const row = await env.DB.prepare(
+      'select encrypted_user_key k from webauthn_credentials where uuid = ?',
+    )
+      .bind(id)
+      .first<{ k: string | null }>()
+    expect(row?.k).toBeNull()
   })
 
   it('rejects rotation naming a foreign or keyset-less passkey and changes nothing', async () => {

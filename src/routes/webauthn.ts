@@ -15,6 +15,7 @@ import {
   PASSKEY_ASSERT,
   registrationChallengeOk,
   spendAssertion,
+  spendCreateChallenge,
   verifyPasskeyAssertion,
 } from '../auth/passkeys'
 import { dig, lowerKeys, verifyIdentity } from '../auth/twofactor'
@@ -122,6 +123,7 @@ webauthn.post('/api/webauthn', requireAuth, async (c) => {
   const rows = await ownRows(c, user.uuid)
   if (rows.length >= MAX_PASSKEYS) throw new ApiError(400, 'Too many passkeys.')
 
+  const seen: { ts?: number } = {}
   let reg: Awaited<ReturnType<typeof verifyRegistration>>
   try {
     reg = await verifyRegistration({
@@ -130,33 +132,36 @@ webauthn.post('/api/webauthn', requireAuth, async (c) => {
       rpId: rpIdFor(c.env),
       origin: originFor(c.env),
       requireUv: true,
-      challengeOk: registrationChallengeOk(c.env, user.uuid, body.token),
+      challengeOk: registrationChallengeOk(c.env, user.uuid, body.token, seen),
     })
   } catch (err) {
     if (err instanceof WebAuthnError) throw new ApiError(400, 'Passkey could not be verified.')
     throw err
   }
 
+  // Single use: the creation token is spent before the credential is stored.
+  const db = createDb(c.env.DB)
+  if (seen.ts === undefined || !(await spendCreateChallenge(db, user.uuid, seen.ts))) {
+    throw new ApiError(400, 'Passkey could not be verified.')
+  }
   const now = Date.now()
   try {
-    await createDb(c.env.DB)
-      .insert(schema.webauthnCredentials)
-      .values({
-        uuid: crypto.randomUUID(),
-        userUuid: user.uuid,
-        name: body.name,
-        credentialId: reg.credentialId,
-        alg: reg.alg,
-        jwk: JSON.stringify(reg.jwk),
-        signCount: reg.signCount,
-        transports: JSON.stringify(cleanTransports(dig(dr, 'response', 'transports'))),
-        supportsPrf: body.supportsPrf,
-        encryptedUserKey: keys?.encryptedUserKey ?? null,
-        encryptedPublicKey: keys?.encryptedPublicKey ?? null,
-        encryptedPrivateKey: keys?.encryptedPrivateKey ?? null,
-        createdAt: now,
-        updatedAt: now,
-      })
+    await db.insert(schema.webauthnCredentials).values({
+      uuid: crypto.randomUUID(),
+      userUuid: user.uuid,
+      name: body.name,
+      credentialId: reg.credentialId,
+      alg: reg.alg,
+      jwk: JSON.stringify(reg.jwk),
+      signCount: reg.signCount,
+      transports: JSON.stringify(cleanTransports(dig(dr, 'response', 'transports'))),
+      supportsPrf: body.supportsPrf,
+      encryptedUserKey: keys?.encryptedUserKey ?? null,
+      encryptedPublicKey: keys?.encryptedPublicKey ?? null,
+      encryptedPrivateKey: keys?.encryptedPrivateKey ?? null,
+      createdAt: now,
+      updatedAt: now,
+    })
   } catch {
     // The credential id is unique across all accounts.
     throw new ApiError(400, 'This passkey is already registered.')

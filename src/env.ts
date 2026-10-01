@@ -5,6 +5,8 @@ export interface Bindings {
   // Bindings
   DB: D1Database
   ATTACHMENTS: R2Bucket
+  /** Set by the D1 sessions middleware: the plain binding, which always reads the primary. */
+  DB_PRIMARY?: D1Database
   NOTIFICATIONS: DurableObjectNamespace
   /** Cloudflare Email Service `send_email` binding. Optional: absent means no mail is sent. */
   EMAIL?: SendEmail

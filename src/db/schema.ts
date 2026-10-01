@@ -38,6 +38,8 @@ export const users = sqliteTable(
     clientKdfMemory: integer('client_kdf_memory'),
     clientKdfParallelism: integer('client_kdf_parallelism'),
     verifiedAt: integer('verified_at'),
+    /** Newest accepted passkey creation challenge time, so a creation token works once. */
+    passkeyCreateAt: integer('passkey_create_at').notNull().default(0),
     lastVerifyingAt: integer('last_verifying_at'),
     loginVerifyCount: integer('login_verify_count').notNull().default(0),
     enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),

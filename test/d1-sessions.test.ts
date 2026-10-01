@@ -64,7 +64,8 @@ describe('D1 sessions flag and constraint', () => {
     expect(sessionConstraint('')).toBe('first-primary')
     expect(sessionConstraint('x'.repeat(257))).toBe('first-primary')
     expect(sessionConstraint('bad bookmark!')).toBe('first-primary')
-    expect(sessionConstraint('first-unconstrained')).toBe('first-unconstrained')
+    expect(sessionConstraint('first-unconstrained')).toBe('first-primary')
+    expect(sessionConstraint('first-primary')).toBe('first-primary')
     const bm = '00000085-0000024c-00004c6d-8e61117bf38d7adb71b934ebbf891683'
     expect(sessionConstraint(bm)).toBe(bm)
   })
@@ -108,6 +109,48 @@ describe('D1 sessions middleware', () => {
     const { default: app } = await import('../src/index')
     const alive = await app.fetch(new Request(`${BASE}/alive`), { ...env, ...on } as never, ctx)
     expect(alive.status).toBe(200)
+  })
+})
+
+describe('primary-only paths', () => {
+  it('starts identity requests on the primary even with a bookmark', async () => {
+    const spy = spiedDb()
+    const { default: app } = await import('../src/index')
+    await app.fetch(
+      new Request(`${BASE}/identity/accounts/prelogin`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', [D1_BOOKMARK_HEADER]: 'abc-def' },
+        body: JSON.stringify({ email: 'x@example.com' }),
+      }),
+      { ...env, DB: spy.db, D1_SESSIONS: 'true' } as never,
+      ctx,
+    )
+    expect(spy.constraints).toEqual(['first-primary'])
+  })
+
+  it('reads the user and security stamp through the plain binding', async () => {
+    const s = await createSession('d1-auth@example.com')
+    const spy = spiedDb()
+    const prepared: string[] = []
+    const plain = new Proxy(spy.db, {
+      get(t, p) {
+        if (p === 'prepare') {
+          return (q: string) => {
+            prepared.push(q)
+            return t.prepare(q)
+          }
+        }
+        const v = Reflect.get(t, p)
+        return typeof v === 'function' ? v.bind(t) : v
+      },
+    })
+    const res = await request({ DB: plain, D1_SESSIONS: 'true' }, '/api/sync', s.access_token, {
+      bookmark: 'first-unconstrained',
+    })
+    expect(res.status).toBe(200)
+    // The auth read hit the plain binding; the session never saw a junk keyword.
+    expect(prepared.some((q) => q.includes('"users"'))).toBe(true)
+    expect(spy.constraints).toEqual(['first-primary'])
   })
 })
 

@@ -176,11 +176,24 @@ export async function loginAssertionOptions(env: Bindings) {
   }
 }
 
+/** `seen.ts` receives the challenge time so the caller can spend it (single use). */
 export const registrationChallengeOk =
-  (env: Bindings, userUuid: string, token: string) => async (challenge: string) => {
+  (env: Bindings, userUuid: string, token: string, seen: { ts?: number } = {}) =>
+  async (challenge: string) => {
     const got = await challengeFromToken(env, PASSKEY_CREATE, userUuid, token)
-    return got !== null && got.challenge === challenge
+    if (got === null || got.challenge !== challenge) return false
+    seen.ts = got.ts
+    return true
   }
+
+/** Spends a creation challenge: true only for the first use of anything newer than the last. */
+export async function spendCreateChallenge(db: Db, userUuid: string, ts: number) {
+  const result = await db
+    .update(schema.users)
+    .set({ passkeyCreateAt: ts })
+    .where(and(eq(schema.users.uuid, userUuid), lt(schema.users.passkeyCreateAt, ts)))
+  return result.meta.changes > 0
+}
 
 export interface VerifiedAssertion {
   credential: PasskeyRow

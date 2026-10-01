@@ -18,7 +18,8 @@ const BOOKMARK = /^[0-9A-Za-z._-]{1,256}$/
  * bookmarks (the official ones cannot) never reads behind its own writes.
  */
 export const sessionConstraint = (header: string | undefined): string =>
-  header && BOOKMARK.test(header) ? header : 'first-primary'
+  // `first-*` words are D1 constraints, not bookmarks: a client must not pick its own.
+  header && BOOKMARK.test(header) && !header.startsWith('first-') ? header : 'first-primary'
 
 /**
  * Runs the request on a D1 session and returns the session bookmark in `x-d1-bookmark`.
@@ -28,8 +29,12 @@ export const sessionConstraint = (header: string | undefined): string =>
 export const d1Sessions: MiddlewareHandler<Env> = async (c, next) => {
   const db = c.env.DB
   if (!sessionsEnabled(c.env) || typeof db.withSession !== 'function') return next()
-  const session = db.withSession(sessionConstraint(c.req.header(D1_BOOKMARK_HEADER)))
-  c.env = { ...c.env, DB: session as unknown as D1Database }
+  // Identity routes (login, refresh, token revocation) always start on the primary.
+  const constraint = new URL(c.req.url).pathname.startsWith('/identity/')
+    ? 'first-primary'
+    : sessionConstraint(c.req.header(D1_BOOKMARK_HEADER))
+  const session = db.withSession(constraint)
+  c.env = { ...c.env, DB: session as unknown as D1Database, DB_PRIMARY: db }
   await next()
   const bookmark = session.getBookmark()
   if (bookmark) {

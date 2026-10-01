@@ -31,7 +31,9 @@ export async function authenticateAccessToken(
     return null
   }
 
-  const [user] = await createDb(env.DB)
+  // The user row, security stamp and enabled flag decide revocation, so they are never read from
+  // a replica (docs/d1-sessions.md).
+  const [user] = await createDb(env.DB_PRIMARY ?? env.DB)
     .select()
     .from(schema.users)
     .where(eq(schema.users.uuid, claims.sub))

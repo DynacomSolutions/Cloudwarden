@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `passkey_create_at` integer DEFAULT 0 NOT NULL;

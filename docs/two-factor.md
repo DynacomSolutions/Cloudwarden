@@ -92,8 +92,13 @@ five per account, and are separate from the second factor keys of provider 7.
   reaches it.
 - A passkey login does not request a second factor: the verified assertion is the second
   factor, as in the official clients (they do not support a 2FA step after it).
+- A creation token is single use: the challenge time is stored on the user (`passkey_create_at`,
+  migration `0007`) and spent before the credential is saved, so a captured registration cannot be
+  replayed after the credential is deleted.
 - Key rotation (`rotate-user-account-keys`) re-wraps keysets from `passkeyUnlockData`. A
   credential with a keyset that the request omits loses the keyset (it stays a login credential
-  and can enable encryption again); naming a credential that is not the caller's or has no
+  and can enable encryption again; the legacy `POST /api/accounts/key` carries no passkey data, so it
+  drops every keyset). The rewrite is guarded by each row's `updated_at` and followed by clearing
+  statements in the same batch, so a keyset stored concurrently under the old key is removed; naming a credential that is not the caller's or has no
   keyset is rejected and nothing changes.
 - Account deletion removes credentials with the user row.

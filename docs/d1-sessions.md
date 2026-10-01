@@ -28,6 +28,12 @@ How it behaves when enabled:
 - A request without one (every official Bitwarden client, which cannot send custom headers) starts
   with `first-primary`, so its first query goes to the primary. This keeps those clients
   consistent but means they gain nothing from replicas.
+- The bookmark is client controlled: it is a freshness floor the client asks for, never an
+  authorisation input. `first-primary` and `first-unconstrained` sent as the header are rejected
+  (treated as no bookmark), so a client cannot pick its own constraint.
+- `/identity/*` always starts on the primary, and the user, security stamp and enabled checks of
+  `requireAuth` always read the primary through the plain binding (`DB_PRIMARY`), so revocation
+  is never delayed by replica lag.
 - Headers that are not bookmark shaped (letters, digits, `.`, `_`, `-`, at most 256 characters)
   are ignored.
 - Handlers are unchanged: the middleware replaces `c.env.DB` with the session, and the data layer

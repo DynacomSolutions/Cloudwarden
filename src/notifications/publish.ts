@@ -1,4 +1,5 @@
 import type { Bindings } from '../env'
+import { errorKind, log } from '../log'
 import type { MsgValue } from './msgpack'
 
 /**
@@ -85,7 +86,7 @@ export async function pushUserUpdate(
       excludeDevice: excludeDeviceIdentifier ?? null,
     })
   } catch (err) {
-    console.error('notification push failed', err instanceof Error ? err.message : 'unknown')
+    log('error', 'notification.push_failed', { errorKind: errorKind(err) })
   }
 }
 
@@ -116,7 +117,7 @@ export async function pushLogOut(
       closeExceptDevice: originDeviceIdentifier ?? null,
     })
   } catch (err) {
-    console.error('notification push failed', err instanceof Error ? err.message : 'unknown')
+    log('error', 'notification.push_failed', { errorKind: errorKind(err) })
   }
 }
 
@@ -144,6 +145,6 @@ export async function pushAuthRequestResponse(
       ],
     })
   } catch (err) {
-    console.error('notification push failed', err instanceof Error ? err.message : 'unknown')
+    log('error', 'notification.push_failed', { errorKind: errorKind(err) })
   }
 }

@@ -1,6 +1,7 @@
 import type { Context } from 'hono'
 import { toB64u, utf8 } from '../auth/crypto'
 import { signingSecret, signJwt, verificationSecrets, verifyJwt } from '../auth/jwt'
+import { assertUserBlobKey, isReservedBlobKey } from '../blob-keys'
 import type { Bindings, Env } from '../env'
 import { ApiError } from '../errors'
 
@@ -13,9 +14,11 @@ export const MAX_UPLOAD_BYTES = 100 * 1024 * 1024
 export const MULTIPART_OVERHEAD = 64 * 1024
 export const DOWNLOAD_TTL_SECONDS = 300
 
+// Every key built from ids passes the reserved-prefix guard so nothing can reach `backups/`.
 export const attachmentKey = (cipherId: string, attachmentId: string) =>
-  `attachments/${cipherId}/${attachmentId}`
-export const sendFileKey = (sendId: string, fileId: string) => `sends/${sendId}/${fileId}`
+  assertUserBlobKey(`attachments/${cipherId}/${attachmentId}`)
+export const sendFileKey = (sendId: string, fileId: string) =>
+  assertUserBlobKey(`sends/${sendId}/${fileId}`)
 
 export const sizeName = (bytes: number): string => {
   if (bytes < 1024) return `${bytes} Bytes`
@@ -181,8 +184,9 @@ export function deleteBlobs(c: Context<Env>, keys: string[]): void {
 }
 
 export async function deleteBlobsNow(env: Bindings, keys: string[]): Promise<void> {
-  for (let i = 0; i < keys.length; i += 1000) {
-    await env.ATTACHMENTS.delete(keys.slice(i, i + 1000))
+  const safe = keys.filter((k) => !isReservedBlobKey(k))
+  for (let i = 0; i < safe.length; i += 1000) {
+    await env.ATTACHMENTS.delete(safe.slice(i, i + 1000))
   }
 }
 

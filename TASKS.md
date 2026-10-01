@@ -108,7 +108,7 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 |---|---|---|---|---|
 | 140 | Admin UI behind `ADMIN_ENABLED`: magic-link (`ADMIN_EMAILS`) and hashed `ADMIN_TOKEN_HASH` login; users, orgs, invites, diagnostics. See `docs/admin.md` | done | agent | Disabled returns 404; enabled requires login. Tests in `test/admin-ui.test.ts` |
 | 141 | Email transport: Cloudflare Email Service `EMAIL` binding (legacy `EmailMessage` fallback), `MAIL_FROM`, no-op when unbound, templates in `src/email/` | done | agent | Fake-transport tests green; other HTTP providers not implemented |
-| 142 | Icon proxy with SSRF protection and Cache API | todo | | Private and link-local targets refused |
+| 142 | Icon proxy with SSRF protection and Cache API | done | agent | Private and link-local targets refused. `src/icons/`, `src/routes/icons.ts`, `ICONS_ENABLED`; tests in `test/icons.test.ts` |
 | 143 | Serve the Bitwarden web vault via Workers static assets (build-time fetch, integrity check, licence notice) | done | agent | `pnpm web-vault:fetch` pins and verifies the official image (docs/web-vault.md); worker-first routes keep the API unshadowed; browser login not yet exercised end to end |
 
 ## Phase 8: Operations
@@ -117,9 +117,9 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 |---|---|---|---|---|
 | 160 | Deployment guide: create D1, R2, secrets, custom domain, using only placeholders | doing | | Fresh account deploy from docs alone. `docs/deploy.md`; config reads deploy values from env |
 | 161 | CI deploy workflow (environment-protected, OIDC or scoped token in secrets) | doing | | `deploy.yml`: gate, `cf d1 migrations apply`, `cf deploy`, `/alive` smoke check. Worker secrets set once by hand |
-| 162 | Scheduled D1 export to R2 for portable backups | todo | | Restore tested |
+| 162 | Scheduled D1 export to R2 for portable backups | done | agent | Daily cron, 14 day retention, `scripts/restore-backup.mjs`. `docs/backup.md`; tests in `test/backup.test.ts` and `scripts/restore-backup.test.mjs`. Restore tested at SQL generation level; live restore into a fresh D1 not yet run |
 | 163 | Optional data importer from other self-hosted Bitwarden-compatible servers (data only, no code reuse) | todo | | Imported users log in without re-registering (depends on 20) |
-| 164 | Observability: structured logs without vault data, Workers Analytics | todo | | Log review confirms no secrets or ciphertext logged |
+| 164 | Observability: structured logs without vault data, Workers Analytics | done | agent | `src/log.ts`, request middleware, Workers Logs enabled. `docs/observability.md`; `test/log.test.ts` asserts no body, query or email in logs. Manual log review on a deployed Worker still due |
 | 165 | D1 Sessions API if read replication is enabled | todo | | No revision-date regressions under test |
 
 ## Phase 9: Compatibility and quality
@@ -128,8 +128,8 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 |---|---|---|---|---|
 | 180 | API contract tests generated from the OpenAPI spec (#14) and checked against recorded client traffic (sanitised fixtures) | todo | | |
 | 181 | End-to-end tests with the official Bitwarden CLI against `cf dev` | todo | | Login, sync, create, edit, delete pass |
-| 182 | Client version support matrix and `/api/config` server version strategy | todo | | |
-| 183 | Threat model document | todo | | |
+| 182 | Client version support matrix and `/api/config` server version strategy | done | agent | `docs/compatibility.md`; `/api/config` reports `2026.9.0`; matrix rows stay "Target" until #181 verifies them |
+| 183 | Threat model document | done | agent | `docs/threat-model.md` (STRIDE per area) |
 
 ## Phase 10: Going public
 
@@ -149,6 +149,7 @@ Newest first. One line per verified fact.
 
 - 2026-10-01 · #8 · Owner decision: no Dependabot branches or PRs. Dependabot security updates disabled via API, `dependabot.yml` removed, its open PR closed. Alerts remain on.
 - 2026-10-01 · #60 to #67 · Branch `feat/orgs` on `main`: `pnpm lint`, `pnpm typecheck`, `pnpm test` (240 tests, 32 files), `pnpm check:identifiers` green; migration `0005_organizations` (`pnpm db:generate` reports no changes). Collections now belong to organisation members (`users_collections` is keyed by organisation user, so invitees can be pre-assigned). `hidePasswords` is a display restriction: a writable grant that hides passwords still has `edit: true` (use `readOnly` to forbid changes). Custom members cannot edit themselves or grant access they lack. Live sync pushes cipher events to members who can see the item, SyncVault for structural changes and SyncOrgKeys on confirm. Known gaps: favourites on organisation items are shared, not per member; organisation SSO, key connector, reset password, API keys and billing endpoints are not implemented; emergency access notifications are limited to the invite and the initiate notice; `GET /api/ciphers` lists personal items only (sync carries organisation items).
+- 2026-10-01 · #142, #162, #164, #182, #183 · `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:scripts`, `pnpm check:identifiers` and `cf build` green on branch `feat/ops`.
 - 2026-10-01 · #140, #141 · `pnpm lint`, `pnpm typecheck`, `pnpm test` (32 tests, 6 files), `pnpm check:identifiers` green on branch `feat/admin`; migration `0002_admin`.
 
 - 2026-10-01 · #20 to #29 · Branch `feat/identity` rebased on #6: `pnpm lint`, `pnpm typecheck`, `pnpm test` (88 tests), `cf build` (no global-scope randomness) and invitation gating plus emailed verification and email-change codes and `pnpm check:identifiers` green. Covers register, prelogin, password, refresh and API-key grants, devices, profile, password, KDF, email, key rotation (all-or-nothing) and deletion, stamp invalidation of access and refresh tokens, and 429 limiting.

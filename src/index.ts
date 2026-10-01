@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import type { Env } from './env'
 import { ApiError, errorBody } from './errors'
+import { errorKind, log, requestLogger } from './log'
 import { securityHeaders } from './middleware'
 import { orgChangeNotifier } from './orgs/notify'
 import { accounts } from './routes/accounts'
@@ -17,6 +18,7 @@ import { emergencyAccess } from './routes/emergency-access'
 import { events } from './routes/events'
 import { folders } from './routes/folders'
 import { groupsRouter } from './routes/groups'
+import { icons } from './routes/icons'
 import { notifications } from './routes/notifications'
 import { orgCiphers } from './routes/org-ciphers'
 import { orgUsers } from './routes/org-users'
@@ -29,15 +31,17 @@ import { settings } from './routes/settings'
 import { sync } from './routes/sync'
 import { token } from './routes/token'
 import { twofactor } from './routes/twofactor'
-import { purgeExpired } from './vault/purge'
+import { scheduled } from './scheduled'
 
 const app = new Hono<Env>()
 
+app.use('*', requestLogger)
 app.use('*', securityHeaders)
 
 app.route('/', alive)
 app.route('/', appId)
 app.route('/', config)
+app.route('/', icons)
 app.route('/', prelogin)
 app.route('/', register)
 app.route('/', token)
@@ -71,17 +75,15 @@ app.notFound((c) => c.json({ message: 'Not found', validationErrors: null, objec
 app.onError((err, c) => {
   if (err instanceof ApiError)
     return c.json(errorBody(err.message, err.validationErrors), err.status)
-  // Log only the error, never request data.
-  // Log only the message: the URL (which can carry an access token) must never be recorded.
-  console.error(err instanceof Error ? err.message : 'unknown error')
+  log(
+    'error',
+    'unhandled',
+    { errorKind: errorKind(err), method: c.req.method, route: c.req.routePath },
+    c.env,
+  )
   return c.json({ message: 'Internal server error', validationErrors: null, object: 'error' }, 500)
 })
 
-export default {
-  fetch: app.fetch,
-  // Cron Trigger: purge expired Sends and orphaned blobs (TASKS #84).
-  scheduled: (_controller: ScheduledController, env: Env['Bindings'], ctx: ExecutionContext) => {
-    ctx.waitUntil(purgeExpired(env))
-  },
-}
+export { app }
+export default { fetch: app.fetch, scheduled } satisfies ExportedHandler<Env['Bindings']>
 export { NotificationHub } from './do/notification-hub'

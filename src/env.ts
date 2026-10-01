@@ -17,6 +17,12 @@ export interface Bindings {
   /** Comma-separated domains (or full addresses) that may register when signups are closed. */
   SIGNUPS_DOMAINS_WHITELIST?: string
   ADMIN_ENABLED: string
+  /** Icon proxy switch; anything other than 'false' enables it (TASKS #142). */
+  ICONS_ENABLED?: string
+  /** Minimum log level: debug, info (default), warn or error (TASKS #164). */
+  LOG_LEVEL?: string
+  /** Build commit hash reported by /api/config. Optional. */
+  GIT_HASH?: string
   /** Sender address for outgoing mail, for example `Cloudwarden <noreply@example.com>`. */
   MAIL_FROM?: string
 

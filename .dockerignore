@@ -1,0 +1,14 @@
+.git
+.github
+.cloudflare
+.wrangler
+.dev.vars*
+.env*
+node_modules
+dist
+coverage
+chart
+k8s
+docs/api/build
+web-vault.tmp
+*.log

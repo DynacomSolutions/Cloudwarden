@@ -42,6 +42,7 @@ Then point a Bitwarden client's self-hosted server URL at the local address `pnp
 ## Documentation
 
 - [Architecture](docs/architecture.md)
+- [Local development and the dev container](docs/local-dev.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)
 

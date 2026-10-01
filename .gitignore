@@ -18,3 +18,7 @@ web-vault/
 web-vault.tmp/
 # Generated API docs (pnpm api:build)
 docs/api/build/
+
+# devdeploy chart: its values hold hostnames, keep it in a private repository (docs/local-dev.md)
+/chart/
+/k8s/

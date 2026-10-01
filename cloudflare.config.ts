@@ -37,6 +37,9 @@ export default defineConfig({
       headSamplingRate: 1,
     },
     env: {
+      // Declared so local dev (`.dev.vars`, `.env` or the process environment) can supply it; the
+      // dev server drops secrets that are not declared. In production it is set with `cf workers secrets`.
+      JWT_SECRET: bindings.secret(),
       DOMAIN: bindings.text(domain ? `https://${domain}` : 'https://vault.example.com'),
       SIGNUPS_ALLOWED: bindings.text(env.SIGNUPS_ALLOWED || 'false'),
       ADMIN_ENABLED: bindings.text(env.ADMIN_ENABLED || 'false'),

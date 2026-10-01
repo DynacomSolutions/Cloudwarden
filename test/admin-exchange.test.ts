@@ -44,7 +44,7 @@ describe('admin session exchange', () => {
     expect(res.status).toBe(204)
     const raw = res.headers.get('set-cookie') ?? ''
     expect(raw).toMatch(/^__Host-cw_admin=/)
-    for (const flag of ['HttpOnly', 'Secure', 'SameSite=Strict', 'Path=/', 'Max-Age=28800']) {
+    for (const flag of ['HttpOnly', 'Secure', 'SameSite=Strict', 'Path=/', 'Max-Age=3600']) {
       expect(raw).toContain(flag)
     }
     expect(raw).not.toContain('Domain')
@@ -133,6 +133,60 @@ describe('admin session exchange', () => {
     const { token, over } = await adminSession()
     const cookie = cookieOf(await exchange(token, {}, over))
     expect((await get('/admin/users', cookie)).status).toBe(303)
+  })
+})
+
+describe('exchanged session lifecycle', () => {
+  const sessions = async (uuid: string) =>
+    (
+      await env.DB.prepare(
+        'SELECT session_hash, expires_at FROM admin_sessions WHERE user_uuid = ?1',
+      )
+        .bind(uuid)
+        .all<{ session_hash: string; expires_at: number }>()
+    ).results
+  const subOf = (token: string) =>
+    JSON.parse(atob((token.split('.')[1] ?? '').replace(/-/g, '+').replace(/_/g, '/'))).sub
+
+  it('renews the one hour TTL on activity', async () => {
+    const { token, over } = await adminSession()
+    const cookie = cookieOf(await exchange(token, {}, over))
+    const sub = subOf(token)
+    await env.DB.prepare('UPDATE admin_sessions SET expires_at = ?1 WHERE user_uuid = ?2')
+      .bind(Date.now() + 60_000, sub)
+      .run()
+    const res = await withEnv({ ...ADMIN_ENV, ...over }, '/admin/users', {
+      headers: { Cookie: cookie },
+      redirect: 'manual',
+    })
+    expect(res.status).toBe(200)
+    expect(res.headers.get('set-cookie')).toContain('Max-Age=3600')
+    const [row] = await sessions(sub)
+    expect(row?.expires_at).toBeGreaterThan(Date.now() + 3_500_000)
+  })
+
+  it('replaces the browser prior session on a new exchange', async () => {
+    const { token, over } = await adminSession()
+    const first = cookieOf(await exchange(token, {}, over))
+    await exchange(token, { Cookie: first }, over)
+    expect(await sessions(subOf(token))).toHaveLength(1)
+  })
+
+  it('ends the session from the vault with a strict same-origin check', async () => {
+    const { token, over } = await adminSession()
+    const cookie = cookieOf(await exchange(token, {}, over))
+    const end = (headers: Record<string, string>) =>
+      withEnv({ ...ADMIN_ENV, ...over }, '/admin/session/end', {
+        method: 'POST',
+        headers: { Cookie: cookie, ...headers },
+      })
+    expect((await end({ Origin: 'https://evil.example.org' })).status).toBe(403)
+    expect((await end({ Origin: BASE, 'Sec-Fetch-Site': 'cross-site' })).status).toBe(403)
+    expect(await sessions(subOf(token))).toHaveLength(1)
+    const ok = await end({ Origin: BASE, 'Sec-Fetch-Site': 'same-origin' })
+    expect(ok.status).toBe(204)
+    expect(ok.headers.get('set-cookie')).toContain('__Host-cw_admin=;')
+    expect(await sessions(subOf(token))).toHaveLength(0)
   })
 })
 

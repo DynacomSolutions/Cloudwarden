@@ -21,12 +21,21 @@
   const authOf = (input, init) => {
     const h = init?.headers ?? (input instanceof Request ? input.headers : null)
     if (!h) return null
-    const v = h instanceof Headers ? h.get('Authorization') : (h.Authorization ?? h.authorization)
+    let v = null
+    if (h instanceof Headers) v = h.get('Authorization')
+    else if (Array.isArray(h)) v = h.find((p) => /^authorization$/i.test(p?.[0] ?? ''))?.[1]
+    else v = h.Authorization ?? h.authorization
     const m = /^Bearer\s+(\S+)$/i.exec(v ?? '')
     return m ? m[1] : null
   }
 
   const reset = () => {
+    // Vault logout ends the admin session too (no-op when there is none).
+    if (isAdmin) {
+      origFetch('/admin/session/end', { method: 'POST', credentials: 'same-origin' }).catch(
+        () => {},
+      )
+    }
     bearer = null
     isAdmin = false
     observer?.disconnect()
@@ -56,6 +65,7 @@
 
   const open = async (e) => {
     e.preventDefault()
+    const link = e.currentTarget
     if (!bearer) return
     try {
       const r = await origFetch('/admin/session/exchange', {
@@ -68,7 +78,7 @@
         return
       }
     } catch {}
-    e.currentTarget.textContent = 'Admin sign-in failed'
+    link.textContent = 'Admin sign-in failed'
   }
 
   const findNav = () =>

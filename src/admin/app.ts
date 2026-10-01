@@ -34,6 +34,8 @@ import {
 
 const MAGIC_TTL_MS = 15 * 60_000
 const SESSION_TTL_MS = 8 * 3600_000
+/** Vault-derived sessions: short, renewed on each request. */
+const VAULT_SESSION_TTL_MS = 3600_000
 const WINDOW_MS = 15 * 60_000
 const COOKIE = 'cw_admin'
 const PAGE_SIZE = 50
@@ -164,6 +166,13 @@ export function createAdmin(deps: AdminDeps = {}) {
       await c.env.DB.prepare('DELETE FROM admin_sessions WHERE session_hash = ?1').bind(hash).run()
       return null
     }
+    if (row.user_uuid !== null) {
+      // Sliding renewal on activity.
+      await c.env.DB.prepare('UPDATE admin_sessions SET expires_at = ?1 WHERE session_hash = ?2')
+        .bind(now() + VAULT_SESSION_TTL_MS, hash)
+        .run()
+      setSessionCookie(c, raw, VAULT_SESSION_TTL_MS)
+    }
     return { hash, subject: row.subject, csrf: row.csrf_token }
   }
 
@@ -172,9 +181,15 @@ export function createAdmin(deps: AdminDeps = {}) {
     subject: string,
     user?: { uuid: string; securityStamp: string },
   ) {
+    const previous = getCookie(c, COOKIE, 'host')
     const raw = randomToken()
     const t = now()
+    const ttl = user ? VAULT_SESSION_TTL_MS : SESSION_TTL_MS
     await c.env.DB.batch([
+      // Replace this browser's prior session rather than leaving it alive.
+      c.env.DB.prepare('DELETE FROM admin_sessions WHERE session_hash = ?1').bind(
+        previous ? await sha256Hex(previous) : '',
+      ),
       c.env.DB.prepare('DELETE FROM admin_sessions WHERE expires_at <= ?1').bind(t),
       c.env.DB.prepare('DELETE FROM admin_login_tokens WHERE expires_at <= ?1').bind(
         t - 86_400_000,
@@ -186,20 +201,32 @@ export function createAdmin(deps: AdminDeps = {}) {
         await sha256Hex(raw),
         subject,
         randomToken(24),
-        t + SESSION_TTL_MS,
+        t + ttl,
         t,
         user?.uuid ?? null,
         user?.securityStamp ?? null,
       ),
     ])
+    setSessionCookie(c, raw, ttl)
+  }
+
+  function setSessionCookie(c: Ctx, raw: string, ttl: number) {
     setCookie(c, COOKIE, raw, {
       prefix: 'host',
       httpOnly: true,
       secure: true,
       sameSite: 'Strict',
       path: '/',
-      maxAge: SESSION_TTL_MS / 1000,
+      maxAge: ttl / 1000,
     })
+  }
+
+  const strictSameOrigin = (c: Ctx) => {
+    const site = c.req.header('Sec-Fetch-Site')
+    return (
+      c.req.header('Origin') === new URL(c.env.DOMAIN).origin &&
+      (site === undefined || site === 'same-origin')
+    )
   }
 
   const clientIp = (c: Ctx) => c.req.header('CF-Connecting-IP') ?? 'unknown'
@@ -285,11 +312,7 @@ ${kvTable(await serverRows(c))}`,
   app.post('/admin/session/exchange', async (c) => {
     const fail = (status: 401 | 403 | 429, message: string) =>
       c.json({ message, validationErrors: null, object: 'error' }, status)
-    const fetchSite = c.req.header('Sec-Fetch-Site')
-    if (
-      c.req.header('Origin') !== new URL(c.env.DOMAIN).origin ||
-      (fetchSite !== undefined && fetchSite !== 'same-origin')
-    ) {
+    if (!strictSameOrigin(c)) {
       return fail(403, 'Cross-origin request refused')
     }
     if (!(await rateLimit(c.env.DB, `ex:ip:${clientIp(c)}`, 30, WINDOW_MS, now()))) {
@@ -301,6 +324,25 @@ ${kvTable(await serverRows(c))}`,
     const email = normaliseEmail(authed.user.email)
     if (!isAdminEmail(c.env.ADMIN_EMAILS, email)) return fail(403, 'Not an admin')
     await startSession(c, email, authed.user)
+    return c.body(null, 204)
+  })
+
+  // Called by the vault script on vault logout. No CSRF field: the strict same-origin check
+  // stands in for it, and the only effect is ending this browser's admin session.
+  app.post('/admin/session/end', async (c) => {
+    if (!strictSameOrigin(c)) {
+      return c.json(
+        { message: 'Cross-origin request refused', validationErrors: null, object: 'error' },
+        403,
+      )
+    }
+    const raw = getCookie(c, COOKIE, 'host')
+    if (raw) {
+      await c.env.DB.prepare('DELETE FROM admin_sessions WHERE session_hash = ?1')
+        .bind(await sha256Hex(raw))
+        .run()
+    }
+    deleteCookie(c, COOKIE, { prefix: 'host', secure: true, path: '/' })
     return c.body(null, 204)
   })
 

@@ -28,7 +28,9 @@ Admin sign-in is the normal web vault login. A vault user is an admin when their
 - is rate limited per IP (30 per 15 minutes, 429);
 - verifies the token like any API call (signature, expiry, issuer, `api` scope, security stamp, account enabled; 401 otherwise);
 - requires the address to be in `ADMIN_EMAILS` (403 otherwise);
-- creates an admin session recording the user's email as subject, the user id and the current security stamp, and returns 204 with the session cookie.
+- creates an admin session recording the user's email as subject, the user id and the current security stamp, and returns 204 with the session cookie. Any prior admin session of the same browser is deleted. These sessions last 1 hour and are renewed on each admin request (sliding expiry).
+
+`POST /admin/session/end` ends this browser's admin session without a CSRF field; instead it requires the strict same-origin check above. The vault script calls it when it sees a 401 for the current token or the vault goes to login, lock or logout, so vault logout also ends admin access.
 
 On every request a vault-derived session is checked against the user row: it ends (and is deleted) when the security stamp has changed (password change, "deauthorise sessions", 2FA removal), the account is disabled or deleted, or the address is no longer in `ADMIN_EMAILS`.
 
@@ -45,7 +47,7 @@ Recovery sessions are not tied to a vault account.
 
 ## Sessions
 
-Sessions last 8 hours, live in D1 as hashes, and use the cookie `__Host-cw_admin` (HttpOnly, Secure, SameSite=Strict, Path=/). Every POST needs a same-origin `Origin` header and, once signed in, the per-session CSRF field. The header shows the signed-in admin's email; **Sign out** ends the admin session only (the vault stays signed in), and **Back to vault** in the sidebar returns to the web vault.
+Recovery sessions last 8 hours and vault-derived ones 1 hour (sliding). Sessions live in D1 as hashes, and use the cookie `__Host-cw_admin` (HttpOnly, Secure, SameSite=Strict, Path=/). Every POST needs a same-origin `Origin` header and, once signed in, the per-session CSRF field. The header shows the signed-in admin's email; **Sign out** ends the admin session only (the vault stays signed in), and **Back to vault** in the sidebar returns to the web vault.
 
 ## Pages
 

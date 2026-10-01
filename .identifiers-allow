@@ -1,0 +1,6 @@
+# Identifier allowlist
+# One regex per line. Lines starting with # are comments.
+# Patterns are matched against the entire line.
+# Examples:
+# (Version strings that look like IPs: \d+\.\d+\.\d+\.\d+)
+# (Placeholder UUIDs are built in: nil and 00000000-0000-4000-8000-000000000000)

@@ -8,7 +8,7 @@ import {
   registerDevice,
   tokenResponse,
 } from '../auth/session'
-import { enforceTwoFactor } from '../auth/twofactor'
+import { enforceTwoFactor, issueRememberToken } from '../auth/twofactor'
 import { findUserByEmail } from '../auth/users'
 import { createDb, schema } from '../db'
 import type { Env } from '../env'
@@ -68,14 +68,17 @@ async function passwordGrant(c: Ctx, form: Form) {
   if (challenge) return challenge
 
   const refreshToken = await registerDevice(db, user.uuid, device)
-  return c.json(
-    await tokenResponse(c.env, user, {
-      deviceIdentifier: device.identifier,
-      scope: ['api', 'offline_access'],
-      refreshToken,
-      clientId: form.client_id,
-    }),
-  )
+  const body = await tokenResponse(c.env, user, {
+    deviceIdentifier: device.identifier,
+    scope: ['api', 'offline_access'],
+    refreshToken,
+    clientId: form.client_id,
+  })
+  if (c.var.twoFactorVerified && form.twoFactorRemember === '1') {
+    const TwoFactorToken = await issueRememberToken(db, user.uuid, device.identifier)
+    return c.json({ ...body, TwoFactorToken })
+  }
+  return c.json(body)
 }
 
 async function refreshGrant(c: Ctx, form: Form) {

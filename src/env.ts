@@ -59,6 +59,8 @@ export interface AuthContext {
 export interface Variables {
   user: User
   auth: AuthContext
+  /** Set by the token endpoint when a real second factor (not a remember token) was verified. */
+  twoFactorVerified?: boolean
 }
 
 export type Env = { Bindings: Bindings; Variables: Variables }

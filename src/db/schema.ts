@@ -149,6 +149,10 @@ export const attachments = sqliteTable(
     fileSize: integer('file_size').notNull(),
     key: text('akey'),
     r2Key: text('r2_key').notNull(),
+    /** Set once the blob is stored; rows without it are pending uploads. */
+    uploadedAt: integer('uploaded_at'),
+    /** Claim taken by an upload in progress; stops a second upload racing the first. */
+    uploadStartedAt: integer('upload_started_at'),
     createdAt: createdAt(),
   },
   (t) => [index('attachments_cipher_idx').on(t.cipherUuid)],
@@ -250,6 +254,9 @@ export const sends = sqliteTable(
     disabled: integer('disabled', { mode: 'boolean' }).notNull().default(false),
     hideEmail: integer('hide_email', { mode: 'boolean' }),
     r2Key: text('r2_key'),
+    /** File Sends only: set once the blob is stored. */
+    uploadedAt: integer('uploaded_at'),
+    uploadStartedAt: integer('upload_started_at'),
     expirationDate: integer('expiration_date'),
     deletionDate: integer('deletion_date').notNull(),
     createdAt: createdAt(),

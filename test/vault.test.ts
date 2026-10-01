@@ -604,13 +604,33 @@ it('keeps omitted domain fields when updating', async () => {
 
 it('caps the size of an import', async () => {
   const { call } = await setup('cap@example.com')
-  const many = Array.from({ length: 901 }, () => note())
+  const many = Array.from({ length: 7001 }, () => note())
   expect((await call('/api/ciphers/import', 'POST', { folders: [], ciphers: many })).status).toBe(
     400,
   )
-  const folders = Array.from({ length: 201 }, (_, n) => ({ name: `2.f${n}` }))
+  const folders = Array.from({ length: 801 }, (_, n) => ({ name: `2.f${n}` }))
   expect((await call('/api/ciphers/import', 'POST', { folders, ciphers: [] })).status).toBe(400)
   const ok = Array.from({ length: 300 }, () => note())
   expect((await call('/api/ciphers/import', 'POST', { folders: [], ciphers: ok })).status).toBe(200)
   expect((await j(await call('/api/ciphers'))).data).toHaveLength(300)
 }, 30_000)
+
+it('imports several thousand items in sequential batches', async () => {
+  const { call } = await setup('bigimport@example.com')
+  const folders = [{ name: '2.f0' }, { name: '2.f1' }]
+  const items = Array.from({ length: 1500 }, (_, i) => ({
+    type: 2,
+    name: `2.n${i}`,
+    secureNote: { type: 0 },
+  }))
+  const folderRelationships = items.map((_, i) => ({ key: i, value: i % 2 }))
+  const res = await call('/api/ciphers/import', 'POST', {
+    folders,
+    ciphers: items,
+    folderRelationships,
+  })
+  expect(res.status).toBe(200)
+  const sync = await j(await call('/api/sync'))
+  expect(sync.ciphers).toHaveLength(1500)
+  expect(sync.ciphers.filter((x: { folderId: string | null }) => x.folderId).length).toBe(1500)
+})

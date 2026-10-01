@@ -11,7 +11,10 @@ import { createEmailTransport, genericEmail } from '../email'
 import type { Env, User } from '../env'
 import { ApiError } from '../errors'
 import { kdfProblem, parseBody } from '../validation'
+import { userAttachmentKeys } from '../vault/attachments'
+import { deleteBlobs } from '../vault/blobs'
 import { packPayload } from '../vault/ciphers'
+import { userSendKeys } from '../vault/sends'
 
 export const accounts = new Hono<Env>()
 
@@ -394,8 +397,12 @@ const deleteAccount = async (c: Ctx) => {
   await requirePassword(user, masterPasswordHash)
   const db = createDb(c.env.DB)
   // Child rows (devices, folders, ciphers, sends, 2FA) cascade from the user row.
-  // TODO(TASKS #80): also delete the user's attachment and Send blobs from R2.
+  const keys = [
+    ...(await userAttachmentKeys(db, user.uuid)),
+    ...(await userSendKeys(db, user.uuid)),
+  ]
   await runBatch(db, [db.delete(schema.users).where(eq(schema.users.uuid, user.uuid))])
+  deleteBlobs(c, keys)
   return c.body(null, 200)
 }
 accounts.delete('/api/accounts', requireAuth, deleteAccount)

@@ -1,4 +1,4 @@
-import { bindings, defineConfig, exports } from 'cf/config'
+import { bindings, defineConfig, exports, triggers } from 'cf/config'
 
 // Secrets (set with `cf workers secrets update`, never committed): JWT_SECRET (32+ characters),
 // JWT_SECRET_PREVIOUS (only while rotating), ADMIN_EMAILS, ADMIN_TOKEN_HASH. Deploy-time values
@@ -54,6 +54,8 @@ export default defineConfig({
         exportName: 'NotificationHub',
       }),
     },
+    // Hourly purge of expired Sends and orphaned blobs (TASKS #84).
+    triggers: [triggers.scheduled({ schedule: '17 * * * *' })],
     exports: {
       NotificationHub: exports.durableObject({ storage: 'sqlite' }),
     },

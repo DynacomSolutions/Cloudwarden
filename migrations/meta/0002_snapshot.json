@@ -2,7 +2,7 @@
   "version": "6",
   "dialect": "sqlite",
   "id": "4060eb74-4517-4204-b14e-83dfaa9731a6",
-  "prevId": "33051a0b-7641-4517-9b61-9b13bb3aa1bf",
+  "prevId": "1bebfdc0-3548-4da5-9023-a39114f252b1",
   "tables": {
     "admin_login_tokens": {
       "name": "admin_login_tokens",
@@ -540,6 +540,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "identifier": {
+          "name": "identifier",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "user_uuid": {
           "name": "user_uuid",
           "type": "text",
@@ -604,6 +611,14 @@
             "user_uuid"
           ],
           "isUnique": false
+        },
+        "devices_user_identifier_unique": {
+          "name": "devices_user_identifier_unique",
+          "columns": [
+            "user_uuid",
+            "identifier"
+          ],
+          "isUnique": true
         }
       },
       "foreignKeys": {
@@ -1364,6 +1379,34 @@
         "totp_recover": {
           "name": "totp_recover",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "api_key": {
+          "name": "api_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "email_new": {
+          "name": "email_new",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "email_new_token": {
+          "name": "email_new_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "email_new_expires_at": {
+          "name": "email_new_expires_at",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false

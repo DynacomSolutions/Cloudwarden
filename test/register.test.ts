@@ -152,3 +152,75 @@ it('send-verification-email refuses disallowed addresses', async () => {
   )
   expect(res.status).toBe(400)
 })
+
+it('lets an invited address register while signups are closed, then consumes the invitation', async () => {
+  const closed = { SIGNUPS_ALLOWED: 'false' }
+  await env.DB.prepare(
+    'insert into invitations (uuid, email, invited_by, created_at) values (?,?,?,?)',
+  )
+    .bind('inv-1', 'Invited@Example.com', 'admin', Date.now())
+    .run()
+  const ok = await withEnv(
+    closed,
+    '/identity/accounts/register',
+    asJson(registerBody('invited@example.com')),
+  )
+  expect(ok.status).toBe(200)
+  const left = await env.DB.prepare('select count(*) n from invitations where uuid = ?')
+    .bind('inv-1')
+    .first<{ n: number }>()
+  expect(left?.n).toBe(0)
+  const again = await withEnv(
+    closed,
+    '/identity/accounts/register',
+    asJson(registerBody('uninvited@example.com')),
+  )
+  expect(again.status).toBe(400)
+})
+
+const mailer = () => {
+  const sent: { to: string; text: string }[] = []
+  return {
+    sent,
+    EMAIL: { send: async (m: { to: string; text: string }) => void sent.push(m) },
+    MAIL_FROM: 'Cloudwarden <noreply@example.com>',
+  }
+}
+
+it('emails the verification link and returns 204 when a transport is configured', async () => {
+  const m = mailer()
+  const res = await withEnv(
+    { EMAIL: m.EMAIL, MAIL_FROM: m.MAIL_FROM },
+    '/identity/accounts/register/send-verification-email',
+    asJson({ email: 'mail@example.com', name: 'M' }),
+  )
+  expect(res.status).toBe(204)
+  expect(m.sent).toHaveLength(1)
+  expect(m.sent[0]?.to).toBe('mail@example.com')
+  expect(m.sent[0]?.text).toContain('finish-signup')
+})
+
+it('emails the email-change code to the new address', async () => {
+  const { createSession, authed } = await import('./helpers')
+  const s = await createSession('chg@example.com')
+  const m = mailer()
+  const { default: app } = await import('../src/index')
+  const res = await app.fetch(
+    new Request(`https://vault.example.com/api/accounts/email-token`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${s.access_token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        newEmail: 'chg2@example.com',
+        masterPasswordHash: 'client-derived-hash',
+      }),
+    }),
+    { ...env, EMAIL: m.EMAIL, MAIL_FROM: m.MAIL_FROM },
+  )
+  expect(res.status).toBe(204)
+  const row = await env.DB.prepare('select email_new_token t from users where email = ?')
+    .bind('chg@example.com')
+    .first<{ t: string }>()
+  expect(m.sent[0]?.to).toBe('chg2@example.com')
+  expect(m.sent[0]?.text).toContain(row?.t as string)
+  void authed
+})

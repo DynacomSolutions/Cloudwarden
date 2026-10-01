@@ -148,7 +148,7 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 Newest first. One line per verified fact.
 
 - 2026-10-01 · #140, #141 · `pnpm lint`, `pnpm typecheck`, `pnpm test` (32 tests, 6 files), `pnpm check:identifiers` green on branch `feat/admin`; migration `0002_admin`.
-- 2026-10-01 · #20 to #29 · Branch `feat/identity`: `pnpm lint`, `pnpm typecheck`, `pnpm test` (60 tests across 12 files) and `pnpm check:identifiers` green. Covers register, prelogin, password, refresh and API-key grants, devices, profile, password, KDF, email, key rotation (all-or-nothing) and deletion, stamp invalidation of access and refresh tokens, and 429 limiting.
+- 2026-10-01 · #20 to #29 · Branch `feat/identity` rebased on #6: `pnpm lint`, `pnpm typecheck`, `pnpm test` (88 tests), `cf build` (no global-scope randomness) and invitation gating plus emailed verification and email-change codes and `pnpm check:identifiers` green. Covers register, prelogin, password, refresh and API-key grants, devices, profile, password, KDF, email, key rotation (all-or-nothing) and deletion, stamp invalidation of access and refresh tokens, and 429 limiting.
 - 2026-10-01 · #20 · PBKDF2-SHA256 at 100000 iterations measured at about 15 ms median (Node 22); see ADR 0002. Production timing to be re-measured after deploy.
 - 2026-10-01 · #29 · `LOGIN_LIMITER` declared through `bindings.rateLimit` in `cloudflare.config.ts` (20 requests per 60 s per client address); the limiter is skipped when the binding is absent and tested with a stub binding.
 - 2026-10-01 · #28 · Recovery-code flows depend on two-factor (Phase 6) and are not implemented; account deletion is. Attachment and Send blob cleanup is deferred to #80.

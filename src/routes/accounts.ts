@@ -7,6 +7,7 @@ import { hashMasterPassword, verifyMasterPassword } from '../auth/passwords'
 import { stampRotationStatements } from '../auth/session'
 import { findUserByEmail, normalizeEmail } from '../auth/users'
 import { createDb, runBatch, schema } from '../db'
+import { createEmailTransport, genericEmail } from '../email'
 import type { Env, User } from '../env'
 import { ApiError } from '../errors'
 import { kdfProblem, parseBody } from '../validation'
@@ -200,8 +201,7 @@ const apiKeyHandler = (rotate: boolean) => async (c: Ctx) => {
 accounts.post('/api/accounts/api-key', requireAuth, apiKeyHandler(false))
 accounts.post('/api/accounts/rotate-api-key', requireAuth, apiKeyHandler(true))
 
-// Email change. TODO(TASKS #141): deliver the token by email; until a mail transport
-// exists it is only stored, so the flow is exercised by tests but unusable in production.
+// Email change: the code is stored and emailed to the new address when a transport is bound.
 const emailTokenSchema = z.object({
   newEmail: z.string().email(),
   masterPasswordHash: z.string().min(1),
@@ -225,6 +225,16 @@ accounts.post('/api/accounts/email-token', requireAuth, async (c) => {
       emailNewExpiresAt: Date.now() + EMAIL_TOKEN_TTL_MS,
     })
     .where(eq(schema.users.uuid, user.uuid))
+  const transport = createEmailTransport(c.env)
+  if (transport.configured) {
+    await transport.send({
+      to: newEmail,
+      ...genericEmail('Your email change code', [
+        `Your verification code is ${code}. It expires in 10 minutes.`,
+        'If you did not request this change you can ignore this message.',
+      ]),
+    })
+  }
   return c.body(null, 204)
 })
 

@@ -20,9 +20,9 @@ export async function hashMasterPassword(masterPasswordHash: string): Promise<St
   }
 }
 
-// Used so unknown accounts cost the same as known ones (no timing oracle).
-const DUMMY_SALT = crypto.getRandomValues(new Uint8Array(16))
-const DUMMY_HASH = crypto.getRandomValues(new Uint8Array(32))
+// Constants (no global-scope randomness on Workers). Used so unknown accounts cost the same as known ones (no timing oracle).
+const DUMMY_SALT = new Uint8Array(16).fill(0x5a)
+const DUMMY_HASH = new Uint8Array(32).fill(0xa5)
 
 /** Constant-time verification. Pass null for an unknown account; it always returns false. */
 export async function verifyMasterPassword(

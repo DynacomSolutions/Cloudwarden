@@ -201,7 +201,7 @@ it('emails the verification link and returns 204 when a transport is configured'
 })
 
 it('emails the email-change code to the new address', async () => {
-  const { createSession, authed } = await import('./helpers')
+  const { createSession } = await import('./helpers')
   const s = await createSession('chg@example.com')
   const m = mailer()
   const { default: app } = await import('../src/index')
@@ -222,5 +222,4 @@ it('emails the email-change code to the new address', async () => {
     .first<{ t: string }>()
   expect(m.sent[0]?.to).toBe('chg2@example.com')
   expect(m.sent[0]?.text).toContain(row?.t as string)
-  void authed
 })

@@ -79,6 +79,9 @@ export interface CipherRow {
   folderId: string | null
 }
 
+const legacyData = (payload: unknown): string | null =>
+  payload == null ? null : JSON.stringify(payload)
+
 export function cipherJson({ cipher, folderId }: CipherRow, attachments: unknown[] | null = null) {
   const data = (parseJson(cipher.data) ?? {}) as Partial<Record<PayloadKey, unknown>>
   const payload = Object.fromEntries(CIPHER_PAYLOAD_KEYS.map((k) => [k, data[k] ?? null]))
@@ -106,7 +109,8 @@ export function cipherJson({ cipher, folderId }: CipherRow, attachments: unknown
     viewPassword: true,
     permissions: { delete: true, restore: true },
     collectionIds: [],
-    data: data[TYPE_KEYS[cipher.atype] ?? 'login'] ?? null,
+    // Legacy field: the type payload as a JSON string (the SDK rejects an object here).
+    data: legacyData(data[TYPE_KEYS[cipher.atype] ?? 'login']),
   }
 }
 

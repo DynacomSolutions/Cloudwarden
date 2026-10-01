@@ -787,3 +787,157 @@ describe('rate limiting', () => {
     expect(l.keys.some((k) => k.startsWith('two-factor:'))).toBe(true)
   })
 })
+
+describe('security hardening', () => {
+  const sqlOne = (q: string, ...b: unknown[]) =>
+    env.DB.prepare(q)
+      .bind(...b)
+      .run()
+
+  it('recover refuses a null stored code and malformed input', async () => {
+    clock.now = () => FIXED
+    const email = 'tf-sec-null@example.com'
+    const s = await createSession(email)
+    await enableTotp(s)
+    await sqlOne('update users set totp_recover = null where email = ?', email)
+    for (const code of ['\u0000', '', ' ', 'A'.repeat(31), `${'A'.repeat(31)}1`, 'a'.repeat(33)]) {
+      const res = await json('/api/two-factor/recover', {
+        email,
+        masterPasswordHash: PW,
+        recoveryCode: code || ' ',
+      })
+      expect(res.status).toBe(400)
+    }
+    const rows = await env.DB.prepare('select count(*) n from twofactor').first<{ n: number }>()
+    expect(rows?.n).toBeGreaterThan(0)
+    expect((await challenge(email)).status).toBe(400)
+  })
+
+  it('fails closed for unsupported providers and lets the recovery code (provider 8) in', async () => {
+    const email = 'tf-sec-duo@example.com'
+    const s = await createSession(email)
+    const user = await env.DB.prepare('select uuid, totp_recover r from users where email = ?')
+      .bind(email)
+      .first<{ uuid: string }>()
+    await sqlOne(
+      'insert into twofactor (uuid, user_uuid, atype, enabled, data, last_used) values (?, ?, 3, 1, ?, 0)',
+      crypto.randomUUID(),
+      user?.uuid,
+      '{}',
+    )
+    const first = await challenge(email)
+    expect(first.status).toBe(400)
+    expect(first.body.access_token).toBeUndefined()
+    expect(first.body.TwoFactorProviders2).toBeUndefined()
+    const guess = await challenge(email, { twoFactorProvider: '3', twoFactorToken: 'cccccc' })
+    expect(guess.status).toBe(400)
+    expect(guess.body.access_token).toBeUndefined()
+
+    const code = (await call(s, '/api/two-factor/get-recover', { masterPasswordHash: PW })).body
+      .code
+    const bad = await challenge(email, { twoFactorProvider: '8', twoFactorToken: 'A'.repeat(32) })
+    expect(bad.status).toBe(400)
+    const ok = await challenge(email, { twoFactorProvider: '8', twoFactorToken: code })
+    expect(ok.status).toBe(200)
+    expect(ok.body.access_token).toBeTruthy()
+    // Spent: all providers gone, code rotated, cannot be reused.
+    expect((await login(email)).status).toBe(200)
+    const left = await env.DB.prepare(
+      'select count(*) n from twofactor where atype = 3 and enabled = 1',
+    ).first<{ n: number }>()
+    expect(left?.n).toBe(0)
+    const rotated = (await call(s, '/api/two-factor/get-recover', { masterPasswordHash: PW })).body
+      .code
+    expect(rotated).not.toBe(code)
+  })
+
+  it('provider 8 works for accounts with a supported provider and rejects reuse', async () => {
+    clock.now = () => FIXED
+    const email = 'tf-sec-p8@example.com'
+    const s = await createSession(email)
+    await enableTotp(s)
+    const code = (await call(s, '/api/two-factor/get-recover', { masterPasswordHash: PW })).body
+      .code
+    const ok = await challenge(email, { twoFactorProvider: '8', twoFactorToken: code })
+    expect(ok.status).toBe(200)
+    const newCode = (await call(s, '/api/two-factor/get-recover', { masterPasswordHash: PW })).body
+      .code
+    expect(newCode).not.toBe(code)
+    // Re-enable 2FA: the spent code must not work as provider 8 any more.
+    clock.now = () => FIXED + 120_000
+    await enableTotp(s)
+    const reuse = await challenge(email, { twoFactorProvider: '8', twoFactorToken: code })
+    expect(reuse.status).toBe(400)
+    expect(reuse.body.access_token).toBeUndefined()
+  })
+
+  it('binds verification tokens to the security stamp', async () => {
+    const email = 'tf-sec-stamp@example.com'
+    const s = await createSession(email)
+    const tok = (await call(s, '/api/two-factor/get-authenticator', { masterPasswordHash: PW }))
+      .body.userVerificationToken
+    await sqlOne('update users set security_stamp = ? where email = ?', crypto.randomUUID(), email)
+    const fresh = (await (await login(email)).json()) as Session
+    const res = await call(fresh, '/api/two-factor/get-authenticator', {
+      userVerificationToken: tok,
+    })
+    expect(res.status).toBe(400)
+  })
+
+  it('caps email attempts under parallel guesses', async () => {
+    clock.now = () => FIXED
+    const email = 'tf-sec-par@example.com'
+    const mail = mailbox()
+    const s = await createSession(email)
+    await withEnv(mail.overrides, '/api/two-factor/send-email', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${s.access_token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, masterPasswordHash: PW }),
+    })
+    const code = codeFrom(mail.sent[0]?.text ?? '')
+    const wrong = code === '123456' ? '654321' : '123456'
+    await Promise.all(
+      Array.from({ length: 12 }, () =>
+        call(s, '/api/two-factor/email', { email, token: wrong, masterPasswordHash: PW }, 'PUT'),
+      ),
+    )
+    const row = await env.DB.prepare(
+      "select json_extract(data, '$.attempts') a from twofactor where atype = 1",
+    ).first<{ a: number }>()
+    expect(row?.a).toBeLessThanOrEqual(5)
+    const good = await call(
+      s,
+      '/api/two-factor/email',
+      { email, token: code, masterPasswordHash: PW },
+      'PUT',
+    )
+    expect(good.status).toBe(400)
+  })
+
+  it('falls back to a D1 window when the limiter binding is missing', async () => {
+    const hit = () =>
+      withEnv({}, '/api/two-factor/recover', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': '198.51.100.77' },
+        body: JSON.stringify({
+          email: 'x@example.com',
+          masterPasswordHash: 'a',
+          recoveryCode: 'b',
+        }),
+      })
+    let limited = 0
+    for (let i = 0; i < 70; i++) if ((await hit()).status === 429) limited++
+    expect(limited).toBeGreaterThan(0)
+
+    clock.now = () => FIXED
+    const email = 'tf-sec-d1@example.com'
+    const s = await createSession(email)
+    await enableTotp(s)
+    let tripped = false
+    for (let i = 0; i < 25 && !tripped; i++) {
+      const r = await login(email, PW, { twoFactorProvider: '0', twoFactorToken: '000000' })
+      tripped = r.status === 429
+    }
+    expect(tripped).toBe(true)
+  })
+})

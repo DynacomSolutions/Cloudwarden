@@ -232,30 +232,38 @@ export async function verifyRegistration(i: RegistrationInput): Promise<Registra
   }
 }
 
-/** ECDSA signatures arrive DER encoded; WebCrypto wants fixed width r || s. */
+/**
+ * ECDSA signatures arrive DER encoded; WebCrypto wants fixed width r || s. Parsing is strict:
+ * the whole input must be consumed, lengths minimally encoded, integers positive and minimal.
+ */
 export function derToRawEcdsa(der: Uint8Array, size = 32): Uint8Array | null {
-  let p = 0
-  if (der[p++] !== 0x30) return null
-  let len = der[p++] as number
-  if (len & 0x80) {
-    const n = len & 0x7f
-    if (n < 1 || n > 2) return null
-    len = 0
-    for (let i = 0; i < n; i++) len = (len << 8) | (der[p++] as number)
+  if (der.length < 8 || der[0] !== 0x30) return null
+  let p = 2
+  let len = der[1] as number
+  if (len === 0x81) {
+    len = der[2] as number
+    p = 3
+    if (len < 0x80) return null
+  } else if (len >= 0x80) {
+    return null
   }
   if (p + len !== der.length) return null
   const out = new Uint8Array(size * 2)
   for (let part = 0; part < 2; part++) {
     if (der[p++] !== 0x02) return null
-    const l = der[p++] as number
-    if (l === undefined || p + l > der.length) return null
+    const l = der[p++]
+    if (l === undefined || l < 1 || l >= 0x80 || p + l > der.length) return null
     let int = der.subarray(p, p + l)
     p += l
-    while (int.length > 1 && int[0] === 0) int = int.subarray(1)
-    if (int.length > size) return null
+    if ((int[0] as number) & 0x80) return null
+    if (int.length > 1 && int[0] === 0) {
+      if (!((int[1] as number) & 0x80)) return null
+      int = int.subarray(1)
+    }
+    if (int.length > size || int.every((b) => b === 0)) return null
     out.set(int, part * size + (size - int.length))
   }
-  return out
+  return p === der.length ? out : null
 }
 
 export interface AssertionInput {

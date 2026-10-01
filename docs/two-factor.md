@@ -30,6 +30,17 @@ Every endpoint under `/api/two-factor` accepts either `masterPasswordHash` or th
 `userVerificationToken` returned by the `get-*` calls (valid 30 minutes). Calls are rate limited
 per address, and verification and login attempts per user, through `LOGIN_LIMITER`.
 
+## Security properties
+
+- Recovery codes must match `^[A-Z2-7]{32}$` after normalisation, an empty stored code never
+  matches, and spending a code is guarded on the old value so it works once. It is accepted
+  at `/api/two-factor/recover` and as provider 8 at the token endpoint.
+- A user with an enabled provider this server cannot verify (Duo, YubiKey) cannot log in with a
+  password alone; only the recovery code gets through.
+- `userVerificationToken` is bound to the user's security stamp.
+- Email attempts are counted atomically before comparison. Without the `LOGIN_LIMITER`
+  binding, 2FA paths fall back to a D1 fixed window (20 per user and 60 per address per minute).
+
 ## Notes and limits
 
 - TOTP: SHA-1, 6 digits, 30 second step, steps `now-1..now+1`. The last accepted step is stored

@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { z } from 'zod'
-import { safeEqualStrings, toB64u, utf8 } from '../auth/crypto'
+import { toB64u, utf8 } from '../auth/crypto'
 import { requireAuth } from '../auth/middleware'
 import { verifyMasterPassword } from '../auth/passwords'
 import { base32Decode, generateTotpKey, verifyTotp } from '../auth/totp'
@@ -21,6 +21,7 @@ import {
   providerRow,
   storeEmailCode,
   TwoFactorType,
+  useRecoveryCode,
   verifyIdentity,
   type WebAuthnData,
 } from '../auth/twofactor'
@@ -46,7 +47,7 @@ export const twofactor = new Hono<Env>()
 
 type Ctx = import('hono').Context<Env>
 
-const limit = rateLimit('two-factor-manage')
+const limit = rateLimit('two-factor-manage', 60)
 twofactor.use('/api/two-factor', limit)
 twofactor.use('/api/two-factor/*', limit)
 twofactor.use('/identity/accounts/two-factor/*', limit)
@@ -171,19 +172,10 @@ const recover = async (c: Ctx) => {
   const user = await findUserByEmail(db, body.email)
   if (user && (await overLimit(c, 'two-factor-recover', user.uuid))) return tooManyRequests(c)
   const passwordOk = await verifyMasterPassword(user, body.masterPasswordHash)
-  const supplied = body.recoveryCode.replace(/[\s-]/g, '').toUpperCase()
-  const codeOk = safeEqualStrings(user?.totpRecover ?? '\0', supplied)
-  if (!user || !passwordOk || !codeOk || !user.enabled) {
+  const spent = passwordOk && user ? await useRecoveryCode(db, user, body.recoveryCode) : false
+  if (!user || !spent || !user.enabled) {
     throw new ApiError(400, 'Recovery code is incorrect. Try again.')
   }
-  await runBatch(db, [
-    db.delete(schema.twofactor).where(eq(schema.twofactor.userUuid, user.uuid)),
-    db
-      .update(schema.users)
-      .set({ totpRecover: generateRecoveryCode(), updatedAt: Date.now() })
-      .where(eq(schema.users.uuid, user.uuid)),
-    clearRememberStatement(db, user.uuid),
-  ])
   return c.body(null, 200)
 }
 twofactor.post('/api/two-factor/recover', recover)

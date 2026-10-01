@@ -1,7 +1,7 @@
-import { and, eq, inArray, isNull, lt } from 'drizzle-orm'
+import { and, eq, inArray, isNull, lt, sql } from 'drizzle-orm'
 import type { Context } from 'hono'
 import type { Db } from '../db'
-import { createDb, schema } from '../db'
+import { createDb, runBatch, schema } from '../db'
 import type { Bindings, Env, User } from '../env'
 import { ApiError, oauthError } from '../errors'
 import { overLimit, tooManyRequests } from '../ratelimit'
@@ -161,7 +161,13 @@ const VERIFY_PURPOSE = 'two-factor-verify'
 export async function issueVerificationToken(env: Bindings, user: User): Promise<string> {
   const now = Math.floor(clock.now() / 1000)
   return signJwt(
-    { purpose: VERIFY_PURPOSE, sub: user.uuid, nbf: now, exp: now + VERIFICATION_TOKEN_TTL_S },
+    {
+      purpose: VERIFY_PURPOSE,
+      sub: user.uuid,
+      sstamp: user.securityStamp,
+      nbf: now,
+      exp: now + VERIFICATION_TOKEN_TTL_S,
+    },
     signingSecret(env),
   )
 }
@@ -174,12 +180,19 @@ export interface IdentityProof {
 /** Accepts the master password hash or a verification token from an earlier `get-*` call. */
 export async function verifyIdentity(env: Bindings, user: User, proof: IdentityProof) {
   if (proof.userVerificationToken) {
-    const claims = await verifyJwt<{ purpose?: string; sub?: string; exp: number }>(
-      proof.userVerificationToken,
-      verificationSecrets(env),
-      Math.floor(clock.now() / 1000),
-    )
-    if (claims?.purpose === VERIFY_PURPOSE && claims.sub === user.uuid) return
+    const claims = await verifyJwt<{
+      purpose?: string
+      sub?: string
+      sstamp?: string
+      exp: number
+    }>(proof.userVerificationToken, verificationSecrets(env), Math.floor(clock.now() / 1000))
+    if (
+      claims?.purpose === VERIFY_PURPOSE &&
+      claims.sub === user.uuid &&
+      safeEqualStrings(claims.sstamp ?? '', user.securityStamp)
+    ) {
+      return
+    }
   } else if (
     proof.masterPasswordHash &&
     (await verifyMasterPassword(user, proof.masterPasswordHash))
@@ -252,23 +265,48 @@ export async function storeEmailCode(
   return code
 }
 
-/** Checks and consumes an emailed code. Wrong guesses count toward the attempt limit. */
+const attemptsOf = sql`coalesce(json_extract(${schema.twofactor.data}, '$.attempts'), 0)`
+
+/**
+ * Checks and consumes an emailed code. Every guess is counted first, atomically and only
+ * while below the limit, so parallel guesses cannot exceed it. A match clears the hash in
+ * one guarded update, so a code works once.
+ */
 export async function consumeEmailCode(
   db: Db,
   user: User,
   row: TwoFactorRow,
   code: string,
 ): Promise<boolean> {
-  const data = parseData<EmailData>(row)
-  if (!data?.codeHash || !data.expiresAt) return false
-  const attempts = data.attempts ?? 0
-  if (clock.now() > data.expiresAt || attempts >= EMAIL_CODE_MAX_ATTEMPTS) return false
-  const match = safeEqualStrings(data.codeHash, await codeHash(user.uuid, code.trim()))
-  if (match) {
-    return swapData(db, row, { email: data.email, codeHash: null, attempts: 0 })
-  }
-  await swapData(db, row, { ...data, attempts: attempts + 1 })
-  return false
+  const counted = await db
+    .update(schema.twofactor)
+    .set({
+      data: sql`json_set(${schema.twofactor.data}, '$.attempts', ${attemptsOf} + 1)`,
+    })
+    .where(
+      and(eq(schema.twofactor.uuid, row.uuid), sql`${attemptsOf} < ${EMAIL_CODE_MAX_ATTEMPTS}`),
+    )
+  if (counted.meta.changes === 0) return false
+
+  const [fresh] = await db
+    .select()
+    .from(schema.twofactor)
+    .where(eq(schema.twofactor.uuid, row.uuid))
+    .limit(1)
+  const data = parseData<EmailData>(fresh)
+  if (!data?.codeHash || !data.expiresAt || clock.now() > data.expiresAt) return false
+  const supplied = await codeHash(user.uuid, code.trim())
+  if (!safeEqualStrings(data.codeHash, supplied)) return false
+  const used = await db
+    .update(schema.twofactor)
+    .set({ data: sql`json_set(${schema.twofactor.data}, '$.codeHash', null, '$.attempts', 0)` })
+    .where(
+      and(
+        eq(schema.twofactor.uuid, row.uuid),
+        sql`json_extract(${schema.twofactor.data}, '$.codeHash') = ${data.codeHash}`,
+      ),
+    )
+  return used.meta.changes > 0
 }
 
 // ---------------------------------------------------------------------------
@@ -406,6 +444,47 @@ async function rememberValid(
 }
 
 // ---------------------------------------------------------------------------
+// Recovery code use (shared by the recover endpoint and provider 8 at login)
+// ---------------------------------------------------------------------------
+
+const RECOVERY_FORMAT = /^[A-Z2-7]{32}$/
+
+/** Upper-cases and strips spaces and hyphens. Returns null unless it looks like a code. */
+export function normaliseRecoveryCode(input: string): string | null {
+  const code = input.replace(/[\s-]/g, '').toUpperCase()
+  return RECOVERY_FORMAT.test(code) ? code : null
+}
+
+/**
+ * Spends the recovery code: removes every provider and remember token and rotates the code,
+ * all guarded on the old code so it works once. Returns false if the code is not valid.
+ */
+export async function useRecoveryCode(db: Db, user: User, input: string): Promise<boolean> {
+  const supplied = normaliseRecoveryCode(input)
+  const stored = user.totpRecover
+  if (!supplied || !stored || !safeEqualStrings(stored, supplied)) return false
+  const next = generateRecoveryCode()
+  const rotated = sql`exists (select 1 from users where uuid = ${user.uuid} and totp_recover = ${next})`
+  await runBatch(db, [
+    db
+      .update(schema.users)
+      .set({ totpRecover: next, updatedAt: Date.now() })
+      .where(and(eq(schema.users.uuid, user.uuid), eq(schema.users.totpRecover, stored))),
+    db.delete(schema.twofactor).where(and(eq(schema.twofactor.userUuid, user.uuid), rotated)),
+    db
+      .update(schema.devices)
+      .set({ twofactorRemember: null })
+      .where(and(eq(schema.devices.userUuid, user.uuid), rotated)),
+  ])
+  const [after] = await db
+    .select({ code: schema.users.totpRecover })
+    .from(schema.users)
+    .where(eq(schema.users.uuid, user.uuid))
+    .limit(1)
+  return after?.code === next
+}
+
+// ---------------------------------------------------------------------------
 // Token endpoint hook
 // ---------------------------------------------------------------------------
 
@@ -452,16 +531,43 @@ export const enforceTwoFactor: TwoFactorHook = async (c, user, form) => {
   // API key sessions authenticate with the key alone, as the official clients expect.
   if (form.grant_type === 'client_credentials') return null
   const db = createDb(c.env.DB)
-  const rows = await enabledProviders(db, user.uuid)
-  if (rows.length === 0) return null
+  const all = await db
+    .select()
+    .from(schema.twofactor)
+    .where(and(eq(schema.twofactor.userUuid, user.uuid), eq(schema.twofactor.enabled, true)))
+  if (all.length === 0) return null
+  const rows = all.filter((r) => SUPPORTED_TYPES.includes(r.atype))
+  const unsupported = all.length > rows.length
 
   const provider = Number.parseInt(form.twoFactorProvider ?? '', 10)
   const token = form.twoFactorToken
+  if (unsupported && (!token || !Number.isFinite(provider))) {
+    return oauthError(
+      c,
+      'invalid_grant',
+      'A two-factor provider on this account is not supported by this server. Use your recovery code.',
+    )
+  }
   if (!token || !Number.isFinite(provider)) {
     return challengeBody(c, user, rows, 'Two factor required.')
   }
 
   if (await overLimit(c, 'two-factor', user.uuid)) return tooManyRequests(c)
+
+  // The recovery code is accepted as provider 8: it spends the code, then login continues.
+  if (provider === TwoFactorType.RecoveryCode) {
+    if (await useRecoveryCode(db, user, token)) return null
+    return oauthError(c, 'invalid_grant', 'Recovery code is incorrect. Try again.')
+  }
+
+  // Fail closed: a provider we cannot verify must never be skipped.
+  if (unsupported) {
+    return oauthError(
+      c,
+      'invalid_grant',
+      'A two-factor provider on this account is not supported by this server. Use your recovery code.',
+    )
+  }
 
   if (provider === TwoFactorType.Remember) {
     if (await rememberValid(db, user.uuid, form.deviceIdentifier?.trim(), token)) return null

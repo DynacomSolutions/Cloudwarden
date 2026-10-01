@@ -25,6 +25,8 @@ pnpm install
 pnpm dev
 ```
 
+`JWT_SECRET` is a Worker secret; to supply it locally run `LOCAL_DEV_SECRETS=true JWT_SECRET=<32+ characters> pnpm dev`.
+
 Then point a Bitwarden client's self-hosted server URL at the local address `pnpm dev` prints.
 
 ## Configuration

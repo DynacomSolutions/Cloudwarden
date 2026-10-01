@@ -273,7 +273,6 @@ const UNIMPLEMENTED = [
   'POST /api/accounts/convert-to-key-connector',
   'POST /api/accounts/delete-recover',
   'POST /api/accounts/delete-recover-token',
-  'POST /api/accounts/key-management/rotate-user-account-keys',
   'POST /api/accounts/password-hint',
   'POST /api/accounts/request-otp',
   'POST /api/accounts/set-key-connector-key',
@@ -293,8 +292,6 @@ const UNIMPLEMENTED = [
   'POST /api/devices/update-trust',
   'PUT /api/devices/{deviceIdentifier}/keys',
   'POST /api/devices/{deviceIdentifier}/retrieve-keys',
-  'GET /icons/{domain}/icon.png',
-  'POST /identity/accounts/register/verification-email-clicked',
   'GET /identity/accounts/webauthn/assertion-options',
   'GET /identity/sso/prevalidate',
 ]

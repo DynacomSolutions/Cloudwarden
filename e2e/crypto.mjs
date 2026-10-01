@@ -65,8 +65,21 @@ export async function buildAccount(email, password, iterations = 600000) {
     Buffer.from(await subtle.exportKey('pkcs8', pair.privateKey)),
     userKey,
   )
+  const kdf = { kdfType: 0, iterations }
   return {
     masterPasswordHash,
+    // Nested shape used by web vault 2026.9 (register/finish).
+    nestedBody: {
+      email,
+      masterPasswordHint: null,
+      masterPasswordAuthentication: {
+        salt: email.trim().toLowerCase(),
+        kdf,
+        masterPasswordAuthenticationHash: masterPasswordHash,
+      },
+      masterPasswordUnlock: { salt: email.trim().toLowerCase(), kdf, masterKeyWrappedUserKey: key },
+      userAsymmetricKeys: { publicKey, encryptedPrivateKey },
+    },
     body: {
       email,
       name: 'E2E User',

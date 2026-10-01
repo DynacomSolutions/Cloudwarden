@@ -93,6 +93,7 @@ async function main() {
   const env = {
     ...process.env,
     SIGNUPS_ALLOWED: 'true',
+    LOCAL_DEV_SECRETS: 'true',
     JWT_SECRET: 'e2e-only-secret-e2e-only-secret-0123456789',
     DEPLOY_DOMAIN: `127.0.0.1:${tlsPort}`,
     NODE_EXTRA_CA_CERTS: tls.cert,
@@ -353,6 +354,32 @@ async function main() {
     assert.match(bwOut(['sync', '--session', session]), /Syncing complete/)
     assert.equal(JSON.parse(bwOut(['status', '--session', session])).status, 'unlocked')
     pass('bw login --apikey (client_credentials), unlock, sync')
+    bw(['logout'])
+
+    // Registration the way web vault 2026.9 does it: verification email request, then the nested finish body.
+    const email2 = `e2e-nested-${Date.now()}@example.com`
+    const acct2 = await buildAccount(email2, PASSWORD)
+    const sendRes = await fetch(`${direct}/identity/accounts/register/send-verification-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email2, name: 'Nested User', receiveMarketingEmails: false }),
+    })
+    // 200 carries the token (no mail transport); 204 means it was emailed, and signups are open anyway.
+    assert.ok([200, 204].includes(sendRes.status), `send-verification-email ${sendRes.status}`)
+    const verificationToken = sendRes.status === 200 ? await sendRes.json() : undefined
+    const finish = await fetch(`${direct}/identity/accounts/register/finish`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...acct2.nestedBody, emailVerificationToken: verificationToken }),
+    })
+    assert.equal(finish.status, 200, await finish.text())
+    session = bwOut(['login', email2, '--passwordenv', 'BW_PASSWORD', '--raw'])
+    assert.match(bwOut(['sync', '--session', session]), /Syncing complete/)
+    const nestedFolder = JSON.parse(
+      bwOut(['create', 'folder', encode({ name: 'nested' }), '--session', session]),
+    )
+    assert.equal(nestedFolder.name, 'nested')
+    pass('register via nested register/finish shape, then bw login, sync and create')
     bw(['logout'])
     console.log(`\n${step} steps passed`)
   } catch (err) {

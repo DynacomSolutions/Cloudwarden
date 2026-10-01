@@ -14,7 +14,8 @@ Instructions for AI coding agents working in this repository. Human contributors
 3. **Atomic writes use `db.batch()`.** D1 has no interactive transactions.
 4. **Conventional Commits**, one logical change per commit.
 5. **No em dashes** in code, comments, docs or commit messages.
-6. **Use the `cf` CLI**, not Wrangler, for Cloudflare operations.
+6. **Build from the API contract.** `docs/api/openapi.yaml` (TASKS #14) is the source of truth. Never port code or logic from other server implementations.
+7. **Use the `cf` CLI**, not Wrangler, for Cloudflare operations.
 
 ## Commands
 

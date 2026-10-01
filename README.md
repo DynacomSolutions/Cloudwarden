@@ -2,7 +2,7 @@
 
 A Bitwarden-compatible password manager server for Cloudflare Workers, written in TypeScript.
 
-Cloudwarden aims to do what [Vaultwarden](https://github.com/dani-garcia/vaultwarden) does (implement the Bitwarden server API so the official clients can use a self-hosted server) but runs serverless on Cloudflare:
+Cloudwarden implements the Bitwarden server API, built from an explicit API contract (OpenAPI), so the official Bitwarden clients can use a self-hosted server. It runs serverless on Cloudflare:
 
 - **Workers** for the API (Hono)
 - **D1** (SQLite) for relational data
@@ -14,7 +14,7 @@ Cloudwarden aims to do what [Vaultwarden](https://github.com/dani-garcia/vaultwa
 
 ## Why D1
 
-The Bitwarden data model is relational (users, organisations, collections, many-to-many sharing) and Vaultwarden already proves it fits SQLite. D1 gives managed SQLite with migrations and point-in-time restore. The trade-offs (no interactive transactions, 10 GB per database, PBKDF2 iteration cap in Workers) are recorded in [ADR 0001](docs/adr/0001-storage-d1.md).
+The Bitwarden data model is relational (users, organisations, collections, many-to-many sharing) and fits SQLite well. D1 gives managed SQLite with migrations and point-in-time restore. The trade-offs (no interactive transactions, 10 GB per database, PBKDF2 iteration cap in Workers) are recorded in [ADR 0001](docs/adr/0001-storage-d1.md).
 
 ## Quick start
 

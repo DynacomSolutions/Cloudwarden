@@ -6,11 +6,15 @@ import { accounts } from './routes/accounts'
 import { admin } from './routes/admin'
 import { alive } from './routes/alive'
 import { appId } from './routes/app-id'
+import { ciphers } from './routes/ciphers'
 import { config } from './routes/config'
 import { devices } from './routes/devices'
+import { folders } from './routes/folders'
 import { prelogin } from './routes/prelogin'
 import { register } from './routes/register'
+import { settings } from './routes/settings'
 import { stubs } from './routes/stubs'
+import { sync } from './routes/sync'
 import { token } from './routes/token'
 
 const app = new Hono<Env>()
@@ -25,6 +29,10 @@ app.route('/', register)
 app.route('/', token)
 app.route('/', devices)
 app.route('/', accounts)
+app.route('/', sync)
+app.route('/', ciphers)
+app.route('/', folders)
+app.route('/', settings)
 app.route('/', stubs)
 app.route('/', admin)
 

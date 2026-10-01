@@ -1,0 +1,490 @@
+import { env } from 'cloudflare:workers'
+import { expect, it } from 'vitest'
+import { authed, createSession, login as loginRequest } from './helpers'
+
+const STALE = 'The client copy of this cipher is out of date. Resync the client and try again.'
+
+const login = (name = '2.name') => ({
+  type: 1,
+  name,
+  notes: '2.notes',
+  favorite: false,
+  reprompt: 0,
+  key: '2.ckey',
+  fields: [{ type: 0, name: '2.fn', value: '2.fv', linkedId: null }],
+  passwordHistory: [{ password: '2.old', lastUsedDate: '2024-01-01T00:00:00.000Z' }],
+  login: {
+    username: '2.u',
+    password: '2.p',
+    totp: '2.totp',
+    passwordRevisionDate: null,
+    autofillOnPageLoad: true,
+    uris: [{ uri: '2.uri', match: 3, uriChecksum: '2.sum' }],
+    fido2Credentials: [{ credentialId: '2.cid', keyType: 'public-key', rpId: '2.rp' }],
+  },
+})
+const card = () => ({
+  type: 3,
+  name: '2.card',
+  card: {
+    cardholderName: '2.c',
+    number: '2.n',
+    brand: '2.b',
+    expMonth: '2.m',
+    expYear: '2.y',
+    code: '2.cv',
+  },
+})
+const identity = () => ({
+  type: 4,
+  name: '2.id',
+  identity: { title: '2.t', firstName: '2.f', lastName: '2.l', email: '2.e', ssn: '2.ssn' },
+})
+const note = () => ({ type: 2, name: '2.note', secureNote: { type: 0 } })
+const ssh = () => ({
+  type: 5,
+  name: '2.ssh',
+  sshKey: { privateKey: '2.pk', publicKey: '2.pub', keyFingerprint: '2.fp' },
+})
+
+const setup = async (email: string) => {
+  const s = await createSession(email)
+  const call = (path: string, method = 'GET', body?: unknown) =>
+    authed(path, s.access_token, method, body)
+  return { s, call }
+}
+const j = async (res: Response) => (await res.json()) as any
+
+it('requires authentication on vault routes', async () => {
+  const { SELF } = await import('cloudflare:test')
+  for (const p of ['/api/sync', '/api/ciphers', '/api/folders', '/api/settings/domains']) {
+    expect((await SELF.fetch(`https://vault.example.com${p}`)).status).toBe(401)
+  }
+})
+
+it('syncs an empty vault with the full profile shape', async () => {
+  const { call } = await setup('sync0@example.com')
+  const res = await call('/api/sync')
+  expect(res.status).toBe(200)
+  const body = await j(res)
+  expect(body).toMatchObject({
+    object: 'sync',
+    folders: [],
+    collections: [],
+    ciphers: [],
+    policies: [],
+    sends: [],
+    profile: {
+      object: 'profile',
+      organizations: [],
+      providers: [],
+      providerOrganizations: [],
+      premium: true,
+      emailVerified: true,
+      usesKeyConnector: false,
+      forcePasswordReset: false,
+      key: '2.encryptedSymmetricKey',
+      privateKey: '2.pk',
+    },
+    domains: { object: 'domains', equivalentDomains: [] },
+    userDecryption: {
+      masterPasswordUnlock: {
+        kdf: { kdfType: 0, iterations: 600000 },
+        masterKeyEncryptedUserKey: '2.encryptedSymmetricKey',
+        salt: 'sync0@example.com',
+      },
+    },
+  })
+  expect(typeof body.profile.creationDate).toBe('string')
+  expect(body.domains.globalEquivalentDomains.length).toBeGreaterThan(0)
+  const slim = await j(await call('/api/sync?excludeDomains=true'))
+  expect(slim.domains).toBeNull()
+})
+
+it('round-trips every cipher type through sync', async () => {
+  const { call } = await setup('rt@example.com')
+  const inputs = [login(), card(), identity(), note(), ssh()]
+  const created: any[] = []
+  for (const i of inputs) {
+    const res = await call('/api/ciphers', 'POST', i)
+    expect(res.status).toBe(200)
+    created.push(await j(res))
+  }
+  const sync = await j(await call('/api/sync'))
+  expect(sync.ciphers).toHaveLength(5)
+  for (const [n, input] of inputs.entries()) {
+    const got = sync.ciphers.find((c: any) => c.id === created[n].id)
+    expect(got).toMatchObject({
+      object: 'cipherDetails',
+      type: input.type,
+      name: input.name,
+      edit: true,
+      viewPassword: true,
+      organizationUseTotp: false,
+      attachments: null,
+      archivedDate: null,
+      deletedDate: null,
+      folderId: null,
+      permissions: { delete: true, restore: true },
+    })
+    for (const k of ['login', 'card', 'identity', 'secureNote', 'sshKey'] as const) {
+      expect(got[k]).toEqual((input as any)[k] ?? null)
+    }
+    expect(await j(await call(`/api/ciphers/${got.id}`))).toEqual(got)
+  }
+  const full = sync.ciphers.find((c: any) => c.id === created[0].id)
+  expect(full).toMatchObject({
+    notes: '2.notes',
+    key: '2.ckey',
+    fields: login().fields,
+    passwordHistory: login().passwordHistory,
+  })
+  const list = await j(await call('/api/ciphers'))
+  expect(list.object).toBe('list')
+  expect(list.data).toHaveLength(5)
+})
+
+it('validates cipher bodies and ownership', async () => {
+  const { call } = await setup('val@example.com')
+  expect((await call('/api/ciphers', 'POST', { type: 9, name: 'x' })).status).toBe(400)
+  expect((await call('/api/ciphers', 'POST', { type: 1 })).status).toBe(400)
+  expect(
+    (await call('/api/ciphers', 'POST', { ...login(), folderId: crypto.randomUUID() })).status,
+  ).toBe(400)
+  expect(
+    (await call('/api/ciphers', 'POST', { ...login(), organizationId: crypto.randomUUID() }))
+      .status,
+  ).toBe(400)
+  expect((await call(`/api/ciphers/${crypto.randomUUID()}`)).status).toBe(404)
+
+  const other = await setup('val2@example.com')
+  const mine = await j(await call('/api/ciphers', 'POST', login()))
+  expect((await other.call(`/api/ciphers/${mine.id}`)).status).toBe(404)
+  expect((await other.call(`/api/ciphers/${mine.id}`, 'PUT', login())).status).toBe(404)
+  expect((await other.call(`/api/ciphers/${mine.id}`, 'DELETE')).status).toBe(404)
+  expect((await other.call('/api/ciphers/delete', 'POST', { ids: [mine.id] })).status).toBe(404)
+  expect((await call(`/api/ciphers/${mine.id}`)).status).toBe(200)
+})
+
+it('creates through /create and rejects collections', async () => {
+  const { call } = await setup('create@example.com')
+  const ok = await call('/api/ciphers/create', 'POST', { cipher: login(), collectionIds: [] })
+  expect(ok.status).toBe(200)
+  expect((await j(ok)).name).toBe('2.name')
+  const bad = await call('/api/ciphers/create', 'POST', {
+    cipher: login(),
+    collectionIds: [crypto.randomUUID()],
+  })
+  expect(bad.status).toBe(400)
+})
+
+it('updates ciphers with PUT and POST and changes type payloads', async () => {
+  const { call } = await setup('upd@example.com')
+  const c = await j(await call('/api/ciphers', 'POST', login()))
+  const put = await call(`/api/ciphers/${c.id}`, 'PUT', { ...login('2.renamed'), favorite: true })
+  expect(await j(put)).toMatchObject({
+    name: '2.renamed',
+    favorite: true,
+    creationDate: c.creationDate,
+  })
+  const post = await call(`/api/ciphers/${c.id}`, 'POST', card())
+  const body = await j(post)
+  expect(body).toMatchObject({ type: 3, login: null, card: card().card })
+})
+
+it('updates favorite and folder with the partial endpoint', async () => {
+  const { call } = await setup('part@example.com')
+  const f = await j(await call('/api/folders', 'POST', { name: '2.folder' }))
+  const c = await j(await call('/api/ciphers', 'POST', login()))
+  const res = await call(`/api/ciphers/${c.id}/partial`, 'PUT', { folderId: f.id, favorite: true })
+  expect(await j(res)).toMatchObject({ folderId: f.id, favorite: true, name: '2.name' })
+  const clear = await call(`/api/ciphers/${c.id}/partial`, 'PUT', {
+    folderId: null,
+    favorite: false,
+  })
+  expect(await j(clear)).toMatchObject({ folderId: null, favorite: false })
+  const bad = await call(`/api/ciphers/${c.id}/partial`, 'PUT', {
+    folderId: crypto.randomUUID(),
+    favorite: false,
+  })
+  expect(bad.status).toBe(400)
+})
+
+it('soft deletes, restores and hard deletes a cipher', async () => {
+  const { call } = await setup('del@example.com')
+  const c = await j(await call('/api/ciphers', 'POST', login()))
+  expect((await call(`/api/ciphers/${c.id}/delete`, 'PUT')).status).toBe(200)
+  const deleted = await j(await call(`/api/ciphers/${c.id}`))
+  expect(typeof deleted.deletedDate).toBe('string')
+  const sync = await j(await call('/api/sync'))
+  expect(sync.ciphers[0].deletedDate).not.toBeNull()
+
+  const restored = await j(await call(`/api/ciphers/${c.id}/restore`, 'PUT'))
+  expect(restored.deletedDate).toBeNull()
+
+  expect((await call(`/api/ciphers/${c.id}`, 'DELETE')).status).toBe(200)
+  expect((await call(`/api/ciphers/${c.id}`)).status).toBe(404)
+})
+
+it('handles bulk move, soft delete, restore and hard delete', async () => {
+  const { call } = await setup('bulk@example.com')
+  const f = await j(await call('/api/folders', 'POST', { name: '2.f' }))
+  const ids: string[] = []
+  for (let n = 0; n < 3; n++)
+    ids.push((await j(await call('/api/ciphers', 'POST', login(`2.n${n}`)))).id)
+
+  expect((await call('/api/ciphers/move', 'PUT', { ids, folderId: f.id })).status).toBe(204)
+  let list = (await j(await call('/api/ciphers'))).data
+  expect(list.every((c: any) => c.folderId === f.id)).toBe(true)
+  expect((await call('/api/ciphers/move', 'PUT', { ids: [ids[0]], folderId: null })).status).toBe(
+    204,
+  )
+  list = (await j(await call('/api/ciphers'))).data
+  expect(list.find((c: any) => c.id === ids[0]).folderId).toBeNull()
+  expect(
+    (await call('/api/ciphers/move', 'PUT', { ids, folderId: crypto.randomUUID() })).status,
+  ).toBe(400)
+
+  expect((await call('/api/ciphers/delete', 'PUT', { ids: [ids[0], ids[1]] })).status).toBe(200)
+  list = (await j(await call('/api/ciphers'))).data
+  expect(list.filter((c: any) => c.deletedDate !== null)).toHaveLength(2)
+
+  const restored = await j(await call('/api/ciphers/restore', 'PUT', { ids: [ids[0], ids[1]] }))
+  expect(restored.object).toBe('list')
+  expect(restored.data).toHaveLength(2)
+  expect(restored.data.every((c: any) => c.deletedDate === null)).toBe(true)
+
+  expect((await call('/api/ciphers/delete', 'POST', { ids: [ids[0], ids[1]] })).status).toBe(200)
+  expect((await j(await call('/api/ciphers'))).data).toHaveLength(1)
+  const missing = await call('/api/ciphers/delete', 'POST', { ids: [ids[2], crypto.randomUUID()] })
+  expect(missing.status).toBe(404)
+  expect((await j(await call('/api/ciphers'))).data).toHaveLength(1)
+})
+
+it('bulk operations accept more ids than one SQL statement can bind', async () => {
+  const { s, call } = await setup('many@example.com')
+  const now = Date.now()
+  const ids = Array.from({ length: 250 }, () => crypto.randomUUID())
+  const user = await env.DB.prepare('select uuid from users where email = ?')
+    .bind('many@example.com')
+    .first<{ uuid: string }>()
+  await env.DB.batch(
+    ids.map((id) =>
+      env.DB.prepare(
+        'insert into ciphers (uuid, user_uuid, atype, name, data, created_at, updated_at) values (?,?,?,?,?,?,?)',
+      ).bind(id, user?.uuid, 2, '2.n', '{"secureNote":{"type":0}}', now, now),
+    ),
+  )
+  expect(s.access_token).toBeTruthy()
+  expect((await call('/api/ciphers/delete', 'PUT', { ids })).status).toBe(200)
+  const list = (await j(await call('/api/ciphers'))).data
+  expect(list).toHaveLength(250)
+  expect(list.every((c: any) => c.deletedDate !== null)).toBe(true)
+  expect((await call('/api/ciphers/delete', 'POST', { ids })).status).toBe(200)
+  expect((await j(await call('/api/ciphers'))).data).toHaveLength(0)
+}, 30_000)
+
+it('purges the vault only with the master password', async () => {
+  const { call } = await setup('purge@example.com')
+  await call('/api/ciphers', 'POST', login())
+  await call('/api/folders', 'POST', { name: '2.f' })
+  expect((await call('/api/ciphers/purge', 'POST', { masterPasswordHash: 'wrong' })).status).toBe(
+    400,
+  )
+  expect((await j(await call('/api/ciphers'))).data).toHaveLength(1)
+  expect(
+    (await call('/api/ciphers/purge', 'POST', { masterPasswordHash: 'client-derived-hash' }))
+      .status,
+  ).toBe(200)
+  const sync = await j(await call('/api/sync'))
+  expect(sync.ciphers).toEqual([])
+  expect(sync.folders).toEqual([])
+})
+
+it('rejects stale updates and accepts current ones', async () => {
+  const { call } = await setup('stale@example.com')
+  const c = await j(await call('/api/ciphers', 'POST', login()))
+  await new Promise((r) => setTimeout(r, 1100))
+  const fresh = await j(
+    await call(`/api/ciphers/${c.id}`, 'PUT', {
+      ...login('2.v2'),
+      lastKnownRevisionDate: c.revisionDate,
+    }),
+  )
+  expect(fresh.name).toBe('2.v2')
+  expect(fresh.revisionDate).not.toBe(c.revisionDate)
+
+  const stale = await call(`/api/ciphers/${c.id}`, 'PUT', {
+    ...login('2.v3'),
+    lastKnownRevisionDate: c.revisionDate,
+  })
+  expect(stale.status).toBe(400)
+  expect((await j(stale)).message).toBe(STALE)
+  expect((await j(await call(`/api/ciphers/${c.id}`))).name).toBe('2.v2')
+
+  const ok = await call(`/api/ciphers/${c.id}`, 'PUT', {
+    ...login('2.v4'),
+    lastKnownRevisionDate: fresh.revisionDate,
+  })
+  expect(ok.status).toBe(200)
+  const bad = await call(`/api/ciphers/${c.id}`, 'PUT', {
+    ...login(),
+    lastKnownRevisionDate: 'nope',
+  })
+  expect(bad.status).toBe(400)
+}, 30_000)
+
+it('bumps the account revision date on every vault write', async () => {
+  const { call } = await setup('rev2@example.com')
+  const rev = async () => (await j(await call('/api/accounts/revision-date'))) as number
+  let last = await rev()
+  const step = async (fn: () => Promise<Response>) => {
+    await new Promise((r) => setTimeout(r, 5))
+    expect((await fn()).status).toBeLessThan(300)
+    const next = await rev()
+    expect(next).toBeGreaterThan(last)
+    last = next
+  }
+  let cid = ''
+  let fid = ''
+  await step(async () => {
+    const r = await call('/api/ciphers', 'POST', login())
+    cid = (await r.clone().json<any>()).id
+    return r
+  })
+  await step(async () => {
+    const r = await call('/api/folders', 'POST', { name: '2.f' })
+    fid = (await r.clone().json<any>()).id
+    return r
+  })
+  await step(() => call(`/api/ciphers/${cid}`, 'PUT', login('2.x')))
+  await step(() => call(`/api/ciphers/${cid}/partial`, 'PUT', { folderId: fid, favorite: true }))
+  await step(() => call(`/api/ciphers/${cid}/delete`, 'PUT'))
+  await step(() => call(`/api/ciphers/${cid}/restore`, 'PUT'))
+  await step(() => call('/api/ciphers/move', 'PUT', { ids: [cid], folderId: null }))
+  await step(() => call(`/api/folders/${fid}`, 'PUT', { name: '2.g' }))
+  await step(() =>
+    call('/api/settings/domains', 'PUT', { equivalentDomains: [['a.com', 'b.com']] }),
+  )
+  await step(() => call(`/api/folders/${fid}`, 'DELETE'))
+  await step(() => call(`/api/ciphers/${cid}`, 'DELETE'))
+}, 30_000)
+
+it('manages folders and unfiles ciphers when a folder is deleted', async () => {
+  const { call } = await setup('folders@example.com')
+  expect((await call('/api/folders', 'POST', {})).status).toBe(400)
+  const f = await j(await call('/api/folders', 'POST', { name: '2.work' }))
+  expect(f).toMatchObject({ name: '2.work', object: 'folder' })
+  expect(typeof f.revisionDate).toBe('string')
+  expect(await j(await call(`/api/folders/${f.id}`))).toMatchObject({ id: f.id, name: '2.work' })
+  expect(await j(await call(`/api/folders/${f.id}`, 'PUT', { name: '2.play' }))).toMatchObject({
+    name: '2.play',
+  })
+  expect(await j(await call(`/api/folders/${f.id}`, 'POST', { name: '2.again' }))).toMatchObject({
+    name: '2.again',
+  })
+  expect((await j(await call('/api/folders'))).data).toHaveLength(1)
+
+  const c = await j(await call('/api/ciphers', 'POST', { ...login(), folderId: f.id }))
+  expect(c.folderId).toBe(f.id)
+  expect((await j(await call('/api/sync'))).folders).toHaveLength(1)
+
+  expect((await call(`/api/folders/${f.id}`, 'DELETE')).status).toBe(200)
+  expect((await call(`/api/folders/${f.id}`)).status).toBe(404)
+  const after = await j(await call(`/api/ciphers/${c.id}`))
+  expect(after.folderId).toBeNull()
+  expect(after.name).toBe('2.name')
+  expect((await j(await call('/api/sync'))).folders).toEqual([])
+})
+
+it('keeps folders private to their owner', async () => {
+  const a = await setup('fa@example.com')
+  const b = await setup('fb@example.com')
+  const f = await j(await a.call('/api/folders', 'POST', { name: '2.f' }))
+  expect((await b.call(`/api/folders/${f.id}`)).status).toBe(404)
+  expect((await b.call(`/api/folders/${f.id}`, 'PUT', { name: 'x' })).status).toBe(404)
+  expect((await b.call(`/api/folders/${f.id}`, 'DELETE')).status).toBe(404)
+  expect((await b.call('/api/ciphers', 'POST', { ...login(), folderId: f.id })).status).toBe(400)
+  expect((await j(await b.call('/api/sync'))).folders).toEqual([])
+})
+
+it('reads and updates equivalent domains', async () => {
+  const { call } = await setup('dom@example.com')
+  const initial = await j(await call('/api/settings/domains'))
+  expect(initial.equivalentDomains).toEqual([])
+  const first = initial.globalEquivalentDomains[0]
+  expect(first.excluded).toBe(false)
+
+  const put = await j(
+    await call('/api/settings/domains', 'PUT', {
+      equivalentDomains: [['a.example.com', 'b.example.com']],
+      excludedGlobalEquivalentDomains: [first.type],
+    }),
+  )
+  expect(put.equivalentDomains).toEqual([['a.example.com', 'b.example.com']])
+  expect(put.globalEquivalentDomains.find((g: any) => g.type === first.type).excluded).toBe(true)
+  const post = await call('/api/settings/domains', 'POST', { equivalentDomains: [] })
+  expect(post.status).toBe(200)
+  const sync = await j(await call('/api/sync'))
+  expect(sync.domains.equivalentDomains).toEqual([])
+  expect(sync.domains.globalEquivalentDomains.every((g: any) => !g.excluded)).toBe(true)
+})
+
+it('imports folders, ciphers and relationships atomically', async () => {
+  const { call } = await setup('imp@example.com')
+  const payload = {
+    folders: [{ name: '2.a' }, { name: '2.b' }],
+    ciphers: [login('2.one'), card(), note()],
+    folderRelationships: [
+      { key: 0, value: 1 },
+      { key: 2, value: 0 },
+    ],
+  }
+  expect((await call('/api/ciphers/import', 'POST', payload)).status).toBe(200)
+  const sync = await j(await call('/api/sync'))
+  expect(sync.folders).toHaveLength(2)
+  expect(sync.ciphers).toHaveLength(3)
+  const byName = (n: string) => sync.ciphers.find((c: any) => c.name === n)
+  const folderName = (id: string | null) => sync.folders.find((f: any) => f.id === id)?.name
+  expect(folderName(byName('2.one').folderId)).toBe('2.b')
+  expect(folderName(byName('2.note').folderId)).toBe('2.a')
+  expect(byName('2.card').folderId).toBeNull()
+  expect(byName('2.one').login).toEqual(login().login)
+
+  // Out-of-range relationship: nothing is written.
+  const bad = await call('/api/ciphers/import', 'POST', {
+    folders: [{ name: '2.z' }],
+    ciphers: [note()],
+    folderRelationships: [{ key: 5, value: 0 }],
+  })
+  expect(bad.status).toBe(400)
+  // An invalid cipher in the middle fails validation before any write.
+  const bad2 = await call('/api/ciphers/import', 'POST', {
+    folders: [{ name: '2.z' }],
+    ciphers: [note(), { type: 7, name: 'x' }],
+    folderRelationships: [],
+  })
+  expect(bad2.status).toBe(400)
+  const after = await j(await call('/api/sync'))
+  expect(after.folders).toHaveLength(2)
+  expect(after.ciphers).toHaveLength(3)
+})
+
+it('key rotation keeps the stored cipher payload readable through sync', async () => {
+  const { call } = await setup('rot@example.com')
+  const c = await j(await call('/api/ciphers', 'POST', login()))
+  const rot = await call('/api/accounts/key', 'POST', {
+    masterPasswordHash: 'client-derived-hash',
+    key: '2.newkey',
+    privateKey: '2.newpk',
+    folders: [],
+    ciphers: [{ ...login('2.rotated'), id: c.id }],
+    sends: [],
+  })
+  expect(rot.status).toBe(200)
+  // The security stamp rotated, so the old token is dead: sign in again.
+  const fresh = (await (await loginRequest('rot@example.com')).json()) as { access_token: string }
+  const after = await j(await authed(`/api/ciphers/${c.id}`, fresh.access_token))
+  expect(after).toMatchObject({ name: '2.rotated', login: login().login })
+  expect(after.card).toBeNull()
+})

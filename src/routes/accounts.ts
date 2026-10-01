@@ -11,6 +11,7 @@ import { createEmailTransport, genericEmail } from '../email'
 import type { Env, User } from '../env'
 import { ApiError } from '../errors'
 import { kdfProblem, parseBody } from '../validation'
+import { packPayload } from '../vault/ciphers'
 
 export const accounts = new Hono<Env>()
 
@@ -18,7 +19,7 @@ type Ctx = import('hono').Context<Env>
 
 const EMAIL_TOKEN_TTL_MS = 10 * 60 * 1000
 
-async function profileJson(c: Ctx, user: User) {
+export async function profileJson(c: Ctx, user: User) {
   const [tf] = await createDb(c.env.DB)
     .select({ uuid: schema.twofactor.uuid })
     .from(schema.twofactor)
@@ -40,6 +41,7 @@ async function profileJson(c: Ctx, user: User) {
     forcePasswordReset: false,
     usesKeyConnector: false,
     avatarColor: null,
+    creationDate: new Date(user.createdAt).toISOString(),
     organizations: [],
     providers: [],
     providerOrganizations: [],
@@ -91,7 +93,7 @@ const updateProfile = async (c: Ctx) => {
 accounts.put('/api/accounts/profile', requireAuth, updateProfile)
 accounts.post('/api/accounts/profile', requireAuth, updateProfile)
 
-// TODO(TASKS #43): fold vault revision dates in once Phase 2 lands.
+// Vault writes bump `users.updatedAt` (TASKS #43), so it is the account revision date.
 accounts.get('/api/accounts/revision-date', requireAuth, (c) => c.json(c.var.user.updatedAt))
 
 accounts.post('/api/accounts/verify-password', requireAuth, async (c) => {
@@ -303,7 +305,6 @@ const rotateSchema = z.object({
     .array(z.object({ id: z.string(), key: z.string(), name: z.string().nullish() }))
     .default([]),
 })
-const CIPHER_TYPE_KEYS = ['login', 'card', 'identity', 'secureNote', 'sshKey'] as const
 
 accounts.post('/api/accounts/key', requireAuth, async (c) => {
   const body = await parseBody(c, rotateSchema)
@@ -349,10 +350,7 @@ accounts.post('/api/accounts/key', requireAuth, async (c) => {
         .where(eq(schema.folders.uuid, f.id)),
     ),
     ...body.ciphers.map((ci) => {
-      // TODO(TASKS #41): the stored `data` layout is owned by the ciphers module.
-      const data = Object.fromEntries(
-        CIPHER_TYPE_KEYS.filter((k) => ci[k] !== undefined).map((k) => [k, ci[k]]),
-      )
+      const data = packPayload(ci, typeof ci.type === 'number' ? ci.type : null)
       return db
         .update(schema.ciphers)
         .set({
@@ -361,7 +359,7 @@ accounts.post('/api/accounts/key', requireAuth, async (c) => {
           key: ci.key ?? null,
           fields: ci.fields == null ? null : JSON.stringify(ci.fields),
           passwordHistory: ci.passwordHistory == null ? null : JSON.stringify(ci.passwordHistory),
-          data: JSON.stringify(data),
+          data,
           updatedAt: now,
         })
         .where(eq(schema.ciphers.uuid, ci.id))

@@ -10,6 +10,7 @@ import { createDb, runBatch, schema } from '../db'
 import { createEmailTransport, genericEmail } from '../email'
 import type { Env, User } from '../env'
 import { ApiError } from '../errors'
+import { pushLogOut } from '../notifications/publish'
 import { kdfProblem, parseBody } from '../validation'
 import { userAttachmentKeys } from '../vault/attachments'
 import { deleteBlobs } from '../vault/blobs'
@@ -127,6 +128,7 @@ accounts.post('/api/accounts/password', requireAuth, async (c) => {
       .where(eq(schema.users.uuid, user.uuid)),
     ...stampRotationStatements(db, user.uuid),
   ])
+  c.executionCtx.waitUntil(pushLogOut(c.env, user.uuid, c.var.auth.deviceIdentifier))
   return c.body(null, 200)
 })
 
@@ -161,6 +163,7 @@ accounts.post('/api/accounts/kdf', requireAuth, async (c) => {
       .where(eq(schema.users.uuid, user.uuid)),
     ...stampRotationStatements(db, user.uuid),
   ])
+  c.executionCtx.waitUntil(pushLogOut(c.env, user.uuid, c.var.auth.deviceIdentifier))
   return c.body(null, 200)
 })
 
@@ -170,6 +173,7 @@ accounts.post('/api/accounts/security-stamp', requireAuth, async (c) => {
   await requirePassword(user, masterPasswordHash)
   const db = createDb(c.env.DB)
   await runBatch(db, stampRotationStatements(db, user.uuid))
+  c.executionCtx.waitUntil(pushLogOut(c.env, user.uuid, c.var.auth.deviceIdentifier))
   return c.body(null, 200)
 })
 
@@ -388,6 +392,7 @@ accounts.post('/api/accounts/key', requireAuth, async (c) => {
     ),
     ...stampRotationStatements(db, user.uuid),
   ])
+  c.executionCtx.waitUntil(pushLogOut(c.env, user.uuid, c.var.auth.deviceIdentifier))
   return c.body(null, 200)
 })
 

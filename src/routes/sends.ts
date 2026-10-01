@@ -7,6 +7,8 @@ import { requireAuth } from '../auth/middleware'
 import { changes, createDb, runBatch, schema } from '../db'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
+import { PushType } from '../notifications/publish'
+import { notifySend } from '../notifications/vault-events'
 import { rateLimit } from '../ratelimit'
 import { parseBody } from '../validation'
 import {
@@ -172,6 +174,7 @@ sends.post('/api/sends', requireAuth, async (c) => {
     }),
     bumpRevision(db, user.uuid, now),
   ])
+  notifySend(c, PushType.SyncSendCreate, id, now)
   return c.json(await respond(c, id))
 })
 
@@ -231,6 +234,7 @@ sends.put('/api/sends/:id', requireAuth, async (c) => {
       .where(eq(schema.sends.uuid, existing.uuid)),
     bumpRevision(db, user.uuid, now),
   ])
+  notifySend(c, PushType.SyncSendUpdate, existing.uuid, now)
   return c.json(await respond(c, existing.uuid))
 })
 
@@ -246,6 +250,7 @@ sends.put('/api/sends/:id/remove-password', requireAuth, async (c) => {
       .where(eq(schema.sends.uuid, existing.uuid)),
     bumpRevision(db, user.uuid, now),
   ])
+  notifySend(c, PushType.SyncSendUpdate, existing.uuid, now)
   return c.json(await respond(c, existing.uuid))
 })
 
@@ -258,6 +263,7 @@ sends.delete('/api/sends/:id', requireAuth, async (c) => {
     bumpRevision(db, user.uuid, Date.now()),
   ])
   deleteBlobs(c, existing.r2Key ? [existing.r2Key] : [])
+  notifySend(c, PushType.SyncSendDelete, existing.uuid, Date.now())
   return c.body(null, 200)
 })
 
@@ -318,5 +324,7 @@ sends.post('/api/sends/:id/file/:fileId', requireAuth, async (c) => {
       .where(and(eq(schema.sends.uuid, send.uuid), eq(schema.sends.userUuid, c.var.user.uuid))),
     bumpRevision(db, c.var.user.uuid, now),
   ])
+  // A file Send becomes visible to other devices once its upload completes.
+  notifySend(c, PushType.SyncSendCreate, send.uuid, now)
   return c.body(null, 200)
 })

@@ -6,6 +6,8 @@ import { requireAuth } from '../auth/middleware'
 import { createDb, runBatch, schema } from '../db'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
+import { PushType } from '../notifications/publish'
+import { notifyFolder } from '../notifications/vault-events'
 import { parseBody } from '../validation'
 import { bumpRevision } from '../vault/ciphers'
 import { folderJson } from '../vault/folders'
@@ -51,6 +53,7 @@ folders.post('/api/folders', async (c) => {
       .values({ uuid, userUuid: c.var.user.uuid, name, createdAt: now, updatedAt: now }),
     bumpRevision(db, c.var.user.uuid, now),
   ])
+  notifyFolder(c, PushType.SyncFolderCreate, uuid, now)
   return c.json(folderJson(await requireFolderRow(c, uuid)))
 })
 
@@ -67,6 +70,7 @@ const rename = async (c: Ctx) => {
       .where(and(eq(schema.folders.uuid, id), eq(schema.folders.userUuid, c.var.user.uuid))),
     bumpRevision(db, c.var.user.uuid, now),
   ])
+  notifyFolder(c, PushType.SyncFolderUpdate, id, now)
   return c.json(folderJson(await requireFolderRow(c, id)))
 }
 folders.put('/api/folders/:id', rename)
@@ -91,6 +95,7 @@ const remove = async (c: Ctx) => {
       .where(and(eq(schema.folders.uuid, id), eq(schema.folders.userUuid, c.var.user.uuid))),
     bumpRevision(db, c.var.user.uuid, Date.now()),
   ])
+  notifyFolder(c, PushType.SyncFolderDelete, id, Date.now())
   return c.body(null, 200)
 }
 folders.delete('/api/folders/:id', remove)

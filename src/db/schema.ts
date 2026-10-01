@@ -71,6 +71,34 @@ export const devices = sqliteTable(
   ],
 )
 
+/** Login-with-device requests. The access code is stored as a SHA-256 (base64url) digest. */
+export const authRequests = sqliteTable(
+  'auth_requests',
+  {
+    uuid: id(),
+    // Null for decoy rows created for unknown emails, so those are indistinguishable.
+    userUuid: text('user_uuid').references(() => users.uuid, { onDelete: 'cascade' }),
+    // 0 authenticate and unlock, 1 unlock.
+    type: integer('type').notNull(),
+    requestDeviceIdentifier: text('request_device_identifier').notNull(),
+    requestDeviceType: integer('request_device_type').notNull(),
+    requestIp: text('request_ip'),
+    publicKey: text('public_key').notNull(),
+    accessCodeHash: text('access_code_hash').notNull(),
+    // Null while pending, then the approving device's decision.
+    approved: integer('approved', { mode: 'boolean' }),
+    // User key encrypted to `publicKey` by the approving device.
+    key: text('key'),
+    masterPasswordHash: text('master_password_hash'),
+    responseDeviceUuid: text('response_device_uuid'),
+    responseDate: integer('response_date'),
+    // Set when the request was redeemed for tokens; a request is single use.
+    authenticatedAt: integer('authenticated_at'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('auth_requests_user_idx').on(t.userUuid)],
+)
+
 export const folders = sqliteTable(
   'folders',
   {

@@ -5,6 +5,8 @@ import { z } from 'zod'
 import { requireAuth } from '../auth/middleware'
 import { createDb, runBatch, schema } from '../db'
 import type { Env } from '../env'
+import { PushType } from '../notifications/publish'
+import { notifyUser } from '../notifications/vault-events'
 import { parseBody } from '../validation'
 import { bumpRevision } from '../vault/ciphers'
 import { domainsJson } from '../vault/domains'
@@ -28,13 +30,15 @@ const update = async (c: Context<Env>) => {
   const excluded = body.excludedGlobalEquivalentDomains
     ? JSON.stringify(body.excludedGlobalEquivalentDomains)
     : user.excludedGlobals
+  const now = Date.now()
   await runBatch(db, [
     db
       .update(schema.users)
       .set({ equivalentDomains: equivalent, excludedGlobals: excluded })
       .where(eq(schema.users.uuid, user.uuid)),
-    bumpRevision(db, user.uuid, Date.now()),
+    bumpRevision(db, user.uuid, now),
   ])
+  notifyUser(c, PushType.SyncSettings, now)
   return c.json({
     equivalentDomains: JSON.parse(equivalent),
     globalEquivalentDomains: domainsJson({

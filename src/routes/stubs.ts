@@ -9,7 +9,3 @@ const notImplemented = (c: import('hono').Context<Env>) =>
 // TODO(TASKS #6): organizations, collections, members
 stubs.all('/api/organizations', notImplemented)
 stubs.all('/api/organizations/*', notImplemented)
-
-// TODO(TASKS #7): live sync notifications via the NotificationHub Durable Object
-stubs.all('/notifications/hub', notImplemented)
-stubs.all('/notifications/hub/*', notImplemented)

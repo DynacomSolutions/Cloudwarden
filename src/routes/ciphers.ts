@@ -7,6 +7,8 @@ import { verifyMasterPassword } from '../auth/passwords'
 import { changes, createDb, runBatch, schema } from '../db'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
+import { PushType } from '../notifications/publish'
+import { notifyCipher, notifyCiphers, notifyUser } from '../notifications/vault-events'
 import { rateLimit } from '../ratelimit'
 import { parseBody } from '../validation'
 import { attachmentKeys, cipherResponses, userAttachmentKeys } from '../vault/attachments'
@@ -68,6 +70,7 @@ async function createCipher(c: Ctx, body: CipherBody) {
     ...setFolderStatements(db, id, body.folderId ?? null).slice(1),
     bumpRevision(db, user.uuid, now),
   ])
+  notifyCipher(c, PushType.SyncCipherCreate, id, now)
   return respond(c, id)
 }
 
@@ -163,6 +166,7 @@ ciphers.post('/api/ciphers/import', async (c) => {
       bumpRevision(db, user.uuid, now),
     ])
   }
+  notifyUser(c, PushType.SyncVault, now)
   return c.body(null, 200)
 })
 
@@ -212,6 +216,7 @@ ciphers.put('/api/ciphers/move', async (c) => {
     ),
     bumpRevision(db, c.var.user.uuid, now),
   ])
+  notifyCiphers(c, PushType.SyncCipherUpdate, ids, now)
   return c.body(null, 204)
 })
 
@@ -231,6 +236,7 @@ const hardDelete = async (c: Ctx) => {
     bumpRevision(db, c.var.user.uuid, Date.now()),
   ])
   deleteBlobs(c, keys)
+  notifyCiphers(c, PushType.SyncCipherDelete, owned, Date.now())
   return c.body(null, 200)
 }
 ciphers.post('/api/ciphers/delete', hardDelete)
@@ -256,6 +262,8 @@ async function setDeleted(c: Ctx, ids: string[], deletedAt: number | null) {
     ),
     bumpRevision(db, c.var.user.uuid, now),
   ])
+  // Soft delete and restore both look like an update to other devices.
+  notifyCiphers(c, PushType.SyncCipherUpdate, owned, now)
   return owned
 }
 
@@ -297,6 +305,7 @@ ciphers.post('/api/ciphers/purge', rateLimit('purge'), async (c) => {
     bumpRevision(db, user.uuid, Date.now()),
   ])
   deleteBlobs(c, keys)
+  notifyUser(c, PushType.SyncVault, Date.now())
   return c.body(null, 200)
 })
 
@@ -337,6 +346,7 @@ const updateCipher = async (c: Ctx) => {
     bumpRevision(db, user.uuid, ts, stillAt(id, ts)),
   ])
   if (changes(results[0]) === 0) throw new ApiError(400, STALE_MESSAGE)
+  notifyCipher(c, PushType.SyncCipherUpdate, id, ts)
   return respond(c, id)
 }
 ciphers.put('/api/ciphers/:id', updateCipher)
@@ -359,6 +369,7 @@ const partial = async (c: Ctx) => {
     ...setFolderStatements(db, id, body.folderId ?? null),
     bumpRevision(db, user.uuid, now),
   ])
+  notifyCipher(c, PushType.SyncCipherUpdate, id, now)
   return respond(c, id)
 }
 ciphers.put('/api/ciphers/:id/partial', partial)
@@ -376,6 +387,7 @@ const removeOne = async (c: Ctx) => {
     bumpRevision(db, c.var.user.uuid, Date.now()),
   ])
   deleteBlobs(c, keys)
+  notifyCipher(c, PushType.SyncCipherDelete, id, Date.now())
   return c.body(null, 200)
 }
 ciphers.delete('/api/ciphers/:id', removeOne)

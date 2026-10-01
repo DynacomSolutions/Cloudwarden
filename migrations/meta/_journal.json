@@ -43,6 +43,13 @@
       "when": 1790833593276,
       "tag": "0005_organizations",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1790839045924,
+      "tag": "0006_passkeys",
+      "breakpoints": true
     }
   ]
 }

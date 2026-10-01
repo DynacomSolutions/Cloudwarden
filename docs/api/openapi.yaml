@@ -5086,6 +5086,143 @@ paths:
           $ref: '#/components/responses/NotFound'
       x-source-version: web-v2026.9.1
       x-source-file: libs/common/src/services/api.service.ts
+  /api/webauthn:
+    get:
+      tags:
+      - Auth
+      operationId: listWebAuthnLoginCredentials
+      summary: List passkey login credentials
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebAuthnLoginCredentialList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      x-source-version: web-v2026.9.1
+      x-source-file: apps/web/src/app/auth/core/services/webauthn-login/webauthn-login-admin-api.service.ts
+    post:
+      tags:
+      - Auth
+      operationId: createWebAuthnLoginCredential
+      summary: Save a passkey login credential
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebAuthnLoginSaveRequest'
+      responses:
+        '200':
+          description: Success, empty body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      x-source-version: web-v2026.9.1
+      x-source-file: apps/web/src/app/auth/core/services/webauthn-login/webauthn-login-admin-api.service.ts
+    put:
+      tags:
+      - Auth
+      operationId: updateWebAuthnLoginCredentialKeys
+      summary: Store the PRF keyset of a passkey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebAuthnLoginEnableEncryptionRequest'
+      responses:
+        '200':
+          description: Success, empty body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      x-source-version: web-v2026.9.1
+      x-source-file: apps/web/src/app/auth/core/services/webauthn-login/webauthn-login-admin-api.service.ts
+  /api/webauthn/assertion-options:
+    post:
+      tags:
+      - Auth
+      operationId: webauthnLoginAssertionOptionsAuthenticated
+      summary: Get assertion options for a saved passkey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SecretVerificationRequest'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CredentialAssertionOptionsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      x-source-version: web-v2026.9.1
+      x-source-file: apps/web/src/app/auth/core/services/webauthn-login/webauthn-login-admin-api.service.ts
+  /api/webauthn/attestation-options:
+    post:
+      tags:
+      - Auth
+      operationId: webauthnLoginAttestationOptions
+      summary: Get creation options for a new passkey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SecretVerificationRequest'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebAuthnLoginCreateOptionsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      x-source-version: web-v2026.9.1
+      x-source-file: apps/web/src/app/auth/core/services/webauthn-login/webauthn-login-admin-api.service.ts
+  /api/webauthn/{id}/delete:
+    post:
+      tags:
+      - Auth
+      operationId: deleteWebAuthnLoginCredential
+      summary: Delete a passkey login credential
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SecretVerificationRequest'
+      responses:
+        '200':
+          description: Success, empty body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      x-source-version: web-v2026.9.1
+      x-source-file: apps/web/src/app/auth/core/services/webauthn-login/webauthn-login-admin-api.service.ts
   /events/collect:
     post:
       tags:
@@ -10559,6 +10696,110 @@ components:
           type: array
           items:
             type: string
+    WebAuthnLoginCreateOptionsResponse:
+      type: object
+      description: '`options` is a WebAuthn PublicKeyCredentialCreationOptions JSON (base64url `challenge`, `user.id`
+        and `excludeCredentials[].id`); `token` must be sent back with the saved credential.'
+      properties:
+        options:
+          type: object
+          additionalProperties: true
+        token:
+          type: string
+        object:
+          type: string
+      required:
+      - options
+      - token
+    WebAuthnLoginCredentialList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/WebAuthnLoginCredentialResponse'
+        continuationToken:
+          type:
+          - string
+          - 'null'
+        object:
+          type: string
+      required:
+      - data
+    WebAuthnLoginCredentialResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        prfStatus:
+          type: integer
+          enum:
+          - 0
+          - 1
+          - 2
+          description: 0 keyset stored, 1 PRF supported without keyset, 2 PRF unsupported.
+        encryptedPublicKey:
+          type:
+          - string
+          - 'null'
+        encryptedUserKey:
+          type:
+          - string
+          - 'null'
+        object:
+          type: string
+      required:
+      - id
+      - name
+      - prfStatus
+    WebAuthnLoginEnableEncryptionRequest:
+      type: object
+      properties:
+        deviceResponse:
+          type: object
+          additionalProperties: true
+          description: Assertion response (WebAuthnLoginAssertionResponseRequest).
+        token:
+          type: string
+        encryptedUserKey:
+          $ref: '#/components/schemas/EncString'
+        encryptedPublicKey:
+          $ref: '#/components/schemas/EncString'
+        encryptedPrivateKey:
+          $ref: '#/components/schemas/EncString'
+      required:
+      - deviceResponse
+      - token
+      - encryptedUserKey
+      - encryptedPublicKey
+      - encryptedPrivateKey
+    WebAuthnLoginSaveRequest:
+      type: object
+      properties:
+        deviceResponse:
+          type: object
+          additionalProperties: true
+          description: Attestation response (`id`, `rawId`, `type`, `extensions`, `response.attestationObject`,
+            `response.clientDataJson`, `response.transports`).
+        name:
+          type: string
+        token:
+          type: string
+        supportsPrf:
+          type: boolean
+        encryptedUserKey:
+          $ref: '#/components/schemas/EncString'
+        encryptedPublicKey:
+          $ref: '#/components/schemas/EncString'
+        encryptedPrivateKey:
+          $ref: '#/components/schemas/EncString'
+      required:
+      - deviceResponse
+      - name
+      - token
+      - supportsPrf
     WebPushRequest:
       type: object
       properties:

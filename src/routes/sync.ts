@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { requireAuth } from '../auth/middleware'
+import { prfOptionJson } from '../auth/passkeys'
 import { masterPasswordUnlockJson } from '../auth/session'
 import { createDb, schema } from '../db'
 import type { Env } from '../env'
@@ -17,12 +18,16 @@ export const sync = new Hono<Env>()
 sync.get('/api/sync', requireAuth, async (c) => {
   const db = createDb(c.env.DB)
   const user = c.var.user
-  const [profile, folderRows, cipherRows, sendRows, orgData] = await Promise.all([
+  const [profile, folderRows, cipherRows, sendRows, orgData, passkeyRows] = await Promise.all([
     profileJson(c, user),
     db.select().from(schema.folders).where(eq(schema.folders.userUuid, user.uuid)),
     listCipherRows(db, user.uuid),
     db.select().from(schema.sends).where(eq(schema.sends.userUuid, user.uuid)),
     orgSyncData(c.env, db, user.uuid),
+    db
+      .select()
+      .from(schema.webauthnCredentials)
+      .where(eq(schema.webauthnCredentials.userUuid, user.uuid)),
   ])
   const excludeDomains = c.req.query('excludeDomains') === 'true'
   return c.json({
@@ -33,7 +38,10 @@ sync.get('/api/sync', requireAuth, async (c) => {
     policies: orgData.policies,
     sends: await Promise.all(sendRows.map(sendJson)),
     domains: excludeDomains ? null : domainsJson(user),
-    userDecryption: { masterPasswordUnlock: masterPasswordUnlockJson(user) },
+    userDecryption: {
+      masterPasswordUnlock: masterPasswordUnlockJson(user),
+      webAuthnPrfOptions: passkeyRows.map(prfOptionJson).filter((o) => o !== null),
+    },
     object: 'sync',
   })
 })

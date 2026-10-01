@@ -115,6 +115,8 @@ export interface Overrides {
   flags?: number
   origin?: string
   fmt?: string
+  /** Transports reported with a registration. */
+  transports?: string[]
 }
 
 /** Registration response in the shape the web client sends for the 2FA setup. */
@@ -148,12 +150,18 @@ export async function register(
     rawId: toB64u(a.credentialId),
     type: 'public-key',
     extensions: {},
-    response: { AttestationObject: toB64u(attestationObject), clientDataJson: toB64u(cd) },
+    response: {
+      AttestationObject: toB64u(attestationObject),
+      clientDataJson: toB64u(cd),
+      ...(o.transports ? { transports: o.transports } : {}),
+    },
   }
 }
 
 export interface AssertionOpts extends Overrides {
   signCount?: number
+  /** Raw user handle bytes returned with the assertion (null when absent). */
+  userHandle?: Uint8Array | null
 }
 
 export async function assert(
@@ -188,7 +196,7 @@ export async function assert(
       authenticatorData: toB64u(authData),
       clientDataJson: toB64u(cd),
       signature: toB64u(sig),
-      userHandle: null,
+      userHandle: o.userHandle ? toB64u(o.userHandle) : null,
     },
   }
 }

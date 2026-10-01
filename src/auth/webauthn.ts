@@ -125,6 +125,7 @@ interface AuthData {
 }
 
 export const FLAG_UP = 0x01
+export const FLAG_UV = 0x04
 export const FLAG_AT = 0x40
 
 function parseAuthData(data: Uint8Array, expectAttested: boolean): AuthData {
@@ -152,11 +153,12 @@ function parseAuthData(data: Uint8Array, expectAttested: boolean): AuthData {
 
 const sha256 = async (d: Uint8Array) => new Uint8Array(await crypto.subtle.digest('SHA-256', d))
 
-async function checkRpAndPresence(auth: AuthData, rpId: string) {
+async function checkRpAndPresence(auth: AuthData, rpId: string, requireUv = false) {
   if (!timingSafeEqual(auth.rpIdHash, await sha256(utf8(rpId)))) {
     throw new WebAuthnError('Relying party mismatch')
   }
   if (!(auth.flags & FLAG_UP)) throw new WebAuthnError('User presence is required')
+  if (requireUv && !(auth.flags & FLAG_UV)) throw new WebAuthnError('User verification is required')
 }
 
 const cose = (m: Map<CborValue, CborValue>, k: number) => m.get(k)
@@ -189,6 +191,8 @@ export interface RegistrationInput {
   origin: string
   /** Validates the challenge from the client data; returns true when it is acceptable. */
   challengeOk: (challenge: string) => Promise<boolean>
+  /** Also require the user verified flag (passkey login replaces a password). */
+  requireUv?: boolean
 }
 
 export interface RegistrationResult {
@@ -221,7 +225,7 @@ export async function verifyRegistration(i: RegistrationInput): Promise<Registra
     if (err instanceof WebAuthnError) throw err
     throw new WebAuthnError('Malformed authenticator data')
   }
-  await checkRpAndPresence(auth, i.rpId)
+  await checkRpAndPresence(auth, i.rpId, i.requireUv)
   const attested = need(auth.attested, 'No attested credential data')
   const { alg, jwk } = coseToJwk(attested.publicKey)
   return {
@@ -274,6 +278,8 @@ export interface AssertionInput {
   rpId: string
   origin: string
   challengeOk: (challenge: string) => Promise<boolean>
+  /** Also require the user verified flag (passkey login replaces a password). */
+  requireUv?: boolean
 }
 
 /** Verifies an assertion and returns the new signature counter. Throws WebAuthnError. */
@@ -284,7 +290,7 @@ export async function verifyAssertion(i: AssertionInput): Promise<number> {
 
   const authRaw = need(fromB64u(i.authenticatorData), 'Malformed authenticator data')
   const auth = parseAuthData(authRaw, false)
-  await checkRpAndPresence(auth, i.rpId)
+  await checkRpAndPresence(auth, i.rpId, i.requireUv)
 
   const sig = need(fromB64u(i.signature), 'Malformed signature')
   const signed = new Uint8Array(authRaw.length + 32)

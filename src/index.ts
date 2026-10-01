@@ -31,6 +31,7 @@ import { settings } from './routes/settings'
 import { sync } from './routes/sync'
 import { token } from './routes/token'
 import { twofactor } from './routes/twofactor'
+import { webauthn } from './routes/webauthn'
 import { scheduled } from './scheduled'
 
 const app = new Hono<Env>()
@@ -66,6 +67,7 @@ app.get('/attachments/:cipherId/:attachmentId', downloadAttachment)
 app.get('/send-files/:sendId/:fileId', downloadSendFile)
 app.route('/', settings)
 app.route('/', twofactor)
+app.route('/', webauthn)
 app.route('/', authRequests)
 app.route('/', notifications)
 app.route('/', admin)

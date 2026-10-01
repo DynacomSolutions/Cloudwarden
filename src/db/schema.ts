@@ -315,6 +315,39 @@ export const twofactor = sqliteTable(
   (t) => [uniqueIndex('twofactor_user_type_unique').on(t.userUuid, t.atype)],
 )
 
+/**
+ * Passkeys used to log in without a password (TASKS #125). `encrypted*` hold the PRF wrapped
+ * keyset (the user key sealed to a key pair whose private half is wrapped by the PRF output);
+ * all three are null while the credential has no keyset.
+ */
+export const webauthnCredentials = sqliteTable(
+  'webauthn_credentials',
+  {
+    uuid: id(),
+    userUuid: text('user_uuid')
+      .notNull()
+      .references(() => users.uuid, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    credentialId: text('credential_id').notNull(),
+    alg: integer('alg').notNull(),
+    jwk: text('jwk').notNull(),
+    signCount: integer('sign_count').notNull().default(0),
+    transports: text('transports').notNull().default('[]'),
+    supportsPrf: integer('supports_prf', { mode: 'boolean' }).notNull().default(false),
+    encryptedUserKey: text('encrypted_user_key'),
+    encryptedPublicKey: text('encrypted_public_key'),
+    encryptedPrivateKey: text('encrypted_private_key'),
+    /** Newest accepted challenge time, so a login or update challenge works only once. */
+    lastChallengeAt: integer('last_challenge_at').notNull().default(0),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex('webauthn_credentials_credential_id_unique').on(t.credentialId),
+    index('webauthn_credentials_user_idx').on(t.userUuid),
+  ],
+)
+
 export const events = sqliteTable(
   'events',
   {

@@ -257,6 +257,33 @@ const cases: Case[] = [
     run: () => authed('/api/accounts/profile', 'bad'),
   },
   {
+    op: 'GET /api/webauthn',
+    status: 200,
+    run: () => call('/api/webauthn'),
+  },
+  {
+    op: 'POST /api/webauthn/attestation-options',
+    status: 200,
+    run: () =>
+      call('/api/webauthn/attestation-options', 'POST', {
+        masterPasswordHash: state.passwordHash,
+      }),
+  },
+  {
+    op: 'POST /api/webauthn/assertion-options',
+    status: 200,
+    run: () =>
+      call('/api/webauthn/assertion-options', 'POST', { masterPasswordHash: state.passwordHash }),
+  },
+  {
+    op: 'GET /identity/accounts/webauthn/assertion-options',
+    status: 200,
+    run: () =>
+      import('cloudflare:test').then(({ SELF }) =>
+        SELF.fetch(`${BASE}/identity/accounts/webauthn/assertion-options`),
+      ),
+  },
+  {
     op: 'POST /identity/accounts/register',
     status: 400,
     run: () => json('/identity/accounts/register', { email: 'not-an-email' }),
@@ -292,7 +319,6 @@ const UNIMPLEMENTED = [
   'POST /api/devices/update-trust',
   'PUT /api/devices/{deviceIdentifier}/keys',
   'POST /api/devices/{deviceIdentifier}/retrieve-keys',
-  'GET /identity/accounts/webauthn/assertion-options',
   'GET /identity/sso/prevalidate',
 ]
 

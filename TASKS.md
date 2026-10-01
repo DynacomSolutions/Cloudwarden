@@ -95,12 +95,12 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 
 | # | Task | Status | Owner | Acceptance |
 |---|---|---|---|---|
-| 120 | TOTP | todo | | |
-| 121 | Recovery code | todo | | |
-| 122 | WebAuthn / passkeys as second factor | todo | | |
-| 123 | Email 2FA (needs task 141) | todo | | |
-| 124 | Duo and YubiKey OTP (optional) | todo | | |
-| 125 | Login with passkey (passwordless) | todo | | |
+| 120 | TOTP | done | agent | RFC 6238 SHA-1, 6 digits, +-1 step, replay rejected via stored last step. Tests in `test/twofactor.test.ts`, `test/totp.test.ts` |
+| 121 | Recovery code | done | agent | `get-recover`, anonymous `recover` (both paths) disables all providers and rotates the code |
+| 122 | WebAuthn / passkeys as second factor | done | agent | ES256 and RS256, attestation not verified (none accepted), counter and one-shot challenge checks, own CBOR decoder |
+| 123 | Email 2FA (needs task 141) | done | agent | 6 digit code, 10 minute expiry, 5 attempts, sent through `src/email`; setup refused without a transport |
+| 124 | Duo and YubiKey OTP (optional) | deferred | | Endpoints answer 400 "not supported". See `docs/two-factor.md` |
+| 125 | Login with passkey (passwordless) | deferred | | Needs the `/api/webauthn` credential store with PRF key wrapping and `grant_type=webauthn`; not started. See `docs/two-factor.md` |
 
 ## Phase 7: Optional services
 
@@ -153,7 +153,8 @@ Newest first. One line per verified fact.
 - 2026-10-01 · #20 to #29 · Branch `feat/identity` rebased on #6: `pnpm lint`, `pnpm typecheck`, `pnpm test` (88 tests), `cf build` (no global-scope randomness) and invitation gating plus emailed verification and email-change codes and `pnpm check:identifiers` green. Covers register, prelogin, password, refresh and API-key grants, devices, profile, password, KDF, email, key rotation (all-or-nothing) and deletion, stamp invalidation of access and refresh tokens, and 429 limiting.
 - 2026-10-01 · #20 · PBKDF2-SHA256 at 100000 iterations measured at about 15 ms median (Node 22); see ADR 0002. Production timing to be re-measured after deploy.
 - 2026-10-01 · #29 · `LOGIN_LIMITER` declared through `bindings.rateLimit` in `cloudflare.config.ts` (20 requests per 60 s per client address); the limiter is skipped when the binding is absent and tested with a stub binding.
-- 2026-10-01 · #28 · Recovery-code flows depend on two-factor (Phase 6) and are not implemented; account deletion is. Attachment and Send blob cleanup is deferred to #80.
+- 2026-10-01 · #28 · Account deletion is implemented; the delete-by-recovery flow is not (the 2FA recovery code in #121 is separate). Attachment and Send blob cleanup is deferred to #80.
+- 2026-10-01 · #120 to #125 · Branch `feat/2fa` on `feat/identity`: `pnpm lint`, `pnpm typecheck`, `pnpm test` (126 tests, 17 files), `pnpm check:identifiers` green; no migration needed (`twofactor` and `devices.twofactor_remember` already exist, `pnpm db:generate` reports no changes). #124 and #125 deferred, see `docs/two-factor.md`.
 
 - 2026-10-01 · #14 · `docs/api/openapi.yaml` (OpenAPI 3.1, 193 operations over 157 paths, 217 schemas) read from github.com/bitwarden/clients tag `web-v2026.9.1` (older tags `web-v2025.8.0` and `web-v2025.1.0` for prelogin, register and KDF change that moved into the SDK); each operation carries `x-source-version` and `x-source-file`. `pnpm lint:api` (Redocly) reports zero errors and zero warnings; `pnpm api:build` renders `docs/api/build/index.html` (gitignored). Not yet verified against recorded client traffic (#180); SDK-only shapes (send_access grant, policy and URI match enum values) are flagged in the spec.
 - 2026-10-01 · #13 · PR #2: all 9 jobs on `k3s-runners` green (Lint, Typecheck, Test, Identifier Check, Commit Lint, CI Status, Gitleaks full history, Lint Actions, Zizmor) plus Dependabot config validation. `pnpm/action-setup` held at v4 because v5+ needs libatomic, absent from the runner image.

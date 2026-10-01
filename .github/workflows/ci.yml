@@ -64,6 +64,24 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
 
+  e2e:
+    name: E2E (Bitwarden CLI)
+    runs-on: k3s-runners
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm e2e
+
   identifiers:
     name: Identifier Check
     runs-on: k3s-runners
@@ -103,7 +121,7 @@ jobs:
   ci-ok:
     name: CI Status
     runs-on: k3s-runners
-    needs: [lint, typecheck, test, identifiers, commitlint]
+    needs: [lint, typecheck, test, e2e, identifiers, commitlint]
     if: always()
     permissions: {}
     steps:
@@ -111,6 +129,7 @@ jobs:
           needs.lint.result == 'failure' ||
           needs.typecheck.result == 'failure' ||
           needs.test.result == 'failure' ||
+          needs.e2e.result == 'failure' ||
           needs.identifiers.result == 'failure' ||
           (github.event_name == 'pull_request' && needs.commitlint.result == 'failure')
         run: exit 1

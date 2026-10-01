@@ -12,6 +12,8 @@
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "cf d1 migrations apply 00000000-0000-4000-8000-000000000000 --local --dir migrations",
+    "web-vault:fetch": "node scripts/fetch-web-vault.mjs",
+    "web-vault:update": "node scripts/fetch-web-vault.mjs --update",
     "check:identifiers": "node scripts/check-identifiers.mjs",
     "test:scripts": "node --test scripts/*.test.mjs",
     "prepare": "lefthook install || true"

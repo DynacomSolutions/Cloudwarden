@@ -1,0 +1,61 @@
+{
+  "image": "ghcr.io/bitwarden/web",
+  "tag": "2026.9.1",
+  "indexDigest": "sha256:0d9b5f239cb893059ab85bdd6927abce8dd08ed34997a86b9bb432aa04d4c85b",
+  "platform": "linux/amd64",
+  "manifestDigest": "sha256:08f67f8833c6eb1646c6437e0852246977b1bb289646f07dcf1e9c27b88d5a15",
+  "layers": [
+    {
+      "digest": "sha256:d0c1d894c237d8192cbcd37e435031ad4eddec173299568a5a05869c2e40dfa3",
+      "size": 3848507
+    },
+    {
+      "digest": "sha256:bd0ceb0667daff8872ec4c8debca3150c9f4c46515c8e339c3eae4287d953a28",
+      "size": 1087216
+    },
+    {
+      "digest": "sha256:02d52ec263cbac090d858efc371e7c7729ef00dfeafc5b46102fa0035d513475",
+      "size": 946
+    },
+    {
+      "digest": "sha256:f4bbaf3843d917f006c8fe6e860f8ac75d8c2268a40551b2dee36bb529df1192",
+      "size": 36603639
+    },
+    {
+      "digest": "sha256:bc10c60e078e82be4b67cedd8a8cd727b20c1b08ebc2a3439a1c2758ea3011f3",
+      "size": 161
+    },
+    {
+      "digest": "sha256:4e789adda1d7afb8a1f7203d3128fb6393ec8f08a131218946b2764277c04be3",
+      "size": 12729284
+    },
+    {
+      "digest": "sha256:0929b5097d20e3d576f240df0a5feada62cf80e09183edbe0ebba18c434f85c7",
+      "size": 7297637
+    },
+    {
+      "digest": "sha256:1cf554a5557bcf02869ecf12f43d02e8a1d89b5e165e67d6fc16e73fb4f23ea4",
+      "size": 106
+    },
+    {
+      "digest": "sha256:3aaf761071e8fe0dda6678828cbd4fc3f02c69347ed4c0c7a6ee2a5e1a4ac288",
+      "size": 52651
+    },
+    {
+      "digest": "sha256:9b9649c228c42e3dee504b548e3e3565c18ede3612e0b5fdf0e546058bf68307",
+      "size": 92
+    },
+    {
+      "digest": "sha256:f3ec84ae87567df756b3e59082cc1fd7ac71938a6697462e6194892be0ce9ddd",
+      "size": 46449498
+    },
+    {
+      "digest": "sha256:a95e14a5c695b2f8bbc1fb6d1bc19ed3e66a0a9388e2360be5846dd274139153",
+      "size": 539
+    },
+    {
+      "digest": "sha256:52606df2bec12ac335419ef99c90a7646f838eabade70d613574e04e8d65246a",
+      "size": 539
+    }
+  ]
+}

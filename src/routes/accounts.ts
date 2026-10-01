@@ -1,6 +1,7 @@
 import { and, eq } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { z } from 'zod'
+import { authenticationData, checkNested, toKdfParams, unlockData } from '../auth/credentials'
 import { randomB64u } from '../auth/crypto'
 import { requireAuth } from '../auth/middleware'
 import { hashMasterPassword, verifyMasterPassword } from '../auth/passwords'
@@ -13,7 +14,7 @@ import { ApiError } from '../errors'
 import { pushLogOut } from '../notifications/publish'
 import { assertNotSoleOwner } from '../orgs/members'
 import { profileOrganizations } from '../orgs/views'
-import { kdfProblem, parseBody } from '../validation'
+import { type KdfParams, kdfProblem, parseBody } from '../validation'
 import { userAttachmentKeys } from '../vault/attachments'
 import { deleteBlobs } from '../vault/blobs'
 import { packPayload } from '../vault/ciphers'
@@ -108,23 +109,73 @@ accounts.post('/api/accounts/verify-password', requireAuth, async (c) => {
   return c.body(null, 200)
 })
 
-const passwordSchema = z.object({
+// Password and KDF changes accept the legacy flat body (newMasterPasswordHash, key) and the
+// nested body of clients 2026.9 (authenticationData, unlockData).
+const credentialChange = z.object({
   masterPasswordHash: z.string().min(1),
-  newMasterPasswordHash: z.string().min(1),
   masterPasswordHint: z.string().max(50).nullish(),
-  key: z.string().min(1),
+  newMasterPasswordHash: z.string().min(1).nullish(),
+  key: z.string().min(1).nullish(),
+  kdf: z.number().int().nullish(),
+  kdfIterations: z.number().int().nullish(),
+  kdfMemory: z.number().int().nullish(),
+  kdfParallelism: z.number().int().nullish(),
+  authenticationData: authenticationData.nullish(),
+  unlockData: unlockData.nullish(),
 })
+
+interface CredentialChange {
+  newHash: string
+  key: string
+  /** Present when the request carries KDF settings. */
+  kdf: KdfParams | null
+}
+
+function resolveChange(body: z.infer<typeof credentialChange>, email: string): CredentialChange {
+  if (body.authenticationData && body.unlockData) {
+    const kdf = checkNested(body.authenticationData, body.unlockData, email)
+    return {
+      newHash: body.authenticationData.masterPasswordAuthenticationHash,
+      key: body.unlockData.masterKeyWrappedUserKey,
+      kdf,
+    }
+  }
+  if (!body.newMasterPasswordHash || !body.key) {
+    throw new ApiError(400, 'The request is invalid.', {
+      newMasterPasswordHash: ['newMasterPasswordHash and key are required'],
+    })
+  }
+  const kdf =
+    body.kdf != null && body.kdfIterations != null
+      ? {
+          kdf: body.kdf,
+          kdfIterations: body.kdfIterations,
+          kdfMemory: body.kdfMemory,
+          kdfParallelism: body.kdfParallelism,
+        }
+      : null
+  return { newHash: body.newMasterPasswordHash, key: body.key, kdf }
+}
+
+const kdfColumns = (k: KdfParams) => ({
+  kdfType: k.kdf,
+  kdfIterations: k.kdfIterations,
+  kdfMemory: k.kdf === 1 ? (k.kdfMemory ?? null) : null,
+  kdfParallelism: k.kdf === 1 ? (k.kdfParallelism ?? null) : null,
+})
+
 accounts.post('/api/accounts/password', requireAuth, async (c) => {
-  const body = await parseBody(c, passwordSchema)
+  const body = await parseBody(c, credentialChange)
   const user = c.var.user
+  const change = resolveChange(body, user.email)
   await requirePassword(user, body.masterPasswordHash)
   const db = createDb(c.env.DB)
   await runBatch(db, [
     db
       .update(schema.users)
       .set({
-        ...(await hashMasterPassword(body.newMasterPasswordHash)),
-        akey: body.key,
+        ...(await hashMasterPassword(change.newHash)),
+        akey: change.key,
         passwordHint: body.masterPasswordHint ?? null,
       })
       .where(eq(schema.users.uuid, user.uuid)),
@@ -134,33 +185,22 @@ accounts.post('/api/accounts/password', requireAuth, async (c) => {
   return c.body(null, 200)
 })
 
-const kdfSchema = z.object({
-  masterPasswordHash: z.string().min(1),
-  newMasterPasswordHash: z.string().min(1),
-  key: z.string().min(1),
-  kdf: z.number().int(),
-  kdfIterations: z.number().int(),
-  kdfMemory: z.number().int().nullish(),
-  kdfParallelism: z.number().int().nullish(),
-})
 accounts.post('/api/accounts/kdf', requireAuth, async (c) => {
-  const body = await parseBody(c, kdfSchema)
+  const body = await parseBody(c, credentialChange)
   const user = c.var.user
-  const problem = kdfProblem(body)
+  const change = resolveChange(body, user.email)
+  if (!change.kdf) throw new ApiError(400, 'KDF settings are required.')
+  const problem = kdfProblem(change.kdf)
   if (problem) throw new ApiError(400, problem)
   await requirePassword(user, body.masterPasswordHash)
   const db = createDb(c.env.DB)
-  const argon = body.kdf === 1
   await runBatch(db, [
     db
       .update(schema.users)
       .set({
-        ...(await hashMasterPassword(body.newMasterPasswordHash)),
-        akey: body.key,
-        kdfType: body.kdf,
-        kdfIterations: body.kdfIterations,
-        kdfMemory: argon ? (body.kdfMemory ?? null) : null,
-        kdfParallelism: argon ? (body.kdfParallelism ?? null) : null,
+        ...(await hashMasterPassword(change.newHash)),
+        akey: change.key,
+        ...kdfColumns(change.kdf),
       })
       .where(eq(schema.users.uuid, user.uuid)),
     ...stampRotationStatements(db, user.uuid),
@@ -315,10 +355,13 @@ const rotateSchema = z.object({
     .default([]),
 })
 
-accounts.post('/api/accounts/key', requireAuth, async (c) => {
-  const body = await parseBody(c, rotateSchema)
-  const user = c.var.user
-  await requirePassword(user, body.masterPasswordHash)
+type RotationInput = Omit<z.infer<typeof rotateSchema>, 'masterPasswordHash'> & {
+  publicKey?: string | null
+  /** New master password credentials (key-management endpoint rotates them together). */
+  credentials?: { hash: string; kdf: KdfParams; hint: string | null }
+}
+
+async function applyRotation(c: Ctx, user: User, body: RotationInput) {
   const db = createDb(c.env.DB)
 
   const owned = async (
@@ -363,7 +406,19 @@ accounts.post('/api/accounts/key', requireAuth, async (c) => {
   await runBatch(db, [
     db
       .update(schema.users)
-      .set({ akey: body.key, privateKey: body.privateKey, updatedAt: now })
+      .set({
+        akey: body.key,
+        privateKey: body.privateKey,
+        ...(body.publicKey ? { publicKey: body.publicKey } : {}),
+        ...(body.credentials
+          ? {
+              ...(await hashMasterPassword(body.credentials.hash)),
+              ...kdfColumns(body.credentials.kdf),
+              passwordHint: body.credentials.hint,
+            }
+          : {}),
+        updatedAt: now,
+      })
       .where(eq(schema.users.uuid, user.uuid)),
     ...body.folders.map((f) =>
       db
@@ -395,6 +450,64 @@ accounts.post('/api/accounts/key', requireAuth, async (c) => {
     ...stampRotationStatements(db, user.uuid),
   ])
   c.executionCtx.waitUntil(pushLogOut(c.env, user.uuid, c.var.auth.deviceIdentifier))
+  return c.body(null, 200)
+}
+
+accounts.post('/api/accounts/key', requireAuth, async (c) => {
+  const { masterPasswordHash, ...rest } = await parseBody(c, rotateSchema)
+  await requirePassword(c.var.user, masterPasswordHash)
+  await applyRotation(c, c.var.user, rest)
+  return c.body(null, 200)
+})
+
+// Rotation as sent by clients 2026.9 (web vault).
+const rotateAccountKeys = z.object({
+  oldMasterKeyAuthenticationHash: z.string().min(1),
+  accountUnlockData: z.object({
+    masterPasswordUnlockData: z.object({
+      kdfType: z.number().int(),
+      kdfIterations: z.number().int(),
+      kdfMemory: z.number().int().nullish(),
+      kdfParallelism: z.number().int().nullish(),
+      email: z.string(),
+      masterKeyAuthenticationHash: z.string().min(1),
+      masterKeyEncryptedUserKey: z.string().min(1),
+      masterPasswordHint: z.string().max(50).nullish(),
+    }),
+  }),
+  accountKeys: z.object({
+    userKeyEncryptedAccountPrivateKey: z.string().min(1),
+    accountPublicKey: z.string().nullish(),
+  }),
+  accountData: z.object({
+    ciphers: rotateSchema.shape.ciphers,
+    folders: rotateSchema.shape.folders,
+    sends: rotateSchema.shape.sends,
+  }),
+})
+accounts.post('/api/accounts/key-management/rotate-user-account-keys', requireAuth, async (c) => {
+  const body = await parseBody(c, rotateAccountKeys)
+  const user = c.var.user
+  const m = body.accountUnlockData.masterPasswordUnlockData
+  if (m.email.trim().toLowerCase() !== user.email) {
+    throw new ApiError(400, 'The salt must match the account email.')
+  }
+  const kdf = toKdfParams({
+    kdfType: m.kdfType,
+    iterations: m.kdfIterations,
+    memory: m.kdfMemory,
+    parallelism: m.kdfParallelism,
+  })
+  const problem = kdfProblem(kdf)
+  if (problem) throw new ApiError(400, problem)
+  await requirePassword(user, body.oldMasterKeyAuthenticationHash)
+  await applyRotation(c, user, {
+    key: m.masterKeyEncryptedUserKey,
+    privateKey: body.accountKeys.userKeyEncryptedAccountPrivateKey,
+    publicKey: body.accountKeys.accountPublicKey,
+    ...body.accountData,
+    credentials: { hash: m.masterKeyAuthenticationHash, kdf, hint: m.masterPasswordHint ?? null },
+  })
   return c.body(null, 200)
 })
 

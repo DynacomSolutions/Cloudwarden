@@ -390,7 +390,7 @@ ${
     try {
       await transport.send({
         to: email,
-        ...inviteEmail(`${base(c.env)}/#/register?email=${encodeURIComponent(email)}`),
+        ...inviteEmail(`${base(c.env)}/#/signup?email=${encodeURIComponent(email)}`),
       })
     } catch {
       log('error', 'admin.invite_delivery_failed', {}, c.env)

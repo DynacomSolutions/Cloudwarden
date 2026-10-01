@@ -1,0 +1,147 @@
+# Tasks
+
+Live board for Cloudwarden. Every unit of work gets a stable number here before it starts. Numbers are never reused.
+
+**Status key:** `todo` · `doing` · `blocked` · `done` · `dropped`
+
+**Rules**
+
+1. Add new work here immediately, including anything discovered mid-task.
+2. Keep status, owner, blockers and evidence current. Evidence means concrete output (CI run, test count, command result), not "works".
+3. Reference the task number in commits and code TODOs, e.g. `// TODO(TASKS #12)`.
+4. Never record identifying information here (hosts, account IDs, emails, IPs).
+
+---
+
+## Phase 0: Repository foundation
+
+| # | Task | Status | Owner | Acceptance |
+|---|---|---|---|---|
+| 1 | Create private repo, noreply commit identity | done | coordinator | Repo exists, private; commits use a noreply address |
+| 2 | Toolchain: pnpm, TypeScript strict, Biome, Vitest in workerd, `cf` config | done | agent | `pnpm lint`, `pnpm typecheck`, `pnpm test` green |
+| 3 | Worker skeleton: Hono app, route stubs, error format, security headers | done | agent | Stub routes respond; unimplemented routes return 501 |
+| 4 | Initial D1 schema and migration (Drizzle) | done | agent | Migration applies in tests |
+| 5 | Identifier guard (`scripts/check-identifiers.mjs`) with tests | done | agent | `pnpm test:scripts` green; repo scan clean |
+| 6 | Git hooks (lefthook): Biome, identifiers, gitleaks, author email, commitlint, pre-push typecheck and tests | done | agent | Hooks install on `pnpm install` |
+| 7 | CI: lint, typecheck, test, identifiers, commitlint, CodeQL, secret scan, dependency review, Scorecard, actionlint, zizmor | done | agent | Workflows pass on `main` |
+| 8 | Repo settings: Dependabot alerts and updates, private vulnerability reporting, `main` ruleset (PR required, `ci-ok` required, no force push, linear history) | todo | coordinator | Settings visible via API; see evidence log |
+| 9 | Architecture doc and storage ADR | done | coordinator | `docs/architecture.md`, `docs/adr/0001-storage-d1.md` |
+| 10 | Confirm licence (AGPL-3.0 chosen to match Vaultwarden and cover network use) | todo | owner | Owner confirms or picks another |
+| 11 | Create `maintainers` team for CODEOWNERS | todo | owner | Team exists with write access |
+| 12 | Local dev on the cluster (`devdeploy`) without committing local hostnames | todo | | Dev server reachable locally; no host-specific files committed |
+
+## Phase 1: Identity and accounts
+
+| # | Task | Status | Owner | Acceptance |
+|---|---|---|---|---|
+| 20 | Decide server-side password hashing (Workers PBKDF2 caps at 100k iterations; options: capped PBKDF2, WASM Argon2id, pure-JS PBKDF2 for imports). Measure CPU time | todo | | ADR written with benchmark numbers |
+| 21 | `POST /identity/accounts/prelogin` and `/api/accounts/prelogin` backed by D1 | todo | | Returns stored KDF settings; unknown users get defaults (no enumeration) |
+| 22 | Registration (`/identity/accounts/register`, `register/finish`) gated by `SIGNUPS_ALLOWED` and invites | todo | | Official client can create an account |
+| 23 | Token endpoint: `password` grant, `refresh_token` grant, `client_credentials` (API key) | todo | | Browser extension, desktop and CLI can log in and refresh |
+| 24 | JWT signing and key management (algorithm choice, rotation, `JWT_SECRET` handling) | todo | | Tokens validate; rotation documented |
+| 25 | Devices: register, list, known-device check, trust, deactivate | todo | | Device list matches clients |
+| 26 | Account: profile, change password, change email, KDF change, key rotation (atomic via `db.batch`) | todo | | Key rotation is all-or-nothing under test |
+| 27 | Security stamp and session invalidation on credential change | todo | | Old tokens rejected after password change |
+| 28 | Account deletion and recovery-code flows | todo | | |
+| 29 | Rate limiting on login, prelogin and 2FA (Workers Rate Limiting binding) | todo | | Exceeding limit returns 429 |
+
+## Phase 2: Vault data
+
+| # | Task | Status | Owner | Acceptance |
+|---|---|---|---|---|
+| 40 | `GET /api/sync` (profile, folders, ciphers, collections, policies, sends, domains) | todo | | Fresh client sync matches stored data |
+| 41 | Ciphers CRUD, soft delete, restore, purge, bulk move and delete | todo | | |
+| 42 | Folders CRUD | todo | | |
+| 43 | Revision dates and conflict handling (`lastKnownRevisionDate`) | todo | | Stale update rejected like upstream |
+| 44 | Equivalent domains settings | todo | | |
+| 45 | Import endpoint (`/api/ciphers/import`) | todo | | Bitwarden JSON export round-trips |
+
+## Phase 3: Organisations
+
+| # | Task | Status | Owner | Acceptance |
+|---|---|---|---|---|
+| 60 | Organisations: create, settings, delete | todo | | |
+| 61 | Members: invite, accept, confirm, roles, revoke, remove | todo | | |
+| 62 | Collections and access (users and groups) | todo | | |
+| 63 | Share cipher to organisation (atomic) | todo | | |
+| 64 | Policies (master password, 2FA required, personal ownership, send options) | todo | | |
+| 65 | Groups | todo | | |
+| 66 | Emergency access | todo | | |
+| 67 | Event logs | todo | | |
+
+## Phase 4: Sends and attachments
+
+| # | Task | Status | Owner | Acceptance |
+|---|---|---|---|---|
+| 80 | R2 attachment upload, download (signed short-lived URLs), delete | todo | | Large file works within Worker body limit; limit documented |
+| 81 | Text Sends | todo | | |
+| 82 | File Sends via R2 | todo | | |
+| 83 | Send access endpoints (password, max access count, expiry, deletion date) | todo | | |
+| 84 | Scheduled purge of expired Sends and orphaned blobs (Cron Trigger) | todo | | |
+
+## Phase 5: Live sync
+
+| # | Task | Status | Owner | Acceptance |
+|---|---|---|---|---|
+| 100 | SignalR handshake (JSON and MessagePack) in `NotificationHub` with hibernation | todo | | Desktop client receives sync push |
+| 101 | Publish cipher, folder, send, logout events from write paths | todo | | |
+| 102 | Anonymous hub for login-with-device requests | todo | | |
+| 103 | Mobile push via the Bitwarden push relay (optional, needs installation credentials) | todo | | Documented as optional |
+
+## Phase 6: Two-factor authentication
+
+| # | Task | Status | Owner | Acceptance |
+|---|---|---|---|---|
+| 120 | TOTP | todo | | |
+| 121 | Recovery code | todo | | |
+| 122 | WebAuthn / passkeys as second factor | todo | | |
+| 123 | Email 2FA (needs task 141) | todo | | |
+| 124 | Duo and YubiKey OTP (optional) | todo | | |
+| 125 | Login with passkey (passwordless) | todo | | |
+
+## Phase 7: Optional services
+
+| # | Task | Status | Owner | Acceptance |
+|---|---|---|---|---|
+| 140 | Admin UI behind `ADMIN_ENABLED` and a hashed `ADMIN_TOKEN_HASH`: users, orgs, invites, diagnostics | todo | | Disabled returns 404; enabled requires token |
+| 141 | Pluggable email transport (HTTP provider or Cloudflare Email), templates | todo | | |
+| 142 | Icon proxy with SSRF protection and Cache API | todo | | Private and link-local targets refused |
+| 143 | Serve the Bitwarden web vault via Workers static assets (build-time fetch, integrity check, licence notice) | todo | | Web vault loads and logs in |
+
+## Phase 8: Operations
+
+| # | Task | Status | Owner | Acceptance |
+|---|---|---|---|---|
+| 160 | Deployment guide: create D1, R2, secrets, custom domain, using only placeholders | todo | | Fresh account deploy from docs alone |
+| 161 | CI deploy workflow (environment-protected, OIDC or scoped token in secrets) | todo | | |
+| 162 | Scheduled D1 export to R2 for portable backups | todo | | Restore tested |
+| 163 | Vaultwarden SQLite importer | todo | | Imported users log in without re-registering (depends on 20) |
+| 164 | Observability: structured logs without vault data, Workers Analytics | todo | | Log review confirms no secrets or ciphertext logged |
+| 165 | D1 Sessions API if read replication is enabled | todo | | No revision-date regressions under test |
+
+## Phase 9: Compatibility and quality
+
+| # | Task | Status | Owner | Acceptance |
+|---|---|---|---|---|
+| 180 | API contract tests from recorded client traffic (sanitised fixtures) | todo | | |
+| 181 | End-to-end tests with the official Bitwarden CLI against `cf dev` | todo | | Login, sync, create, edit, delete pass |
+| 182 | Client version support matrix and `/api/config` server version strategy | todo | | |
+| 183 | Threat model document | todo | | |
+
+## Phase 10: Going public
+
+| # | Task | Status | Owner | Acceptance |
+|---|---|---|---|---|
+| 200 | Full-history identifier and secret scan (`check-identifiers`, trufflehog) | todo | | Zero findings |
+| 201 | On going public: enable private vulnerability reporting, Scorecard publishing; confirm CodeQL, dependency review and Scorecard jobs (gated to public repos, since GHAS is off while private) run green | todo | | All three workflows run, not skipped |
+| 202 | Trademark review: name and wording do not imply affiliation with Bitwarden | todo | owner | |
+| 203 | Flip visibility to public | todo | owner | Owner approval recorded |
+
+---
+
+## Evidence log
+
+Newest first. One line per verified fact.
+
+- 2026-10-01 · #8 · Enabled via API: secret scanning, push protection, Dependabot alerts, Dependabot security updates, squash-only merges, delete branch on merge. Private vulnerability reporting returned 404 (public repos only).
+- 2026-10-01 · #1 · Repo created private; local commit email set to the GitHub noreply form.

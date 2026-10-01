@@ -53,13 +53,13 @@ function client(over: Partial<Bindings> = {}) {
 
 const cookieOf = (res: Response) => (res.headers.get('set-cookie') ?? '').split(';')[0] ?? ''
 const linkIn = (m: EmailMessage) =>
-  /https:\/\/\S+\/admin\/magic\?token=[\w-]+/.exec(m.text)?.[0] ?? ''
+  /https:\/\/\S+\/admin\/recovery\/magic\?token=[\w-]+/.exec(m.text)?.[0] ?? ''
 
 async function loginViaMagic(c: ReturnType<typeof client>) {
-  await c.post('/admin/login/magic', { email: ADMIN })
+  await c.post('/admin/recovery/magic-link', { email: ADMIN })
   const link = linkIn(sent[0] as EmailMessage)
   const token = new URL(link).searchParams.get('token') ?? ''
-  const res = await c.post('/admin/magic', { token })
+  const res = await c.post('/admin/recovery/magic', { token })
   return { res, token }
 }
 
@@ -84,7 +84,7 @@ describe('admin gating', () => {
   it('returns 404 when disabled', async () => {
     const c = client({ ADMIN_ENABLED: 'false' })
     expect((await c.call('/admin')).status).toBe(404)
-    expect((await c.post('/admin/login/token', { token: TOKEN })).status).toBe(404)
+    expect((await c.post('/admin/recovery/token', { token: TOKEN })).status).toBe(404)
   })
 
   it('serves the login page with a strict CSP when enabled', async () => {
@@ -102,12 +102,12 @@ describe('admin gating', () => {
 describe('magic link', () => {
   it('happy path: emails a link, GET does not consume, POST signs in', async () => {
     const c = client()
-    const res = await c.post('/admin/login/magic', { email: ADMIN })
+    const res = await c.post('/admin/recovery/magic-link', { email: ADMIN })
     expect(await res.text()).toContain('If that address is an admin, a link was sent')
     expect(sent).toHaveLength(1)
     expect(sent[0]?.to).toBe(ADMIN)
     const link = linkIn(sent[0] as EmailMessage)
-    expect(link.startsWith(`${ORIGIN}/admin/magic?token=`)).toBe(true)
+    expect(link.startsWith(`${ORIGIN}/admin/recovery/magic?token=`)).toBe(true)
     const token = new URL(link).searchParams.get('token') ?? ''
 
     // Only the hash is stored.
@@ -119,11 +119,11 @@ describe('magic link', () => {
 
     // Prefetch via GET twice, then the POST still works.
     for (let i = 0; i < 2; i++) {
-      const get = await c.call(`/admin/magic?token=${token}`)
+      const get = await c.call(`/admin/recovery/magic?token=${token}`)
       expect(get.status).toBe(200)
       expect(await get.text()).toContain('method="post"')
     }
-    const login = await c.post('/admin/magic', { token })
+    const login = await c.post('/admin/recovery/magic', { token })
     expect(login.status).toBe(303)
     const dash = await c.call('/admin', { headers: { Cookie: cookieOf(login) } })
     expect(await dash.text()).toContain('Dashboard')
@@ -147,24 +147,24 @@ describe('magic link', () => {
   it('rejects token reuse', async () => {
     const c = client()
     const { token } = await loginViaMagic(c)
-    const again = await c.post('/admin/magic', { token })
+    const again = await c.post('/admin/recovery/magic', { token })
     expect(again.status).toBe(400)
     expect(again.headers.get('set-cookie')).toBeNull()
   })
 
   it('rejects an expired token', async () => {
     const c = client()
-    await c.post('/admin/login/magic', { email: ADMIN })
+    await c.post('/admin/recovery/magic-link', { email: ADMIN })
     const token = new URL(linkIn(sent[0] as EmailMessage)).searchParams.get('token') ?? ''
     clock += 16 * 60_000
-    const res = await c.post('/admin/magic', { token })
+    const res = await c.post('/admin/recovery/magic', { token })
     expect(res.status).toBe(400)
   })
 
   it('treats non-admin emails identically and sends nothing', async () => {
     const c = client()
-    const a = await c.post('/admin/login/magic', { email: ADMIN })
-    const b = await c.post('/admin/login/magic', { email: 'stranger@example.com' })
+    const a = await c.post('/admin/recovery/magic-link', { email: ADMIN })
+    const b = await c.post('/admin/recovery/magic-link', { email: 'stranger@example.com' })
     expect(sent).toHaveLength(1)
     expect(b.status).toBe(a.status)
     const strip = (t: string) => t.replace(/nonce="[^"]+"/g, '')
@@ -177,7 +177,7 @@ describe('magic link', () => {
 
   it('rate limits per email without changing the response', async () => {
     const c = client()
-    for (let i = 0; i < 8; i++) await c.post('/admin/login/magic', { email: ADMIN })
+    for (let i = 0; i < 8; i++) await c.post('/admin/recovery/magic-link', { email: ADMIN })
     expect(sent).toHaveLength(5)
   })
 
@@ -185,7 +185,7 @@ describe('magic link', () => {
     const c = client()
     for (let i = 0; i < 25; i++) {
       await c.post(
-        '/admin/login/magic',
+        '/admin/recovery/magic-link',
         { email: `user${i}@example.com` },
         { 'CF-Connecting-IP': '192.0.2.7' },
       )
@@ -195,7 +195,11 @@ describe('magic link', () => {
     ).first<{ count: number }>()
     expect(n?.count).toBe(25)
     // The limit blocks even an admin address from that IP.
-    await c.post('/admin/login/magic', { email: ADMIN }, { 'CF-Connecting-IP': '192.0.2.7' })
+    await c.post(
+      '/admin/recovery/magic-link',
+      { email: ADMIN },
+      { 'CF-Connecting-IP': '192.0.2.7' },
+    )
     expect(sent).toHaveLength(0)
   })
 })
@@ -203,8 +207,8 @@ describe('magic link', () => {
 describe('token login', () => {
   it('accepts a SHA-256 hash and rejects a wrong token', async () => {
     const c = client({ ADMIN_TOKEN_HASH: await sha256Hex(TOKEN) })
-    expect((await c.post('/admin/login/token', { token: 'nope' })).status).toBe(401)
-    const ok = await c.post('/admin/login/token', { token: TOKEN })
+    expect((await c.post('/admin/recovery/token', { token: 'nope' })).status).toBe(401)
+    const ok = await c.post('/admin/recovery/token', { token: TOKEN })
     expect(ok.status).toBe(303)
     expect(ok.headers.get('set-cookie')).toContain('__Host-cw_admin=')
   })
@@ -237,7 +241,7 @@ describe('token login', () => {
   })
 
   it('refuses when no hash is configured', async () => {
-    const res = await client().post('/admin/login/token', { token: TOKEN })
+    const res = await client().post('/admin/recovery/token', { token: TOKEN })
     expect(res.status).toBe(401)
   })
 })
@@ -246,12 +250,12 @@ describe('csrf and origin', () => {
   it('rejects a cross-origin or originless POST', async () => {
     const c = client()
     const bad = await c.post(
-      '/admin/login/magic',
+      '/admin/recovery/magic-link',
       { email: ADMIN },
       { Origin: 'https://evil.example.net' },
     )
     expect(bad.status).toBe(403)
-    const none = await c.call('/admin/login/magic', {
+    const none = await c.call('/admin/recovery/magic-link', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({ email: ADMIN }),
@@ -453,12 +457,12 @@ describe('nonce and 2FA removal', () => {
 
   it('uses one nonce for the CSP header and every style tag on every page', async () => {
     const c = client()
-    const anon = ['/admin', '/admin/magic?token=abc']
+    const anon = ['/admin', '/admin/recovery', '/admin/recovery/magic?token=abc']
     for (const path of anon) {
       const res = await c.call(path)
       nonceOf(res, await res.text())
     }
-    const link = await c.post('/admin/login/magic', { email: ADMIN })
+    const link = await c.post('/admin/recovery/magic-link', { email: ADMIN })
     nonceOf(link, await link.text())
     const { res } = await loginViaMagic(c)
     const cookie = cookieOf(res)

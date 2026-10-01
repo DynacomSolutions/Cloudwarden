@@ -1,6 +1,7 @@
 import { type Context, Hono } from 'hono'
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import { html } from 'hono/html'
+import { authenticateAccessToken } from '../auth/middleware'
 import { isReservedBlobKey } from '../blob-keys'
 import { createEmailTransport, type EmailTransport, inviteEmail, magicLinkEmail } from '../email'
 import type { Bindings } from '../env'
@@ -23,6 +24,7 @@ import {
   fmtBytes,
   fmtDate,
   kvTable,
+  landingPage,
   layout,
   linkSentPage,
   loginPage,
@@ -32,6 +34,8 @@ import {
 
 const MAGIC_TTL_MS = 15 * 60_000
 const SESSION_TTL_MS = 8 * 3600_000
+/** Vault-derived sessions: short, renewed on each request. */
+const VAULT_SESSION_TTL_MS = 3600_000
 const WINDOW_MS = 15 * 60_000
 const COOKIE = 'cw_admin'
 const PAGE_SIZE = 50
@@ -134,33 +138,95 @@ export function createAdmin(deps: AdminDeps = {}) {
     if (!raw) return null
     const hash = await sha256Hex(raw)
     const row = await c.env.DB.prepare(
-      'SELECT subject, csrf_token FROM admin_sessions WHERE session_hash = ?1 AND expires_at > ?2',
+      `SELECT s.subject, s.csrf_token, s.user_uuid, s.security_stamp, u.security_stamp AS current_stamp,
+        u.enabled, u.email
+       FROM admin_sessions s LEFT JOIN users u ON u.uuid = s.user_uuid
+       WHERE s.session_hash = ?1 AND s.expires_at > ?2`,
     )
       .bind(hash, now())
-      .first<{ subject: string; csrf_token: string }>()
-    return row ? { hash, subject: row.subject, csrf: row.csrf_token } : null
+      .first<{
+        subject: string
+        csrf_token: string
+        user_uuid: string | null
+        security_stamp: string | null
+        current_stamp: string | null
+        enabled: number | null
+        email: string | null
+      }>()
+    if (!row) return null
+    // Vault-derived sessions end when the user's stamp rotates, the account is disabled or
+    // deleted, or the address leaves ADMIN_EMAILS.
+    if (
+      row.user_uuid !== null &&
+      (!row.enabled ||
+        !row.current_stamp ||
+        !(await safeEqual(row.security_stamp ?? '', row.current_stamp)) ||
+        !isAdminEmail(c.env.ADMIN_EMAILS, normaliseEmail(row.email)))
+    ) {
+      await c.env.DB.prepare('DELETE FROM admin_sessions WHERE session_hash = ?1').bind(hash).run()
+      return null
+    }
+    if (row.user_uuid !== null) {
+      // Sliding renewal on activity.
+      await c.env.DB.prepare('UPDATE admin_sessions SET expires_at = ?1 WHERE session_hash = ?2')
+        .bind(now() + VAULT_SESSION_TTL_MS, hash)
+        .run()
+      setSessionCookie(c, raw, VAULT_SESSION_TTL_MS)
+    }
+    return { hash, subject: row.subject, csrf: row.csrf_token }
   }
 
-  async function startSession(c: Ctx, subject: string) {
+  async function startSession(
+    c: Ctx,
+    subject: string,
+    user?: { uuid: string; securityStamp: string },
+  ) {
+    const previous = getCookie(c, COOKIE, 'host')
     const raw = randomToken()
     const t = now()
+    const ttl = user ? VAULT_SESSION_TTL_MS : SESSION_TTL_MS
     await c.env.DB.batch([
+      // Replace this browser's prior session rather than leaving it alive.
+      c.env.DB.prepare('DELETE FROM admin_sessions WHERE session_hash = ?1').bind(
+        previous ? await sha256Hex(previous) : '',
+      ),
       c.env.DB.prepare('DELETE FROM admin_sessions WHERE expires_at <= ?1').bind(t),
       c.env.DB.prepare('DELETE FROM admin_login_tokens WHERE expires_at <= ?1').bind(
         t - 86_400_000,
       ),
       c.env.DB.prepare(
-        'INSERT INTO admin_sessions (session_hash, subject, csrf_token, expires_at, created_at) VALUES (?1, ?2, ?3, ?4, ?5)',
-      ).bind(await sha256Hex(raw), subject, randomToken(24), t + SESSION_TTL_MS, t),
+        `INSERT INTO admin_sessions (session_hash, subject, csrf_token, expires_at, created_at, user_uuid, security_stamp)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`,
+      ).bind(
+        await sha256Hex(raw),
+        subject,
+        randomToken(24),
+        t + ttl,
+        t,
+        user?.uuid ?? null,
+        user?.securityStamp ?? null,
+      ),
     ])
+    setSessionCookie(c, raw, ttl)
+  }
+
+  function setSessionCookie(c: Ctx, raw: string, ttl: number) {
     setCookie(c, COOKIE, raw, {
       prefix: 'host',
       httpOnly: true,
       secure: true,
       sameSite: 'Strict',
       path: '/',
-      maxAge: SESSION_TTL_MS / 1000,
+      maxAge: ttl / 1000,
     })
+  }
+
+  const strictSameOrigin = (c: Ctx) => {
+    const site = c.req.header('Sec-Fetch-Site')
+    return (
+      c.req.header('Origin') === new URL(c.env.DOMAIN).origin &&
+      (site === undefined || site === 'same-origin')
+    )
   }
 
   const clientIp = (c: Ctx) => c.req.header('CF-Connecting-IP') ?? 'unknown'
@@ -201,7 +267,7 @@ export function createAdmin(deps: AdminDeps = {}) {
   // Login ---------------------------------------------------------------
   app.get('/admin', async (c) => {
     const session = await loadSession(c)
-    if (!session) return c.html(loginPage(c.get('nonce')))
+    if (!session) return c.html(landingPage(c.get('nonce')))
     c.set('session', session)
     const db = c.env.DB
     const count = async (sql: string) => (await db.prepare(sql).first<{ n: number }>())?.n ?? 0
@@ -241,7 +307,49 @@ ${kvTable(await serverRows(c))}`,
     ]
   }
 
-  app.post('/admin/login/magic', async (c) => {
+  // Vault login exchange ------------------------------------------------
+  // The injected web vault script posts the vault's own access token here (never in a URL).
+  app.post('/admin/session/exchange', async (c) => {
+    const fail = (status: 401 | 403 | 429, message: string) =>
+      c.json({ message, validationErrors: null, object: 'error' }, status)
+    if (!strictSameOrigin(c)) {
+      return fail(403, 'Cross-origin request refused')
+    }
+    if (!(await rateLimit(c.env.DB, `ex:ip:${clientIp(c)}`, 30, WINDOW_MS, now()))) {
+      return fail(429, 'Too many attempts')
+    }
+    const match = /^Bearer\s+(\S+)$/i.exec(c.req.header('Authorization') ?? '')
+    const authed = match?.[1] ? await authenticateAccessToken(c.env, match[1]) : null
+    if (!authed) return fail(401, 'Unauthorized')
+    const email = normaliseEmail(authed.user.email)
+    if (!isAdminEmail(c.env.ADMIN_EMAILS, email)) return fail(403, 'Not an admin')
+    await startSession(c, email, authed.user)
+    return c.body(null, 204)
+  })
+
+  // Called by the vault script on vault logout. No CSRF field: the strict same-origin check
+  // stands in for it, and the only effect is ending this browser's admin session.
+  app.post('/admin/session/end', async (c) => {
+    if (!strictSameOrigin(c)) {
+      return c.json(
+        { message: 'Cross-origin request refused', validationErrors: null, object: 'error' },
+        403,
+      )
+    }
+    const raw = getCookie(c, COOKIE, 'host')
+    if (raw) {
+      await c.env.DB.prepare('DELETE FROM admin_sessions WHERE session_hash = ?1')
+        .bind(await sha256Hex(raw))
+        .run()
+    }
+    deleteCookie(c, COOKIE, { prefix: 'host', secure: true, path: '/' })
+    return c.body(null, 204)
+  })
+
+  // Break-glass recovery ------------------------------------------------
+  app.get('/admin/recovery', (c) => c.html(loginPage(c.get('nonce'))))
+
+  app.post('/admin/recovery/magic-link', async (c) => {
     const body = await c.req.parseBody()
     const email = normaliseEmail(body.email)
     const t = now()
@@ -257,7 +365,7 @@ ${kvTable(await serverRows(c))}`,
       )
         .bind(await sha256Hex(token), email, t + MAGIC_TTL_MS, t)
         .run()
-      const url = `${base(c.env)}/admin/magic?token=${token}`
+      const url = `${base(c.env)}/admin/recovery/magic?token=${token}`
       try {
         await transportFor(c.env).send({ to: email, ...magicLinkEmail(url, MAGIC_TTL_MS / 60_000) })
       } catch {
@@ -269,12 +377,12 @@ ${kvTable(await serverRows(c))}`,
   })
 
   // GET never consumes the token: mail scanners prefetch links.
-  app.get('/admin/magic', (c) => {
+  app.get('/admin/recovery/magic', (c) => {
     const token = c.req.query('token') ?? ''
     return c.html(magicConfirmPage(c.get('nonce'), token.slice(0, 200)))
   })
 
-  app.post('/admin/magic', async (c) => {
+  app.post('/admin/recovery/magic', async (c) => {
     const body = await c.req.parseBody()
     const token = typeof body.token === 'string' ? body.token : ''
     const t = now()
@@ -296,7 +404,7 @@ ${kvTable(await serverRows(c))}`,
     return c.redirect('/admin', 303)
   })
 
-  app.post('/admin/login/token', async (c) => {
+  app.post('/admin/recovery/token', async (c) => {
     const body = await c.req.parseBody()
     const token = typeof body.token === 'string' ? body.token : ''
     const ok = await rateLimit(c.env.DB, `tk:ip:${clientIp(c)}`, 10, WINDOW_MS, now())
@@ -580,6 +688,20 @@ ${kvTable([
     for (let i = 0; i < safe.length; i += 1000)
       await env.ATTACHMENTS.delete(safe.slice(i, i + 1000))
   }
+
+  // Used by the injected web vault script to decide whether to show the admin link.
+  app.get('/api/cloudwarden/me', async (c) => {
+    c.header('Cache-Control', 'no-store')
+    const match = /^Bearer\s+(\S+)$/i.exec(c.req.header('Authorization') ?? '')
+    const authed = match?.[1] ? await authenticateAccessToken(c.env, match[1]) : null
+    if (!authed) {
+      return c.json({ message: 'Unauthorized', validationErrors: null, object: 'error' }, 401)
+    }
+    const isAdmin =
+      c.env.ADMIN_ENABLED === 'true' &&
+      isAdminEmail(c.env.ADMIN_EMAILS, normaliseEmail(authed.user.email))
+    return c.json({ isAdmin })
+  })
 
   return app
 }

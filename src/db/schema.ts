@@ -490,6 +490,10 @@ export const adminSessions = sqliteTable(
     sessionHash: text('session_hash').primaryKey(),
     subject: text('subject').notNull(),
     csrfToken: text('csrf_token').notNull(),
+    /** Set for sessions exchanged from a vault login; null for break-glass recovery sessions. */
+    userUuid: text('user_uuid'),
+    /** The user's security stamp at exchange time; a mismatch ends the session. */
+    securityStamp: text('security_stamp'),
     expiresAt: integer('expires_at').notNull(),
     createdAt: createdAt(),
   },

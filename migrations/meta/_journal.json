@@ -57,6 +57,13 @@
       "when": 1790840364112,
       "tag": "0007_passkey_create_challenge",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1790854396942,
+      "tag": "0008_admin_session_user",
+      "breakpoints": true
     }
   ]
 }

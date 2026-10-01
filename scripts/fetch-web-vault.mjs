@@ -6,7 +6,8 @@
  * The vault is published by Bitwarden as an OCI image. This script downloads a pinned image
  * (see web-vault.lock.json), checks the manifest digest and every layer sha256, extracts the web
  * root (`/app` in the image) into `web-vault/` and writes a licence notice next to it.
- * Source maps are dropped (they are large and not needed to run the vault).
+ * Source maps are dropped (they are large and not needed to run the vault). The Cloudwarden admin
+ * link script (web-vault-overlay/admin-link.js) is then injected, see injectOverlay().
  *
  * Usage: node scripts/fetch-web-vault.mjs [--update] [--force]
  *   --update  resolve the newest stable tag, rewrite web-vault.lock.json, then fetch
@@ -27,6 +28,8 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const LOCK_PATH = join(ROOT, 'web-vault.lock.json')
 const OUT_DIR = join(ROOT, 'web-vault')
 const STAMP = '.fetched'
+const OVERLAY_SRC = join(ROOT, 'web-vault-overlay', 'admin-link.js')
+export const OVERLAY_PATH = 'cloudwarden/admin-link.js'
 const REGISTRY = 'ghcr.io'
 const REPO = 'bitwarden/web'
 const WEB_ROOT = 'app/'
@@ -226,11 +229,33 @@ const HEADERS = `/*
   Cache-Control: no-cache
 `
 
+/** Subresource Integrity value (sha384) for a script body. */
+export const sri = (buf) => `sha384-${createHash('sha384').update(buf).digest('base64')}`
+
+const TAG_RE = /[ \t]*<script src="cloudwarden\/admin-link\.js"[^>]*><\/script>\n?/g
+
+/**
+ * Copies the admin link script into `dir` and references it from index.html, once, with an
+ * integrity attribute. Deterministic and idempotent: any previous tag is replaced, so rerunning
+ * yields identical files.
+ */
+export async function injectOverlay(dir, source = OVERLAY_SRC) {
+  const script = await readFile(source)
+  await mkdir(join(dir, 'cloudwarden'), { recursive: true })
+  await writeFile(join(dir, OVERLAY_PATH), script)
+  const indexPath = join(dir, 'index.html')
+  const index = (await readFile(indexPath, 'utf8')).replace(TAG_RE, '')
+  if (!index.includes('</head>')) throw new Error('index.html has no </head>')
+  const tag = `<script src="${OVERLAY_PATH}" integrity="${sri(script)}" defer></script>\n`
+  await writeFile(indexPath, index.replace('</head>', `${tag}</head>`))
+}
+
 const notice = (lock) => `Bitwarden web vault ${lock.tag}
 ================================
 
 This directory contains the official Bitwarden web vault, unmodified apart from the removal of
-source maps and the app-id.json file (served dynamically by the Worker).
+source maps and the app-id.json file (served dynamically by the Worker), and one added script tag in
+index.html that loads cloudwarden/admin-link.js (Cloudwarden's own admin link, not Bitwarden code).
 
   Source:   ${lock.image}:${lock.tag}
   Digest:   ${lock.manifestDigest} (${lock.platform})
@@ -264,6 +289,7 @@ async function main() {
     existsSync(stamp) &&
     readFileSync(stamp, 'utf8').trim() === lock.manifestDigest
   ) {
+    await injectOverlay(OUT_DIR)
     console.log(`web-vault/ is up to date (${lock.tag})`)
     return
   }
@@ -292,13 +318,16 @@ async function main() {
   await rm(join(staging, 'app-id.json'), { force: true })
   await writeFile(join(staging, 'LICENSE-NOTICE.txt'), notice(lock))
   await writeFile(join(staging, '_headers'), HEADERS)
+  await injectOverlay(staging)
   await writeFile(join(staging, STAMP), `${lock.manifestDigest}\n`)
   await rm(OUT_DIR, { recursive: true, force: true })
   await rename(staging, OUT_DIR)
   console.log(`web-vault/ ready: ${lock.tag}, ${total} files`)
 }
 
-main().catch((e) => {
-  console.error(`fetch-web-vault: ${e.message}`)
-  process.exit(1)
-})
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((e) => {
+    console.error(`fetch-web-vault: ${e.message}`)
+    process.exit(1)
+  })
+}

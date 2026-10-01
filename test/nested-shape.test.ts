@@ -123,7 +123,7 @@ it('rotates account keys with the key-management payload', async () => {
   const body = (old: string) => ({
     oldMasterKeyAuthenticationHash: old,
     accountUnlockData: { masterPasswordUnlockData: unlock },
-    accountKeys: { userKeyEncryptedAccountPrivateKey: '2.rotpriv', accountPublicKey: 'newpub' },
+    accountKeys: { userKeyEncryptedAccountPrivateKey: '2.rotpriv', accountPublicKey: 'pub' },
     accountData: { ciphers: [], folders: [], sends: [] },
   })
   const path = '/api/accounts/key-management/rotate-user-account-keys'
@@ -135,4 +135,40 @@ it('rotates account keys with the key-management payload', async () => {
   >
   expect(again).toMatchObject({ Key: '2.rotkey', PrivateKey: '2.rotpriv' })
   expect((await authed('/api/accounts/profile', s.access_token)).status).toBe(401)
+})
+
+it('rejects a nested password change that alters the KDF', async () => {
+  const s = await session('nlock@example.com')
+  const n = nested('nlock@example.com', 'x', '2.x', { kdfType: 0, iterations: 700000 })
+  const res = await authed('/api/accounts/password', s.access_token, 'POST', {
+    masterPasswordHash: 'nested-hash',
+    authenticationData: n.masterPasswordAuthentication,
+    unlockData: n.masterPasswordUnlock,
+  })
+  expect(res.status).toBe(400)
+  expect((await login('nlock@example.com', 'nested-hash')).status).toBe(200)
+})
+
+it('rotation rejects a changed public key and keeps the hint when omitted', async () => {
+  const s = await session('nhint@example.com')
+  const unlock: Record<string, unknown> = {
+    kdfType: 0,
+    kdfIterations: 600000,
+    email: 'nhint@example.com',
+    masterKeyAuthenticationHash: 'h2',
+    masterKeyEncryptedUserKey: '2.k2',
+  }
+  const body = (pub: string) => ({
+    oldMasterKeyAuthenticationHash: 'nested-hash',
+    accountUnlockData: { masterPasswordUnlockData: unlock },
+    accountKeys: { userKeyEncryptedAccountPrivateKey: '2.p2', accountPublicKey: pub },
+    accountData: { ciphers: [], folders: [], sends: [] },
+  })
+  const path = '/api/accounts/key-management/rotate-user-account-keys'
+  expect((await authed(path, s.access_token, 'POST', body('different'))).status).toBe(400)
+  expect((await authed(path, s.access_token, 'POST', body('pub'))).status).toBe(200)
+  const row = await env.DB.prepare('select password_hint h from users where email = ?')
+    .bind('nhint@example.com')
+    .first<{ h: string }>()
+  expect(row?.h).toBe('hint')
 })

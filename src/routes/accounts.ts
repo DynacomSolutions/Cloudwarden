@@ -168,6 +168,17 @@ accounts.post('/api/accounts/password', requireAuth, async (c) => {
   const body = await parseBody(c, credentialChange)
   const user = c.var.user
   const change = resolveChange(body, user.email)
+  // A password change must not alter the KDF (the client would derive the wrong hash).
+  if (change.kdf) {
+    const k = change.kdf
+    const same =
+      k.kdf === user.kdfType &&
+      k.kdfIterations === user.kdfIterations &&
+      (k.kdf !== 1 ||
+        ((k.kdfMemory ?? null) === user.kdfMemory &&
+          (k.kdfParallelism ?? null) === user.kdfParallelism))
+    if (!same) throw new ApiError(400, 'KDF settings cannot change here; use the KDF change.')
+  }
   await requirePassword(user, body.masterPasswordHash)
   const db = createDb(c.env.DB)
   await runBatch(db, [
@@ -500,13 +511,21 @@ accounts.post('/api/accounts/key-management/rotate-user-account-keys', requireAu
   })
   const problem = kdfProblem(kdf)
   if (problem) throw new ApiError(400, problem)
+  const newPublic = body.accountKeys.accountPublicKey
+  if (newPublic && user.publicKey && newPublic !== user.publicKey) {
+    throw new ApiError(400, 'The account public key cannot change during key rotation.')
+  }
   await requirePassword(user, body.oldMasterKeyAuthenticationHash)
   await applyRotation(c, user, {
     key: m.masterKeyEncryptedUserKey,
     privateKey: body.accountKeys.userKeyEncryptedAccountPrivateKey,
     publicKey: body.accountKeys.accountPublicKey,
     ...body.accountData,
-    credentials: { hash: m.masterKeyAuthenticationHash, kdf, hint: m.masterPasswordHint ?? null },
+    credentials: {
+      hash: m.masterKeyAuthenticationHash,
+      kdf,
+      hint: m.masterPasswordHint === undefined ? user.passwordHint : m.masterPasswordHint,
+    },
   })
   return c.body(null, 200)
 })

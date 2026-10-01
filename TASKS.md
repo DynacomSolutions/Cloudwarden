@@ -24,7 +24,7 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 | 5 | Identifier guard (`scripts/check-identifiers.mjs`) with tests | done | agent | `pnpm test:scripts` green; repo scan clean |
 | 6 | Git hooks (lefthook): Biome, identifiers, gitleaks, author email, commitlint, pre-push typecheck and tests | done | agent | Hooks install on `pnpm install` |
 | 7 | CI: lint, typecheck, test, identifiers, commitlint, CodeQL, secret scan, dependency review, Scorecard, actionlint, zizmor | done | agent | Workflows pass on `main` |
-| 8 | Repo settings: Dependabot alerts and updates, private vulnerability reporting, `main` ruleset (PR required, `ci-ok` required, no force push, linear history) | todo | coordinator | Settings visible via API; see evidence log |
+| 8 | Repo settings: Dependabot alerts and updates, private vulnerability reporting, `main` ruleset (PR required, `CI Status` required, no force push, linear history) | done | coordinator | Settings visible via API; see evidence log |
 | 9 | Architecture doc and storage ADR | done | coordinator | `docs/architecture.md`, `docs/adr/0001-storage-d1.md` |
 | 10 | Confirm licence (AGPL-3.0 chosen to match Vaultwarden and cover network use) | todo | owner | Owner confirms or picks another |
 | 11 | Create `maintainers` team for CODEOWNERS | todo | owner | Team exists with write access |
@@ -143,5 +143,8 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 
 Newest first. One line per verified fact.
 
+- 2026-10-01 · #8 · Ruleset active on the default branch: no deletion, no force push, linear history, signed commits, PR required (squash only, threads resolved), `CI Status` required and up to date. Admin bypass only through a PR. Main commits show as verified on GitHub.
+- 2026-10-01 · #7 · First push to `main`: CI succeeded (Lint, Typecheck, Test, Identifier Check, CI Status), Secret Scanning succeeded; CodeQL and Scorecard skipped by design while private. actionlint 1.7.12 and zizmor 1.30.1 (medium and above) clean locally.
+- 2026-10-01 · #2 to #6 · Local: `pnpm lint`, `pnpm typecheck` and `pnpm test` (7 tests) green; `pnpm test:scripts` (48 tests) green; identifier scan and gitleaks history scan found nothing. Every commit passed the pre-commit hooks.
 - 2026-10-01 · #8 · Enabled via API: secret scanning, push protection, Dependabot alerts, Dependabot security updates, squash-only merges, delete branch on merge. Private vulnerability reporting returned 404 (public repos only).
 - 2026-10-01 · #1 · Repo created private; local commit email set to the GitHub noreply form.

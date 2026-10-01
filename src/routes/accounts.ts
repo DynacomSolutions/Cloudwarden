@@ -104,6 +104,10 @@ accounts.post('/api/accounts/profile', requireAuth, updateProfile)
 // Vault writes bump `users.updatedAt` (TASKS #43), so it is the account revision date.
 accounts.get('/api/accounts/revision-date', requireAuth, (c) => c.json(c.var.user.updatedAt))
 
+// The SDK (2026.x) reports the identifier of the user key after unlock so the server can track key
+// rotation. Nothing here depends on it, so accept the call and store nothing.
+accounts.post('/api/accounts/key-management/user-key-id', requireAuth, (c) => c.body(null, 200))
+
 accounts.post('/api/accounts/verify-password', requireAuth, async (c) => {
   const { masterPasswordHash } = await parseBody(c, passwordOnly)
   await requirePassword(c.var.user, masterPasswordHash)

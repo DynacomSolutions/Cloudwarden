@@ -7,7 +7,7 @@ const SRC = readFileSync(new URL('../web-vault-overlay/admin-link.js', import.me
 
 // Minimal shape of the 2026.9 vault side navigation.
 const item = (href, text, icon) =>
-  `<bit-nav-item class="item-host"><div class="tw-flex hover:tw-bg-x"><a class="nav-link tw-p-2 active" href="${href}" aria-current="page"><i class="bwi bwi-fw ${icon}"></i><span class="label">${text}</span></a></div></bit-nav-item>`
+  `<bit-nav-item class="item-host"><div class="tw-flex hover:tw-bg-x"><a class="nav-link tw-p-2 active" href="${href}" aria-current="page" aria-label="${text}" title="${text}" aria-describedby="tip-${text}" ng-reflect-text="${text}"><span class="sr" title="${text}">${text}</span><i class="bwi bwi-fw ${icon}"></i><span class="label">${text}</span></a></div></bit-nav-item>`
 const NAV = `<nav aria-label="Side navigation"><div class="list">
 ${item('#/vault', 'Vaults', 'bwi-vault')}
 ${item('#/sends', 'Send', 'bwi-send')}
@@ -49,6 +49,9 @@ test('inserts a cloned nav item after Settings with the same structure', async (
   assert.equal(a.getAttribute('aria-current'), null)
   assert.equal(el.querySelector('.label').textContent, 'Instance admin')
   assert.equal(el.querySelector('i').className, 'bwi bwi-fw bwi-wrench')
+  assert.equal(a.getAttribute('aria-label'), 'Instance admin')
+  assert.equal(a.getAttribute('title'), 'Instance admin')
+  assert.ok(!el.outerHTML.includes('Reports'), 'no Reports text or attribute left in the clone')
   assert.equal(doc.querySelectorAll('#cloudwarden-admin-link').length, 1)
 })
 

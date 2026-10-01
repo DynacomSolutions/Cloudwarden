@@ -117,6 +117,9 @@
     for (const el of [item, ...item.querySelectorAll('*')]) {
       el.removeAttribute('id')
       el.removeAttribute('aria-current')
+      el.removeAttribute('aria-describedby')
+      for (const name of ['aria-label', 'title'])
+        if (el.hasAttribute(name)) el.setAttribute(name, 'Instance admin')
       for (const attr of [...el.attributes])
         if (/^(ng-reflect-|routerlink)/i.test(attr.name)) el.removeAttribute(attr.name)
       for (const cls of [...el.classList]) if (/(^|-)active$/.test(cls)) el.classList.remove(cls)
@@ -131,11 +134,17 @@
       icon.classList.add('bwi-wrench')
     }
     const walker = document.createTreeWalker(item, NodeFilter.SHOW_TEXT)
-    let label = null
-    for (let n = walker.nextNode(); n; n = walker.nextNode())
-      if (n.nodeValue.trim() === textOf(reports)) label = n
-    if (label) label.nodeValue = label.nodeValue.replace(textOf(reports), 'Instance admin')
-    else a.textContent = 'Instance admin'
+    // The visible label and any screen-reader copy are separate text nodes; rename them all.
+    const names = new Set(['Reports', textOf(reports)])
+    let labelled = false
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      const t = n.nodeValue.trim()
+      if (names.has(t)) {
+        n.nodeValue = n.nodeValue.replace(t, 'Instance admin')
+        labelled = true
+      }
+    }
+    if (!labelled) a.textContent = 'Instance admin'
     a.setAttribute('title', 'Instance admin')
     item.id = ID
     return [item, settingsItem ?? reportsItem]

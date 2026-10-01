@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import type { MiddlewareHandler } from 'hono'
 import { createDb, schema } from '../db'
-import type { AccessTokenClaims, Env } from '../env'
+import type { AccessTokenClaims, Env, User } from '../env'
 import { safeEqualStrings } from './crypto'
 import { verificationSecrets, verifyJwt } from './jwt'
 
@@ -13,6 +13,34 @@ const unauthorized = (c: Parameters<MiddlewareHandler<Env>>[0]) =>
   })
 
 /**
+ * Verifies an access token (signature, issuer, `api` scope), loads the user and checks
+ * the security stamp and that the account is enabled. Returns null on any failure.
+ */
+export async function authenticateAccessToken(
+  env: Env['Bindings'],
+  token: string,
+): Promise<{ user: User; claims: AccessTokenClaims } | null> {
+  const claims = await verifyJwt<AccessTokenClaims>(token, verificationSecrets(env))
+  if (
+    !claims ||
+    claims.iss !== issuerFor(env.DOMAIN) ||
+    typeof claims.sub !== 'string' ||
+    !Array.isArray(claims.scope) ||
+    !claims.scope.includes('api')
+  ) {
+    return null
+  }
+
+  const [user] = await createDb(env.DB)
+    .select()
+    .from(schema.users)
+    .where(eq(schema.users.uuid, claims.sub))
+    .limit(1)
+  if (!user?.enabled || !safeEqualStrings(claims.sstamp ?? '', user.securityStamp)) return null
+  return { user, claims }
+}
+
+/**
  * Verifies the Bearer access token, loads the user, checks the security stamp and
  * that the account is enabled, then sets `c.var.user` and `c.var.auth`.
  * Responds 401 otherwise. Stable export: other route modules depend on it.
@@ -20,29 +48,10 @@ const unauthorized = (c: Parameters<MiddlewareHandler<Env>>[0]) =>
 export const requireAuth: MiddlewareHandler<Env> = async (c, next) => {
   const match = /^Bearer\s+(\S+)$/i.exec(c.req.header('Authorization') ?? '')
   if (!match?.[1]) return unauthorized(c)
+  const authed = await authenticateAccessToken(c.env, match[1])
+  if (!authed) return unauthorized(c)
 
-  const claims = await verifyJwt<AccessTokenClaims>(match[1], verificationSecrets(c.env))
-  if (
-    !claims ||
-    claims.iss !== issuerFor(c.env.DOMAIN) ||
-    typeof claims.sub !== 'string' ||
-    !Array.isArray(claims.scope) ||
-    !claims.scope.includes('api')
-  ) {
-    return unauthorized(c)
-  }
-
-  const db = createDb(c.env.DB)
-  const [user] = await db
-    .select()
-    .from(schema.users)
-    .where(eq(schema.users.uuid, claims.sub))
-    .limit(1)
-  if (!user?.enabled || !safeEqualStrings(claims.sstamp ?? '', user.securityStamp)) {
-    return unauthorized(c)
-  }
-
-  c.set('user', user)
-  c.set('auth', { claims, deviceIdentifier: claims.device })
+  c.set('user', authed.user)
+  c.set('auth', { claims: authed.claims, deviceIdentifier: authed.claims.device })
   await next()
 }

@@ -7,10 +7,12 @@ import { admin } from './routes/admin'
 import { alive } from './routes/alive'
 import { appId } from './routes/app-id'
 import { downloadAttachment } from './routes/attachments'
+import { authRequests } from './routes/auth-requests'
 import { ciphers } from './routes/ciphers'
 import { config } from './routes/config'
 import { devices } from './routes/devices'
 import { folders } from './routes/folders'
+import { notifications } from './routes/notifications'
 import { prelogin } from './routes/prelogin'
 import { register } from './routes/register'
 import { downloadSendFile, sends } from './routes/sends'
@@ -41,6 +43,8 @@ app.get('/attachments/:cipherId/:attachmentId', downloadAttachment)
 app.get('/send-files/:sendId/:fileId', downloadSendFile)
 app.route('/', settings)
 app.route('/', twofactor)
+app.route('/', authRequests)
+app.route('/', notifications)
 app.route('/', stubs)
 app.route('/', admin)
 
@@ -50,7 +54,8 @@ app.onError((err, c) => {
   if (err instanceof ApiError)
     return c.json(errorBody(err.message, err.validationErrors), err.status)
   // Log only the error, never request data.
-  console.error(err)
+  // Log only the message: the URL (which can carry an access token) must never be recorded.
+  console.error(err instanceof Error ? err.message : 'unknown error')
   return c.json({ message: 'Internal server error', validationErrors: null, object: 'error' }, 500)
 })
 

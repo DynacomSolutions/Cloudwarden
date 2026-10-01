@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { randomB64u, safeEqualStrings, sha256B64u } from '../auth/crypto'
 import { verifyMasterPassword } from '../auth/passwords'
@@ -11,7 +11,7 @@ import {
 import { enforceTwoFactor, issueRememberToken } from '../auth/twofactor'
 import { findUserByEmail } from '../auth/users'
 import { createDb, schema } from '../db'
-import type { Env } from '../env'
+import type { Env, User } from '../env'
 import { oauthError } from '../errors'
 import { rateLimit } from '../ratelimit'
 import {
@@ -20,6 +20,7 @@ import {
   signSendAccessToken,
 } from '../vault/send-access'
 import { sendUuidFrom, unavailable } from '../vault/sends'
+import { AUTH_REQUEST_TTL_MS } from './auth-requests'
 
 export const token = new Hono<Env>()
 
@@ -45,6 +46,51 @@ function deviceFrom(form: Form): DeviceInput | null {
   }
 }
 
+type AuthRequestRow = typeof schema.authRequests.$inferSelect
+
+/**
+ * Finds an approved login-with-device request that this device may redeem: a type 0
+ * request owned by the user, bound to the requesting device, unexpired, unused, with the
+ * right access code. Does not consume it; see `consumeAuthRequest`.
+ */
+async function findRedeemableAuthRequest(
+  db: ReturnType<typeof createDb>,
+  user: User | null,
+  requestId: string,
+  accessCode: string,
+  deviceIdentifier: string,
+): Promise<AuthRequestRow | null> {
+  if (!user) return null
+  const [row] = await db
+    .select()
+    .from(schema.authRequests)
+    .where(
+      and(eq(schema.authRequests.uuid, requestId), eq(schema.authRequests.userUuid, user.uuid)),
+    )
+    .limit(1)
+  if (!row) return null
+  if (
+    row.type !== 0 ||
+    row.approved !== true ||
+    row.authenticatedAt !== null ||
+    Date.now() - row.createdAt >= AUTH_REQUEST_TTL_MS ||
+    row.requestDeviceIdentifier !== deviceIdentifier ||
+    !safeEqualStrings(row.accessCodeHash, await sha256B64u(accessCode))
+  ) {
+    return null
+  }
+  return row
+}
+
+/** Marks the request used. Atomic: only one concurrent redemption wins. */
+async function consumeAuthRequest(db: ReturnType<typeof createDb>, uuid: string) {
+  const result = await db
+    .update(schema.authRequests)
+    .set({ authenticatedAt: Date.now() })
+    .where(and(eq(schema.authRequests.uuid, uuid), isNull(schema.authRequests.authenticatedAt)))
+  return result.meta.changes > 0
+}
+
 async function passwordGrant(c: Ctx, form: Form) {
   const db = createDb(c.env.DB)
   if (!form.username || !form.password) {
@@ -59,7 +105,13 @@ async function passwordGrant(c: Ctx, form: Form) {
   if (!device) return oauthError(c, 'invalid_request', 'Device information is required.')
 
   const user = await findUserByEmail(db, form.username)
-  const ok = await verifyMasterPassword(user, form.password)
+  // Login with device: the "password" is the request's access code, approved on another device.
+  const authRequest = form.authRequest
+    ? await findRedeemableAuthRequest(db, user, form.authRequest, form.password, device.identifier)
+    : null
+  const ok = form.authRequest
+    ? authRequest !== null
+    : await verifyMasterPassword(user, form.password)
   if (!ok || !user) return BAD_LOGIN(c)
   if (!user.enabled) {
     return oauthError(
@@ -72,6 +124,9 @@ async function passwordGrant(c: Ctx, form: Form) {
 
   const challenge = await enforceTwoFactor(c, user, form)
   if (challenge) return challenge
+
+  // Spend the approval only now that every check has passed, right before issuing tokens.
+  if (authRequest && !(await consumeAuthRequest(db, authRequest.uuid))) return BAD_LOGIN(c)
 
   const refreshToken = await registerDevice(db, user.uuid, device)
   const body = await tokenResponse(c.env, user, {

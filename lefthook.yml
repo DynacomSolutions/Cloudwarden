@@ -1,0 +1,32 @@
+pre-commit:
+  parallel: true
+  commands:
+    biome:
+      glob: "**/*.{ts,tsx,js,jsx,json}"
+      run: pnpm exec biome check --staged --no-errors-on-unmatched
+    identifiers:
+      run: node scripts/check-identifiers.mjs --staged
+    gitleaks:
+      run: |
+        if command -v gitleaks >/dev/null 2>&1; then
+          gitleaks protect --staged --redact
+        else
+          echo "gitleaks not installed, skipping (CI still enforces)"
+          exit 0
+        fi
+    author:
+      run: node scripts/check-identifiers.mjs --check-author
+
+commit-msg:
+  commands:
+    commitlint:
+      run: pnpm exec commitlint --edit {1}
+
+pre-push:
+  commands:
+    typecheck:
+      run: pnpm typecheck
+    test:
+      run: pnpm test
+    test-scripts:
+      run: pnpm test:scripts

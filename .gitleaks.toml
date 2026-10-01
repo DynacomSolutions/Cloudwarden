@@ -1,0 +1,10 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "pnpm lock file"
+paths = ['pnpm-lock\.yaml']
+
+[[allowlists]]
+description = "test fixtures"
+paths = ['test/fixtures/.*']

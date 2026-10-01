@@ -24,6 +24,6 @@ Sessions last 8 hours, live in D1 as hashes, and use the cookie `__Host-cw_admin
 
 ## Pages
 
-Dashboard (counts, version, config flags), users (disable, enable, deauthorise sessions by rotating the security stamp, delete with confirmation, invite by email), organisations (delete), diagnostics (storage and configuration).
+Dashboard (counts, version, config flags), users (disable, enable, deauthorise sessions by rotating the security stamp, remove 2FA with confirmation (deletes providers and remembered devices, rotates the stamp), delete with confirmation, per-user created date, last active, item count and 2FA providers, invite by email), organisations (delete), diagnostics (storage and configuration).
 
 Invitations are stored in the `invitations` table; registration gating (TASKS #22) is expected to consume them. Deleting a user or organisation also removes its R2 attachment and Send blobs.

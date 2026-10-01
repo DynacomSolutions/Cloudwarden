@@ -110,6 +110,7 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 | 141 | Email transport: Cloudflare Email Service `EMAIL` binding (legacy `EmailMessage` fallback), `MAIL_FROM`, no-op when unbound, templates in `src/email/` | done | agent | Fake-transport tests green; other HTTP providers not implemented |
 | 142 | Icon proxy with SSRF protection and Cache API | done | agent | Private and link-local targets refused. `src/icons/`, `src/routes/icons.ts`, `ICONS_ENABLED`; tests in `test/icons.test.ts` |
 | 143 | Serve the Bitwarden web vault via Workers static assets (build-time fetch, integrity check, licence notice) | done | agent | `pnpm web-vault:fetch` pins and verifies the official image (docs/web-vault.md); worker-first routes keep the API unshadowed; browser login not yet exercised end to end |
+| 144 | Admin UI: single per-request CSP nonce (the gate ran twice on `/admin`, so header and style tag nonces differed and CSS was blocked), sidebar restyle, per-user items count and 2FA providers, Remove 2FA action | done | agent | `test/admin-ui.test.ts` asserts header nonce equals style nonce on every page; Remove 2FA tested with confirm and CSRF |
 
 ## Phase 8: Operations
 

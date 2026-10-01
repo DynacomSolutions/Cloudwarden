@@ -439,3 +439,82 @@ describe('email transport', () => {
     ).toThrow()
   })
 })
+
+describe('nonce and 2FA removal', () => {
+  const nonceOf = (res: Response, html: string) => {
+    const header = /style-src 'nonce-([^']+)'/.exec(
+      res.headers.get('content-security-policy') ?? '',
+    )?.[1]
+    const tags = [...html.matchAll(/<style nonce="([^"]+)"/g)].map((m) => m[1])
+    expect(header).toBeTruthy()
+    expect(tags.length).toBeGreaterThan(0)
+    for (const t of tags) expect(t).toBe(header)
+  }
+
+  it('uses one nonce for the CSP header and every style tag on every page', async () => {
+    const c = client()
+    const anon = ['/admin', '/admin/magic?token=abc']
+    for (const path of anon) {
+      const res = await c.call(path)
+      nonceOf(res, await res.text())
+    }
+    const link = await c.post('/admin/login/magic', { email: ADMIN })
+    nonceOf(link, await link.text())
+    const { res } = await loginViaMagic(c)
+    const cookie = cookieOf(res)
+    for (const path of ['/admin', '/admin/users', '/admin/orgs', '/admin/diagnostics']) {
+      const r = await c.call(path, { headers: { Cookie: cookie } })
+      expect(r.status).toBe(200)
+      const body = await r.text()
+      nonceOf(r, body)
+    }
+  })
+
+  it('removes 2FA with confirm step and CSRF, rotating the stamp', async () => {
+    const c = client()
+    const { res } = await loginViaMagic(c)
+    const cookie = cookieOf(res)
+    const csrf = await csrfOf(c, cookie)
+    await env.DB.batch([
+      env.DB.prepare(
+        "INSERT INTO users (uuid,email,name,password_hash,salt,password_iterations,akey,security_stamp,totp_recover,created_at,updated_at) VALUES ('u9','z@example.com','Zed','h','s',1,'k','stamp9','RC',1000,1)",
+      ),
+      env.DB.prepare(
+        "INSERT INTO twofactor (uuid,user_uuid,atype,enabled,data,last_used) VALUES ('t1','u9',0,1,'x',0),('t2','u9',1,1,'x',0),('t3','u9',8,1,'x',0)",
+      ),
+      env.DB.prepare(
+        "INSERT INTO devices (uuid,user_uuid,name,type,identifier,refresh_token,twofactor_remember,created_at,updated_at) VALUES ('d9','u9','dev',1,'i9','r','REM',1,5000)",
+      ),
+      env.DB.prepare(
+        "INSERT INTO ciphers (uuid,user_uuid,atype,name,data,created_at,updated_at) VALUES ('c9','u9',1,'n','{}',1,1)",
+      ),
+    ])
+    const list = await (await c.call('/admin/users', { headers: { Cookie: cookie } })).text()
+    expect(list).toContain('2FA on')
+    expect(list).toContain('Authenticator, Email')
+    expect(list).toContain('/admin/users/u9/remove-2fa')
+
+    const confirm = await c.call('/admin/users/u9/remove-2fa', { headers: { Cookie: cookie } })
+    expect(await confirm.text()).toContain('name="csrf"')
+
+    const bad = await c.post('/admin/users/u9/remove-2fa', { csrf: 'x' }, { Cookie: cookie })
+    expect(bad.status).toBe(403)
+    expect(await env.DB.prepare('SELECT 1 FROM twofactor').first()).not.toBeNull()
+
+    const ok = await c.post('/admin/users/u9/remove-2fa', { csrf }, { Cookie: cookie })
+    expect(ok.status).toBe(303)
+    expect(await env.DB.prepare('SELECT 1 FROM twofactor').first()).toBeNull()
+    const dev = await env.DB.prepare(
+      "SELECT twofactor_remember AS r FROM devices WHERE uuid='d9'",
+    ).first<{ r: string | null }>()
+    expect(dev?.r).toBeNull()
+    const u = await env.DB.prepare(
+      "SELECT security_stamp, totp_recover FROM users WHERE uuid='u9'",
+    ).first<{ security_stamp: string; totp_recover: string | null }>()
+    expect(u?.security_stamp).not.toBe('stamp9')
+    expect(u?.totp_recover).toBeNull()
+    const after = await (await c.call('/admin/users', { headers: { Cookie: cookie } })).text()
+    expect(after).toContain('2FA off')
+    expect(after).not.toContain('/remove-2fa')
+  })
+})

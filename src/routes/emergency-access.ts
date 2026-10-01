@@ -429,7 +429,7 @@ emergencyAccess.post('/api/emergency-access/:id/view', async (c) => {
   return c.json({
     object: 'emergencyAccessView',
     keyEncrypted: row.keyEncrypted,
-    ciphers: items.map(cipherJson),
+    ciphers: items.map((r) => cipherJson(r)),
   })
 })
 

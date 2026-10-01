@@ -23,11 +23,23 @@ type Ctx = Context<Env>
 const MAX_COLLECT = 100
 
 /**
- * Event types the official clients report themselves: viewing, toggling visibility, copying and
- * autofilling item fields (1107 to 1114, 1117) and an exported vault (1602). Anything else is a
- * server-side event, so a client may not forge it and it is dropped.
+ * Event types the official clients report themselves, from the clients' `EventType` enum: vault
+ * export (1007, 1602), item views, visibility toggles, copies and autofill (1107 to 1114 and
+ * 1117 to 1132), the notification banner (1522), invite link copy (1627) and phishing blocker
+ * (2400 to 2402). Everything else is a server-side event, so a client may not forge it and it is
+ * dropped.
  */
-const CLIENT_EVENT_TYPES = new Set([1107, 1108, 1109, 1110, 1111, 1112, 1113, 1114, 1117, 1602])
+const CLIENT_EVENT_TYPES = new Set([
+  1007,
+  ...Array.from({ length: 8 }, (_, i) => 1107 + i),
+  ...Array.from({ length: 16 }, (_, i) => 1117 + i),
+  1522,
+  1602,
+  1627,
+  2400,
+  2401,
+  2402,
+])
 
 const collectSchema = z
   .array(

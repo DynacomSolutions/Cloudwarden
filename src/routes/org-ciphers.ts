@@ -290,7 +290,9 @@ orgCiphers.get('/api/ciphers/organization-details/assigned', async (c) => {
   const orgUuid = c.req.query('organizationId') ?? ''
   await requireMember(db, c.var.user.uuid, orgUuid)
   const rows = await listOrgCipherRows(db, c.var.user.uuid)
-  return c.json(list(rows.filter((r) => r.cipher.organizationUuid === orgUuid).map(orgCipherJson)))
+  return c.json(
+    list(rows.filter((r) => r.cipher.organizationUuid === orgUuid).map((r) => orgCipherJson(r))),
+  )
 })
 
 // ----- sharing -----

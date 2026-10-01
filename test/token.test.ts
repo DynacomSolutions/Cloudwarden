@@ -20,7 +20,15 @@ it('password grant returns the client-expected shape', async () => {
     KdfParallelism: null,
     ResetMasterPassword: false,
     ForcePasswordReset: false,
-    UserDecryptionOptions: { HasMasterPassword: true, Object: 'userDecryptionOptions' },
+    UserDecryptionOptions: {
+      HasMasterPassword: true,
+      MasterPasswordUnlock: {
+        kdf: { kdfType: 0, iterations: 600000, memory: null, parallelism: null },
+        masterKeyEncryptedUserKey: '2.encryptedSymmetricKey',
+        salt: 'shape@example.com',
+      },
+      Object: 'userDecryptionOptions',
+    },
     MasterPasswordPolicy: { Object: 'masterPasswordPolicy' },
   })
   expect(typeof body.refresh_token).toBe('string')

@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { requireAuth } from '../auth/middleware'
+import { masterPasswordUnlockJson } from '../auth/session'
 import { createDb, schema } from '../db'
 import type { Env } from '../env'
 import { orgSyncData } from '../orgs/sync'
@@ -32,18 +33,7 @@ sync.get('/api/sync', requireAuth, async (c) => {
     policies: orgData.policies,
     sends: await Promise.all(sendRows.map(sendJson)),
     domains: excludeDomains ? null : domainsJson(user),
-    userDecryption: {
-      masterPasswordUnlock: {
-        kdf: {
-          kdfType: user.kdfType,
-          iterations: user.kdfIterations,
-          memory: user.kdfMemory,
-          parallelism: user.kdfParallelism,
-        },
-        masterKeyEncryptedUserKey: user.akey,
-        salt: user.email,
-      },
-    },
+    userDecryption: { masterPasswordUnlock: masterPasswordUnlockJson(user) },
     object: 'sync',
   })
 })

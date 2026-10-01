@@ -75,6 +75,20 @@ export async function signAccessToken(
   return signJwt(claims, signingSecret(env))
 }
 
+/** Master password unlock data: KDF settings, salt and the wrapped user key (token and sync). */
+export function masterPasswordUnlockJson(user: User) {
+  return {
+    kdf: {
+      kdfType: user.kdfType,
+      iterations: user.kdfIterations,
+      memory: user.kdfMemory,
+      parallelism: user.kdfParallelism,
+    },
+    masterKeyEncryptedUserKey: user.akey,
+    salt: user.email,
+  }
+}
+
 /** Token endpoint success body, in the shape the official clients read. */
 export async function tokenResponse(
   env: Bindings,
@@ -102,7 +116,11 @@ export async function tokenResponse(
     ResetMasterPassword: false,
     ForcePasswordReset: false,
     MasterPasswordPolicy: await masterPasswordPolicyJson(env, user.uuid),
-    UserDecryptionOptions: { HasMasterPassword: true, Object: 'userDecryptionOptions' },
+    UserDecryptionOptions: {
+      HasMasterPassword: true,
+      MasterPasswordUnlock: masterPasswordUnlockJson(user),
+      Object: 'userDecryptionOptions',
+    },
     UnofficialServer: true,
     Object: 'token',
   }

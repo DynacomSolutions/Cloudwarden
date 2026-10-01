@@ -5,21 +5,23 @@ export interface Nav {
   csrf: string
 }
 
+// Sidebar colours mirror the web vault 2026.9 nav tokens (--color-nav-bg-primary, its hover and
+// strong variants) in light and dark mode, so the admin area looks like part of the vault.
 const CSS = `
-:root{color-scheme:light dark;--bg:#f3f6f9;--card:#fff;--fg:#1b2029;--muted:#5b6574;--line:#e3e7ed;--hover:#eef3fb;--zebra:#f9fafc;--accent:#175ddc;--accent-hover:#1252c2;--accent-fg:#fff;--danger:#c0262d;--danger-hover:#a51f25;--ok:#1b7f3b;--okbg:#e4f5ea;--badbg:#fbe7e8;--offbg:#eceff3;--side:#1d2330;--side-fg:#c9d1e0;--side-active:#175ddc;--input:#fff}
-@media(prefers-color-scheme:dark){:root{--bg:#10141c;--card:#1a202b;--fg:#e6e9ef;--muted:#9aa5b8;--line:#2b3342;--hover:#222b3a;--zebra:#1e2531;--accent:#6c9bff;--accent-hover:#8fb2ff;--accent-fg:#0b1020;--danger:#e0575d;--danger-hover:#f07a80;--ok:#4cc27a;--okbg:#14301f;--badbg:#3a1a1d;--offbg:#252d3b;--side:#0b0e14;--side-fg:#aab4c6;--side-active:#175ddc;--input:#10141c}}
+:root{color-scheme:light dark;--bg:#f3f6f9;--card:#fff;--fg:#1b2029;--muted:#5b6574;--line:#e3e7ed;--hover:#eef3fb;--zebra:#f9fafc;--accent:#175ddc;--accent-hover:#1252c2;--accent-fg:#fff;--danger:#c0262d;--danger-hover:#a51f25;--ok:#1b7f3b;--okbg:#e4f5ea;--badbg:#fbe7e8;--offbg:#eceff3;--side:#0d43af;--side-fg:#fff;--side-hover:rgba(0,0,0,.2);--side-active:#0c3276;--side-line:rgba(255,255,255,.25);--input:#fff}
+@media(prefers-color-scheme:dark){:root{--bg:#10141c;--card:#1a202b;--fg:#e6e9ef;--muted:#9aa5b8;--line:#2b3342;--hover:#222b3a;--zebra:#1e2531;--accent:#6c9bff;--accent-hover:#8fb2ff;--accent-fg:#0b1020;--danger:#e0575d;--danger-hover:#f07a80;--ok:#4cc27a;--okbg:#14301f;--badbg:#3a1a1d;--offbg:#252d3b;--side:#1d293d;--side-fg:#fff;--side-hover:rgba(132,150,176,.2);--side-active:#45556c;--side-line:rgba(255,255,255,.25);--input:#10141c}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,"Helvetica Neue",Arial,sans-serif}
 a{color:var(--accent)}
 .shell{display:flex;min-height:100vh}
 .side{width:230px;flex:none;background:var(--side);color:var(--side-fg);display:flex;flex-direction:column;padding:16px 12px}
-.logo{font-size:18px;font-weight:700;color:#fff;padding:4px 10px 18px;letter-spacing:.2px}
-.logo span{color:#8fb2ff;font-weight:600}
+.logo{font-size:20px;font-weight:700;color:#fff;padding:6px 12px 20px;letter-spacing:-.2px;line-height:1.2}
+.logo span{color:#fff;font-weight:400}
 .side nav{display:flex;flex-direction:column;gap:2px}
 .side nav a{color:var(--side-fg);text-decoration:none;padding:9px 12px;border-radius:6px;font-weight:500}
-.side nav a:hover{background:rgba(255,255,255,.08);color:#fff}
-.side nav a.back{margin-top:12px;border-top:1px solid rgba(255,255,255,.12);border-radius:0 0 6px 6px}
-.side nav a.active{background:var(--side-active);color:#fff}
+.side nav a:hover{background:var(--side-hover);color:var(--side-fg)}
+.side nav a.back{margin-top:12px;border-top:1px solid var(--side-line);border-radius:0 0 6px 6px}
+.side nav a.active{background:var(--side-active);color:var(--side-fg)}
 .content{flex:1;min-width:0;display:flex;flex-direction:column}
 .top{background:var(--card);border-bottom:1px solid var(--line);padding:10px 24px;display:flex;align-items:center;gap:12px;min-height:56px}
 .top .title{font-weight:600;font-size:16px;margin-right:auto}

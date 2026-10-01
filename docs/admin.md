@@ -19,7 +19,7 @@ Admin sign-in is the normal web vault login. A vault user is an admin when their
 
 1. The web vault loads `cloudwarden/admin-link.js` (added by `pnpm web-vault:fetch`, see `docs/web-vault.md`). It wraps `window.fetch` and keeps the most recent same-origin `Authorization` bearer sent to `/api/` in a closure variable only. It never logs, stores or puts the token in a URL.
 2. With a token it calls `GET /api/cloudwarden/me` (Bearer), which returns `{"isAdmin": boolean}`. `isAdmin` is false whenever `ADMIN_ENABLED` is not `true`.
-3. For admins it adds an **Instance admin** item to the vault side navigation (found by `aria-label="Side navigation"`, styled by copying a neighbouring item's classes), with a small fixed button bottom-left as a fallback if the navigation cannot be found. A `MutationObserver` keeps it in place as the vault re-renders. The link is removed when a 401 is seen for the current token or the vault goes to login, lock or logout.
+3. For admins it adds an **Instance admin** item to the vault side navigation (found by `aria-label="Side navigation"`). The item is a deep clone of the vault's own Reports item (structure, classes and icon wrapper, icon switched to `bwi-wrench`, active state stripped), inserted directly after Settings, or after Reports when there is no Settings item, with a small fixed button bottom-left as a fallback if the navigation cannot be found. A `MutationObserver` keeps it in place as the vault re-renders. The link is removed when a 401 is seen for the current token or the vault goes to login, lock or logout.
 4. Clicking it sends `POST /admin/session/exchange` with `Authorization: Bearer <vault access token>`, then navigates to `/admin`.
 
 `POST /admin/session/exchange`:
@@ -47,7 +47,7 @@ Recovery sessions are not tied to a vault account.
 
 ## Sessions
 
-Recovery sessions last 8 hours and vault-derived ones 1 hour (sliding). Sessions live in D1 as hashes, and use the cookie `__Host-cw_admin` (HttpOnly, Secure, SameSite=Strict, Path=/). Every POST needs a same-origin `Origin` header and, once signed in, the per-session CSRF field. The header shows the signed-in admin's email; **Sign out** ends the admin session only (the vault stays signed in), and **Back to vault** in the sidebar returns to the web vault.
+Recovery sessions last 8 hours and vault-derived ones 1 hour (sliding). Sessions live in D1 as hashes, and use the cookie `__Host-cw_admin` (HttpOnly, Secure, SameSite=Strict, Path=/). Every POST needs a same-origin `Origin` header and, once signed in, the per-session CSRF field. The header shows the signed-in admin's email; **Sign out** ends the admin session only (the vault stays signed in), and **Back to vault** in the sidebar returns to the web vault. The sidebar uses the vault's navigation colours (light and dark).
 
 ## Pages
 

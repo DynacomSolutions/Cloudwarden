@@ -85,31 +85,83 @@
     document.querySelector('nav[aria-label="Side navigation"]') ??
     document.querySelector('bit-side-nav nav, [role="navigation"][aria-label*="navigation" i]')
 
+  const textOf = (el) => (el?.textContent ?? '').replace(/\s+/g, ' ').trim()
+  const topItem = (el, nav) => {
+    const item = el.closest('bit-nav-item, bit-nav-group, li')
+    if (item && nav.contains(item)) return item
+    let x = el
+    while (
+      x.parentElement &&
+      x.parentElement !== nav &&
+      x.parentElement.querySelectorAll('a[href]').length < 2
+    )
+      x = x.parentElement
+    return x
+  }
+
+  // Builds the admin entry by cloning the vault's own Reports item (structure, classes, icon
+  // wrapper), so it looks and hovers like its neighbours. Returns [item, anchor point] or null.
+  const navItem = (nav) => {
+    const links = [...nav.querySelectorAll('a[href]')]
+    const reports =
+      links.find((l) => /#\/reports\/?$/.test(l.getAttribute('href') ?? '')) ??
+      links.find((l) => textOf(l) === 'Reports')
+    if (!reports) return null
+    const reportsItem = topItem(reports, nav)
+    const settingsItem = [...(reportsItem.parentElement?.children ?? [])].find(
+      (el) =>
+        el !== reportsItem &&
+        (el.querySelector('a[href*="settings"]') || /^Settings\b/.test(textOf(el))),
+    )
+    const item = reportsItem.cloneNode(true)
+    for (const el of [item, ...item.querySelectorAll('*')]) {
+      el.removeAttribute('id')
+      el.removeAttribute('aria-current')
+      for (const attr of [...el.attributes])
+        if (/^(ng-reflect-|routerlink)/i.test(attr.name)) el.removeAttribute(attr.name)
+      for (const cls of [...el.classList]) if (/(^|-)active$/.test(cls)) el.classList.remove(cls)
+    }
+    const a = item.matches('a[href]') ? item : item.querySelector('a[href]')
+    a.setAttribute('href', '/admin')
+    a.addEventListener('click', open)
+    const icon = item.querySelector('[class*="bwi-"]')
+    if (icon) {
+      for (const cls of [...icon.classList])
+        if (/^bwi-/.test(cls) && cls !== 'bwi-fw') icon.classList.remove(cls)
+      icon.classList.add('bwi-wrench')
+    }
+    const walker = document.createTreeWalker(item, NodeFilter.SHOW_TEXT)
+    let label = null
+    for (let n = walker.nextNode(); n; n = walker.nextNode())
+      if (n.nodeValue.trim() === textOf(reports)) label = n
+    if (label) label.nodeValue = label.nodeValue.replace(textOf(reports), 'Instance admin')
+    else a.textContent = 'Instance admin'
+    a.setAttribute('title', 'Instance admin')
+    item.id = ID
+    return [item, settingsItem ?? reportsItem]
+  }
+
   const render = () => {
-    if (!isAdmin || document.getElementById(ID)) return
+    if (!isAdmin) return
+    const existing = document.getElementById(ID)
+    if (existing && existing.dataset.fallback !== 'true') return
+    const nav = findNav()
+    const built = nav ? navItem(nav) : null
+    if (existing) {
+      // Keep a correctly placed item; replace the fallback button once the nav is ready.
+      if (!built) return
+      existing.remove()
+    }
+    if (built) {
+      built[1].after(built[0])
+      return
+    }
     const a = document.createElement('a')
     a.id = ID
+    a.dataset.fallback = 'true'
     a.href = '/admin'
     a.textContent = 'Instance admin'
     a.addEventListener('click', open)
-    const nav = findNav()
-    const sibling = nav ? [...nav.querySelectorAll('a[href]')].pop() : null
-    if (nav && sibling) {
-      a.className = sibling.className
-      let item = sibling
-      while (item.parentElement && item.parentElement !== nav) item = item.parentElement
-      let el = a
-      if (item !== sibling) {
-        // Mirror the list item wrapper so spacing matches the neighbouring entries.
-        el = document.createElement(item.tagName === 'LI' ? 'li' : 'div')
-        el.className = item.className
-        el.appendChild(a)
-        a.removeAttribute('id')
-        el.id = ID
-      }
-      item.after(el)
-      return
-    }
     Object.assign(a.style, {
       position: 'fixed',
       left: '12px',
@@ -129,11 +181,7 @@
     render()
     if (observer) return
     observer = new MutationObserver(() => {
-      if (!isAdmin) return
-      const el = document.getElementById(ID)
-      // Move from the fallback button into the nav once the nav appears.
-      if (el && el.style.position === 'fixed' && findNav()) el.remove()
-      render()
+      if (isAdmin) render()
     })
     observer.observe(document.body, { childList: true, subtree: true })
   }

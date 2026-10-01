@@ -1,0 +1,70 @@
+name: Bug Report
+description: Report a bug or unexpected behavior
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug. Please provide as much detail as possible.
+
+        **Security Issues:** If you have discovered a security vulnerability, please report it privately via GitHub's Security tab (once the repo is public). Until then, report privately to the maintainers through the organisation. Do not open a public issue.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What went wrong?
+      placeholder: Describe the bug clearly
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce this?
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What should happen?
+      placeholder: Describe what you expected
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened?
+      placeholder: Describe what actually happened
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include relevant details (Node version, OS, etc.)
+      placeholder: |
+        - Node version: 
+        - OS: 
+        - Bitwarden client version: 
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or Error Messages
+      description: Any relevant logs or error output
+      placeholder: Paste error messages here
+    validations:
+      required: false

@@ -44,11 +44,21 @@ const cipherJsonFor = async (c: Ctx, cipherId: string) => {
 }
 
 async function uploadData(c: Ctx, cipherId: string, attachmentId: string) {
+  // The cipher in this response lists the attachment being reserved even though its blob is not
+  // stored yet: the CLI keeps this copy as its local state once the upload finishes, so leaving the
+  // attachment out made `bw create attachment` print an item without it. Sync and the other
+  // routes still list completed uploads only.
+  const cipher = (await cipherJsonFor(c, cipherId)) as {
+    attachments: { id: string }[] | null
+  }
+  const row = await requireAttachment(createDb(c.env.DB), cipherId, attachmentId)
+  const listed = (cipher.attachments ?? []).filter((a) => a.id !== attachmentId)
+  const withPending = { ...cipher, attachments: [...listed, await attachmentJson(c.env, row)] }
   return {
     attachmentId,
     url: `${baseUrl(c.env)}/api/ciphers/${cipherId}/attachment/${attachmentId}`,
     fileUploadType: 0,
-    cipherResponse: await cipherJsonFor(c, cipherId),
+    cipherResponse: withPending,
     cipherMiniResponse: null,
     object: 'attachment-fileUpload',
   }

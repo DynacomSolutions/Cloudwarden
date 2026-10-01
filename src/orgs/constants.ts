@@ -59,3 +59,22 @@ export const PERMISSION_KEYS = [
   'manageResetPassword',
   'manageScim',
 ] as const
+
+/**
+ * Event codes for admin actions. They sit outside the range used by the official clients
+ * (which ignore unknown codes), so they never collide with organisation event types.
+ */
+export const AdminEventType = {
+  UserDisabled: 9001,
+  UserEnabled: 9002,
+  UserDeauthorized: 9003,
+  UserTwoFactorRemoved: 9004,
+  UserDeleted: 9005,
+  InvitationCreated: 9006,
+  InvitationDeleted: 9007,
+  OrganizationDeleted: 9008,
+} as const
+
+/** Range of admin audit codes; user event feeds must exclude it. */
+export const ADMIN_EVENT_MIN = 9001
+export const ADMIN_EVENT_MAX = 9008

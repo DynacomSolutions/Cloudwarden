@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
 import raw from '../docs/api/openapi.yaml?raw'
 import { AdminEventType } from '../src/admin/service'
-import { BASE, createSession, withEnv } from './helpers'
+import { BASE, createSession, login, withEnv } from './helpers'
 import { actor, createOrg, mailbox } from './org-helpers'
 
 const P = '/api/cloudwarden/admin'
@@ -67,6 +67,11 @@ async function person(
     })
   const profile = (await (await call('/api/accounts/profile')).json()) as { id: string }
   return { email, token: s.access_token, id: profile.id, over, call }
+}
+
+async function createSessionFor(email: string) {
+  const res = await login(email)
+  return ((await res.json()) as { access_token: string }).access_token
 }
 
 const events = async (type: number) =>
@@ -156,6 +161,72 @@ describe('admin API access control', () => {
     expect(limited.headers.get('retry-after')).toBe('60')
     expect((await limited.json()) as { object: string }).toMatchObject({ object: 'error' })
     expect((await b.call(`${P}/overview`)).status).toBe(200)
+  })
+})
+
+describe('admin API hardening', () => {
+  it('refuses an admin address that is not email verified, on the API and /me', async () => {
+    const a = await person('unver', true)
+    await env.DB.prepare('UPDATE users SET verified_at = NULL WHERE uuid = ?1').bind(a.id).run()
+    expect((await a.call(`${P}/overview`)).status).toBe(403)
+    expect(await (await a.call('/api/cloudwarden/me')).json()).toEqual({
+      isAdmin: false,
+      email: a.email,
+    })
+  })
+
+  it('rate limits before the admin check, so non-admins are counted too', async () => {
+    const u = await person('rlplain', false)
+    await env.DB.prepare(
+      'INSERT INTO admin_rate_limits (key, window_start, count) VALUES (?1, ?2, 1000)',
+    )
+      .bind(`adminapi:${u.id}`, Math.floor(Date.now() / 60_000) * 60_000)
+      .run()
+    expect((await u.call(`${P}/overview`)).status).toBe(429)
+  })
+
+  it('refuses destructive actions against other admin accounts but allows enabling', async () => {
+    const a = await person('boss', true)
+    const other = await person('boss2', true)
+    // Make the first admin list both addresses.
+    a.over.ADMIN_EMAILS = `${a.email},${other.email}`
+    for (const [method, path] of [
+      ['POST', 'disable'],
+      ['POST', 'deauthorize'],
+      ['POST', 'remove-2fa'],
+      ['DELETE', ''],
+    ] as const) {
+      const res = await a.call(`${P}/users/${other.id}${path ? `/${path}` : ''}`, method)
+      expect(res.status, `${method} ${path}`).toBe(400)
+      expect(await res.json()).toMatchObject({
+        message: expect.stringMatching(/admin account/),
+        object: 'error',
+      })
+    }
+    expect((await other.call('/api/accounts/profile')).status).toBe(200)
+    expect((await a.call(`${P}/users/${other.id}/enable`, 'POST')).status).toBe(204)
+    // Self deauthorize is refused for the same reason.
+    expect((await a.call(`${P}/users/${a.id}/deauthorize`, 'POST')).status).toBe(400)
+  })
+
+  it('keeps admin audit events out of the affected user feed', async () => {
+    const a = await person('feedadmin', true)
+    const t = await person('feedtarget', false)
+    expect((await a.call(`${P}/users/${t.id}/deauthorize`, 'POST')).status).toBe(204)
+    // The stamp rotated, so sign the target in again for a fresh token.
+    const fresh = await createSessionFor(t.email)
+    await env.DB.prepare(
+      'INSERT INTO events (uuid, event_type, user_uuid, event_date) VALUES (?1, 1000, ?2, ?3)',
+    )
+      .bind(crypto.randomUUID(), t.id, Date.now())
+      .run()
+    const res = await withEnv({}, '/api/events', { headers: { Authorization: `Bearer ${fresh}` } })
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { data: { type: number }[] }
+    expect(body.data.map((e) => e.type)).toContain(1000)
+    expect(body.data.every((e) => e.type < 9001 || e.type > 9008)).toBe(true)
+    const rows = await events(AdminEventType.UserDeauthorized)
+    expect(rows.some((e) => e.user_uuid === t.id)).toBe(true)
   })
 })
 

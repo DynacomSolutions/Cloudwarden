@@ -57,16 +57,18 @@ Invitations are stored in the `invitations` table; registration gating (TASKS #2
 
 ## JSON admin API
 
-Native admin pages in the web vault use a JSON API under `/api/cloudwarden/admin/*` instead of the cookie session. It takes the vault's own access token (`Authorization: Bearer`), so it is not exposed to CSRF. The caller must be an enabled user whose address is in `ADMIN_EMAILS`, with `ADMIN_ENABLED` set to `true`; anything else is 403 in the standard error shape. Each admin is limited to 120 requests per minute (429). Responses are `Cache-Control: no-store`, camelCase JSON. The operations are documented under the `x-cloudwarden` tag in `docs/api/openapi.yaml`.
+Native admin pages in the web vault use a JSON API under `/api/cloudwarden/admin/*` instead of the cookie session. It takes the vault's own access token (`Authorization: Bearer`), so it is not exposed to CSRF. The caller must be an enabled user whose address is in `ADMIN_EMAILS` and whose email is verified, with `ADMIN_ENABLED` set to `true`; anything else is 403 in the standard error shape. Each admin is limited to 120 requests per minute (429). Responses are `Cache-Control: no-store`, camelCase JSON. The operations are documented under the `x-cloudwarden` tag in `docs/api/openapi.yaml`.
 
 | Method and path | Purpose |
 |---|---|
 | `GET /overview` | Counts, version and configuration flags |
 | `GET /users?page=&pageSize=` | Users, newest first (page size at most 100) |
-| `POST /users/:id/disable`, `/enable`, `/deauthorize`, `/remove-2fa` | Account actions (204; 404 for an unknown user; you cannot disable yourself) |
+| `POST /users/:id/disable`, `/enable`, `/deauthorize`, `/remove-2fa` | Account actions (204; 404 for an unknown user; refused with 400 for any account listed in `ADMIN_EMAILS`, yourself included) |
 | `DELETE /users/:id` | Delete a user and data. Refused for your own account and for the sole owner of an organisation (400) |
 | `GET /invitations`, `POST /invitations` `{email}`, `DELETE /invitations/:email` | Invitations; create returns `emailStatus` of `sent`, `not-configured` or `failed` |
 | `GET /organizations`, `DELETE /organizations/:id` | Organisations and deletion (members are kept) |
 | `GET /diagnostics` | Storage figures and configuration |
 
 Both the HTML admin and this API call `src/admin/service.ts`. Every write also inserts a row in `events` (types 9001 to 9008, outside the codes the official clients use). The API records the acting admin; the HTML admin session has no user id, so its events have no acting user. Invitation events never contain the address.
+
+Registration and admin addresses: invitations and `SIGNUPS_DOMAINS_WHITELIST` only say who may register, so those registrations need the emailed verification token (proof of mailbox control). Open signups may skip it, except for addresses in `ADMIN_EMAILS`, which always need the token (and get none when no mail transport is configured). Admin checks, including the sign-in exchange and `/api/cloudwarden/me`, also require a verified email. Accounts registered before this rule were stamped verified regardless, so review `ADMIN_EMAILS` against existing accounts when upgrading.

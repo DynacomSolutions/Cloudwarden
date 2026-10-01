@@ -4,10 +4,10 @@ import { html } from 'hono/html'
 import { authenticateAccessToken } from '../auth/middleware'
 import { createEmailTransport, type EmailTransport, magicLinkEmail } from '../email'
 import type { Bindings } from '../env'
-import { ApiError } from '../errors'
 import { log } from '../log'
 import {
   isAdminEmail,
+  isAdminUser,
   isPlausibleEmail,
   normaliseEmail,
   randomToken,
@@ -17,6 +17,7 @@ import {
   verifyAdminToken,
 } from './security'
 import {
+  AdminRefusal,
   type Audit,
   createInvitation,
   deauthorizeUser,
@@ -60,6 +61,8 @@ interface Session {
   hash: string
   subject: string
   csrf: string
+  /** Set for sessions derived from a vault login; null for break-glass sessions. */
+  userUuid: string | null
 }
 
 type AdminEnv = { Bindings: Bindings; Variables: { nonce: string; session: Session } }
@@ -81,6 +84,7 @@ const MESSAGES: Record<string, string> = {
   'invited-nomail': 'Invitation recorded. No email transport is configured, so nothing was sent.',
   'invite-failed': 'Invitation recorded, but the email could not be sent.',
   'invite-bad': 'Enter a valid email address.',
+  'admin-target': 'Admin accounts cannot be changed from here.',
   'sole-owner':
     'That user is the only owner of an organisation. Transfer ownership or delete the organisation first.',
 }
@@ -149,7 +153,7 @@ export function createAdmin(deps: AdminDeps = {}) {
     const hash = await sha256Hex(raw)
     const row = await c.env.DB.prepare(
       `SELECT s.subject, s.csrf_token, s.user_uuid, s.security_stamp, u.security_stamp AS current_stamp,
-        u.enabled, u.email
+        u.enabled, u.email, u.verified_at
        FROM admin_sessions s LEFT JOIN users u ON u.uuid = s.user_uuid
        WHERE s.session_hash = ?1 AND s.expires_at > ?2`,
     )
@@ -162,6 +166,7 @@ export function createAdmin(deps: AdminDeps = {}) {
         current_stamp: string | null
         enabled: number | null
         email: string | null
+        verified_at: number | null
       }>()
     if (!row) return null
     // Vault-derived sessions end when the user's stamp rotates, the account is disabled or
@@ -171,7 +176,7 @@ export function createAdmin(deps: AdminDeps = {}) {
       (!row.enabled ||
         !row.current_stamp ||
         !(await safeEqual(row.security_stamp ?? '', row.current_stamp)) ||
-        !isAdminEmail(c.env.ADMIN_EMAILS, normaliseEmail(row.email)))
+        !isAdminUser(c.env, { email: row.email ?? '', verifiedAt: row.verified_at }))
     ) {
       await c.env.DB.prepare('DELETE FROM admin_sessions WHERE session_hash = ?1').bind(hash).run()
       return null
@@ -183,7 +188,7 @@ export function createAdmin(deps: AdminDeps = {}) {
         .run()
       setSessionCookie(c, raw, VAULT_SESSION_TTL_MS)
     }
-    return { hash, subject: row.subject, csrf: row.csrf_token }
+    return { hash, subject: row.subject, csrf: row.csrf_token, userUuid: row.user_uuid }
   }
 
   async function startSession(
@@ -324,7 +329,7 @@ ${kvTable(await serverRows(c))}`,
     const authed = match?.[1] ? await authenticateAccessToken(c.env, match[1]) : null
     if (!authed) return fail(401, 'Unauthorized')
     const email = normaliseEmail(authed.user.email)
-    if (!isAdminEmail(c.env.ADMIN_EMAILS, email)) return fail(403, 'Not an admin')
+    if (!isAdminUser(c.env, authed.user)) return fail(403, 'Not an admin')
     await startSession(c, email, authed.user)
     return c.body(null, 204)
   })
@@ -467,23 +472,30 @@ ${
     )
   })
 
-  // The HTML admin session carries no user id, so its events have no acting user.
+  // Break-glass sessions (token, magic link) have no user id, so their events have no actor.
   const auditOf = (c: Ctx): Audit => ({
-    actor: null,
+    actor: c.get('session').userUuid,
     ipAddress: c.req.header('CF-Connecting-IP') ?? null,
     now: now(),
   })
-  const setEnabled = (enabled: boolean, msg: string) => async (c: Ctx) => {
-    await setUserEnabled(c.env.DB, c.req.param('id') ?? '', enabled, auditOf(c))
+  /** Runs a user action; a refusal becomes a flash message, anything else propagates. */
+  const userAction = async (c: Ctx, msg: string, run: () => Promise<unknown>) => {
+    try {
+      await run()
+    } catch (e) {
+      if (e instanceof AdminRefusal) return c.redirect(`/admin/users?m=${e.reason}`, 303)
+      throw e
+    }
     return c.redirect(`/admin/users?m=${msg}`, 303)
   }
+  const setEnabled = (enabled: boolean, msg: string) => (c: Ctx) =>
+    userAction(c, msg, () => setUserEnabled(c.env, c.req.param('id') ?? '', enabled, auditOf(c)))
   app.post('/admin/users/:id/disable', setEnabled(false, 'disabled'))
   app.post('/admin/users/:id/enable', setEnabled(true, 'enabled'))
 
-  app.post('/admin/users/:id/deauth', async (c) => {
-    await deauthorizeUser(c.env.DB, c.req.param('id') ?? '', auditOf(c))
-    return c.redirect('/admin/users?m=deauth', 303)
-  })
+  app.post('/admin/users/:id/deauth', (c) =>
+    userAction(c, 'deauth', () => deauthorizeUser(c.env, c.req.param('id') ?? '', auditOf(c))),
+  )
 
   app.post('/admin/users/invite', async (c) => {
     const body = await c.req.parseBody()
@@ -519,10 +531,9 @@ ${
     )
   })
 
-  app.post('/admin/users/:id/remove-2fa', async (c) => {
-    await removeTwoFactor(c.env.DB, c.req.param('id'), auditOf(c))
-    return c.redirect('/admin/users?m=2fa-removed', 303)
-  })
+  app.post('/admin/users/:id/remove-2fa', (c) =>
+    userAction(c, '2fa-removed', () => removeTwoFactor(c.env, c.req.param('id'), auditOf(c))),
+  )
 
   app.get('/admin/users/:id/delete', async (c) => {
     const id = c.req.param('id')
@@ -542,19 +553,13 @@ ${
     )
   })
 
-  app.post('/admin/users/:id/delete', async (c) => {
-    try {
-      await deleteUser(c.env, c.req.param('id'), auditOf(c))
-    } catch (e) {
-      if (e instanceof ApiError) return c.redirect('/admin/users?m=sole-owner', 303)
-      throw e
-    }
-    return c.redirect('/admin/users?m=deleted', 303)
-  })
+  app.post('/admin/users/:id/delete', (c) =>
+    userAction(c, 'deleted', () => deleteUser(c.env, c.req.param('id'), auditOf(c))),
+  )
 
   // Organisations -------------------------------------------------------
   app.get('/admin/orgs', async (c) => {
-    const results = (await listOrganizations(c.env.DB)).map((o) => o)
+    const results = await listOrganizations(c.env.DB)
     return page(
       c,
       'Organisations',
@@ -620,9 +625,7 @@ ${kvTable([
     if (!authed) {
       return c.json({ message: 'Unauthorized', validationErrors: null, object: 'error' }, 401)
     }
-    const isAdmin =
-      c.env.ADMIN_ENABLED === 'true' &&
-      isAdminEmail(c.env.ADMIN_EMAILS, normaliseEmail(authed.user.email))
+    const isAdmin = isAdminUser(c.env, authed.user)
     return c.json({ isAdmin, email: authed.user.email })
   })
 

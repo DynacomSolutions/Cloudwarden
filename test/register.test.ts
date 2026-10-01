@@ -78,21 +78,36 @@ it('refuses registration when signups are closed', async () => {
   expect(res.status).toBe(400)
 })
 
-it('allows whitelisted domains and addresses when closed', async () => {
+it('allows whitelisted domains and addresses when closed, with a verification token', async () => {
   const over = {
     SIGNUPS_ALLOWED: 'false',
     SIGNUPS_DOMAINS_WHITELIST: 'corp.example.com, boss@other.example.com',
   }
-  const ok = await withEnv(
+  // Whitelisting alone is not proof of mailbox control.
+  const bare = await withEnv(
     over,
     '/identity/accounts/register',
     asJson(registerBody('a@corp.example.com')),
+  )
+  expect(bare.status).toBe(400)
+  const ok = await withEnv(
+    over,
+    '/identity/accounts/register',
+    asJson(
+      registerBody('a@corp.example.com', {
+        emailVerificationToken: await tokenFor(over, 'a@corp.example.com'),
+      }),
+    ),
   )
   expect(ok.status).toBe(200)
   const exact = await withEnv(
     over,
     '/identity/accounts/register',
-    asJson(registerBody('boss@other.example.com')),
+    asJson(
+      registerBody('boss@other.example.com', {
+        emailVerificationToken: await tokenFor(over, 'boss@other.example.com'),
+      }),
+    ),
   )
   expect(exact.status).toBe(200)
   const no = await withEnv(
@@ -160,10 +175,20 @@ it('lets an invited address register while signups are closed, then consumes the
   )
     .bind('inv-1', 'Invited@Example.com', 'admin', Date.now())
     .run()
-  const ok = await withEnv(
+  const bare = await withEnv(
     closed,
     '/identity/accounts/register',
     asJson(registerBody('invited@example.com')),
+  )
+  expect(bare.status).toBe(400)
+  const ok = await withEnv(
+    closed,
+    '/identity/accounts/register',
+    asJson(
+      registerBody('invited@example.com', {
+        emailVerificationToken: await tokenFor(closed, 'invited@example.com'),
+      }),
+    ),
   )
   expect(ok.status).toBe(200)
   const left = await env.DB.prepare('select count(*) n from invitations where uuid = ?')
@@ -176,6 +201,78 @@ it('lets an invited address register while signups are closed, then consumes the
     asJson(registerBody('uninvited@example.com')),
   )
   expect(again.status).toBe(400)
+})
+
+/** The mailbox proof: with no mail transport the token comes straight back. */
+const tokenFor = async (over: Record<string, unknown>, email: string) => {
+  const res = await withEnv(
+    over,
+    '/identity/accounts/register/send-verification-email',
+    asJson({ email, name: 'Tess' }),
+  )
+  expect(res.status).toBe(200)
+  return (await res.json()) as string
+}
+
+it('never lets an admin address register without proof, even with signups open or an invitation', async () => {
+  const admin = { ADMIN_ENABLED: 'true', ADMIN_EMAILS: 'boss@example.com' }
+  const open = { ...admin, SIGNUPS_ALLOWED: 'true' }
+  const bare = await withEnv(
+    open,
+    '/identity/accounts/register',
+    asJson(registerBody('boss@example.com')),
+  )
+  expect(bare.status).toBe(400)
+  // A pending invitation does not change that.
+  await env.DB.prepare(
+    'insert into invitations (uuid, email, invited_by, created_at) values (?,?,?,?)',
+  )
+    .bind('inv-admin', 'boss@example.com', 'x', Date.now())
+    .run()
+  const closed = { ...admin, SIGNUPS_ALLOWED: 'false' }
+  const invited = await withEnv(
+    closed,
+    '/identity/accounts/register',
+    asJson(registerBody('boss@example.com')),
+  )
+  expect(invited.status).toBe(400)
+  // Without a mail transport the token would prove nothing, so none is issued.
+  const send = await withEnv(
+    open,
+    '/identity/accounts/register/send-verification-email',
+    asJson({ email: 'boss@example.com' }),
+  )
+  expect(send.status).toBe(400)
+  const none = await env.DB.prepare(
+    "select count(*) n from users where email = 'boss@example.com'",
+  ).first<{ n: number }>()
+  expect(none?.n).toBe(0)
+})
+
+it('accepts an admin address that proves the mailbox through the emailed token', async () => {
+  const sent: { to: string; text: string }[] = []
+  const over = {
+    ADMIN_ENABLED: 'true',
+    ADMIN_EMAILS: 'chief@example.com',
+    SIGNUPS_ALLOWED: 'true',
+    EMAIL: { send: async (m: { to: string; text: string }) => void sent.push(m) },
+    MAIL_FROM: 'Cloudwarden <noreply@example.com>',
+  }
+  const send = await withEnv(
+    over,
+    '/identity/accounts/register/send-verification-email',
+    asJson({ email: 'chief@example.com' }),
+  )
+  expect(send.status).toBe(204)
+  const token = new URLSearchParams(
+    (/https?:\/\/\S+/.exec(sent[0]?.text ?? '')?.[0] ?? '').split('?')[1],
+  ).get('token')
+  const ok = await withEnv(
+    over,
+    '/identity/accounts/register',
+    asJson(registerBody('chief@example.com', { emailVerificationToken: token })),
+  )
+  expect(ok.status).toBe(200)
 })
 
 const mailer = () => {

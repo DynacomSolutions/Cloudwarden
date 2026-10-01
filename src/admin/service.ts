@@ -4,24 +4,14 @@ import { isReservedBlobKey } from '../blob-keys'
 import { createDb } from '../db'
 import { createEmailTransport, type EmailTransport, inviteEmail } from '../email'
 import type { Bindings } from '../env'
+import { ApiError } from '../errors'
 import { log } from '../log'
+import { AdminEventType } from '../orgs/constants'
 import { assertNotSoleOwner } from '../orgs/members'
 import { SERVER_VERSION } from '../routes/config'
+import { isAdminEmail } from './security'
 
-/**
- * Event codes for admin actions. They sit outside the range used by the official clients
- * (which ignore unknown codes), so they never collide with organisation event types.
- */
-export const AdminEventType = {
-  UserDisabled: 9001,
-  UserEnabled: 9002,
-  UserDeauthorized: 9003,
-  UserTwoFactorRemoved: 9004,
-  UserDeleted: 9005,
-  InvitationCreated: 9006,
-  InvitationDeleted: 9007,
-  OrganizationDeleted: 9008,
-} as const
+export { AdminEventType }
 
 /** Who performed an admin write. `actor` is a user id when known (API); null for the HTML admin. */
 export interface Audit {
@@ -177,17 +167,44 @@ export async function diagnostics(db: D1Database, now: number) {
 
 // Writes --------------------------------------------------------------------
 
+/** A refused admin action. `reason` lets the HTML admin pick its message without parsing text. */
+export class AdminRefusal extends ApiError {
+  constructor(
+    readonly reason: 'sole-owner' | 'admin-target',
+    message: string,
+  ) {
+    super(400, message)
+  }
+}
+
+/**
+ * Resolves the target of a destructive action. Returns false when the user does not exist and
+ * throws when the user is an admin: admins cannot be locked out or removed by another admin
+ * through this interface (use the database or CLI for that).
+ */
+async function guardTarget(env: Bindings, id: string): Promise<boolean> {
+  const row = await env.DB.prepare('SELECT email FROM users WHERE uuid = ?1')
+    .bind(id)
+    .first<{ email: string }>()
+  if (!row) return false
+  if (isAdminEmail(env.ADMIN_EMAILS, row.email.trim().toLowerCase())) {
+    throw new AdminRefusal('admin-target', 'This action cannot be applied to an admin account.')
+  }
+  return true
+}
+
 const userExists = async (db: D1Database, id: string) =>
   (await db.prepare('SELECT 1 AS x FROM users WHERE uuid = ?1').bind(id).first()) !== null
 
 /** Disables or enables an account. Returns false when the user does not exist. */
 export async function setUserEnabled(
-  db: D1Database,
+  env: Bindings,
   id: string,
   enabled: boolean,
   audit: Audit,
 ): Promise<boolean> {
-  if (!(await userExists(db, id))) return false
+  const db = env.DB
+  if (!enabled ? !(await guardTarget(env, id)) : !(await userExists(db, id))) return false
   await db.batch([
     db
       .prepare('UPDATE users SET enabled = ?1, updated_at = ?2 WHERE uuid = ?3')
@@ -200,8 +217,9 @@ export async function setUserEnabled(
 }
 
 /** Rotates the security stamp so every session and token of the user stops working. */
-export async function deauthorizeUser(db: D1Database, id: string, audit: Audit): Promise<boolean> {
-  if (!(await userExists(db, id))) return false
+export async function deauthorizeUser(env: Bindings, id: string, audit: Audit): Promise<boolean> {
+  const db = env.DB
+  if (!(await guardTarget(env, id))) return false
   await db.batch([
     db
       .prepare('UPDATE users SET security_stamp = ?1, updated_at = ?2 WHERE uuid = ?3')
@@ -212,8 +230,9 @@ export async function deauthorizeUser(db: D1Database, id: string, audit: Audit):
 }
 
 /** Removes every second factor and remembered device, and signs the user out everywhere. */
-export async function removeTwoFactor(db: D1Database, id: string, audit: Audit): Promise<boolean> {
-  if (!(await userExists(db, id))) return false
+export async function removeTwoFactor(env: Bindings, id: string, audit: Audit): Promise<boolean> {
+  const db = env.DB
+  if (!(await guardTarget(env, id))) return false
   await db.batch([
     db.prepare('DELETE FROM twofactor WHERE user_uuid = ?1').bind(id),
     db.prepare('UPDATE devices SET twofactor_remember = NULL WHERE user_uuid = ?1').bind(id),
@@ -227,9 +246,15 @@ export async function removeTwoFactor(db: D1Database, id: string, audit: Audit):
   return true
 }
 
+/** Best effort: the rows are already gone, so a failure only leaves orphans for the sweeper. */
 export async function deleteBlobs(env: Bindings, keys: string[]) {
   const safe = keys.filter((k) => !isReservedBlobKey(k))
-  for (let i = 0; i < safe.length; i += 1000) await env.ATTACHMENTS.delete(safe.slice(i, i + 1000))
+  try {
+    for (let i = 0; i < safe.length; i += 1000)
+      await env.ATTACHMENTS.delete(safe.slice(i, i + 1000))
+  } catch {
+    log('error', 'admin.blob_delete_failed', {}, env)
+  }
 }
 
 /**
@@ -238,8 +263,13 @@ export async function deleteBlobs(env: Bindings, keys: string[]) {
  */
 export async function deleteUser(env: Bindings, id: string, audit: Audit): Promise<boolean> {
   const db = env.DB
-  if (!(await userExists(db, id))) return false
-  await assertNotSoleOwner(createDb(db), id)
+  if (!(await guardTarget(env, id))) return false
+  try {
+    await assertNotSoleOwner(createDb(db), id)
+  } catch (e) {
+    if (e instanceof ApiError) throw new AdminRefusal('sole-owner', e.message)
+    throw e
+  }
   const { results } = await db
     .prepare(
       `SELECT a.r2_key AS k FROM attachments a JOIN ciphers c ON c.uuid = a.cipher_uuid WHERE c.user_uuid = ?1
@@ -247,14 +277,14 @@ export async function deleteUser(env: Bindings, id: string, audit: Audit): Promi
     )
     .bind(id)
     .all<{ k: string }>()
-  await deleteBlobs(
-    env,
-    results.map((r) => r.k),
-  )
   await db.batch([
     db.prepare('DELETE FROM users WHERE uuid = ?1').bind(id),
     auditStatement(db, audit, AdminEventType.UserDeleted, { userUuid: id }),
   ])
+  await deleteBlobs(
+    env,
+    results.map((r) => r.k),
+  )
   return true
 }
 
@@ -276,14 +306,14 @@ export async function deleteOrganization(
     )
     .bind(id)
     .all<{ k: string }>()
-  await deleteBlobs(
-    env,
-    results.map((r) => r.k),
-  )
   await db.batch([
     db.prepare('DELETE FROM organizations WHERE uuid = ?1').bind(id),
     auditStatement(db, audit, AdminEventType.OrganizationDeleted, { organizationUuid: id }),
   ])
+  await deleteBlobs(
+    env,
+    results.map((r) => r.k),
+  )
   return true
 }
 

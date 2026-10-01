@@ -1,4 +1,4 @@
-import { and, eq, or } from 'drizzle-orm'
+import { and, eq, notBetween, or } from 'drizzle-orm'
 import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { z } from 'zod'
@@ -7,6 +7,7 @@ import type { Env } from '../env'
 import { ApiError } from '../errors'
 import { getMember, requirePermission } from '../orgs/access'
 import { accessToCipher, loadCipherById } from '../orgs/ciphers'
+import { ADMIN_EVENT_MAX, ADMIN_EVENT_MIN } from '../orgs/constants'
 import { eventStatement, listEvents } from '../orgs/events'
 import { getTarget } from '../orgs/members'
 import { authOnce, batch } from '../orgs/util'
@@ -91,7 +92,17 @@ events.post('/events/collect', async (c) => {
 })
 
 events.get('/api/events', async (c) =>
-  c.json(await listEvents(createDb(c.env.DB), c, eq(schema.events.userUuid, c.var.user.uuid))),
+  c.json(
+    await listEvents(
+      createDb(c.env.DB),
+      c,
+      // Admin audit rows name the affected user but are not theirs to read.
+      and(
+        eq(schema.events.userUuid, c.var.user.uuid),
+        notBetween(schema.events.eventType, ADMIN_EVENT_MIN, ADMIN_EVENT_MAX),
+      ),
+    ),
+  ),
 )
 
 const orgId = (c: Ctx) => c.req.param('orgId') ?? ''

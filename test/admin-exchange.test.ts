@@ -71,6 +71,63 @@ describe('admin session exchange', () => {
     expect(res.headers.get('set-cookie')).toBeNull()
   })
 
+  it('refuses an admin address whose email is not verified', async () => {
+    const { email, token, over } = await adminSession()
+    await env.DB.prepare('UPDATE users SET verified_at = NULL WHERE email = ?1').bind(email).run()
+    const res = await exchange(token, {}, over)
+    expect(res.status).toBe(403)
+    expect(res.headers.get('set-cookie')).toBeNull()
+    expect(await (await me(token, over)).json()).toEqual({ isAdmin: false, email })
+  })
+
+  it('ends a live admin session when the address stops being verified', async () => {
+    const { email, token, over } = await adminSession()
+    const cookie = cookieOf(await exchange(token, {}, over))
+    await env.DB.prepare('UPDATE users SET verified_at = NULL WHERE email = ?1').bind(email).run()
+    const res = await withEnv({ ...ADMIN_ENV, ...over }, '/admin/users', {
+      headers: { Cookie: cookie },
+      redirect: 'manual',
+    })
+    expect(res.status).toBe(303)
+  })
+
+  it('records the signed-in admin as the actor of HTML admin actions', async () => {
+    const { email, token, over } = await adminSession()
+    const target = await createSession(unique('victim'))
+    const targetId = (
+      await env.DB.prepare('SELECT uuid FROM users WHERE email != ?1 ORDER BY created_at DESC')
+        .bind(email)
+        .first<{ uuid: string }>()
+    )?.uuid
+    const adminId = (
+      await env.DB.prepare('SELECT uuid FROM users WHERE email = ?1')
+        .bind(email)
+        .first<{ uuid: string }>()
+    )?.uuid
+    expect(target.access_token).toBeTruthy()
+    const cookie = cookieOf(await exchange(token, {}, over))
+    const env2 = { ...ADMIN_ENV, ...over }
+    const page = await withEnv(env2, '/admin/users', { headers: { Cookie: cookie } })
+    const csrf = /name="csrf" value="([^"]+)"/.exec(await page.text())?.[1] ?? ''
+    const res = await withEnv(env2, `/admin/users/${targetId}/deauth`, {
+      method: 'POST',
+      headers: {
+        Cookie: cookie,
+        Origin: BASE,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({ csrf }).toString(),
+      redirect: 'manual',
+    })
+    expect(res.status).toBe(303)
+    const ev = await env.DB.prepare(
+      'SELECT acting_user_uuid a FROM events WHERE event_type = 9003 AND user_uuid = ?1',
+    )
+      .bind(targetId)
+      .first<{ a: string }>()
+    expect(ev?.a).toBe(adminId)
+  })
+
   it('refuses bad, expired and stamp-rotated tokens with 401', async () => {
     expect((await exchange('not-a-jwt')).status).toBe(401)
     const { token, over } = await adminSession()

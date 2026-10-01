@@ -5,7 +5,7 @@ import { requireAuth } from '../auth/middleware'
 import type { EmailTransport } from '../email'
 import type { Bindings, Env } from '../env'
 import { ApiError, errorBody } from '../errors'
-import { isAdminEmail, isPlausibleEmail, normaliseEmail, rateLimit } from './security'
+import { isAdminUser, isPlausibleEmail, normaliseEmail, rateLimit } from './security'
 import {
   type Audit,
   countUsers,
@@ -52,15 +52,11 @@ export function createAdminApi(deps: AdminApiDeps = {}) {
   api.use(`${PREFIX}/*`, requireAuth)
   api.use(`${PREFIX}/*`, async (c, next) => {
     const user = c.var.user
-    if (
-      c.env.ADMIN_ENABLED !== 'true' ||
-      !isAdminEmail(c.env.ADMIN_EMAILS, normaliseEmail(user.email))
-    ) {
-      return c.json(errorBody('Forbidden'), 403)
-    }
+    // Rate limit first so probing the admin check is bounded too.
     if (!(await rateLimit(c.env.DB, `adminapi:${user.uuid}`, RATE_LIMIT, 60_000, Date.now()))) {
       return c.json(errorBody('Too many requests. Try again later.'), 429, { 'Retry-After': '60' })
     }
+    if (!isAdminUser(c.env, user)) return c.json(errorBody('Forbidden'), 403)
     await next()
   })
 
@@ -149,20 +145,20 @@ export function createAdminApi(deps: AdminApiDeps = {}) {
     `${PREFIX}/users/:id/disable`,
     userAction(async (c, id) => {
       if (id === c.var.user.uuid) throw new ApiError(400, 'You cannot disable your own account.')
-      return setUserEnabled(c.env.DB, id, false, auditOf(c))
+      return setUserEnabled(c.env, id, false, auditOf(c))
     }),
   )
   api.post(
     `${PREFIX}/users/:id/enable`,
-    userAction((c, id) => setUserEnabled(c.env.DB, id, true, auditOf(c))),
+    userAction((c, id) => setUserEnabled(c.env, id, true, auditOf(c))),
   )
   api.post(
     `${PREFIX}/users/:id/deauthorize`,
-    userAction((c, id) => deauthorizeUser(c.env.DB, id, auditOf(c))),
+    userAction((c, id) => deauthorizeUser(c.env, id, auditOf(c))),
   )
   api.post(
     `${PREFIX}/users/:id/remove-2fa`,
-    userAction((c, id) => removeTwoFactor(c.env.DB, id, auditOf(c))),
+    userAction((c, id) => removeTwoFactor(c.env, id, auditOf(c))),
   )
   api.delete(
     `${PREFIX}/users/:id`,
@@ -205,7 +201,7 @@ export function createAdminApi(deps: AdminApiDeps = {}) {
   })
 
   api.delete(`${PREFIX}/invitations/:email`, async (c) => {
-    const email = normaliseEmail(decodeURIComponent(c.req.param('email') ?? ''))
+    const email = normaliseEmail(c.req.param('email') ?? '')
     if (!(await deleteInvitation(c.env.DB, email, auditOf(c)))) throw notFound('Invitation')
     return c.body(null, 204)
   })

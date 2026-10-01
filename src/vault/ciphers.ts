@@ -79,7 +79,7 @@ export interface CipherRow {
   folderId: string | null
 }
 
-export function cipherJson({ cipher, folderId }: CipherRow) {
+export function cipherJson({ cipher, folderId }: CipherRow, attachments: unknown[] | null = null) {
   const data = (parseJson(cipher.data) ?? {}) as Partial<Record<PayloadKey, unknown>>
   const payload = Object.fromEntries(CIPHER_PAYLOAD_KEYS.map((k) => [k, data[k] ?? null]))
   return {
@@ -94,7 +94,7 @@ export function cipherJson({ cipher, folderId }: CipherRow) {
     favorite: cipher.favorite,
     fields: parseJson(cipher.fields),
     passwordHistory: parseJson(cipher.passwordHistory),
-    attachments: null,
+    attachments,
     organizationUseTotp: false,
     revisionDate: iso(cipher.updatedAt),
     creationDate: iso(cipher.createdAt),

@@ -76,11 +76,11 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 
 | # | Task | Status | Owner | Acceptance |
 |---|---|---|---|---|
-| 80 | R2 attachment upload, download (signed short-lived URLs), delete | todo | | Large file works within Worker body limit; limit documented |
-| 81 | Text Sends | todo | | |
-| 82 | File Sends via R2 | todo | | |
-| 83 | Send access endpoints (password, max access count, expiry, deletion date) | todo | | |
-| 84 | Scheduled purge of expired Sends and orphaned blobs (Cron Trigger) | todo | | |
+| 80 | R2 attachment upload, download (signed short-lived URLs), delete | done | | Large file works within Worker body limit; limit documented |
+| 81 | Text Sends | done | | |
+| 82 | File Sends via R2 | done | | |
+| 83 | Send access endpoints (password, max access count, expiry, deletion date) | done | | |
+| 84 | Scheduled purge of expired Sends and orphaned blobs (Cron Trigger) | done | | |
 
 ## Phase 5: Live sync
 
@@ -155,6 +155,7 @@ Newest first. One line per verified fact.
 - 2026-10-01 · #29 · `LOGIN_LIMITER` declared through `bindings.rateLimit` in `cloudflare.config.ts` (20 requests per 60 s per client address); the limiter is skipped when the binding is absent and tested with a stub binding.
 - 2026-10-01 · #28 · Account deletion is implemented; the delete-by-recovery flow is not (the 2FA recovery code in #121 is separate). Attachment and Send blob cleanup is deferred to #80.
 - 2026-10-01 · #120 to #125 · Branch `feat/2fa`: `pnpm lint`, `pnpm typecheck`, `pnpm test` (159 tests, 19 files), `pnpm check:identifiers` green; no migration needed (`twofactor` and `devices.twofactor_remember` already exist, `pnpm db:generate` reports no changes). #124 and #125 deferred, see `docs/two-factor.md`.
+- 2026-10-01 · #28 · Recovery-code flows depend on two-factor (Phase 6) and are not implemented; account deletion is. Attachment and Send blob cleanup landed with #80 and #82.
 
 - 2026-10-01 · #14 · `docs/api/openapi.yaml` (OpenAPI 3.1, 193 operations over 157 paths, 217 schemas) read from github.com/bitwarden/clients tag `web-v2026.9.1` (older tags `web-v2025.8.0` and `web-v2025.1.0` for prelogin, register and KDF change that moved into the SDK); each operation carries `x-source-version` and `x-source-file`. `pnpm lint:api` (Redocly) reports zero errors and zero warnings; `pnpm api:build` renders `docs/api/build/index.html` (gitignored). Not yet verified against recorded client traffic (#180); SDK-only shapes (send_access grant, policy and URI match enum values) are flagged in the spec.
 - 2026-10-01 · #13 · PR #2: all 9 jobs on `k3s-runners` green (Lint, Typecheck, Test, Identifier Check, Commit Lint, CI Status, Gitleaks full history, Lint Actions, Zizmor) plus Dependabot config validation. `pnpm/action-setup` held at v4 because v5+ needs libatomic, absent from the runner image.
@@ -165,3 +166,7 @@ Newest first. One line per verified fact.
 - 2026-10-01 · #8 · Enabled via API: secret scanning, push protection, Dependabot alerts, Dependabot security updates, squash-only merges, delete branch on merge. Private vulnerability reporting returned 404 (public repos only).
 - 2026-10-01 · #1 · Repo created private; local commit email set to the GitHub noreply form.
 - 2026-10-01 · #40-#45 · `pnpm lint`, `pnpm typecheck`, `pnpm test` (114 tests, 15 files), `pnpm check:identifiers` green on `feat/vault`; existing tables sufficed, so no migration 0003.
+- 2026-10-01 · #80-#84 · `pnpm lint`, `pnpm typecheck`, `pnpm test` (176 tests, 21 files), `pnpm check:identifiers` green on `feat/sends`; migration `0003_sends` adds `uploaded_at` to attachments and sends so unfinished uploads can be told apart and swept.
+- 2026-10-01 · #80 · Upload limit is 100 MB, the lowest Workers request body cap (Free and Pro). The v2 upload streams the multipart file part into R2 through a fixed length stream sized from the declared `fileSize`; the legacy single step upload buffers in memory. Signed download links are HMAC tokens (5 minutes) bound to one blob.
+- 2026-10-01 · #83 · Both the `send_access` grant plus `POST /api/sends/access` (current clients) and the access id in the path flow (legacy) are served. Email-protected Sends (authType 0) are rejected. File Sends count an access when the download URL is issued; text Sends when read. Live push on Send changes is pending the notifications module.
+- 2026-10-01 · #84 · `purgeExpired(env)` runs from the `scheduled` handler (hourly cron in `cloudflare.config.ts`): Sends past deletion date, abandoned uploads older than 24 hours, and one page of orphaned R2 objects per run with a cursor kept in the bucket.

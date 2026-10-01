@@ -14,6 +14,12 @@ import { createDb, schema } from '../db'
 import type { Env } from '../env'
 import { oauthError } from '../errors'
 import { rateLimit } from '../ratelimit'
+import {
+  checkSendPassword,
+  SEND_TOKEN_TTL_SECONDS,
+  signSendAccessToken,
+} from '../vault/send-access'
+import { sendUuidFrom, unavailable } from '../vault/sends'
 
 export const token = new Hono<Env>()
 
@@ -161,6 +167,34 @@ async function clientCredentialsGrant(c: Ctx, form: Form) {
   )
 }
 
+/**
+ * `send_access` grant: issues a short-lived token naming one Send, after the password check.
+ * The grant shape is inferred from the client error types; see the contract (TASKS #14).
+ */
+async function sendAccessGrant(c: Ctx, form: Form) {
+  const db = createDb(c.env.DB)
+  const uuid = sendUuidFrom(form.send_id ?? '')
+  const [send] = uuid
+    ? await db.select().from(schema.sends).where(eq(schema.sends.uuid, uuid)).limit(1)
+    : []
+  if (!send || unavailable(send, Date.now())) {
+    return oauthError(c, 'invalid_grant', 'send_id_invalid', 'Send not found.')
+  }
+  const check = await checkSendPassword(send, form.password_hash_b64)
+  if (check === 'required') {
+    return oauthError(c, 'invalid_request', 'password_hash_b64_required', 'Password required.')
+  }
+  if (check === 'invalid') {
+    return oauthError(c, 'invalid_request', 'password_hash_b64_invalid', 'Invalid password.')
+  }
+  return c.json({
+    access_token: await signSendAccessToken(c.env, send),
+    expires_in: SEND_TOKEN_TTL_SECONDS,
+    token_type: 'Bearer',
+    scope: 'api.send.access',
+  })
+}
+
 token.post('/identity/connect/token', rateLimit('token'), async (c) => {
   const body = await c.req.parseBody().catch(() => ({}))
   const form: Form = {}
@@ -173,6 +207,8 @@ token.post('/identity/connect/token', rateLimit('token'), async (c) => {
       return refreshGrant(c, form)
     case 'client_credentials':
       return clientCredentialsGrant(c, form)
+    case 'send_access':
+      return sendAccessGrant(c, form)
     default:
       return oauthError(
         c,

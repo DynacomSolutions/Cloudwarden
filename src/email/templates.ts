@@ -52,6 +52,8 @@ export function twoFactorCodeEmail(code: string, minutes: number): Template {
     subject: 'Your Cloudwarden verification code',
     text: plain(lines),
     html: shell('Verification code', lines),
+  }
+}
 
 export function orgInviteEmail(orgName: string, acceptUrl: string): Template {
   const lines = [

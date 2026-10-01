@@ -20,6 +20,7 @@ import { eventStatement } from '../orgs/events'
 import {
   accessOf,
   assertCanAssign,
+  assertCanGrant,
   assertIdsInOrg,
   assertNotLastOwner,
   canListMembers,
@@ -149,6 +150,7 @@ orgUsers.post('/api/organizations/:orgId/users/invite', async (c) => {
   const db = createDb(c.env.DB)
   const actor = await requirePermission(db, c.var.user.uuid, orgUuid, 'manageUsers')
   assertCanAssign(actor, body.type)
+  assertCanGrant(actor, body)
   const orgRow = await requireOrg(db, orgUuid)
   const collections = dedupeSelections(body.collections ?? [])
   const groupIds = [...new Set(body.groups ?? [])]
@@ -244,9 +246,10 @@ orgUsers.post('/api/organizations/:orgId/users/invite', async (c) => {
   return c.body(null, 200)
 })
 
-async function reinvite(c: Ctx, id: string): Promise<string | null> {
+async function reinvite(c: Ctx, id: string, actor: Member): Promise<string | null> {
   const db = createDb(c.env.DB)
   const target = await getTarget(db, org(c), id)
+  assertCanAssign(actor, target.atype)
   if (target.status !== Status.Invited) return 'User has already accepted the invitation.'
   await sendInvite(c, await requireOrg(db, org(c)), target)
   return null
@@ -254,17 +257,17 @@ async function reinvite(c: Ctx, id: string): Promise<string | null> {
 
 orgUsers.post('/api/organizations/:orgId/users/reinvite', async (c) => {
   const { ids } = await parseBody(c, idsSchema)
-  await requirePermission(createDb(c.env.DB), c.var.user.uuid, org(c), 'manageUsers')
+  const actor = await requirePermission(createDb(c.env.DB), c.var.user.uuid, org(c), 'manageUsers')
   const out = []
   for (const id of ids) {
-    out.push({ id, error: await reinvite(c, id).catch((e: ApiError) => e.message) })
+    out.push({ id, error: await reinvite(c, id, actor).catch((e: ApiError) => e.message) })
   }
   return bulkOk(out, c)
 })
 
 orgUsers.post('/api/organizations/:orgId/users/:id/reinvite', async (c) => {
-  await requirePermission(createDb(c.env.DB), c.var.user.uuid, org(c), 'manageUsers')
-  const error = await reinvite(c, c.req.param('id'))
+  const actor = await requirePermission(createDb(c.env.DB), c.var.user.uuid, org(c), 'manageUsers')
+  const error = await reinvite(c, c.req.param('id'), actor)
   if (error) throw new ApiError(400, error)
   return c.body(null, 200)
 })
@@ -541,6 +544,11 @@ const updateMember = async (c: Ctx) => {
   const target = await getTarget(db, orgUuid, c.req.param('id') ?? '')
   assertCanAssign(actor, target.atype)
   assertCanAssign(actor, body.type)
+  assertCanGrant(actor, body)
+  // Owners may edit themselves (guarded by the last-owner check); nobody else may.
+  if (target.uuid === actor.uuid && actor.atype !== Role.Owner) {
+    throw new ApiError(403, 'You cannot change your own access.')
+  }
   if (body.type !== Role.Owner) await assertNotLastOwner(db, orgUuid, target)
   const collections = dedupeSelections(body.collections ?? [])
   const groupIds = [...new Set(body.groups ?? [])]
@@ -626,8 +634,10 @@ orgUsers.get('/api/organizations/:orgId/users/:id/groups', async (c) => {
 orgUsers.put('/api/organizations/:orgId/users/:id/groups', async (c) => {
   const { groupIds } = await parseBody(c, z.object({ groupIds: z.array(z.string()).default([]) }))
   const db = createDb(c.env.DB)
-  await requirePermission(db, c.var.user.uuid, org(c), 'manageUsers')
+  const actor = await requirePermission(db, c.var.user.uuid, org(c), 'manageUsers')
   const target = await getTarget(db, org(c), c.req.param('id'))
+  assertCanAssign(actor, target.atype)
+  if (target.uuid === actor.uuid) throw new ApiError(403, 'You cannot change your own groups.')
   const ids = [...new Set(groupIds)]
   if (ids.length) await assertIdsInOrg(db, 'group', org(c), ids)
   await runBatch(db, [

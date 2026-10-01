@@ -74,7 +74,14 @@ async function collectionLinks(db: Db, orgUuids: string[]): Promise<Map<string, 
   return out
 }
 
-/** Effective access to an item through the user's own, group and blanket grants. */
+/**
+ * Effective access to an item through the user's own, group and blanket grants.
+ *
+ * `hidePasswords` is a display restriction, not a write block: a grant that is writable and hides
+ * passwords still has `edit: true`, and only `viewPassword` is false. The official clients refuse
+ * to edit the hidden fields themselves, and the server does not second-guess that, because it
+ * cannot see encrypted content. Use `readOnly` to forbid changes.
+ */
 export function itemAccess(ua: UserAccess, orgUuid: string, linked: string[]): ItemAccess | null {
   if (ua.accessAllOrgs.has(orgUuid)) {
     return { edit: true, viewPassword: true, manage: true, collectionIds: linked }

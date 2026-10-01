@@ -38,6 +38,22 @@ export function assertCanAssign(actor: Member, targetType: number) {
   if (!ok) throw new ApiError(403, 'You do not have permission to manage this member.')
 }
 
+/**
+ * A custom member who may manage users can only hand out what they hold themselves:
+ * blanket access and each permission key. Owners and admins are not limited.
+ */
+export function assertCanGrant(
+  actor: Member,
+  grant: { accessAll?: boolean | null; permissions?: Record<string, boolean | null> | null },
+) {
+  if (actor.atype !== Role.Custom) return
+  const held = storedPermissions(actor)
+  const exceeds =
+    (grant.accessAll === true && !actor.accessAll) ||
+    PERMISSION_KEYS.some((k) => grant.permissions?.[k] === true && !held[k])
+  if (exceeds) throw new ApiError(403, 'You cannot grant access you do not hold.')
+}
+
 export async function getTarget(db: Db, orgUuid: string, id: string): Promise<Member> {
   const [m] = await db
     .select()

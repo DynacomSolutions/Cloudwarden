@@ -22,6 +22,13 @@ type Ctx = Context<Env>
 
 const MAX_COLLECT = 100
 
+/**
+ * Event types the official clients report themselves: viewing, toggling visibility, copying and
+ * autofilling item fields (1107 to 1114, 1117) and an exported vault (1602). Anything else is a
+ * server-side event, so a client may not forge it and it is dropped.
+ */
+const CLIENT_EVENT_TYPES = new Set([1107, 1108, 1109, 1110, 1111, 1112, 1113, 1114, 1117, 1602])
+
 const collectSchema = z
   .array(
     z.object({
@@ -44,6 +51,7 @@ events.post('/events/collect', async (c) => {
   const now = Date.now()
   const rows = []
   for (const e of body) {
+    if (!CLIENT_EVENT_TYPES.has(e.type)) continue
     let orgUuid: string | null = null
     if (e.cipherId) {
       const cipher = await loadCipherById(db, e.cipherId)

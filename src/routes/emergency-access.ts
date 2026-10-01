@@ -1,4 +1,4 @@
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, ne } from 'drizzle-orm'
 import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { z } from 'zod'
@@ -10,7 +10,7 @@ import { createDb, type Db, schema } from '../db'
 import { createEmailTransport, emergencyInviteEmail, genericEmail } from '../email'
 import type { Env, User } from '../env'
 import { ApiError } from '../errors'
-import { PolicyType } from '../orgs/constants'
+import { PolicyType, Role } from '../orgs/constants'
 import { listUserPolicies, policyJson } from '../orgs/policies'
 import { authOnce, batch } from '../orgs/util'
 import { parseBody } from '../validation'
@@ -458,6 +458,16 @@ emergencyAccess.post('/api/emergency-access/:id/password', async (c) => {
       .where(eq(schema.users.uuid, grantor.uuid)),
     // A takeover also clears the grantor's two-step login so they can sign in with the new password.
     db.delete(schema.twofactor).where(eq(schema.twofactor.userUuid, grantor.uuid)),
+    // The grantee must not inherit organisation roles beyond what the owner holds: the grantor
+    // stays only in organisations they own.
+    db
+      .delete(schema.usersOrganizations)
+      .where(
+        and(
+          eq(schema.usersOrganizations.userUuid, grantor.uuid),
+          ne(schema.usersOrganizations.atype, Role.Owner),
+        ),
+      ),
     ...stampRotationStatements(db, grantor.uuid),
     bumpRevision(db, grantor.uuid, Date.now()),
   ])

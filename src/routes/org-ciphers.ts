@@ -573,7 +573,7 @@ orgCiphers.post('/api/ciphers/bulk-collections', async (c) => {
     if (row.organizationUuid !== body.organizationId) throw NOT_FOUND()
     const a = itemAccess(ua, body.organizationId, await linkedCollections(db, row.uuid))
     if (!a && !canManageAllCiphers(member)) throw NOT_FOUND()
-    if (a && !a.edit && !canManageAllCiphers(member))
+    if (a && !a.manage && !canManageAllCiphers(member))
       throw new ApiError(403, 'You do not have permission to do this.')
   }
   const now = Date.now()
@@ -728,7 +728,9 @@ const setCollections = (admin: boolean, v2: boolean) => async (c: Ctx, next: Nex
   const orgUuid = r.cipher.organizationUuid as string
   const member = r.member ?? (await requireMember(db, user.uuid, orgUuid))
   const manager = canManageAllCiphers(member)
-  if (!r.access.edit) throw new ApiError(403, 'You do not have permission to do this.')
+  if (!r.access.manage && !manager) {
+    throw new ApiError(403, 'You need manage access to change the collections of an item.')
+  }
   if (body.collectionIds.length === 0 && !manager) {
     throw new ApiError(400, 'You must select at least one collection.')
   }

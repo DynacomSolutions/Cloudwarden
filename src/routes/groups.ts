@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { createDb, type Db, schema } from '../db'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
-import { bumpOrgRevision, requirePermission } from '../orgs/access'
+import { bumpOrgRevision, isAdminRole, requirePermission } from '../orgs/access'
 import { EventType } from '../orgs/constants'
 import { eventStatement } from '../orgs/events'
 import { accessOf, assertIdsInOrg, dedupeSelections, type Selection } from '../orgs/members'
@@ -43,6 +43,7 @@ const groupSchema = z.object({
   users: z.array(z.string()).nullish(),
 })
 
+const ADMIN_ONLY = 'Only owners and admins can manage access-all groups.'
 const guard = (c: Ctx) =>
   requirePermission(createDb(c.env.DB), c.var.user.uuid, org(c), 'manageGroups')
 
@@ -173,9 +174,10 @@ function groupStatements(
 
 groupsRouter.put('/api/organizations/:orgId/groups/:id/users', async (c) => {
   const users = [...new Set(await parseBody(c, z.array(z.string())))]
-  await guard(c)
+  const actor = await guard(c)
   const db = createDb(c.env.DB)
   const g = await loadGroup(db, org(c), c.req.param('id'))
+  if (g.accessAll && !isAdminRole(actor)) throw new ApiError(403, ADMIN_ONLY)
   if (users.length) await assertIdsInOrg(db, 'member', org(c), users)
   await batch(db, [
     ...groupStatements(db, g.uuid, users, null, false),
@@ -213,7 +215,8 @@ async function checkRefs(
 
 groupsRouter.post('/api/organizations/:orgId/groups', async (c) => {
   const body = await parseBody(c, groupSchema)
-  await guard(c)
+  const actor = await guard(c)
+  if (body.accessAll && !isAdminRole(actor)) throw new ApiError(403, ADMIN_ONLY)
   const db = createDb(c.env.DB)
   const users = body.users ? [...new Set(body.users)] : null
   const cols = body.collections ? dedupeSelections(body.collections) : null
@@ -243,11 +246,13 @@ groupsRouter.post('/api/organizations/:orgId/groups', async (c) => {
 
 const updateGroup = async (c: Ctx) => {
   const body = await parseBody(c, groupSchema)
-  await guard(c)
+  const actor = await guard(c)
   const db = createDb(c.env.DB)
   const g = await loadGroup(db, org(c), c.req.param('id') ?? '')
+  if ((body.accessAll || g.accessAll) && !isAdminRole(actor)) throw new ApiError(403, ADMIN_ONLY)
   const users = body.users ? [...new Set(body.users)] : null
-  const cols = body.collections ? dedupeSelections(body.collections) : []
+  // Omitted collections are left as they are; access-all groups carry no explicit grants.
+  const cols = body.accessAll ? [] : body.collections ? dedupeSelections(body.collections) : null
   await checkRefs(db, org(c), users, cols)
   const now = Date.now()
   await batch(db, [
@@ -260,7 +265,7 @@ const updateGroup = async (c: Ctx) => {
         updatedAt: now,
       })
       .where(eq(schema.groups.uuid, g.uuid)),
-    ...groupStatements(db, g.uuid, users, body.accessAll ? [] : cols, false),
+    ...groupStatements(db, g.uuid, users, cols, false),
     eventStatement(db, c, {
       type: EventType.GroupUpdated,
       organizationUuid: org(c),

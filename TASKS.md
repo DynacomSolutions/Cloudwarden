@@ -52,12 +52,12 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 
 | # | Task | Status | Owner | Acceptance |
 |---|---|---|---|---|
-| 40 | `GET /api/sync` (profile, folders, ciphers, collections, policies, sends, domains) | todo | | Fresh client sync matches stored data |
-| 41 | Ciphers CRUD, soft delete, restore, purge, bulk move and delete | todo | | |
-| 42 | Folders CRUD | todo | | |
-| 43 | Revision dates and conflict handling (`lastKnownRevisionDate`) | todo | | Stale update rejected like upstream |
-| 44 | Equivalent domains settings | todo | | |
-| 45 | Import endpoint (`/api/ciphers/import`) | todo | | Bitwarden JSON export round-trips |
+| 40 | `GET /api/sync` (profile, folders, ciphers, collections, policies, sends, domains) | done | | Fresh client sync matches stored data; round-trip test covers every cipher type |
+| 41 | Ciphers CRUD, soft delete, restore, purge, bulk move and delete | done | | |
+| 42 | Folders CRUD | done | | |
+| 43 | Revision dates and conflict handling (`lastKnownRevisionDate`) | done | | Stale update rejected like upstream |
+| 44 | Equivalent domains settings | done | | |
+| 45 | Import endpoint (`/api/ciphers/import`) | done | | Bitwarden JSON export round-trips |
 
 ## Phase 3: Organisations
 
@@ -163,3 +163,4 @@ Newest first. One line per verified fact.
 - 2026-10-01 · #2 to #6 · Local: `pnpm lint`, `pnpm typecheck` and `pnpm test` (7 tests) green; `pnpm test:scripts` (48 tests) green; identifier scan and gitleaks history scan found nothing. Every commit passed the pre-commit hooks.
 - 2026-10-01 · #8 · Enabled via API: secret scanning, push protection, Dependabot alerts, Dependabot security updates, squash-only merges, delete branch on merge. Private vulnerability reporting returned 404 (public repos only).
 - 2026-10-01 · #1 · Repo created private; local commit email set to the GitHub noreply form.
+- 2026-10-01 · #40-#45 · `pnpm lint`, `pnpm typecheck`, `pnpm test` (114 tests, 15 files), `pnpm check:identifiers` green on `feat/vault`; existing tables sufficed, so no migration 0003.

@@ -4,3 +4,6 @@
 # Examples:
 # (Version strings that look like IPs: \d+\.\d+\.\d+\.\d+)
 # (Placeholder UUIDs are built in: nil and 00000000-0000-4000-8000-000000000000)
+
+# Public domains in the built-in equivalent domain list (TASKS #44)
+^(youtube|google|gmail|apple|icloud)\.com$

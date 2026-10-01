@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { adminApi } from './admin/api'
 import { d1Sessions } from './db/sessions'
 import type { Env } from './env'
 import { ApiError, errorBody } from './errors'
@@ -73,6 +74,7 @@ app.route('/', webauthn)
 app.route('/', authRequests)
 app.route('/', notifications)
 app.route('/', admin)
+app.route('/', adminApi)
 
 app.notFound((c) => c.json({ message: 'Not found', validationErrors: null, object: 'error' }, 404))
 

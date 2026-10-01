@@ -161,10 +161,22 @@ it('lets an unregistered address register while signups are closed after an invi
   })
   expect(inv.status).toBe(200)
   const { withEnv } = await import('./helpers')
-  const reg = await withEnv({ SIGNUPS_ALLOWED: 'false' }, '/identity/accounts/register', {
+  const closed = { SIGNUPS_ALLOWED: 'false' }
+  // The invitation says who may register; the verification token proves the mailbox.
+  const verification = await withEnv(
+    closed,
+    '/identity/accounts/register/send-verification-email',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'closed-new@example.com' }),
+    },
+  )
+  const emailVerificationToken = (await verification.json()) as string
+  const reg = await withEnv(closed, '/identity/accounts/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(registerBody('closed-new@example.com')),
+    body: JSON.stringify(registerBody('closed-new@example.com', { emailVerificationToken })),
   })
   expect(reg.status).toBe(200)
 

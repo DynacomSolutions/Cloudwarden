@@ -84,6 +84,21 @@ export function isAdminEmail(list: string | undefined, email: string): boolean {
 }
 
 /**
+ * Whether `user` may act as an instance admin: the admin feature is on, the address is listed in
+ * ADMIN_EMAILS and the address was verified (so it cannot be claimed by registering it).
+ */
+export function isAdminUser(
+  env: { ADMIN_ENABLED?: string; ADMIN_EMAILS?: string },
+  user: { email: string; verifiedAt: number | null },
+): boolean {
+  return (
+    env.ADMIN_ENABLED === 'true' &&
+    user.verifiedAt !== null &&
+    isAdminEmail(env.ADMIN_EMAILS, normaliseEmail(user.email))
+  )
+}
+
+/**
  * Fixed-window counter in D1. Returns true when the call is within `limit`.
  * Old windows are pruned opportunistically.
  */

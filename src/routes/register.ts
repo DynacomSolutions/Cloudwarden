@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { z } from 'zod'
+import { isAdminEmail } from '../admin/security'
 import { authenticationData, checkNested, unlockData } from '../auth/credentials'
 import { signingSecret, signJwt, verifyJwt } from '../auth/jwt'
 import { hashMasterPassword } from '../auth/passwords'
@@ -78,17 +79,21 @@ async function createAccount(c: import('hono').Context<Env>) {
 
   let name = body.name ?? ''
   const db = createDb(c.env.DB)
-  let permitted = await signupAllowed(c.env, db, email)
+  // A valid emailed token proves control of the mailbox. Invitations and the domain whitelist
+  // only say who may register, so they need that proof. Fully open signups may skip it, except
+  // for admin addresses, which must never be claimable by whoever registers them first.
+  let verified = false
   if (body.emailVerificationToken) {
     const claims = await verifyJwt<RegisterClaims>(body.emailVerificationToken, [
       registerSecret(c.env),
     ])
     if (claims?.purpose === 'register' && claims.email === email) {
-      permitted = true
+      verified = true
       name = body.name ?? claims.name
     }
   }
-  if (!permitted) throw new ApiError(400, 'Registration is not allowed.')
+  const open = c.env.SIGNUPS_ALLOWED === 'true' && !isAdminEmail(c.env.ADMIN_EMAILS, email)
+  if (!verified && !open) throw new ApiError(400, 'Registration is not allowed.')
 
   const keys = body.keys ?? body.userAsymmetricKeys
   let key = body.key ?? body.userSymmetricKey
@@ -129,7 +134,7 @@ async function createAccount(c: import('hono').Context<Env>) {
       kdfMemory: argon ? (kdfSettings.kdfMemory ?? null) : null,
       kdfParallelism: argon ? (kdfSettings.kdfParallelism ?? null) : null,
       securityStamp: crypto.randomUUID(),
-      // Verified: either the address was proven by the emailed token or no mail is configured.
+      // Verified by the emailed token; open signups are trusted as before (never admin addresses).
       verifiedAt: now,
       createdAt: now,
       updatedAt: now,
@@ -164,6 +169,10 @@ register.post(
     const body = await parseBody(c, sendSchema)
     const email = normalizeEmail(body.email)
     if (!(await signupAllowed(c.env, createDb(c.env.DB), email))) {
+      throw new ApiError(400, 'Registration is not allowed.')
+    }
+    // Without a mail transport the token is handed straight back, which proves nothing.
+    if (isAdminEmail(c.env.ADMIN_EMAILS, email) && !createEmailTransport(c.env).configured) {
       throw new ApiError(400, 'Registration is not allowed.')
     }
     const now = Math.floor(Date.now() / 1000)

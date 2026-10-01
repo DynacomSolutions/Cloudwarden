@@ -1,7 +1,8 @@
 import { and, eq } from 'drizzle-orm'
 import type { Db } from '../db'
-import { schema } from '../db'
+import { createDb, schema } from '../db'
 import type { AccessTokenClaims, Bindings, User } from '../env'
+import { masterPasswordPolicyFor } from '../orgs/policies'
 import { randomB64u, sha256B64u } from './crypto'
 import { signingSecret, signJwt } from './jwt'
 import { issuerFor } from './middleware'
@@ -100,7 +101,7 @@ export async function tokenResponse(
     KdfParallelism: user.kdfParallelism,
     ResetMasterPassword: false,
     ForcePasswordReset: false,
-    MasterPasswordPolicy: { Object: 'masterPasswordPolicy' },
+    MasterPasswordPolicy: await masterPasswordPolicyJson(env, user.uuid),
     UserDecryptionOptions: { HasMasterPassword: true, Object: 'userDecryptionOptions' },
     UnofficialServer: true,
     Object: 'token',
@@ -122,4 +123,20 @@ export function stampRotationStatements(db: Db, userUuid: string) {
       .set({ refreshToken: '' })
       .where(eq(schema.devices.userUuid, userUuid)),
   ]
+}
+
+/** Requirements merged across the user's organisations, in the identity service's casing. */
+async function masterPasswordPolicyJson(env: Bindings, userUuid: string) {
+  const p = await masterPasswordPolicyFor(createDb(env.DB), userUuid)
+  if (!p) return { Object: 'masterPasswordPolicy' }
+  return {
+    MinComplexity: p.minComplexity,
+    MinLength: p.minLength,
+    RequireUpper: p.requireUpper,
+    RequireLower: p.requireLower,
+    RequireNumbers: p.requireNumbers,
+    RequireSpecial: p.requireSpecial,
+    EnforceOnLogin: p.enforceOnLogin,
+    Object: 'masterPasswordPolicy',
+  }
 }

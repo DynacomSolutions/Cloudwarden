@@ -63,14 +63,14 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 
 | # | Task | Status | Owner | Acceptance |
 |---|---|---|---|---|
-| 60 | Organisations: create, settings, delete | todo | | |
-| 61 | Members: invite, accept, confirm, roles, revoke, remove | todo | | |
-| 62 | Collections and access (users and groups) | todo | | |
-| 63 | Share cipher to organisation (atomic) | todo | | |
-| 64 | Policies (master password, 2FA required, personal ownership, send options) | todo | | |
-| 65 | Groups | todo | | |
-| 66 | Emergency access | todo | | |
-| 67 | Event logs | todo | | |
+| 60 | Organisations: create, settings, delete | done | | Create returns a profile entry and default collection; delete needs the master password |
+| 61 | Members: invite, accept, confirm, roles, revoke, remove | done | | Invite by email through the transport, signed accept token, owner, admin, user, manager and custom roles, bulk variants |
+| 62 | Collections and access (users and groups) | done | | Read-only, hide-passwords and manage flags reach sync |
+| 63 | Share cipher to organisation (atomic) | done | | Single and bulk share, collection updates and admin endpoints; failed shares change nothing |
+| 64 | Policies (master password, 2FA required, personal ownership, send options) | done | | Stored for every type; master password (token response), two-step login and personal ownership are enforced; send options are stored for Phase 4 |
+| 65 | Groups | done | | Group collection grants and access-all groups apply in sync and cipher checks |
+| 66 | Emergency access | done | | Invite, accept, confirm, initiate, approve, reject, view, takeover and password; wait time is evaluated from timestamps, no scheduler |
+| 67 | Event logs | done | | Server events on write paths, `/events/collect`, organisation, cipher and member listings with continuation tokens |
 
 ## Phase 4: Sends and attachments
 
@@ -148,6 +148,7 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 Newest first. One line per verified fact.
 
 - 2026-10-01 · #8 · Owner decision: no Dependabot branches or PRs. Dependabot security updates disabled via API, `dependabot.yml` removed, its open PR closed. Alerts remain on.
+- 2026-10-01 · #60 to #67 · Branch `feat/orgs` on `feat/vault`: `pnpm lint`, `pnpm typecheck`, `pnpm test` (132 tests, 19 files), `pnpm check:identifiers` green; migration `0003_organizations` (`pnpm db:generate` reports no changes). Collections now belong to organisation members (`users_collections` is keyed by organisation user, so invitees can be pre-assigned). Known gaps: favourites on organisation items are shared, not per member; organisation SSO, key connector, reset password, API keys and billing endpoints are not implemented; emergency access notifications are limited to the invite and the initiate notice; `GET /api/ciphers` lists personal items only (sync carries organisation items).
 - 2026-10-01 · #140, #141 · `pnpm lint`, `pnpm typecheck`, `pnpm test` (32 tests, 6 files), `pnpm check:identifiers` green on branch `feat/admin`; migration `0002_admin`.
 
 - 2026-10-01 · #20 to #29 · Branch `feat/identity` rebased on #6: `pnpm lint`, `pnpm typecheck`, `pnpm test` (88 tests), `cf build` (no global-scope randomness) and invitation gating plus emailed verification and email-change codes and `pnpm check:identifiers` green. Covers register, prelogin, password, refresh and API-key grants, devices, profile, password, KDF, email, key rotation (all-or-nothing) and deletion, stamp invalidation of access and refresh tokens, and 429 limiting.

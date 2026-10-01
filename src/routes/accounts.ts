@@ -11,6 +11,8 @@ import { createEmailTransport, genericEmail } from '../email'
 import type { Env, User } from '../env'
 import { ApiError } from '../errors'
 import { pushLogOut } from '../notifications/publish'
+import { assertNotSoleOwner } from '../orgs/members'
+import { profileOrganizations } from '../orgs/views'
 import { kdfProblem, parseBody } from '../validation'
 import { userAttachmentKeys } from '../vault/attachments'
 import { deleteBlobs } from '../vault/blobs'
@@ -46,7 +48,7 @@ export async function profileJson(c: Ctx, user: User) {
     usesKeyConnector: false,
     avatarColor: null,
     creationDate: new Date(user.createdAt).toISOString(),
-    organizations: [],
+    organizations: await profileOrganizations(createDb(c.env.DB), user.uuid),
     providers: [],
     providerOrganizations: [],
     object: 'profile',
@@ -401,6 +403,7 @@ const deleteAccount = async (c: Ctx) => {
   const user = c.var.user
   await requirePassword(user, masterPasswordHash)
   const db = createDb(c.env.DB)
+  await assertNotSoleOwner(db, user.uuid)
   // Child rows (devices, folders, ciphers, sends, 2FA) cascade from the user row.
   const keys = [
     ...(await userAttachmentKeys(db, user.uuid)),

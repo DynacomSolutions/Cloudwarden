@@ -106,8 +106,8 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 
 | # | Task | Status | Owner | Acceptance |
 |---|---|---|---|---|
-| 140 | Admin UI behind `ADMIN_ENABLED` and a hashed `ADMIN_TOKEN_HASH`: users, orgs, invites, diagnostics | todo | | Disabled returns 404; enabled requires token |
-| 141 | Pluggable email transport (HTTP provider or Cloudflare Email), templates | todo | | |
+| 140 | Admin UI behind `ADMIN_ENABLED`: magic-link (`ADMIN_EMAILS`) and hashed `ADMIN_TOKEN_HASH` login; users, orgs, invites, diagnostics. See `docs/admin.md` | done | agent | Disabled returns 404; enabled requires login. Tests in `test/admin-ui.test.ts` |
+| 141 | Email transport: Cloudflare Email Service `EMAIL` binding (legacy `EmailMessage` fallback), `MAIL_FROM`, no-op when unbound, templates in `src/email/` | done | agent | Fake-transport tests green; other HTTP providers not implemented |
 | 142 | Icon proxy with SSRF protection and Cache API | todo | | Private and link-local targets refused |
 | 143 | Serve the Bitwarden web vault via Workers static assets (build-time fetch, integrity check, licence notice) | todo | | Web vault loads and logs in |
 
@@ -147,6 +147,7 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 
 Newest first. One line per verified fact.
 
+- 2026-10-01 · #140, #141 · `pnpm lint`, `pnpm typecheck`, `pnpm test` (32 tests, 6 files), `pnpm check:identifiers` green on branch `feat/admin`; migration `0002_admin`.
 - 2026-10-01 · #13 · PR #2: all 9 jobs on `k3s-runners` green (Lint, Typecheck, Test, Identifier Check, Commit Lint, CI Status, Gitleaks full history, Lint Actions, Zizmor) plus Dependabot config validation. `pnpm/action-setup` held at v4 because v5+ needs libatomic, absent from the runner image.
 - 2026-10-01 · #13 · GitHub secret scanning and push protection disabled via API (owner decision: no GitHub Advanced Security features).
 - 2026-10-01 · #8 · Ruleset active on the default branch: no deletion, no force push, linear history, signed commits, PR required (squash only, threads resolved), `CI Status` required and up to date. Admin bypass only through a PR. Main commits show as verified on GitHub.

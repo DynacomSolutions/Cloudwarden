@@ -1,6 +1,6 @@
 import { bindings, defineConfig, exports } from 'cf/config'
 
-// Secrets (set with `cf secrets`, never committed): JWT_SECRET, ADMIN_TOKEN_HASH.
+// Secrets (set with `cf secrets`, never committed): JWT_SECRET, ADMIN_TOKEN_HASH, ADMIN_EMAILS.
 export default defineConfig({
   worker: {
     name: 'cloudwarden',
@@ -11,6 +11,9 @@ export default defineConfig({
       DOMAIN: bindings.text('https://vault.example.com'),
       SIGNUPS_ALLOWED: bindings.text('false'),
       ADMIN_ENABLED: bindings.text('false'),
+      MAIL_FROM: bindings.text('Cloudwarden <noreply@example.com>'),
+      // Cloudflare Email Service (TASKS #141). Onboard the sending domain first.
+      EMAIL: bindings.sendEmail(),
       DB: bindings.d1({
         name: 'cloudwarden',
         // Placeholder: replace with the real database id at deploy time.

@@ -1,4 +1,4 @@
-import { and, eq, sql } from 'drizzle-orm'
+import { and, eq, type SQL, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import type { Db } from '../db'
 import { schema } from '../db'
@@ -181,6 +181,39 @@ export function setFolderStatements(db: Db, cipherUuid: string, folderId: string
     : [unlink]
 }
 
+/**
+ * Like setFolderStatements, but every statement only takes effect if the cipher still
+ * carries revision `ts`, so a lost race leaves the folder link untouched.
+ */
+export function setFolderStatementsIfAt(
+  db: Db,
+  cipherUuid: string,
+  folderId: string | null,
+  ts: number,
+) {
+  const unlink = db
+    .delete(schema.foldersCiphers)
+    .where(and(eq(schema.foldersCiphers.cipherUuid, cipherUuid), stillAt(cipherUuid, ts)))
+  return folderId
+    ? [
+        unlink,
+        db.insert(schema.foldersCiphers).select(
+          db
+            .select({
+              cipherUuid: sql<string>`${cipherUuid}`.as('cipher_uuid'),
+              folderUuid: sql<string>`${folderId}`.as('folder_uuid'),
+            })
+            .from(schema.ciphers)
+            .where(and(eq(schema.ciphers.uuid, cipherUuid), eq(schema.ciphers.updatedAt, ts))),
+        ),
+      ]
+    : [unlink]
+}
+
+/** True while the cipher still carries the revision `ts` that a guarded update wrote. */
+export const stillAt = (cipherUuid: string, ts: number) =>
+  sql`exists (select 1 from ciphers where uuid = ${cipherUuid} and updated_at = ${ts})`
+
 /** Rejects an update made from a client copy older than the stored cipher. */
 export function checkRevision(cipher: { updatedAt: number }, lastKnown: string | null | undefined) {
   if (!lastKnown) return
@@ -195,5 +228,8 @@ export function checkRevision(cipher: { updatedAt: number }, lastKnown: string |
 }
 
 /** Moves the user's revision date forward; include in every vault write batch. */
-export const bumpRevision = (db: Db, userUuid: string, now: number) =>
-  db.update(schema.users).set({ updatedAt: now }).where(eq(schema.users.uuid, userUuid))
+export const bumpRevision = (db: Db, userUuid: string, now: number, guard?: SQL) =>
+  db
+    .update(schema.users)
+    .set({ updatedAt: sql`max(${schema.users.updatedAt} + 1, ${now})` })
+    .where(guard ? and(eq(schema.users.uuid, userUuid), guard) : eq(schema.users.uuid, userUuid))

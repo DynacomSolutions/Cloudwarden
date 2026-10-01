@@ -1,12 +1,13 @@
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { z } from 'zod'
 import { requireAuth } from '../auth/middleware'
 import { verifyMasterPassword } from '../auth/passwords'
-import { createDb, runBatch, schema } from '../db'
+import { changes, createDb, runBatch, schema } from '../db'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
+import { rateLimit } from '../ratelimit'
 import { parseBody } from '../validation'
 import {
   bumpRevision,
@@ -20,7 +21,10 @@ import {
   rejectUnsupported,
   requireCipher,
   requireFolder,
+  STALE_MESSAGE,
   setFolderStatements,
+  setFolderStatementsIfAt,
+  stillAt,
 } from '../vault/ciphers'
 
 export const ciphers = new Hono<Env>()
@@ -83,10 +87,17 @@ const importSchema = z.object({
     .array(z.object({ key: z.number().int(), value: z.number().int() }))
     .default([]),
 })
-const MAX_IMPORT_CIPHERS = 7000
+// D1 allows 1000 queries per Worker invocation (paid plan; 50 on free). One batch statement
+// counts as one query, so an import is capped well below that: folders + ciphers + links.
+const MAX_IMPORT_STATEMENTS = 900
+const MAX_IMPORT_FOLDERS = 200
 ciphers.post('/api/ciphers/import', async (c) => {
   const body = await parseBody(c, importSchema)
-  if (body.ciphers.length > MAX_IMPORT_CIPHERS) {
+  const linked = new Set(body.folderRelationships.map((r) => r.key)).size
+  if (
+    body.folders.length > MAX_IMPORT_FOLDERS ||
+    body.folders.length + body.ciphers.length + linked + 1 > MAX_IMPORT_STATEMENTS
+  ) {
     throw new ApiError(400, 'You cannot import this much data at once.')
   }
   for (const r of body.folderRelationships) {
@@ -161,9 +172,23 @@ ciphers.put('/api/ciphers/move', async (c) => {
   const ids = await ownedIds(c, body.ids)
   const now = Date.now()
   await runBatch(db, [
-    ...ids.flatMap((id) => setFolderStatements(db, id, body.folderId ?? null)),
     ...chunk(ids).map((part) =>
-      db.update(schema.ciphers).set({ updatedAt: now }).where(inArray(schema.ciphers.uuid, part)),
+      db.delete(schema.foldersCiphers).where(inArray(schema.foldersCiphers.cipherUuid, part)),
+    ),
+    ...(body.folderId
+      ? ids.map((id) =>
+          db
+            .insert(schema.foldersCiphers)
+            .values({ cipherUuid: id, folderUuid: body.folderId as string }),
+        )
+      : []),
+    ...chunk(ids).map((part) =>
+      db
+        .update(schema.ciphers)
+        .set({ updatedAt: now })
+        .where(
+          and(eq(schema.ciphers.userUuid, c.var.user.uuid), inArray(schema.ciphers.uuid, part)),
+        ),
     ),
     bumpRevision(db, c.var.user.uuid, now),
   ])
@@ -176,7 +201,11 @@ const hardDelete = async (c: Ctx) => {
   const db = createDb(c.env.DB)
   await runBatch(db, [
     ...chunk(owned).map((part) =>
-      db.delete(schema.ciphers).where(inArray(schema.ciphers.uuid, part)),
+      db
+        .delete(schema.ciphers)
+        .where(
+          and(eq(schema.ciphers.userUuid, c.var.user.uuid), inArray(schema.ciphers.uuid, part)),
+        ),
     ),
     bumpRevision(db, c.var.user.uuid, Date.now()),
   ])
@@ -193,8 +222,15 @@ async function setDeleted(c: Ctx, ids: string[], deletedAt: number | null) {
     ...chunk(owned).map((part) =>
       db
         .update(schema.ciphers)
-        .set({ deletedAt, updatedAt: now })
-        .where(inArray(schema.ciphers.uuid, part)),
+        .set({
+          // Keep the original deletion time when deleting an already deleted cipher.
+          deletedAt:
+            deletedAt === null ? null : sql`coalesce(${schema.ciphers.deletedAt}, ${deletedAt})`,
+          updatedAt: now,
+        })
+        .where(
+          and(eq(schema.ciphers.userUuid, c.var.user.uuid), inArray(schema.ciphers.uuid, part)),
+        ),
     ),
     bumpRevision(db, c.var.user.uuid, now),
   ])
@@ -217,7 +253,7 @@ ciphers.put('/api/ciphers/restore', async (c) => {
 })
 
 // Purge removes every personal cipher and folder after re-verifying the master password.
-ciphers.post('/api/ciphers/purge', async (c) => {
+ciphers.post('/api/ciphers/purge', rateLimit('purge'), async (c) => {
   const { masterPasswordHash } = await parseBody(
     c,
     z.object({ masterPasswordHash: z.string().min(1) }),
@@ -230,6 +266,8 @@ ciphers.post('/api/ciphers/purge', async (c) => {
   await runBatch(db, [
     db.delete(schema.ciphers).where(eq(schema.ciphers.userUuid, user.uuid)),
     db.delete(schema.folders).where(eq(schema.folders.userUuid, user.uuid)),
+    // TODO(TASKS #80): also remove attachment and Send blobs from R2.
+    db.delete(schema.sends).where(eq(schema.sends.userUuid, user.uuid)),
     bumpRevision(db, user.uuid, Date.now()),
   ])
   return c.body(null, 200)
@@ -251,15 +289,25 @@ const updateCipher = async (c: Ctx) => {
   const existing = await requireCipher(db, user.uuid, id)
   checkRevision(existing.cipher, body.lastKnownRevisionDate)
   if (body.folderId) await requireFolder(db, user.uuid, body.folderId)
-  const now = Date.now()
-  await runBatch(db, [
+  // The write only applies if nobody changed the cipher since it was read; otherwise the
+  // client copy is stale. A client that omits lastKnownRevisionDate skips the comparison
+  // above but still cannot overwrite a concurrent write.
+  const ts = Math.max(Date.now(), existing.cipher.updatedAt + 1)
+  const results = await runBatch(db, [
     db
       .update(schema.ciphers)
-      .set({ ...cipherValues(body), updatedAt: now })
-      .where(and(eq(schema.ciphers.uuid, id), eq(schema.ciphers.userUuid, user.uuid))),
-    ...setFolderStatements(db, id, body.folderId ?? null),
-    bumpRevision(db, user.uuid, now),
+      .set({ ...cipherValues(body), updatedAt: ts })
+      .where(
+        and(
+          eq(schema.ciphers.uuid, id),
+          eq(schema.ciphers.userUuid, user.uuid),
+          eq(schema.ciphers.updatedAt, existing.cipher.updatedAt),
+        ),
+      ),
+    ...setFolderStatementsIfAt(db, id, body.folderId ?? null, ts),
+    bumpRevision(db, user.uuid, ts, stillAt(id, ts)),
   ])
+  if (changes(results[0]) === 0) throw new ApiError(400, STALE_MESSAGE)
   return respond(c, id)
 }
 ciphers.put('/api/ciphers/:id', updateCipher)
@@ -278,7 +326,7 @@ const partial = async (c: Ctx) => {
     db
       .update(schema.ciphers)
       .set({ favorite: body.favorite, updatedAt: now })
-      .where(eq(schema.ciphers.uuid, id)),
+      .where(and(eq(schema.ciphers.uuid, id), eq(schema.ciphers.userUuid, user.uuid))),
     ...setFolderStatements(db, id, body.folderId ?? null),
     bumpRevision(db, user.uuid, now),
   ])
@@ -292,7 +340,9 @@ const removeOne = async (c: Ctx) => {
   const db = createDb(c.env.DB)
   await requireCipher(db, c.var.user.uuid, id)
   await runBatch(db, [
-    db.delete(schema.ciphers).where(eq(schema.ciphers.uuid, id)),
+    db
+      .delete(schema.ciphers)
+      .where(and(eq(schema.ciphers.uuid, id), eq(schema.ciphers.userUuid, c.var.user.uuid))),
     bumpRevision(db, c.var.user.uuid, Date.now()),
   ])
   return c.body(null, 200)

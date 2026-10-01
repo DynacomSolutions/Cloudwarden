@@ -6,6 +6,7 @@ import { requireAuth } from '../auth/middleware'
 import { createDb, runBatch, schema } from '../db'
 import type { Env } from '../env'
 import { parseBody } from '../validation'
+import { bumpRevision } from '../vault/ciphers'
 import { domainsJson } from '../vault/domains'
 
 export const settings = new Hono<Env>()
@@ -19,13 +20,20 @@ const domainsSchema = z.object({
 const update = async (c: Context<Env>) => {
   const body = await parseBody(c, domainsSchema)
   const db = createDb(c.env.DB)
-  const equivalent = JSON.stringify(body.equivalentDomains ?? [])
-  const excluded = JSON.stringify(body.excludedGlobalEquivalentDomains ?? [])
+  // Omitted fields keep their stored value.
+  const user = c.var.user
+  const equivalent = body.equivalentDomains
+    ? JSON.stringify(body.equivalentDomains)
+    : user.equivalentDomains
+  const excluded = body.excludedGlobalEquivalentDomains
+    ? JSON.stringify(body.excludedGlobalEquivalentDomains)
+    : user.excludedGlobals
   await runBatch(db, [
     db
       .update(schema.users)
-      .set({ equivalentDomains: equivalent, excludedGlobals: excluded, updatedAt: Date.now() })
-      .where(eq(schema.users.uuid, c.var.user.uuid)),
+      .set({ equivalentDomains: equivalent, excludedGlobals: excluded })
+      .where(eq(schema.users.uuid, user.uuid)),
+    bumpRevision(db, user.uuid, Date.now()),
   ])
   return c.json({
     equivalentDomains: JSON.parse(equivalent),

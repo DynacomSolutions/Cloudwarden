@@ -325,6 +325,14 @@ accounts.post('/api/accounts/key', requireAuth, async (c) => {
     owned(schema.ciphers),
     owned(schema.sends),
   ])
+  const storedTypes = new Map(
+    (
+      await db
+        .select({ id: schema.ciphers.uuid, type: schema.ciphers.atype })
+        .from(schema.ciphers)
+        .where(eq(schema.ciphers.userUuid, user.uuid))
+    ).map((r) => [r.id, r.type]),
+  )
   const same = (given: { id: string }[], have: Set<string>) =>
     given.length === have.size &&
     given.every((g) => have.has(g.id)) &&
@@ -335,6 +343,11 @@ accounts.post('/api/accounts/key', requireAuth, async (c) => {
     !same(body.sends, sendIds)
   ) {
     throw new ApiError(400, 'Rotation must include every folder, cipher and send exactly once.')
+  }
+
+  // The stored type decides which payload is kept; a mismatching type would drop data.
+  if (body.ciphers.some((ci) => ci.type !== undefined && ci.type !== storedTypes.get(ci.id))) {
+    throw new ApiError(400, 'Cipher type cannot change during key rotation.')
   }
 
   const now = Date.now()
@@ -350,7 +363,7 @@ accounts.post('/api/accounts/key', requireAuth, async (c) => {
         .where(eq(schema.folders.uuid, f.id)),
     ),
     ...body.ciphers.map((ci) => {
-      const data = packPayload(ci, typeof ci.type === 'number' ? ci.type : null)
+      const data = packPayload(ci, storedTypes.get(ci.id))
       return db
         .update(schema.ciphers)
         .set({

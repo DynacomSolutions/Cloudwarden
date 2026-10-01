@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { z } from 'zod'
@@ -61,7 +61,10 @@ const rename = async (c: Ctx) => {
   const db = createDb(c.env.DB)
   const now = Date.now()
   await runBatch(db, [
-    db.update(schema.folders).set({ name, updatedAt: now }).where(eq(schema.folders.uuid, id)),
+    db
+      .update(schema.folders)
+      .set({ name, updatedAt: now })
+      .where(and(eq(schema.folders.uuid, id), eq(schema.folders.userUuid, c.var.user.uuid))),
     bumpRevision(db, c.var.user.uuid, now),
   ])
   return c.json(folderJson(await requireFolderRow(c, id)))
@@ -75,8 +78,17 @@ const remove = async (c: Ctx) => {
   await requireFolderRow(c, id)
   const db = createDb(c.env.DB)
   await runBatch(db, [
-    db.delete(schema.foldersCiphers).where(eq(schema.foldersCiphers.folderUuid, id)),
-    db.delete(schema.folders).where(eq(schema.folders.uuid, id)),
+    db
+      .delete(schema.foldersCiphers)
+      .where(
+        and(
+          eq(schema.foldersCiphers.folderUuid, id),
+          sql`exists (select 1 from folders where uuid = ${id} and user_uuid = ${c.var.user.uuid})`,
+        ),
+      ),
+    db
+      .delete(schema.folders)
+      .where(and(eq(schema.folders.uuid, id), eq(schema.folders.userUuid, c.var.user.uuid))),
     bumpRevision(db, c.var.user.uuid, Date.now()),
   ])
   return c.body(null, 200)

@@ -163,4 +163,4 @@ Newest first. One line per verified fact.
 - 2026-10-01 · #2 to #6 · Local: `pnpm lint`, `pnpm typecheck` and `pnpm test` (7 tests) green; `pnpm test:scripts` (48 tests) green; identifier scan and gitleaks history scan found nothing. Every commit passed the pre-commit hooks.
 - 2026-10-01 · #8 · Enabled via API: secret scanning, push protection, Dependabot alerts, Dependabot security updates, squash-only merges, delete branch on merge. Private vulnerability reporting returned 404 (public repos only).
 - 2026-10-01 · #1 · Repo created private; local commit email set to the GitHub noreply form.
-- 2026-10-01 · #40-#45 · `pnpm lint`, `pnpm typecheck`, `pnpm test` (106 tests, 14 files), `pnpm check:identifiers` green on `feat/vault`; existing tables sufficed, so no migration 0003.
+- 2026-10-01 · #40-#45 · `pnpm lint`, `pnpm typecheck`, `pnpm test` (114 tests, 15 files), `pnpm check:identifiers` green on `feat/vault`; existing tables sufficed, so no migration 0003.

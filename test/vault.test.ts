@@ -1,6 +1,6 @@
 import { env } from 'cloudflare:workers'
 import { expect, it } from 'vitest'
-import { authed, createSession, login as loginRequest } from './helpers'
+import { authed, createSession, login as loginRequest, withEnv } from './helpers'
 
 const STALE = 'The client copy of this cipher is out of date. Resync the client and try again.'
 
@@ -427,7 +427,9 @@ it('reads and updates equivalent domains', async () => {
   expect(post.status).toBe(200)
   const sync = await j(await call('/api/sync'))
   expect(sync.domains.equivalentDomains).toEqual([])
-  expect(sync.domains.globalEquivalentDomains.every((g: any) => !g.excluded)).toBe(true)
+  expect(
+    sync.domains.globalEquivalentDomains.find((g: any) => g.type === first.type).excluded,
+  ).toBe(true)
 })
 
 it('imports folders, ciphers and relationships atomically', async () => {
@@ -488,3 +490,127 @@ it('key rotation keeps the stored cipher payload readable through sync', async (
   expect(after).toMatchObject({ name: '2.rotated', login: login().login })
   expect(after.card).toBeNull()
 })
+
+it('key rotation keeps the stored payload even when the client type disagrees', async () => {
+  const { call } = await setup('rot2@example.com')
+  const c = await j(await call('/api/ciphers', 'POST', card()))
+  const body = (extra: object) => ({
+    masterPasswordHash: 'client-derived-hash',
+    key: '2.newkey',
+    privateKey: '2.newpk',
+    folders: [],
+    sends: [],
+    ciphers: [{ id: c.id, name: '2.card2', card: card().card, ...extra }],
+  })
+  // A mismatching type is rejected and nothing changes.
+  expect((await call('/api/accounts/key', 'POST', body({ type: 1 }))).status).toBe(400)
+  expect((await j(await call(`/api/ciphers/${c.id}`))).name).toBe('2.card')
+  // Without a type, the stored type decides what is kept.
+  expect((await call('/api/accounts/key', 'POST', body({}))).status).toBe(200)
+  const fresh = (await (await loginRequest('rot2@example.com')).json()) as { access_token: string }
+  const after = await j(await authed(`/api/ciphers/${c.id}`, fresh.access_token))
+  expect(after).toMatchObject({ type: 3, name: '2.card2', card: card().card })
+})
+
+it('applies concurrent updates once and rejects the loser as stale', async () => {
+  const { call } = await setup('race@example.com')
+  const f = await j(await call('/api/folders', 'POST', { name: '2.f' }))
+  const c = await j(await call('/api/ciphers', 'POST', login()))
+  const results = await Promise.all(
+    [1, 2, 3].map((n) =>
+      call(`/api/ciphers/${c.id}`, 'PUT', { ...login(`2.w${n}`), folderId: n === 1 ? f.id : null }),
+    ),
+  )
+  const bodies = await Promise.all(results.map((r) => r.json<any>()))
+  expect(results.some((r) => r.status === 200)).toBe(true)
+  for (const [n, r] of results.entries()) {
+    if (r.status !== 200) expect(bodies[n].message).toBe(STALE)
+  }
+  // Whatever won, the name and folder link belong to the same write.
+  const final = await j(await call(`/api/ciphers/${c.id}`))
+  const winner = final.name === '2.w1' ? f.id : null
+  expect(final.folderId).toBe(winner)
+})
+
+it('keeps the revision date strictly increasing across back-to-back writes', async () => {
+  const { call } = await setup('mono@example.com')
+  const rev = async () => (await j(await call('/api/accounts/revision-date'))) as number
+  const seen = [await rev()]
+  for (let n = 0; n < 4; n++) {
+    await call('/api/folders', 'POST', { name: `2.f${n}` })
+    seen.push(await rev())
+  }
+  for (let n = 1; n < seen.length; n++) expect(seen[n]).toBeGreaterThan(seen[n - 1] as number)
+})
+
+it('keeps the original deletion time on repeated soft deletes', async () => {
+  const { call } = await setup('deltime@example.com')
+  const c = await j(await call('/api/ciphers', 'POST', login()))
+  await call(`/api/ciphers/${c.id}/delete`, 'PUT')
+  const first = (await j(await call(`/api/ciphers/${c.id}`))).deletedDate
+  await new Promise((r) => setTimeout(r, 20))
+  await call('/api/ciphers/delete', 'PUT', { ids: [c.id] })
+  expect((await j(await call(`/api/ciphers/${c.id}`))).deletedDate).toBe(first)
+})
+
+it('rate limits purge and removes Sends with the vault', async () => {
+  const { s, call } = await setup('purge2@example.com')
+  const user = await env.DB.prepare('select uuid from users where email = ?')
+    .bind('purge2@example.com')
+    .first<{ uuid: string }>()
+  const now = Date.now()
+  await env.DB.prepare(
+    'insert into sends (uuid, user_uuid, name, atype, data, akey, deletion_date, created_at, updated_at) values (?,?,?,?,?,?,?,?,?)',
+  )
+    .bind(crypto.randomUUID(), user?.uuid, '2.s', 0, '{}', '2.k', now + 1e9, now, now)
+    .run()
+  const blocked = await withEnv(
+    { LOGIN_LIMITER: { limit: async () => ({ success: false }) } },
+    '/api/ciphers/purge',
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${s.access_token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ masterPasswordHash: 'client-derived-hash' }),
+    },
+  )
+  expect(blocked.status).toBe(429)
+  const left = () =>
+    env.DB.prepare('select count(*) as n from sends where user_uuid = ?')
+      .bind(user?.uuid)
+      .first<{ n: number }>()
+  expect((await left())?.n).toBe(1)
+  expect(
+    (await call('/api/ciphers/purge', 'POST', { masterPasswordHash: 'client-derived-hash' }))
+      .status,
+  ).toBe(200)
+  expect((await left())?.n).toBe(0)
+})
+
+it('keeps omitted domain fields when updating', async () => {
+  const { call } = await setup('dom2@example.com')
+  const first = (await j(await call('/api/settings/domains'))).globalEquivalentDomains[0].type
+  await call('/api/settings/domains', 'PUT', {
+    equivalentDomains: [['a.example.com', 'b.example.com']],
+    excludedGlobalEquivalentDomains: [first],
+  })
+  const onlyExcluded = await j(
+    await call('/api/settings/domains', 'PUT', { excludedGlobalEquivalentDomains: [] }),
+  )
+  expect(onlyExcluded.equivalentDomains).toEqual([['a.example.com', 'b.example.com']])
+  expect(onlyExcluded.globalEquivalentDomains.every((g: any) => !g.excluded)).toBe(true)
+  const onlyDomains = await j(await call('/api/settings/domains', 'PUT', { equivalentDomains: [] }))
+  expect(onlyDomains.equivalentDomains).toEqual([])
+})
+
+it('caps the size of an import', async () => {
+  const { call } = await setup('cap@example.com')
+  const many = Array.from({ length: 901 }, () => note())
+  expect((await call('/api/ciphers/import', 'POST', { folders: [], ciphers: many })).status).toBe(
+    400,
+  )
+  const folders = Array.from({ length: 201 }, (_, n) => ({ name: `2.f${n}` }))
+  expect((await call('/api/ciphers/import', 'POST', { folders, ciphers: [] })).status).toBe(400)
+  const ok = Array.from({ length: 300 }, () => note())
+  expect((await call('/api/ciphers/import', 'POST', { folders: [], ciphers: ok })).status).toBe(200)
+  expect((await j(await call('/api/ciphers'))).data).toHaveLength(300)
+}, 30_000)

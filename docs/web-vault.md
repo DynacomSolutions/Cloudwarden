@@ -42,6 +42,10 @@ pnpm web-vault:fetch
 cf deploy
 ```
 
+The deploy workflow builds first and fails unless the built `index.html` references
+`cloudwarden/admin-link.js` and the built script matches `web-vault-overlay/admin-link.js`. After
+deploying it also checks that the served `/` contains the tag.
+
 Without the directory the Worker still builds and all tests pass (the API works, `/` has no
 vault). CI test runs do not need the vault.
 

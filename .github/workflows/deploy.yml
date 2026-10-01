@@ -50,6 +50,14 @@ jobs:
         run: pnpm exec cf d1 migrations apply "$CF_D1_DATABASE_ID" --dir migrations
       - name: Fetch web vault
         run: pnpm web-vault:fetch
+      - name: Check built web vault includes the admin link
+        run: |
+          set -euo pipefail
+          pnpm exec cf build
+          out=.cloudflare/output/v0/workers/default/assets
+          grep -q '<script src="cloudwarden/admin-link.js" integrity="sha384-' "$out/index.html"
+          cmp web-vault-overlay/admin-link.js "$out/cloudwarden/admin-link.js"
+          echo "built index.html references the admin link script"
       - name: Deploy Worker
         run: pnpm exec cf deploy
       - name: Smoke check
@@ -66,3 +74,14 @@ jobs:
           done
           echo "alive check failed"
           exit 1
+      - name: Check served web vault includes the admin link
+        run: |
+          set -euo pipefail
+          for path in "/" "/index.html"; do
+            body=$(curl -sfL --max-time 10 -H 'Cache-Control: no-cache' "https://${DEPLOY_DOMAIN}${path}?v=${GITHUB_SHA}")
+            if ! grep -q 'cloudwarden/admin-link.js' <<<"$body"; then
+              echo "served ${path} lacks the admin link script tag"
+              exit 1
+            fi
+          done
+          echo "served index.html references the admin link script"

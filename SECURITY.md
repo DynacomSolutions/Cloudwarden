@@ -44,4 +44,4 @@ Cloudwarden uses several key dependencies. We monitor these for vulnerabilities:
 - Zod (validation)
 - Node.js runtime
 
-Dependency updates are automated via Dependabot and tested in CI.
+Dependencies are updated deliberately by maintainers and tested in CI.

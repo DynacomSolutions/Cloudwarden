@@ -48,3 +48,17 @@ it('rejects an invalid body', async () => {
   expect(res.status).toBe(400)
   expect(await res.json()).toMatchObject({ object: 'error' })
 })
+
+it('serves the current prelogin shape with nested KDF settings and a salt', async () => {
+  await registerUser('Nested@example.com')
+  const res = await json('/identity/accounts/prelogin/password', { email: 'Nested@example.com' })
+  expect(res.status).toBe(200)
+  expect(await res.json()).toEqual({
+    kdfSettings: { kdfType: 0, iterations: 600000, memory: null, parallelism: null },
+    salt: 'nested@example.com',
+  })
+  const unknown = await json('/identity/accounts/prelogin/password', {
+    email: 'nobody@example.com',
+  })
+  expect(await unknown.json()).toMatchObject({ salt: 'nobody@example.com' })
+})

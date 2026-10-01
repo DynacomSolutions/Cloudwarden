@@ -115,8 +115,8 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 
 | # | Task | Status | Owner | Acceptance |
 |---|---|---|---|---|
-| 160 | Deployment guide: create D1, R2, secrets, custom domain, using only placeholders | todo | | Fresh account deploy from docs alone |
-| 161 | CI deploy workflow (environment-protected, OIDC or scoped token in secrets) | todo | | |
+| 160 | Deployment guide: create D1, R2, secrets, custom domain, using only placeholders | doing | | Fresh account deploy from docs alone. `docs/deploy.md`; config reads deploy values from env |
+| 161 | CI deploy workflow (environment-protected, OIDC or scoped token in secrets) | doing | | `deploy.yml`: gate, `cf d1 migrations apply`, `cf deploy`, `/alive` smoke check. Worker secrets set once by hand |
 | 162 | Scheduled D1 export to R2 for portable backups | todo | | Restore tested |
 | 163 | Optional data importer from other self-hosted Bitwarden-compatible servers (data only, no code reuse) | todo | | Imported users log in without re-registering (depends on 20) |
 | 164 | Observability: structured logs without vault data, Workers Analytics | todo | | Log review confirms no secrets or ciphertext logged |

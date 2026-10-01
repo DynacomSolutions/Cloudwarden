@@ -16,3 +16,5 @@ coverage/
 # Official web vault, created by `pnpm web-vault:fetch` (TASKS #143)
 web-vault/
 web-vault.tmp/
+# Generated API docs (pnpm api:build)
+docs/api/build/

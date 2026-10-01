@@ -9,13 +9,11 @@ updates:
       - dependency-type: indirect
     groups:
       development-dependencies:
-        dependency-types:
-          - dev
+        dependency-type: development
         patterns:
           - '*'
       production-dependencies:
-        dependency-types:
-          - production
+        dependency-type: production
         patterns:
           - '*'
     commit-message:

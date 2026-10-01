@@ -1,8 +1,9 @@
 import { Hono } from 'hono'
 import type { Env } from '../env'
-import { type Fetcher, fetchIcon } from '../icons/fetch'
+import { type Fetcher, type FetchState, fetchIcon } from '../icons/fetch'
 import { validateHost } from '../icons/ssrf'
 import { log } from '../log'
+import { rateLimit } from '../ratelimit'
 
 /** 1x1 transparent PNG served when no icon can be found. */
 const FALLBACK_PNG = Uint8Array.from(
@@ -13,7 +14,9 @@ const FALLBACK_PNG = Uint8Array.from(
 )
 
 const POSITIVE_TTL = 7 * 24 * 3600
+/** Definitive misses (404, no icon, not an image) are remembered for a day; transient failures for an hour. */
 const NEGATIVE_TTL = 24 * 3600
+const TRANSIENT_TTL = 3600
 const CLIENT_FALLBACK_TTL = 3600
 
 const COMMON_HEADERS = {
@@ -58,8 +61,17 @@ export function createIcons(fetcher: Fetcher = (u, i) => fetch(u, i)) {
       return hit
     }
 
-    const icon = await fetchIcon(host, fetcher)
+    // Only cache misses cost an outbound fetch, so only they are rate limited per client address.
+    let allowed = false
+    const limited = await rateLimit('icons')(c, async () => {
+      allowed = true
+    })
+    if (!allowed) return limited as Response
+
+    const state: FetchState = { transient: false }
+    const icon = await fetchIcon(host, fetcher, state)
     if (!icon) {
+      const ttl = state.transient ? TRANSIENT_TTL : NEGATIVE_TTL
       c.executionCtx.waitUntil(
         cache.put(
           key,
@@ -67,7 +79,7 @@ export function createIcons(fetcher: Fetcher = (u, i) => fetch(u, i)) {
             headers: {
               ...COMMON_HEADERS,
               'Content-Type': 'image/png',
-              'Cache-Control': `public, max-age=${NEGATIVE_TTL}`,
+              'Cache-Control': `public, max-age=${ttl}`,
               'X-Icon-Source': 'fallback',
             },
           }),

@@ -6,23 +6,24 @@ import { join } from 'node:path'
 import test from 'node:test'
 import { buildStatements, chunk, insertStatement } from './restore-backup.mjs'
 
+// files: { table: [part text, ...] }
 function makeBackup(files) {
   const dir = mkdtempSync(join(tmpdir(), 'cw-backup-'))
   const tables = []
-  for (const [name, text] of Object.entries(files)) {
-    writeFileSync(join(dir, `${name}.jsonl`), text)
-    tables.push({
-      name,
-      rows: text.split('\n').filter(Boolean).length,
-      bytes: text.length,
-      sha256: createHash('sha256').update(text).digest('hex'),
-      key: `backups/2026-10-01/${name}.jsonl`,
+  for (const [name, texts] of Object.entries(files)) {
+    const parts = texts.map((text, i) => {
+      const file = `${name}.${String(i + 1).padStart(4, '0')}.jsonl`
+      writeFileSync(join(dir, file), text)
+      return {
+        key: `backups/2026-10-01/run-1/${file}`,
+        rows: text.split('\n').filter(Boolean).length,
+        bytes: text.length,
+        sha256: createHash('sha256').update(text).digest('hex'),
+      }
     })
+    tables.push({ name, rows: parts.reduce((n, p) => n + p.rows, 0), parts })
   }
-  writeFileSync(
-    join(dir, 'manifest.json'),
-    JSON.stringify({ version: 1, createdAt: '2026-10-01T00:00:00.000Z', tables }),
-  )
+  writeFileSync(join(dir, 'manifest.json'), JSON.stringify({ version: 2, createdAt: 'x', tables }))
   return dir
 }
 
@@ -41,8 +42,8 @@ test('rejects hostile identifiers', () => {
 
 test('builds ordered statements and verifies checksums', () => {
   const dir = makeBackup({
-    users: '{"uuid":"a"}\n{"uuid":"b"}\n',
-    folders: '{"uuid":"f","user_uuid":"a"}\n',
+    users: ['{"uuid":"a"}\n', '{"uuid":"b"}\n'],
+    folders: ['{"uuid":"f","user_uuid":"a"}\n'],
   })
   const stmts = buildStatements(dir)
   assert.equal(stmts[0], 'PRAGMA defer_foreign_keys = on;')
@@ -50,8 +51,8 @@ test('builds ordered statements and verifies checksums', () => {
 })
 
 test('detects a tampered file', () => {
-  const dir = makeBackup({ users: '{"uuid":"a"}\n' })
-  writeFileSync(join(dir, 'users.jsonl'), '{"uuid":"evil"}\n')
+  const dir = makeBackup({ users: ['{"uuid":"a"}\n'] })
+  writeFileSync(join(dir, 'users.0001.jsonl'), '{"uuid":"evil"}\n')
   assert.throws(() => buildStatements(dir), /checksum mismatch/)
 })
 

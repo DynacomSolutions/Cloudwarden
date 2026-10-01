@@ -87,9 +87,9 @@ The proxy makes server-side requests to attacker-chosen hosts, so SSRF is the ma
 |---|---|---|---|
 | S | Request appears to come from Cloudflare infrastructure | Fixed `User-Agent`; no credentials or cookies forwarded | |
 | T | Malicious image or markup returned as an icon | Magic-number check, allow-list of raster types, SVG rejected, 512 KB cap, served with `nosniff` and a locked-down CSP | Decoder bugs in the client image stack |
-| I | SSRF to internal or metadata addresses | Strict hostname validation (ASCII DNS names with an alphabetic TLD, at least two labels); every IP literal form refused (decimal, hex, octal, short, v6, v4-mapped); reserved suffixes refused; only ports 80 and 443; no credentials in URLs; manual redirects, at most 3, each hop revalidated; icon URLs from HTML validated too | A public hostname whose DNS record points at a private address: Workers cannot reach private networks, but this relies on the platform |
+| I | SSRF to internal or metadata addresses | Strict hostname validation (ASCII DNS names with an alphabetic TLD, at least two labels); every IP literal form refused (decimal, hex, octal, short, v6, v4-mapped); reserved suffixes refused; only ports 80 and 443; no credentials in URLs; https only on every hop; manual redirects, at most 3, each hop revalidated; icon URLs from HTML validated too | DNS rebinding: a public hostname whose record resolves to a private or internal address. The Worker cannot validate the resolved IP, so it relies on Cloudflare's platform refusing to route `fetch` to private ranges and to the Worker's own zone. If that guarantee changes, the proxy must be disabled |
 | I | Probing which hosts are refused | Refusals return the same fallback image as any miss | |
-| D | Amplification, slow servers | 5 s per request and 15 s overall, byte caps, Cache API with 7 day positive and 1 day negative TTL | Unbounded distinct domains still cause fetches; add rate limiting if abused |
+| D | Amplification, slow servers | 5 s per request and 15 s overall, byte caps, per-client rate limit on cache misses (shared `LOGIN_LIMITER` binding), Cache API with 7 day positive TTL, 1 day for definitive misses and 1 hour for transient failures | Distributed callers can still trigger many distinct fetches; limits are per client address |
 | E | None expected: the endpoint is unauthenticated and has no privileges | Disable with `ICONS_ENABLED=false` | Domains requested by users are visible to the operator and the target site |
 
 ### Notifications (`NotificationHub` Durable Object; TASKS #9)
@@ -106,7 +106,9 @@ The proxy makes server-side requests to attacker-chosen hosts, so SSRF is the ma
 
 | Threat | Mitigation | Residual |
 |---|---|---|
-| Backup theft (R2) | Private bucket, token scoping, 14 day retention, `docs/backup.md` | Backups are as sensitive as the database |
+| Backup theft (R2) | Private bucket, token scoping, 14 day retention, device refresh and push tokens redacted, `backups/` prefix never served (`src/blob-keys.ts`), `docs/backup.md` | Backups are as sensitive as the database |
+| Inconsistent backup | Exports are paged, not a snapshot; documented, with D1 Time Travel as the consistent option | Related rows may be out of step after a restore |
+| Platform invocation logs leak URLs | Invocation logs disabled; only allow-listed app logs kept | |
 | Secret or identifier leaks in the repository | `check-identifiers`, gitleaks, signed commits, PR-only main | |
 | Malicious dependency | Lockfile, Dependabot, small dependency set, CI with minimal permissions | Transitive compromise |
 | Cloudflare account takeover | Hardware-key 2FA on the account, scoped API tokens, protected deploy environment | Full compromise yields ciphertext and hashes, not plaintext vaults |

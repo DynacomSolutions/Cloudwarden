@@ -1,9 +1,11 @@
 import { errorKind, log } from './log'
 
 /**
- * Scheduled D1 export to R2 (TASKS #162). Each run writes one JSONL file per table plus a manifest
- * under `backups/<YYYY-MM-DD>/`. The manifest is written last, so a prefix without one is an
- * incomplete run. Backups hold encrypted vault data and password hashes: keep the bucket private.
+ * Scheduled D1 export to R2 (TASKS #162). Each run writes JSONL part files (about 5 MB each, so memory
+ * stays bounded) per table plus a manifest under `backups/<YYYY-MM-DD>/run-<epoch seconds>/`. The
+ * manifest is written last, so a run directory without one is incomplete. Reads are paged and are
+ * not a point-in-time snapshot. Backups hold encrypted vault data and password hashes: keep the
+ * bucket private.
  */
 
 export const BACKUP_PREFIX = 'backups/'
@@ -11,6 +13,16 @@ export const RETENTION_DAYS = 14
 /** Cron expression (see cloudflare.config.ts) that triggers the export; other crons skip it. */
 export const BACKUP_CRON = '17 3 * * *'
 export const PAGE_SIZE = 500
+export const PART_BYTES = 5 * 1024 * 1024
+
+/**
+ * Credentials that must not be copied into backups. The value written instead keeps NOT NULL
+ * columns satisfiable; an empty refresh token is already treated as revoked, so devices must
+ * sign in again after a restore.
+ */
+export const REDACTED_COLUMNS: Record<string, Record<string, null | string>> = {
+  devices: { refresh_token: '', twofactor_remember: null, push_token: null },
+}
 
 /** Short-lived auth state that is useless after a restore and sensitive to keep. */
 export const EXCLUDED_TABLES = new Set([
@@ -19,16 +31,22 @@ export const EXCLUDED_TABLES = new Set([
   'admin_sessions',
 ])
 
-export interface ManifestTable {
-  name: string
+export interface ManifestPart {
+  key: string
   rows: number
   bytes: number
   sha256: string
-  key: string
+}
+
+export interface ManifestTable {
+  name: string
+  rows: number
+  /** Ordered part files; empty for an empty table. */
+  parts: ManifestPart[]
 }
 
 export interface Manifest {
-  version: 1
+  version: 2
   createdAt: string
   tables: ManifestTable[]
 }
@@ -95,34 +113,75 @@ export function backupDate(now: Date): string {
   return now.toISOString().slice(0, 10)
 }
 
+export function runPrefix(now: Date): string {
+  return `${BACKUP_PREFIX}${backupDate(now)}/run-${Math.floor(now.getTime() / 1000)}/`
+}
+
 export async function exportDatabase(
   db: D1Database,
   bucket: R2Bucket,
   now: Date,
   pageSize = PAGE_SIZE,
+  partBytes = PART_BYTES,
 ): Promise<{ prefix: string; manifest: Manifest }> {
-  const prefix = `${BACKUP_PREFIX}${backupDate(now)}/`
+  const prefix = runPrefix(now)
   const encoder = new TextEncoder()
-  const tables: ManifestTable[] = []
+  const written: string[] = []
+  // A rerun with the same timestamp must never leave an old manifest next to new parts.
+  await bucket.delete(`${prefix}manifest.json`)
 
-  for (const name of await listTables(db)) {
-    const lines: string[] = []
-    let rows = 0
-    for await (const page of readTable(db, name, pageSize)) {
-      for (const row of page) lines.push(encodeRow(row))
-      rows += page.length
+  try {
+    const tables: ManifestTable[] = []
+    for (const name of await listTables(db)) {
+      const redact = REDACTED_COLUMNS[name]
+      const parts: ManifestPart[] = []
+      let rows = 0
+      let lines: string[] = []
+      let size = 0
+      let partRows = 0
+
+      const flush = async () => {
+        if (partRows === 0) return
+        const bytes = encoder.encode(`${lines.join('\n')}\n`)
+        const key = `${prefix}${name}.${String(parts.length + 1).padStart(4, '0')}.jsonl`
+        await bucket.put(key, bytes, { httpMetadata: { contentType: 'application/x-ndjson' } })
+        written.push(key)
+        parts.push({ key, rows: partRows, bytes: bytes.length, sha256: await sha256Hex(bytes) })
+        lines = []
+        size = 0
+        partRows = 0
+      }
+
+      for await (const page of readTable(db, name, pageSize)) {
+        for (const row of page) {
+          const line = encodeRow(redact ? { ...row, ...pick(redact, row) } : row)
+          lines.push(line)
+          size += line.length + 1
+          partRows++
+          rows++
+          if (size >= partBytes) await flush()
+        }
+      }
+      await flush()
+      tables.push({ name, rows, parts })
     }
-    const bytes = encoder.encode(lines.length ? `${lines.join('\n')}\n` : '')
-    const key = `${prefix}${name}.jsonl`
-    await bucket.put(key, bytes, { httpMetadata: { contentType: 'application/x-ndjson' } })
-    tables.push({ name, rows, bytes: bytes.length, sha256: await sha256Hex(bytes), key })
-  }
 
-  const manifest: Manifest = { version: 1, createdAt: now.toISOString(), tables }
-  await bucket.put(`${prefix}manifest.json`, JSON.stringify(manifest, null, 2), {
-    httpMetadata: { contentType: 'application/json' },
-  })
-  return { prefix, manifest }
+    const manifest: Manifest = { version: 2, createdAt: now.toISOString(), tables }
+    await bucket.put(`${prefix}manifest.json`, JSON.stringify(manifest, null, 2), {
+      httpMetadata: { contentType: 'application/json' },
+    })
+    return { prefix, manifest }
+  } catch (err) {
+    // Best effort: do not leave a half-written run behind.
+    for (let i = 0; i < written.length; i += 1000)
+      await bucket.delete(written.slice(i, i + 1000)).catch(() => {})
+    throw err
+  }
+}
+
+/** Replacement values for the redacted columns that exist on this row. */
+function pick(redact: Record<string, null | string>, row: Record<string, unknown>) {
+  return Object.fromEntries(Object.entries(redact).filter(([k]) => k in row))
 }
 
 /** Delete backup prefixes older than the retention window. Returns the number of objects removed. */

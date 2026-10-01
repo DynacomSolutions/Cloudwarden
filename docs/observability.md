@@ -34,8 +34,9 @@ Code review rule: never call `console.*` directly with request-derived data; use
 
 ## Configuration
 
-`cloudflare.config.ts` enables Workers Logs (`observability.enabled`, `logs.enabled`, invocation logs, sampling
-rate 1). Lower `headSamplingRate` if volume or cost matters. `LOG_LEVEL` (`debug`, `info`, `warn`, `error`;
+`cloudflare.config.ts` enables Workers Logs (`observability.enabled`, `logs.enabled`, sampling rate 1) with
+**invocation logs off**: platform invocation logs record the full request URL including query strings, which can carry
+tokens (for example the notifications WebSocket access token). Only the application lines from `src/log.ts` are kept. Lower `headSamplingRate` if volume or cost matters. `LOG_LEVEL` (`debug`, `info`, `warn`, `error`;
 default `info`) filters at the source.
 
 Workers Logs retention and query limits depend on your Cloudflare plan. Tail live with `cf workers tail` or

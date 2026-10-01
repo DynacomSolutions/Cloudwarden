@@ -147,6 +147,34 @@ describe('fetchIcon', () => {
     }
   })
 
+  it('refuses a redirect from https to http', async () => {
+    const { fetcher, calls } = recorder((url) =>
+      url === 'https://example.com/favicon.ico'
+        ? redirect('http://cdn.example.net/i.png')
+        : new Response('', { status: 404 }),
+    )
+    expect(await fetchIcon('example.com', fetcher)).toBeNull()
+    expect(calls.some((u) => u.startsWith('http://'))).toBe(false)
+  })
+
+  it('flags transient failures but not definitive misses', async () => {
+    const s1 = { transient: false }
+    await fetchIcon('example.com', recorder(() => new Response('', { status: 404 })).fetcher, s1)
+    expect(s1.transient).toBe(false)
+    const s2 = { transient: false }
+    await fetchIcon('example.com', recorder(() => new Response('', { status: 503 })).fetcher, s2)
+    expect(s2.transient).toBe(true)
+    const s3 = { transient: false }
+    await fetchIcon(
+      'example.com',
+      recorder(() => {
+        throw new Error('timeout')
+      }).fetcher,
+      s3,
+    )
+    expect(s3.transient).toBe(true)
+  })
+
   it('stops after three redirects', async () => {
     let n = 0
     const { fetcher, calls } = recorder(() => redirect(`https://example.com/r${++n}`))
@@ -275,6 +303,51 @@ describe('GET /icons/:domain/icon.png', () => {
     const before = calls.length
     const second = await r.request(`/icons/${host}/icon.png`, {}, env, c2)
     expect(second.headers.get('X-Icon-Source')).toBe('fallback')
+    expect(calls.length).toBe(before)
+  })
+
+  it('uses a one hour negative TTL for transient failures', async () => {
+    const { fetcher } = recorder(() => new Response('', { status: 503 }))
+    const r = new Hono<Env>().route('/', createIcons(fetcher))
+    const host = `transient-${crypto.randomUUID().slice(0, 8)}.example.com`
+    const pending: Promise<unknown>[] = []
+    const c2 = {
+      waitUntil: (p: Promise<unknown>) => void pending.push(p),
+      passThroughOnException() {},
+    } as unknown as ExecutionContext
+    await r.request(`/icons/${host}/icon.png`, {}, env, c2)
+    await Promise.all(pending)
+    const cached = await (caches as unknown as { default: Cache }).default.match(
+      new Request(`http://localhost/icons/${host}/icon.png`),
+    )
+    expect(cached?.headers.get('Cache-Control')).toBe('public, max-age=3600')
+  })
+
+  it('rate limits cache misses per client but not cache hits', async () => {
+    let allow = true
+    const limiter = { limit: async () => ({ success: allow }) } as unknown as RateLimit
+    const { fetcher, calls } = recorder(() => png())
+    const r = new Hono<Env>().route('/', createIcons(fetcher))
+    const pending: Promise<unknown>[] = []
+    const c2 = {
+      waitUntil: (p: Promise<unknown>) => void pending.push(p),
+      passThroughOnException() {},
+    } as unknown as ExecutionContext
+    const e = { ...env, LOGIN_LIMITER: limiter }
+    const cached = `rl-cached-${crypto.randomUUID().slice(0, 8)}.example.com`
+    await r.request(`/icons/${cached}/icon.png`, {}, e, c2)
+    await Promise.all(pending)
+    allow = false
+    const hit = await r.request(`/icons/${cached}/icon.png`, {}, e, c2)
+    expect(hit.status).toBe(200)
+    const before = calls.length
+    const miss = await r.request(
+      `/icons/rl-miss-${crypto.randomUUID().slice(0, 8)}.example.com/icon.png`,
+      {},
+      e,
+      c2,
+    )
+    expect(miss.status).toBe(429)
     expect(calls.length).toBe(before)
   })
 

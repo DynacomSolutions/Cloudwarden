@@ -7,6 +7,11 @@ export const MAX_REDIRECTS = 3
 
 export type Fetcher = (input: string, init?: RequestInit) => Promise<Response>
 
+/** Filled in while fetching; `transient` means a retry could succeed (timeout, 5xx, 429). */
+export interface FetchState {
+  transient: boolean
+}
+
 export interface Icon {
   bytes: Uint8Array
   contentType: string
@@ -81,10 +86,12 @@ export async function safeGet(
   fetcher: Fetcher,
   accept: string,
   overall: AbortSignal,
+  state: FetchState = { transient: false },
 ): Promise<{ res: Response; url: URL } | null> {
   let url = start
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
-    if (!validateUrl(url).ok) return null
+    // Every hop, including the first, must be https and pass the SSRF checks.
+    if (url.protocol !== 'https:' || !validateUrl(url).ok) return null
     let res: Response
     try {
       res = await fetcher(url.toString(), {
@@ -94,6 +101,7 @@ export async function safeGet(
         signal: AbortSignal.any([overall, AbortSignal.timeout(REQUEST_TIMEOUT_MS)]),
       })
     } catch {
+      state.transient = true
       return null
     }
     if (res.status >= 300 && res.status < 400) {
@@ -108,6 +116,7 @@ export async function safeGet(
       continue
     }
     if (res.status < 200 || res.status >= 300) {
+      if (res.status >= 500 || res.status === 429 || res.status === 408) state.transient = true
       await res.body?.cancel().catch(() => {})
       return null
     }
@@ -166,16 +175,20 @@ export function parseIconLinks(html: string, base: URL): URL[] {
 const IMAGE_ACCEPT = 'image/png,image/x-icon,image/vnd.microsoft.icon,image/*;q=0.8'
 
 /** Find an icon for a validated hostname: /favicon.ico first, then the homepage's link tags. */
-export async function fetchIcon(host: string, fetcher: Fetcher): Promise<Icon | null> {
+export async function fetchIcon(
+  host: string,
+  fetcher: Fetcher,
+  state: FetchState = { transient: false },
+): Promise<Icon | null> {
   if (!validateHost(host).ok) return null
   const overall = AbortSignal.timeout(OVERALL_TIMEOUT_MS)
 
   const direct = await readIcon(
-    await safeGet(new URL(`https://${host}/favicon.ico`), fetcher, IMAGE_ACCEPT, overall),
+    await safeGet(new URL(`https://${host}/favicon.ico`), fetcher, IMAGE_ACCEPT, overall, state),
   )
   if (direct) return direct
 
-  const page = await safeGet(new URL(`https://${host}/`), fetcher, 'text/html', overall)
+  const page = await safeGet(new URL(`https://${host}/`), fetcher, 'text/html', overall, state)
   if (!page) return null
   const type = (page.res.headers.get('content-type') ?? '').toLowerCase()
   if (!type.includes('html')) {
@@ -185,7 +198,7 @@ export async function fetchIcon(host: string, fetcher: Fetcher): Promise<Icon | 
   const { bytes } = await readCapped(page.res, MAX_BYTES)
   const html = new TextDecoder().decode(bytes)
   for (const candidate of parseIconLinks(html, page.url).slice(0, 3)) {
-    const icon = await readIcon(await safeGet(candidate, fetcher, IMAGE_ACCEPT, overall))
+    const icon = await readIcon(await safeGet(candidate, fetcher, IMAGE_ACCEPT, overall, state))
     if (icon) return icon
   }
   return null

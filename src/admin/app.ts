@@ -1,6 +1,7 @@
 import { type Context, Hono } from 'hono'
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import { html } from 'hono/html'
+import { isReservedBlobKey } from '../blob-keys'
 import { createEmailTransport, type EmailTransport, inviteEmail, magicLinkEmail } from '../email'
 import type { Bindings } from '../env'
 import { SERVER_VERSION } from '../routes/config'
@@ -517,8 +518,9 @@ ${kvTable([
   })
 
   async function deleteBlobs(env: Bindings, keys: string[]) {
-    for (let i = 0; i < keys.length; i += 1000)
-      await env.ATTACHMENTS.delete(keys.slice(i, i + 1000))
+    const safe = keys.filter((k) => !isReservedBlobKey(k))
+    for (let i = 0; i < safe.length; i += 1000)
+      await env.ATTACHMENTS.delete(safe.slice(i, i + 1000))
   }
 
   return app

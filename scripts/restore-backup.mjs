@@ -5,7 +5,7 @@
  *
  * Usage: node scripts/restore-backup.mjs <backup-dir> [--out-dir <dir>] [--chunk-bytes <n>]
  *
- * <backup-dir> holds manifest.json and the <table>.jsonl files downloaded from R2. Files are verified
+ * <backup-dir> holds manifest.json and the <table>.NNNN.jsonl part files downloaded from R2. Files are verified
  * against the manifest SHA-256 first. Without --out-dir the SQL goes to stdout; with it, numbered
  * part files are written so each stays small enough for one `cf d1 query --sql` call. Run the parts
  * in order against an empty database that already has the schema migrations applied.
@@ -13,7 +13,7 @@
 
 import { createHash } from 'node:crypto'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { basename, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 const IDENT = /^[A-Za-z_][A-Za-z0-9_]*$/
@@ -49,16 +49,23 @@ export function tableStatements(table, jsonl) {
 /** Read and verify a backup directory; returns an ordered list of SQL statements. */
 export function buildStatements(dir) {
   const manifest = JSON.parse(readFileSync(join(dir, 'manifest.json'), 'utf8'))
-  if (manifest.version !== 1) throw new Error(`unsupported manifest version ${manifest.version}`)
+  if (manifest.version !== 2) throw new Error(`unsupported manifest version ${manifest.version}`)
   const statements = ['PRAGMA defer_foreign_keys = on;']
   for (const t of manifest.tables) {
     if (!IDENT.test(t.name)) throw new Error('invalid table name in manifest')
-    const data = readFileSync(join(dir, `${t.name}.jsonl`))
-    const digest = createHash('sha256').update(data).digest('hex')
-    if (digest !== t.sha256) throw new Error(`checksum mismatch for ${t.name}`)
-    const stmts = tableStatements(t.name, data.toString('utf8'))
-    if (stmts.length !== t.rows) throw new Error(`row count mismatch for ${t.name}`)
-    statements.push(...stmts)
+    let rows = 0
+    for (const part of t.parts) {
+      // Parts are looked up by file name, so a directory of downloaded objects works as is.
+      const data = readFileSync(join(dir, basename(part.key)))
+      const digest = createHash('sha256').update(data).digest('hex')
+      if (digest !== part.sha256) throw new Error(`checksum mismatch for ${basename(part.key)}`)
+      const stmts = tableStatements(t.name, data.toString('utf8'))
+      if (stmts.length !== part.rows)
+        throw new Error(`row count mismatch for ${basename(part.key)}`)
+      rows += stmts.length
+      statements.push(...stmts)
+    }
+    if (rows !== t.rows) throw new Error(`row count mismatch for ${t.name}`)
   }
   return statements
 }

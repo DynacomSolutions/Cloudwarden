@@ -1,0 +1,41 @@
+{
+  "name": "cloudwarden",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "cf dev",
+    "build": "cf build",
+    "deploy": "cf deploy",
+    "typecheck": "cf workers types && tsc --noEmit",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "cf d1 migrations apply 00000000-0000-4000-8000-000000000000 --local --dir migrations",
+    "check:identifiers": "node scripts/check-identifiers.mjs",
+    "test:scripts": "node --test scripts/*.test.mjs",
+    "prepare": "lefthook install || true"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.15",
+    "@cloudflare/vite-plugin": "^2.0.0-beta.sha-ad79608dd",
+    "@cloudflare/vitest-pool-workers": "^0.22.0",
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
+    "cf": "^1.0.0-beta.5",
+    "drizzle-kit": "^0.31.11",
+    "lefthook": "^2.1.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0",
+    "vitest": "^4.1.11"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.3",
+    "hono": "^4.13.12",
+    "zod": "^4.6.5"
+  },
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=22"
+  }
+}

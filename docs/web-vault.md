@@ -22,6 +22,12 @@ Extraction keeps only the image's `/app` web root, drops source maps and the ups
 
 - `LICENSE-NOTICE.txt`: GPL-3.0 notice with the exact source image, digest and upstream location.
 - `_headers`: security headers for static responses (see below).
+- `cloudwarden/admin-link.js`: copied from `web-vault-overlay/admin-link.js`, plus one
+  `<script src="cloudwarden/admin-link.js" integrity="sha384-..." defer>` tag before `</head>` in
+  `index.html`. The integrity value is the SHA-384 of the copied file, computed at fetch time.
+  Injection replaces any earlier tag, so it is deterministic and idempotent, and it runs even when
+  the vault is already up to date. The script is same-origin, so `script-src 'self'` allows it.
+  See `docs/admin.md`.
 - `.fetched`: stamp so repeat runs are no-ops. Use `--force` to refetch.
 
 Only Bitwarden's own image is used. Nothing from any third-party web vault build is used.
@@ -42,7 +48,8 @@ vault). CI test runs do not need the vault.
 ## Routing
 
 `cloudflare.config.ts` sets `assets.runWorkerFirst` so the Worker handles `/api/*`, `/identity/*`,
-`/admin*`, `/notifications/*`, `/icons/*`, `/events/*`, `/alive` and `/app-id.json` before any
+`/admin*`, `/notifications/*`, `/icons/*`, `/events/*`, `/attachments/*`, `/send-files/*`, `/alive`
+and `/app-id.json` before any
 static lookup. Everything else is served from assets, with unknown paths falling back to
 `index.html` (single-page application routing).
 
@@ -66,6 +73,6 @@ integrations that need other origins.
 ## Licence
 
 The web vault is Copyright Bitwarden Inc. and licensed under GPL-3.0. Cloudwarden does not modify
-it. The notice shipped at `/LICENSE-NOTICE.txt` points to the corresponding source for the pinned
+Bitwarden's code; it only adds the admin link script tag described above. The notice shipped at `/LICENSE-NOTICE.txt` points to the corresponding source for the pinned
 version (https://github.com/bitwarden/clients). Bitwarden is a trademark of Bitwarden Inc.; this
 project is not affiliated with it.

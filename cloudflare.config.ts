@@ -26,6 +26,8 @@ export default defineConfig({
         '/notifications/*',
         '/icons/*',
         '/events/*',
+        '/attachments/*',
+        '/send-files/*',
         '/alive',
         '/app-id.json',
       ],

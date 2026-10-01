@@ -6,6 +6,7 @@ import { verifyMasterPassword } from '../auth/passwords'
 import { createDb, type Db, schema } from '../db'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
+import { PushType } from '../notifications/publish'
 import {
   bumpOrgRevision,
   canManageAllCiphers,
@@ -30,6 +31,12 @@ import {
 } from '../orgs/ciphers'
 import { EventType } from '../orgs/constants'
 import { eventStatement } from '../orgs/events'
+import {
+  activeMemberIds,
+  cipherRecipients,
+  notifyCiphersChanged,
+  notifyOrgCipher,
+} from '../orgs/notify'
 import { assertPersonalOwnershipAllowed } from '../orgs/policies'
 import { authOnce, batch } from '../orgs/util'
 import { parseBody } from '../validation'
@@ -139,6 +146,8 @@ async function createOrgCipher(c: Ctx, body: CipherBody, collectionIds: string[]
     }),
     bumpOrgRevision(db, orgUuid, now),
   ])
+  const ref = { uuid: id, organizationUuid: orgUuid }
+  notifyOrgCipher(c, PushType.SyncCipherCreate, ref, await cipherRecipients(db, ref), now)
   return respond(c, id, admin)
 }
 
@@ -239,6 +248,7 @@ orgCiphers.post('/api/ciphers/import-organization', async (c) => {
     ),
     bumpOrgRevision(db, orgUuid, now),
   ])
+  notifyCiphersChanged(c, await activeMemberIds(db, orgUuid), now)
   return c.body(null, 200)
 })
 
@@ -368,6 +378,7 @@ orgCiphers.put('/api/ciphers/share', async (c) => {
     bumpRevision(db, c.var.user.uuid, now),
     bumpOrgRevision(db, member.organizationUuid, now),
   ])
+  notifyCiphersChanged(c, await activeMemberIds(db, member.organizationUuid), now)
   const folders = await folderLinks(db, c.var.user.uuid)
   const ua = await loadUserAccess(db, c.var.user.uuid)
   const out = []
@@ -392,6 +403,8 @@ const shareOne = async (c: Ctx) => {
     bumpRevision(db, c.var.user.uuid, now),
     bumpOrgRevision(db, member.organizationUuid, now),
   ])
+  const ref = { uuid: id, organizationUuid: member.organizationUuid }
+  notifyOrgCipher(c, PushType.SyncCipherUpdate, ref, await cipherRecipients(db, ref), now)
   return respond(c, id, false)
 }
 
@@ -473,6 +486,9 @@ function bulk(op: BulkOp, admin: boolean, respondList: boolean) {
       bumpRevision(db, user.uuid, now),
       ...[...orgs].map((o) => bumpOrgRevision(db, o, now)),
     ])
+    const people = [user.uuid]
+    for (const o of orgs) people.push(...(await activeMemberIds(db, o)))
+    notifyCiphersChanged(c, people, now)
     if (!respondList) return c.body(null, 200)
     const fresh = await loadMany(db, ids)
     const folders = await folderLinks(db, user.uuid)
@@ -552,6 +568,7 @@ orgCiphers.post('/api/ciphers/purge', async (c, next) => {
     bumpOrgRevision(db, orgUuid, Date.now()),
     db.delete(schema.ciphers).where(eq(schema.ciphers.organizationUuid, orgUuid)),
   ])
+  notifyCiphersChanged(c, await activeMemberIds(db, orgUuid))
   return c.body(null, 200)
 })
 
@@ -618,6 +635,7 @@ orgCiphers.post('/api/ciphers/bulk-collections', async (c) => {
       ),
     bumpOrgRevision(db, body.organizationId, now),
   ])
+  notifyCiphersChanged(c, await activeMemberIds(db, body.organizationId), now)
   return c.body(null, 200)
 })
 
@@ -658,6 +676,7 @@ const update = (admin: boolean) => async (c: Ctx, next: Next) => {
     }),
     bumpOrgRevision(db, orgUuid, now),
   ])
+  notifyOrgCipher(c, PushType.SyncCipherUpdate, r.cipher, await cipherRecipients(db, r.cipher), now)
   return respond(c, id, admin)
 }
 orgCiphers.put('/api/ciphers/:id', update(false))
@@ -694,6 +713,8 @@ function single(op: BulkOp, admin: boolean, respondItem: boolean) {
     const db = createDb(c.env.DB)
     const orgUuid = r.cipher.organizationUuid as string
     const now = Date.now()
+    // Recipients are read first: a hard delete removes the links that decide who can see the item.
+    const before = op === 'restore' ? [] : await cipherRecipients(db, r.cipher)
     await batch(db, [
       op === 'hard'
         ? db.delete(schema.ciphers).where(eq(schema.ciphers.uuid, id))
@@ -704,6 +725,19 @@ function single(op: BulkOp, admin: boolean, respondItem: boolean) {
       eventStatement(db, c, { type: OP_EVENT[op], organizationUuid: orgUuid, cipherUuid: id }),
       bumpOrgRevision(db, orgUuid, now),
     ])
+    const type =
+      op === 'hard'
+        ? PushType.SyncLoginDelete
+        : op === 'soft'
+          ? PushType.SyncCipherDelete
+          : PushType.SyncCipherUpdate
+    notifyOrgCipher(
+      c,
+      type,
+      r.cipher,
+      op === 'restore' ? await cipherRecipients(db, r.cipher) : before,
+      now,
+    )
     return respondItem ? respond(c, id, admin) : c.body(null, 200)
   }
 }
@@ -745,6 +779,7 @@ const setCollections = (admin: boolean, v2: boolean) => async (c: Ctx, next: Nex
   const writable = (col: string) => manager || (ua !== null && !isReadOnly(ua, orgUuid, col))
   const kept = current.filter((col) => !writable(col))
   const now = Date.now()
+  const before = await cipherRecipients(db, r.cipher)
   await batch(db, [
     db.delete(schema.ciphersCollections).where(eq(schema.ciphersCollections.cipherUuid, id)),
     ...[...new Set([...kept, ...wanted])].map((collectionUuid) =>
@@ -758,6 +793,9 @@ const setCollections = (admin: boolean, v2: boolean) => async (c: Ctx, next: Nex
     }),
     bumpOrgRevision(db, orgUuid, now),
   ])
+  // Members who gained or lost access both need to hear about it.
+  const after = await cipherRecipients(db, r.cipher)
+  notifyOrgCipher(c, PushType.SyncCipherUpdate, r.cipher, [...new Set([...before, ...after])], now)
   if (admin) return c.body(null, 200)
   if (!v2) return respond(c, id, admin)
   // The caller may have just removed their own access to the item.

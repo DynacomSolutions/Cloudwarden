@@ -32,6 +32,7 @@ import {
   statusAfterRestore,
   VALID_ROLES,
 } from '../orgs/members'
+import { notifyOrgKeys } from '../orgs/notify'
 import { assertTwoFactorCompliant } from '../orgs/policies'
 import { authOnce, batch } from '../orgs/util'
 import { parseBody } from '../validation'
@@ -318,7 +319,7 @@ async function confirmStatements(
   actor: Member,
   id: string,
   key: string,
-): Promise<{ error: string } | { statements: unknown[] }> {
+): Promise<{ error: string } | { statements: unknown[]; userUuid: string }> {
   const target = await getTarget(db, actor.organizationUuid, id).catch(() => null)
   if (!target) return { error: 'User not found.' }
   if (target.status !== Status.Accepted || !target.userUuid)
@@ -331,6 +332,7 @@ async function confirmStatements(
   }
   const now = Date.now()
   return {
+    userUuid: target.userUuid,
     statements: [
       db
         .update(schema.usersOrganizations)
@@ -356,15 +358,18 @@ orgUsers.post('/api/organizations/:orgId/users/confirm', async (c) => {
   const actor = await requirePermission(db, c.var.user.uuid, org(c), 'manageUsers')
   const out: { id: string; error: string | null }[] = []
   const statements: unknown[] = []
+  const confirmed: string[] = []
   for (const k of body.keys) {
     const r = await confirmStatements(c, db, actor, k.id, k.key)
     if ('error' in r) out.push({ id: k.id, error: r.error })
     else {
       statements.push(...r.statements)
+      confirmed.push(r.userUuid)
       out.push({ id: k.id, error: null })
     }
   }
   await batch(db, statements)
+  for (const u of confirmed) notifyOrgKeys(c, u)
   return bulkOk(out, c)
 })
 
@@ -378,6 +383,7 @@ orgUsers.post('/api/organizations/:orgId/users/:id/confirm', async (c) => {
   const r = await confirmStatements(c, db, actor, c.req.param('id'), body.key)
   if ('error' in r) throw new ApiError(r.error === 'User not found.' ? 404 : 400, r.error)
   await batch(db, r.statements)
+  notifyOrgKeys(c, r.userUuid)
   return c.body(null, 200)
 })
 

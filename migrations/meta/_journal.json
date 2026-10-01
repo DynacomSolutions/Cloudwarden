@@ -36,6 +36,13 @@
       "when": 1790833103098,
       "tag": "0004_auth_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1790833593276,
+      "tag": "0005_organizations",
+      "breakpoints": true
     }
   ]
 }

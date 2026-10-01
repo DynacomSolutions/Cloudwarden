@@ -31,3 +31,7 @@ updates:
           - '*'
     commit-message:
       prefix: 'ci(deps)'
+    ignore:
+      - dependency-name: pnpm/action-setup
+        update-types: ["version-update:semver-major"]
+        # v5+ installs a standalone pnpm binary that needs libatomic, missing on our self-hosted runners

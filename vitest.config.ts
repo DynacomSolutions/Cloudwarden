@@ -15,8 +15,9 @@ export default defineConfig(async () => {
           compatibilityFlags: ['nodejs_compat'],
           bindings: {
             DOMAIN: 'https://vault.example.com',
-            SIGNUPS_ALLOWED: 'false',
+            SIGNUPS_ALLOWED: 'true',
             ADMIN_ENABLED: 'false',
+            JWT_SECRET: 'test-secret-test-secret-test-secret-0123456789',
             TEST_MIGRATIONS: migrations,
           },
           d1Databases: { DB: '00000000-0000-0000-0000-000000000000' },

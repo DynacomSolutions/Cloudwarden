@@ -42,3 +42,5 @@ Cloudwarden is a single Cloudflare Worker that implements the Bitwarden server A
 ## Decisions
 
 - [ADR 0001: D1 as the primary store](adr/0001-storage-d1.md)
+- [ADR 0002: Server-side password hashing](adr/0002-password-hashing.md)
+- [ADR 0003: Access token signing and rotation](adr/0003-jwt-signing.md)

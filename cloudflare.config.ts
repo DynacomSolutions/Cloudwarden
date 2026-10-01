@@ -1,8 +1,8 @@
 import { bindings, defineConfig, exports } from 'cf/config'
 
-// Secrets (set with `cf workers secrets update`, never committed): JWT_SECRET,
-// ADMIN_EMAILS, ADMIN_TOKEN_HASH. Deploy-time values come from the environment
-// (see docs/deploy.md); the committed defaults are placeholders.
+// Secrets (set with `cf workers secrets update`, never committed): JWT_SECRET (32+ characters),
+// JWT_SECRET_PREVIOUS (only while rotating), ADMIN_EMAILS, ADMIN_TOKEN_HASH. Deploy-time values
+// come from the environment (see docs/deploy.md); the committed defaults are placeholders.
 const env = process.env
 const domain = env.DEPLOY_DOMAIN || undefined
 export default defineConfig({
@@ -37,11 +37,15 @@ export default defineConfig({
       MAIL_FROM: bindings.text(env.MAIL_FROM || 'Cloudwarden <noreply@example.com>'),
       // Cloudflare Email Service (TASKS #141). Onboard the sending domain first.
       EMAIL: bindings.sendEmail(),
+      // Comma-separated domains or addresses allowed to register while SIGNUPS_ALLOWED is false.
+      SIGNUPS_DOMAINS_WHITELIST: bindings.text(''),
       DB: bindings.d1({
         name: 'cloudwarden',
         // Placeholder default; CI supplies the real id via CF_D1_DATABASE_ID.
         id: env.CF_D1_DATABASE_ID || '00000000-0000-4000-8000-000000000000',
       }),
+      // Applied per client address to prelogin, token and register (TASKS #29).
+      LOGIN_LIMITER: bindings.rateLimit({ namespace: '1001', simple: { limit: 20, period: 60 } }),
       ATTACHMENTS: bindings.r2({
         name: 'cloudwarden-attachments',
       }),

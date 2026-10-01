@@ -27,6 +27,10 @@ export const users = sqliteTable(
     securityStamp: text('security_stamp').notNull(),
     stampException: text('stamp_exception'),
     totpRecover: text('totp_recover'),
+    apiKey: text('api_key'),
+    emailNew: text('email_new'),
+    emailNewToken: text('email_new_token'),
+    emailNewExpiresAt: integer('email_new_expires_at'),
     equivalentDomains: text('equivalent_domains').notNull().default('[]'),
     excludedGlobals: text('excluded_globals').notNull().default('[]'),
     clientKdfType: integer('client_kdf_type').notNull().default(0),
@@ -47,18 +51,24 @@ export const devices = sqliteTable(
   'devices',
   {
     uuid: id(),
+    // Client-chosen device identifier. The same identifier may exist for several users.
+    identifier: text('identifier').notNull(),
     userUuid: text('user_uuid')
       .notNull()
       .references(() => users.uuid, { onDelete: 'cascade' }),
     name: text('name').notNull(),
     type: integer('type').notNull(),
     pushToken: text('push_token'),
+    // SHA-256 (base64url) of the refresh token secret; empty string means revoked.
     refreshToken: text('refresh_token').notNull(),
     twofactorRemember: text('twofactor_remember'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [index('devices_user_idx').on(t.userUuid)],
+  (t) => [
+    index('devices_user_idx').on(t.userUuid),
+    uniqueIndex('devices_user_identifier_unique').on(t.userUuid, t.identifier),
+  ],
 )
 
 export const folders = sqliteTable(

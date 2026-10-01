@@ -7,7 +7,7 @@ body:
       value: |
         Thank you for reporting a bug. Please provide as much detail as possible.
 
-        **Security Issues:** If you have discovered a security vulnerability, please report it privately via GitHub's Security tab (once the repo is public). Until then, report privately to the maintainers through the organisation. Do not open a public issue.
+        **Security Issues:** If you have discovered a security vulnerability, please report it privately to the maintainers. Do not open a public issue.
 
   - type: textarea
     id: description

@@ -17,6 +17,7 @@ import {
   verifyAdminToken,
 } from './security'
 import {
+  badge,
   confirmPage,
   flash,
   fmtBytes,
@@ -34,6 +35,14 @@ const SESSION_TTL_MS = 8 * 3600_000
 const WINDOW_MS = 15 * 60_000
 const COOKIE = 'cw_admin'
 const PAGE_SIZE = 50
+const TFA_NAMES: Record<number, string> = {
+  0: 'Authenticator',
+  1: 'Email',
+  2: 'Duo',
+  3: 'YubiKey',
+  6: 'Duo (organisation)',
+  7: 'Passkey',
+}
 
 interface Session {
   hash: string
@@ -55,6 +64,7 @@ const MESSAGES: Record<string, string> = {
   enabled: 'User enabled.',
   deauth: 'Sessions deauthorised.',
   deleted: 'Deleted.',
+  '2fa-removed': 'Two-factor authentication removed and sessions deauthorised.',
   invited: 'Invitation recorded.',
   'invited-nomail': 'Invitation recorded. No email transport is configured, so nothing was sent.',
   'invite-failed': 'Invitation recorded, but the email could not be sent.',
@@ -81,7 +91,8 @@ export function createAdmin(deps: AdminDeps = {}) {
     if (c.env.ADMIN_ENABLED !== 'true') {
       return c.json({ message: 'Not found', validationErrors: null, object: 'error' }, 404)
     }
-    const nonce = randomToken(16)
+    // One nonce per request, shared by the CSP header and every <style> tag.
+    const nonce = c.get('nonce') ?? randomToken(16)
     c.set('nonce', nonce)
     if (c.req.method === 'POST' && !originOk(c)) {
       c.header('Cache-Control', 'no-store')
@@ -89,7 +100,7 @@ export function createAdmin(deps: AdminDeps = {}) {
         layout(
           'Forbidden',
           nonce,
-          html`<div class="narrow card"><h1>Forbidden</h1><p>Cross-origin request refused.</p></div>`,
+          html`<div class="card"><h1>Forbidden</h1><p>Cross-origin request refused.</p></div>`,
         ),
         403,
       )
@@ -97,7 +108,7 @@ export function createAdmin(deps: AdminDeps = {}) {
     await next()
     csp(c, nonce)
   }
-  app.use('/admin', gate)
+  // `/admin/*` also matches `/admin`; registering both ran the gate twice and produced two nonces.
   app.use('/admin/*', gate)
 
   const csp = (c: Ctx, nonce: string) => {
@@ -167,7 +178,7 @@ export function createAdmin(deps: AdminDeps = {}) {
           layout(
             'Forbidden',
             c.get('nonce'),
-            html`<div class="narrow card"><h1>Forbidden</h1><p>Invalid CSRF token.</p></div>`,
+            html`<div class="card"><h1>Forbidden</h1><p>Invalid CSRF token.</p></div>`,
             navOf(c),
           ),
           403,
@@ -313,7 +324,8 @@ ${kvTable(await serverRows(c))}`,
     const { results } = await c.env.DB.prepare(
       `SELECT u.uuid, u.email, u.name, u.created_at, u.enabled,
         (SELECT MAX(d.updated_at) FROM devices d WHERE d.user_uuid = u.uuid) AS last_active,
-        EXISTS (SELECT 1 FROM twofactor t WHERE t.user_uuid = u.uuid AND t.enabled = 1) AS tfa
+        (SELECT COUNT(*) FROM ciphers x WHERE x.user_uuid = u.uuid) AS items,
+        (SELECT GROUP_CONCAT(t.atype) FROM twofactor t WHERE t.user_uuid = u.uuid AND t.enabled = 1 AND t.atype != 8) AS tfa
        FROM users u ORDER BY u.created_at DESC LIMIT ?1 OFFSET ?2`,
     )
       .bind(PAGE_SIZE + 1, (pageNo - 1) * PAGE_SIZE)
@@ -324,12 +336,24 @@ ${kvTable(await serverRows(c))}`,
         created_at: number
         enabled: number
         last_active: number | null
-        tfa: number
+        items: number
+        tfa: string | null
       }>()
     const rows = results.slice(0, PAGE_SIZE)
     const csrf = c.get('session').csrf
-    const act = (uuid: string, action: string, label: string, cls = '') =>
-      html`<form class="inline" method="post" action="/admin/users/${uuid}/${action}"><input type="hidden" name="csrf" value="${csrf}"><button class="${cls}" type="submit">${label}</button></form>`
+    const act = (uuid: string, action: string, label: string) =>
+      html`<form class="inline" method="post" action="/admin/users/${uuid}/${action}"><input type="hidden" name="csrf" value="${csrf}"><button class="sm" type="submit">${label}</button></form>`
+    const providers = (tfa: string | null) =>
+      tfa
+        ? tfa
+            .split(',')
+            .map((n) => TFA_NAMES[Number(n)] ?? `Type ${n}`)
+            .join(', ')
+        : ''
+    const tfaCell = (tfa: string | null) =>
+      tfa
+        ? html`${badge('ok', '2FA on')} <span class="muted">${providers(tfa)}</span>`
+        : badge('off', '2FA off')
     const { results: invites } = await c.env.DB.prepare(
       'SELECT email, created_at FROM invitations ORDER BY created_at DESC LIMIT 50',
     ).all<{ email: string; created_at: number }>()
@@ -337,13 +361,13 @@ ${kvTable(await serverRows(c))}`,
       c,
       'Users',
       html`<h1>Users</h1>${flashOf(c)}
-<div class="card wrap"><table><thead><tr><th>Email</th><th>Name</th><th>Created</th><th>Last active</th><th>2FA</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+<div class="card wrap"><table><thead><tr><th>User</th><th>Created</th><th>Last active</th><th>Items</th><th>2FA</th><th>Status</th><th>Actions</th></tr></thead><tbody>
 ${rows.map(
   (
     u,
-  ) => html`<tr><td>${u.email}</td><td>${u.name}</td><td>${fmtDate(u.created_at)}</td><td>${fmtDate(u.last_active)}</td>
-<td>${u.tfa ? 'yes' : 'no'}</td><td>${u.enabled ? html`<span class="ok">active</span>` : html`<span class="bad">disabled</span>`}</td>
-<td><div class="actions">${u.enabled ? act(u.uuid, 'disable', 'Disable') : act(u.uuid, 'enable', 'Enable')}${act(u.uuid, 'deauth', 'Deauthorise sessions')}<a class="btn" href="/admin/users/${u.uuid}/delete">Delete</a></div></td></tr>`,
+  ) => html`<tr><td>${u.email}<br><span class="muted">${u.name}</span></td><td>${fmtDate(u.created_at)}</td><td>${fmtDate(u.last_active)}</td><td>${u.items}</td>
+<td>${tfaCell(u.tfa)}</td><td>${u.enabled ? badge('ok', 'Enabled') : badge('bad', 'Disabled')}</td>
+<td><div class="actions">${u.enabled ? act(u.uuid, 'disable', 'Disable') : act(u.uuid, 'enable', 'Enable')}${act(u.uuid, 'deauth', 'Deauthorise sessions')}${u.tfa ? html`<a class="btn sm" href="/admin/users/${u.uuid}/remove-2fa">Remove 2FA</a>` : ''}<a class="btn sm danger" href="/admin/users/${u.uuid}/delete">Delete</a></div></td></tr>`,
 )}
 </tbody></table></div>
 <p>${pageNo > 1 ? html`<a href="/admin/users?page=${pageNo - 1}">Previous</a> ` : ''}${results.length > PAGE_SIZE ? html`<a href="/admin/users?page=${pageNo + 1}">Next</a>` : ''}</p>
@@ -399,6 +423,39 @@ ${
     return c.redirect('/admin/users?m=invited', 303)
   })
 
+  app.get('/admin/users/:id/remove-2fa', async (c) => {
+    const id = c.req.param('id')
+    const u = await c.env.DB.prepare('SELECT email FROM users WHERE uuid = ?1')
+      .bind(id)
+      .first<{ email: string }>()
+    if (!u) return c.redirect('/admin/users', 303)
+    return c.html(
+      confirmPage(
+        c.get('nonce'),
+        navOf(c),
+        'Remove 2FA',
+        `Remove every two-factor provider and remembered device for ${u.email}, and sign them out everywhere. They can then log in with their password alone.`,
+        `/admin/users/${id}/remove-2fa`,
+        '/admin/users',
+        'Remove 2FA',
+      ),
+    )
+  })
+
+  app.post('/admin/users/:id/remove-2fa', async (c) => {
+    const id = c.req.param('id')
+    await c.env.DB.batch([
+      c.env.DB.prepare('DELETE FROM twofactor WHERE user_uuid = ?1').bind(id),
+      c.env.DB.prepare('UPDATE devices SET twofactor_remember = NULL WHERE user_uuid = ?1').bind(
+        id,
+      ),
+      c.env.DB.prepare(
+        'UPDATE users SET totp_recover = NULL, security_stamp = ?2, updated_at = ?3 WHERE uuid = ?1',
+      ).bind(id, crypto.randomUUID(), now()),
+    ])
+    return c.redirect('/admin/users?m=2fa-removed', 303)
+  })
+
   app.get('/admin/users/:id/delete', async (c) => {
     const id = c.req.param('id')
     const u = await c.env.DB.prepare('SELECT email FROM users WHERE uuid = ?1')
@@ -446,7 +503,7 @@ ${
       'Organisations',
       html`<h1>Organisations</h1>${flashOf(c)}
 <div class="card wrap"><table><thead><tr><th>Name</th><th>Members</th><th>Ciphers</th><th>Created</th><th></th></tr></thead><tbody>
-${results.map((o) => html`<tr><td>${o.name}</td><td>${o.members}</td><td>${o.ciphers}</td><td>${fmtDate(o.created_at)}</td><td><a class="btn" href="/admin/orgs/${o.uuid}/delete">Delete</a></td></tr>`)}
+${results.map((o) => html`<tr><td>${o.name}</td><td>${o.members}</td><td>${o.ciphers}</td><td>${fmtDate(o.created_at)}</td><td><a class="btn sm danger" href="/admin/orgs/${o.uuid}/delete">Delete</a></td></tr>`)}
 </tbody></table></div>`,
     )
   })

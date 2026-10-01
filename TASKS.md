@@ -23,11 +23,12 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 | 4 | Initial D1 schema and migration (Drizzle) | done | agent | Migration applies in tests |
 | 5 | Identifier guard (`scripts/check-identifiers.mjs`) with tests | done | agent | `pnpm test:scripts` green; repo scan clean |
 | 6 | Git hooks (lefthook): Biome, identifiers, gitleaks, author email, commitlint, pre-push typecheck and tests | done | agent | Hooks install on `pnpm install` |
-| 7 | CI: lint, typecheck, test, identifiers, commitlint, CodeQL, secret scan, dependency review, Scorecard, actionlint, zizmor | done | agent | Workflows pass on `main` |
-| 8 | Repo settings: Dependabot alerts and updates, private vulnerability reporting, `main` ruleset (PR required, `CI Status` required, no force push, linear history) | done | coordinator | Settings visible via API; see evidence log |
+| 7 | CI: lint, typecheck, test, identifiers, commitlint, secret scan, actionlint, zizmor | done | agent | Workflows pass on `main` |
+| 13 | Move all CI to the self-hosted `k3s-runners` scale set; gitleaks replaces trufflehog; drop GitHub Advanced Security workflows (CodeQL, dependency review, Scorecard) and CODEOWNERS (owner decision: security is gitleaks, own CI and local hooks only) | doing | coordinator | All workflows green on `k3s-runners`; no GitHub-hosted jobs |
+| 8 | Repo settings: Dependabot alerts and updates, `main` ruleset (PR required, `CI Status` required, no force push, linear history) | done | coordinator | Settings visible via API; see evidence log |
 | 9 | Architecture doc and storage ADR | done | coordinator | `docs/architecture.md`, `docs/adr/0001-storage-d1.md` |
-| 10 | Confirm licence (AGPL-3.0 chosen to match Vaultwarden and cover network use) | todo | owner | Owner confirms or picks another |
-| 11 | Create `maintainers` team for CODEOWNERS | todo | owner | Team exists with write access |
+| 10 | Confirm licence. Recommendation: keep AGPL-3.0 (Vaultwarden is AGPL so any ported logic must be; covers hosted forks; compatible with bundling the GPL-3.0 web vault) | todo | owner | Owner confirms or picks another |
+| 11 | ~~Create `maintainers` team for CODEOWNERS~~ (never requested; CODEOWNERS removed under #13) | dropped | | |
 | 12 | Local dev on the cluster (`devdeploy`) without committing local hostnames | todo | | Dev server reachable locally; no host-specific files committed |
 
 ## Phase 1: Identity and accounts
@@ -132,8 +133,9 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 
 | # | Task | Status | Owner | Acceptance |
 |---|---|---|---|---|
-| 200 | Full-history identifier and secret scan (`check-identifiers`, trufflehog) | todo | | Zero findings |
-| 201 | On going public: enable private vulnerability reporting, Scorecard publishing; confirm CodeQL, dependency review and Scorecard jobs (gated to public repos, since GHAS is off while private) run green | todo | | All three workflows run, not skipped |
+| 200 | Full-history identifier and secret scan (`check-identifiers`, gitleaks) | todo | | Zero findings |
+| 201 | Publish a private vulnerability reporting channel in SECURITY.md before going public | todo | owner | Channel documented, no personal contact details |
+| 204 | Runners for public visibility: the Default runner group (holding `k3s-runners`) disallows public repositories. Give Cloudwarden a dedicated scale set or a group that allows public repos, hardened for untrusted fork PRs (ephemeral, no secrets, approval required for outside contributors) | todo | owner | CI runs after the visibility flip; fork PRs need approval |
 | 202 | Trademark review: name and wording do not imply affiliation with Bitwarden | todo | owner | |
 | 203 | Flip visibility to public | todo | owner | Owner approval recorded |
 
@@ -143,6 +145,7 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 
 Newest first. One line per verified fact.
 
+- 2026-10-01 · #13 · GitHub secret scanning and push protection disabled via API (owner decision: no GitHub Advanced Security features).
 - 2026-10-01 · #8 · Ruleset active on the default branch: no deletion, no force push, linear history, signed commits, PR required (squash only, threads resolved), `CI Status` required and up to date. Admin bypass only through a PR. Main commits show as verified on GitHub.
 - 2026-10-01 · #7 · First push to `main`: CI succeeded (Lint, Typecheck, Test, Identifier Check, CI Status), Secret Scanning succeeded; CodeQL and Scorecard skipped by design while private. actionlint 1.7.12 and zizmor 1.30.1 (medium and above) clean locally.
 - 2026-10-01 · #2 to #6 · Local: `pnpm lint`, `pnpm typecheck` and `pnpm test` (7 tests) green; `pnpm test:scripts` (48 tests) green; identifier scan and gitleaks history scan found nothing. Every commit passed the pre-commit hooks.

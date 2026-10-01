@@ -1,0 +1,33 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    allow:
+      - dependency-type: direct
+      - dependency-type: indirect
+    groups:
+      development-dependencies:
+        dependency-types:
+          - dev
+        patterns:
+          - '*'
+      production-dependencies:
+        dependency-types:
+          - production
+        patterns:
+          - '*'
+    commit-message:
+      prefix: 'chore(deps)'
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns:
+          - '*'
+    commit-message:
+      prefix: 'ci(deps)'

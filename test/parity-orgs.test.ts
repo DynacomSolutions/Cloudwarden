@@ -273,12 +273,11 @@ describe('accept-init', () => {
       billingEmail: 'billing@example.com',
       key: '4.k',
     })
-    const before = mail.sent.length
     await creator.call(`/api/organizations/${org.id}/users/invite`, 'POST', {
       emails: [invitee.email],
       type: 0,
     })
-    const params = linkParams(mail.sent[before])
+    const params = linkParams(await inviteMail(invitee.email))
     const ouId = params.get('organizationUserId') as string
     const body = {
       token: params.get('token'),
@@ -303,6 +302,16 @@ describe('accept-init', () => {
   })
 })
 
+/** The invitation mail for `email` (other mail, such as account emails, may arrive meanwhile). */
+const inviteMail = async (email: string) => {
+  for (let i = 0; i < 40; i++) {
+    const found = mail.sent.find((x) => x.to === email && x.text.includes('organizationUserId'))
+    if (found) return found
+    await new Promise((r) => setTimeout(r, 50))
+  }
+  throw new Error(`no invitation mail for ${email}`)
+}
+
 describe('auto-confirm', () => {
   it('lists accepted members and confirms them singly and in bulk', async () => {
     const owner = await actor('ac-owner@example.com')
@@ -311,12 +320,11 @@ describe('auto-confirm', () => {
     const { id } = await createOrg(owner)
     const ids: string[] = []
     for (const m of [a, b]) {
-      const before = mail.sent.length
       await owner.call(`/api/organizations/${id}/users/invite`, 'POST', {
         emails: [m.email],
         type: 2,
       })
-      const p = linkParams(mail.sent[before])
+      const p = linkParams(await inviteMail(m.email))
       const ou = p.get('organizationUserId') as string
       await m.call(`/api/organizations/${id}/users/${ou}/accept`, 'POST', { token: p.get('token') })
       ids.push(ou)

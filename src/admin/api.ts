@@ -9,7 +9,6 @@ import { ApiError, errorBody } from '../errors'
 import { createNotification, notificationJson } from '../notifications/center'
 import { relayStatus, relayTestConnection } from '../notifications/relay'
 import { parseBody } from '../validation'
-import { relayStatus, relayTestConnection } from '../notifications/relay'
 import { deletePushSettings, pushSettingsView, savePushSettings } from './push-settings'
 import { isAdminUser, isPlausibleEmail, normaliseEmail, rateLimit } from './security'
 import {

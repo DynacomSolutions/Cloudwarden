@@ -75,13 +75,21 @@ id and 40 character client secret.
   `AuthUrl` is the authorize URL with a signed `request` JWT (`duo_uname` is the account email,
   `redirect_uri` is `<DOMAIN>/duo-redirect-connector.html?client=<web|browser|desktop|mobile>`,
   taken from the `Bitwarden-Client-Name` header) and a stateless `state` (the same HMAC challenge
-  as WebAuthn, bound to the user, valid 5 minutes). The clients open it, Duo redirects to the
+  as WebAuthn, bound to the user and to the login's device identifier, valid 5 minutes) and a
+  `nonce` derived from it. The clients open it, Duo redirects to the
   connector page, which hands `code` and `state` back; the client sends `code|state` as the token.
 - The server checks the state, exchanges the code at `https://<host>/oauth/v1/token` with a client
   assertion, verifies the `id_token` signature (HS512, client secret), issuer, audience, that
-  `preferred_username` is the account email and that `auth_result.result` is `allow`.
-- Organisation Duo applies to every confirmed member of an organisation that has it enabled and
-  is offered as provider 6 next to the user's own providers. Configuration lives in
+  `preferred_username` is the account email, the echoed `nonce`, a numeric `exp` and an `iat`
+  within a sane window, and that `auth_result.result` is `allow`.
+- A state works once: the newest accepted state time is stored (`last_used` of the user's Duo row,
+  or a disabled ledger row for organisation Duo), so a replay or an older state is refused. The
+  state is spent before Duo is contacted.
+- Organisation Duo follows the official clients: it is one more selectable provider (type 6,
+  listed first by the clients) for confirmed members of an organisation that enables it, not an
+  extra mandatory step. The wire format has one entry per provider type, so with several
+  organisations the challenge offers the first (by organisation id) and verification accepts any
+  of them. Pending, accepted and revoked members are not offered it. Configuration lives in
   `organization_twofactor` (migration `0011`).
 - The web client's `frame-src` allows `*.duosecurity.com` and `*.duofederal.com`.
 
@@ -99,7 +107,9 @@ server (https URL).
   stored. A key already registered can be sent back by its public id without a new OTP.
 - Login: `TwoFactorProviders2["3"]` is `{ Nfc }`. The token is an OTP whose public id must be one
   of the stored ids; YubiCloud must answer `OK` with a valid signature for that exact OTP and a
-  fresh nonce, and replays are refused by YubiCloud itself.
+  fresh nonce. The signed session counter and use are stored per public id, and an OTP that is
+  not later than the newest accepted one is refused locally as a replay, as well as by YubiCloud.
+  The API key must be standard base64.
 - Without the two variables registering a new key is refused with a message naming them.
 
 ## Login with passkey (#125)

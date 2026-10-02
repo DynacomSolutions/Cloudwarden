@@ -58,9 +58,13 @@ SOURCE_PASSWORD=... pnpm import:server \
   with no re-encryption. Without `--register` the script logs in to an existing target account
   (it needs `TARGET_PASSWORD`), and re-encrypts: per item keys are re-wrapped, items without a
   key have every encrypted field re-encrypted under the target user key.
-- Two-factor on either side: `--source-2fa-provider` and `--source-2fa-token` (and the `--target-`
-  pair); email codes can be requested from the source's own client first. `--dry-run` decrypts
+- Two-factor on either side: codes are read from `SOURCE_2FA_TOKEN` or `TARGET_2FA_TOKEN`, or
+  prompted for on a terminal, never taken from arguments (which show in process lists);
+  `--source-2fa-provider` and `--target-2fa-provider` pick a provider type (default: the first one
+  offered). Email codes can be requested from the source's own client first. `--dry-run` decrypts
   and counts without touching the target; `--skip-errors` skips an item that cannot be converted.
+- Both server URLs must be https; plain http is accepted for localhost only, because the master
+  password hash and tokens are sent. Redirects are refused.
 - Copied: logins (including passkeys and URIs), cards, identities, secure notes, SSH keys, custom
   fields, password history, favourites, folders. Not copied: organisations and their items,
   Sends, attachments, trash, devices, two-factor setup and events. Accounts using the newer

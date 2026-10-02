@@ -48,7 +48,7 @@ import {
   verifyRegistration,
   WebAuthnError,
 } from '../auth/webauthn'
-import { isOtp, isPublicId, publicIdOf, verifyOtp } from '../auth/yubico'
+import { isOtp, isPublicId, type OtpPosition, publicIdOf, verifyOtp } from '../auth/yubico'
 import { createDb, runBatch, schema } from '../db'
 import {
   createEmailTransport,
@@ -635,6 +635,7 @@ const putYubiKey = async (c: Ctx) => {
   const existing = parseData<YubiKeyData>(await providerRow(db, user.uuid, TwoFactorType.YubiKey))
   const cfg = yubicoConfig(c.env)
   const keys: string[] = []
+  const last: Record<string, OtpPosition> = {}
   for (const raw of [body.key1, body.key2, body.key3, body.key4, body.key5]) {
     const value = (raw ?? '').trim().toLowerCase()
     if (!value) continue
@@ -648,10 +649,12 @@ const putYubiKey = async (c: Ctx) => {
           'YubiKey validation is not configured on this server. The administrator must set YUBICO_CLIENT_ID and YUBICO_SECRET_KEY.',
         )
       }
-      if (!(await verifyOtp(cfg, value))) {
+      const position = await verifyOtp(cfg, value)
+      if (!position) {
         throw new ApiError(400, 'A YubiKey OTP could not be verified. Touch the key again.')
       }
       id = publicIdOf(value)
+      last[id] = position
     } else {
       throw new ApiError(400, 'Invalid YubiKey OTP.')
     }
@@ -659,7 +662,13 @@ const putYubiKey = async (c: Ctx) => {
   }
   if (keys.length === 0) throw new ApiError(400, 'Enter at least one YubiKey.')
   if (keys.length > MAX_YUBIKEYS) throw new ApiError(400, 'Too many YubiKeys.')
-  const data: YubiKeyData = { keys, nfc: body.nfc === true }
+  const kept = Object.fromEntries(
+    keys.flatMap((id) => {
+      const position = last[id] ?? existing?.last?.[id]
+      return position ? [[id, position]] : []
+    }),
+  )
+  const data: YubiKeyData = { keys, nfc: body.nfc === true, last: kept }
   await runBatch(db, enableProviderStatements(db, user, TwoFactorType.YubiKey, data))
   return c.json({ yubiKey: yubiJson(data) })
 }

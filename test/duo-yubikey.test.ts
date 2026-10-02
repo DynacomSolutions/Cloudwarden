@@ -1,7 +1,7 @@
 import { env } from 'cloudflare:workers'
 import { afterEach, describe, expect, it } from 'vitest'
-import { duoNet, signHs512, verifyHs512 } from '../src/auth/duo'
-import { signingString, signParams, yubicoNet } from '../src/auth/yubico'
+import { duoNet, nonceFor, signHs512, verifyHs512 } from '../src/auth/duo'
+import { isLater, signingString, signParams, yubicoNet } from '../src/auth/yubico'
 import { BASE, createSession, login } from './helpers'
 import { actor, addMember, createOrg } from './org-helpers'
 
@@ -59,6 +59,17 @@ describe('fixed vectors', () => {
     )
   })
 
+  it('orders OTP positions and accepts only standard base64 keys', async () => {
+    expect(isLater({ counter: 5, use: 2 }, { counter: 5, use: 1 })).toBe(true)
+    expect(isLater({ counter: 6, use: 1 }, { counter: 5, use: 9 })).toBe(true)
+    expect(isLater({ counter: 5, use: 1 }, { counter: 5, use: 1 })).toBe(false)
+    expect(isLater({ counter: 4, use: 9 }, { counter: 5, use: 1 })).toBe(false)
+    expect(isLater({ counter: 1, use: 1 }, undefined)).toBe(true)
+    const params = { id: '1' }
+    await expect(signParams(params, 'eXViaWNvLXRlc3Qtc2VjcmV0IQ')).rejects.toThrow()
+    await expect(signParams(params, 'eXViaWNvLXRlc3Qt_2VjcmV0IQ==')).rejects.toThrow()
+  })
+
   it('produces and verifies HS512 JWTs', async () => {
     const vector = [
       'eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9',
@@ -66,9 +77,10 @@ describe('fixed vectors', () => {
       'VEgAwixa34uPd3Rl1GvxiIGc_8O84_OqcH7RJl2j-huZyRi8ky4ZEwr-Tz5v0Uc9lrEVO4S45cl5nY3w4Av2PA',
     ].join('.')
     expect(await signHs512({ a: 1, iss: 'x' }, 'duo-secret')).toBe(vector)
-    expect(await verifyHs512(vector, 'duo-secret')).toEqual({ a: 1, iss: 'x' })
-    expect(await verifyHs512(vector, 'other-secret')).toBeNull()
-    expect(await verifyHs512(`${vector.slice(0, -2)}AA`, 'duo-secret')).toBeNull()
+    expect(await verifyHs512(vector, 'duo-secret', undefined, false)).toEqual({ a: 1, iss: 'x' })
+    expect(await verifyHs512(vector, 'duo-secret')).toBeNull() // no exp
+    expect(await verifyHs512(vector, 'other-secret', undefined, false)).toBeNull()
+    expect(await verifyHs512(`${vector.slice(0, -2)}AA`, 'duo-secret', undefined, false)).toBeNull()
   })
 })
 
@@ -87,6 +99,7 @@ const ID_B = 'ccccccccccdd'
 /** Answers like YubiCloud: signed, and each OTP works once. */
 function fakeYubiCloud(valid: Set<string>) {
   const used = new Set<string>()
+  let uses = 0
   const seen: URLSearchParams[] = []
   yubicoNet.fetch = async (input) => {
     const q = new URL(input).searchParams
@@ -102,6 +115,8 @@ function fakeYubiCloud(valid: Set<string>) {
       otp: request.otp as string,
       nonce: request.nonce as string,
       t: '2026-01-01T00:00:00Z0000',
+      sessioncounter: '5',
+      sessionuse: String(++uses),
       status,
     }
     body.h = await signParams(body, yubiEnv.YUBICO_SECRET_KEY)
@@ -260,7 +275,7 @@ describe('YubiKey OTP', () => {
 // ---------------------------------------------------------------------------
 
 /** A Duo that approves any user for the authorize request it issued. */
-function fakeDuo(opts: { result?: string; secret?: string } = {}) {
+function fakeDuo(opts: { result?: string; secret?: string; nonce?: string } = {}) {
   const secret = opts.secret ?? SECRET
   const calls: string[] = []
   duoNet.fetch = async (url, init) => {
@@ -274,13 +289,15 @@ function fakeDuo(opts: { result?: string; secret?: string } = {}) {
     if (params.get('grant_type') !== 'authorization_code' || !params.get('code')) {
       return new Response('{}', { status: 400 })
     }
-    const [, user] = (params.get('code') ?? '').split(':')
+    const [, user, nonce] = (params.get('code') ?? '').split(':')
     return Response.json({
       id_token: await signHs512(
         {
           iss: `https://${HOST}/oauth/v1/token`,
           aud: CLIENT_ID,
           preferred_username: user,
+          nonce: opts.nonce ?? nonce,
+          iat: Math.floor(Date.now() / 1000),
           auth_result: { result: opts.result ?? 'allow' },
           exp: Math.floor(Date.now() / 1000) + 300,
         },
@@ -290,6 +307,9 @@ function fakeDuo(opts: { result?: string; secret?: string } = {}) {
   }
   return calls
 }
+
+const duoToken = async (user: string, state: string) =>
+  `x:${user}:${await nonceFor(state)}|${state}`
 
 const duoBody = { host: HOST, clientId: CLIENT_ID, clientSecret: SECRET }
 
@@ -373,19 +393,47 @@ describe('Duo', () => {
 
     const accept = await tokenLogin(email, {
       twoFactorProvider: '2',
-      twoFactorToken: `c:${email}|${request.state}`,
+      twoFactorToken: await duoToken(email, request.state),
     })
     expect(accept.status).toBe(200)
     expect(accept.body.access_token).toBeTruthy()
 
-    // A state minted for someone else, garbage, or a code approved for another user fails.
-    const other = await createSession('duo-other@example.com')
-    expect(other.access_token).toBeTruthy()
-    for (const token of [`c:${email}|garbage`, 'nopipe', `c:other@example.com|${request.state}`]) {
-      const res = await tokenLogin(email, { twoFactorProvider: '2', twoFactorToken: token })
+    // A state works once.
+    const replay = await tokenLogin(email, {
+      twoFactorProvider: '2',
+      twoFactorToken: await duoToken(email, request.state),
+    })
+    expect(replay.status).toBe(400)
+
+    // Garbage, a code approved for another user, a wrong nonce and another device all fail.
+    const fresh = async (device = 'device-1') => {
+      const ch2 = await tokenLogin(email, { deviceIdentifier: device })
+      const u = new URL(ch2.body.TwoFactorProviders2['2'].AuthUrl)
+      return ((await verifyHs512(u.searchParams.get('request') as string, SECRET)) as any).state
+    }
+    const state = await fresh()
+    const attempts: [string, string][] = [
+      [`x:${email}:n|garbage`, 'device-1'],
+      ['nopipe', 'device-1'],
+      [await duoToken('other@example.com', state), 'device-1'],
+      [`x:${email}:wrong|${state}`, 'device-1'],
+      [await duoToken(email, state), 'device-2'],
+    ]
+    for (const [token, device] of attempts) {
+      const res = await tokenLogin(email, {
+        twoFactorProvider: '2',
+        twoFactorToken: token,
+        deviceIdentifier: device,
+      })
       expect(res.status).toBe(400)
       expect(res.body.access_token).toBeUndefined()
     }
+    // After the failed attempts that reached Duo burned the state, a new one still works.
+    const again = await tokenLogin(email, {
+      twoFactorProvider: '2',
+      twoFactorToken: await duoToken(email, await fresh()),
+    })
+    expect(again.status).toBe(200)
 
     const del = await call(
       s.access_token,
@@ -410,7 +458,7 @@ describe('Duo', () => {
     const request = (await verifyHs512(url.searchParams.get('request') as string, SECRET)) as any
     const res = await tokenLogin(email, {
       twoFactorProvider: '2',
-      twoFactorToken: `c:${email}|${request.state}`,
+      twoFactorToken: await duoToken(email, request.state),
     })
     expect(res.status).toBe(400)
     expect(res.body.access_token).toBeUndefined()
@@ -451,7 +499,7 @@ describe('Duo', () => {
     expect(request.duo_uname).toBe(member.email)
     const ok = await tokenLogin(member.email, {
       twoFactorProvider: '6',
-      twoFactorToken: `c:${member.email}|${request.state}`,
+      twoFactorToken: await duoToken(member.email, request.state),
     })
     expect(ok.status).toBe(200)
     expect((await tokenLogin(outsider.email, {})).status).toBe(200)

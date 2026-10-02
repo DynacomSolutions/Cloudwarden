@@ -1,4 +1,4 @@
-import { fromB64u, safeEqualStrings, utf8 } from './crypto'
+import { safeEqualStrings, utf8 } from './crypto'
 
 /**
  * Yubico OTP validation against YubiCloud (validation protocol version 2.0). Requests and
@@ -46,8 +46,11 @@ export async function signParams(
   params: Record<string, string>,
   secretKey: string,
 ): Promise<string> {
-  const raw = fromB64u(secretKey)
-  if (!raw) throw new Error('Invalid Yubico secret key')
+  // The key portal issues standard base64 (with padding); nothing else is accepted.
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(secretKey) || secretKey.length % 4 !== 0) {
+    throw new Error('Invalid Yubico secret key')
+  }
+  const raw = Uint8Array.from(atob(secretKey), (ch) => ch.charCodeAt(0))
   const key = await crypto.subtle.importKey('raw', raw, { name: 'HMAC', hash: 'SHA-1' }, false, [
     'sign',
   ])
@@ -68,28 +71,44 @@ export function parseResponse(text: string): Record<string, string> {
   return out
 }
 
-/** True only when YubiCloud answers `OK` with a genuine signature for this exact OTP and nonce. */
-export async function verifyOtp(cfg: YubicoConfig, otp: string): Promise<boolean> {
-  if (!isOtp(otp)) return false
+/** Position of an accepted OTP in the key's life: the session counter and the use within it. */
+export interface OtpPosition {
+  counter: number
+  use: number
+}
+
+/** True when `a` is strictly later than `b`. */
+export const isLater = (a: OtpPosition, b: OtpPosition | undefined): boolean =>
+  !b || a.counter > b.counter || (a.counter === b.counter && a.use > b.use)
+
+/**
+ * Returns the OTP's position when YubiCloud answers `OK` with a genuine signature for this exact
+ * OTP and nonce (and the counters it signed), otherwise null.
+ */
+export async function verifyOtp(cfg: YubicoConfig, otp: string): Promise<OtpPosition | null> {
+  if (!isOtp(otp)) return null
   const params: Record<string, string> = { id: cfg.clientId, otp, nonce: nonce(), timestamp: '1' }
   let query: string
   try {
     params.h = await signParams(params, cfg.secretKey)
     query = new URLSearchParams(params).toString()
   } catch {
-    return false
+    return null
   }
   for (const server of cfg.server ? [cfg.server] : DEFAULT_SERVERS) {
     try {
       const res = await yubicoNet.fetch(`${server}?${query}`, { redirect: 'error' })
       if (!res.ok) continue
       const body = parseResponse(await res.text())
-      return await responseValid(body, params, cfg.secretKey)
+      if (!(await responseValid(body, params, cfg.secretKey))) return null
+      const counter = Number(body.sessioncounter)
+      const use = Number(body.sessionuse)
+      return Number.isInteger(counter) && Number.isInteger(use) ? { counter, use } : null
     } catch {
       // Try the next validation server.
     }
   }
-  return false
+  return null
 }
 
 export async function responseValid(

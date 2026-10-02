@@ -6,6 +6,7 @@ import { buildAccount, decType2, encType2 } from '../e2e/crypto.mjs'
 import {
   authHash,
   buildImport,
+  checkServerUrl,
   chunkImport,
   deriveMasterKey,
   loginAndUnlock,
@@ -277,6 +278,57 @@ test('a dry run never touches the target', async () => {
     assert.ok(lines.some((l) => l.includes('2 items and 1 folders')))
   } finally {
     delete process.env.SOURCE_PASSWORD
+    source.close()
+  }
+})
+
+test('only https servers, or http on localhost, are accepted', () => {
+  assert.equal(checkServerUrl('https://old.example.com/x', 'u'), 'https://old.example.com')
+  assert.equal(checkServerUrl('http://127.0.0.1:8787', 'u'), 'http://127.0.0.1:8787')
+  assert.equal(checkServerUrl('http://localhost:8787', 'u'), 'http://localhost:8787')
+  for (const bad of ['http://old.example.com', 'ftp://127.0.0.1', 'not a url']) {
+    assert.throws(() => checkServerUrl(bad, 'u'), bad)
+  }
+})
+
+test('two-factor codes come from the environment, not arguments', async () => {
+  const { source } = await setup()
+  source.twoFactor = '654321'
+  const lines = []
+  process.env.SOURCE_PASSWORD = PASSWORD
+  try {
+    await assert.rejects(
+      main(
+        [
+          '--source',
+          source.url,
+          '--source-email',
+          EMAIL,
+          '--target',
+          'http://127.0.0.1:1',
+          '--dry-run',
+        ],
+        (l) => lines.push(l),
+      ),
+      /SOURCE_2FA_TOKEN/,
+    )
+    process.env.SOURCE_2FA_TOKEN = '654321'
+    const code = await main(
+      [
+        '--source',
+        source.url,
+        '--source-email',
+        EMAIL,
+        '--target',
+        'http://127.0.0.1:1',
+        '--dry-run',
+      ],
+      (l) => lines.push(l),
+    )
+    assert.equal(code, 0)
+  } finally {
+    delete process.env.SOURCE_PASSWORD
+    delete process.env.SOURCE_2FA_TOKEN
     source.close()
   }
 })

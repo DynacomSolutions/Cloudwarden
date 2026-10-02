@@ -73,7 +73,23 @@ export class TwoFactorRequired extends Error {
   }
 }
 
+/** Passwords and tokens travel to the server, so plain http is only allowed on loopback. */
+export function checkServerUrl(value, label) {
+  let url
+  try {
+    url = new URL(value)
+  } catch {
+    throw new Error(`${label} is not a valid URL: ${value}`)
+  }
+  const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
+  if (url.protocol !== 'https:' && !(url.protocol === 'http:' && loopback)) {
+    throw new Error(`${label} must use https (http is only allowed for localhost): ${value}`)
+  }
+  return url.origin
+}
+
 async function request(base, path, { method = 'GET', token, json, form } = {}) {
+  checkServerUrl(base, 'Server URL')
   const headers = { ...HEADERS }
   if (token) headers.Authorization = `Bearer ${token}`
   let body
@@ -84,7 +100,7 @@ async function request(base, path, { method = 'GET', token, json, form } = {}) {
     headers['Content-Type'] = 'application/x-www-form-urlencoded'
     body = new URLSearchParams(form).toString()
   }
-  const res = await fetch(new URL(path, base), { method, headers, body })
+  const res = await fetch(new URL(path, base), { method, headers, body, redirect: 'error' })
   const text = await res.text()
   let data = null
   try {
@@ -331,11 +347,11 @@ const USAGE = `Usage: node scripts/import-from-server.mjs --source URL --source-
   --target-iterations N       PBKDF2 iterations for the new account with --register (default 600000)
   --dry-run                   Decrypt and count, change nothing on the target
   --skip-errors               Skip items that cannot be converted instead of stopping
-  --source-2fa-provider N     Two-factor provider type of the source account (0 authenticator, 1 email, ...)
-  --source-2fa-token CODE     Its code
-  --target-2fa-provider N / --target-2fa-token CODE   The same for an existing target account
+  --source-2fa-provider N     Two-factor provider type of the source account (default: first offered)
+  --target-2fa-provider N     The same for an existing target account
+  Two-factor codes come from SOURCE_2FA_TOKEN / TARGET_2FA_TOKEN or a prompt, never from arguments.
 
-Passwords: SOURCE_PASSWORD and TARGET_PASSWORD (defaults to the source password with --register),
+Servers must be https (http only for localhost). Passwords: SOURCE_PASSWORD and TARGET_PASSWORD (defaults to the source password with --register),
 or a hidden prompt. Copies logins, cards, identities, notes, SSH keys and folders of the personal
 vault. Organisations, Sends, attachments, trash and devices are not copied.`
 
@@ -359,6 +375,22 @@ async function password(envName, label, fallback) {
   return prompt(`${label} master password: `)
 }
 
+/** Logs in; when two-factor is required, takes the code from the environment or a prompt. */
+async function loginWithTwoFactor(base, email, password, label, envPrefix, providerArg) {
+  const attempt = { provider: providerArg, token: process.env[`${envPrefix}_2FA_TOKEN`] }
+  try {
+    return await loginAndUnlock(base, email, password, attempt)
+  } catch (err) {
+    if (!(err instanceof TwoFactorRequired) || attempt.token) throw err
+    if (!process.stdin.isTTY) {
+      throw new Error(`${err.message}. Set ${envPrefix}_2FA_TOKEN (no terminal to prompt on).`)
+    }
+    const provider = providerArg ?? err.providers[0]
+    const token = await prompt(`${label} two-factor code (provider ${provider}): `)
+    return loginAndUnlock(base, email, password, { provider, token })
+  }
+}
+
 export async function main(argv, log = console.log) {
   const args = parseArgs(argv)
   if (args.flags.has('help') || !args.source || !args['source-email'] || !args.target) {
@@ -367,10 +399,16 @@ export async function main(argv, log = console.log) {
   }
   const dry = args.flags.has('dry-run')
   const sourcePassword = await password('SOURCE_PASSWORD', 'Source', null)
-  const source = await loginAndUnlock(args.source, args['source-email'], sourcePassword, {
-    provider: args['source-2fa-provider'],
-    token: args['source-2fa-token'],
-  })
+  checkServerUrl(args.source, '--source')
+  checkServerUrl(args.target, '--target')
+  const source = await loginWithTwoFactor(
+    args.source,
+    args['source-email'],
+    sourcePassword,
+    'Source',
+    'SOURCE',
+    args['source-2fa-provider'],
+  )
   const sync = await request(args.source, '/api/sync?excludeDomains=true', {
     token: source.accessToken,
   })
@@ -395,10 +433,14 @@ export async function main(argv, log = console.log) {
       )
       log(`Registered ${targetEmail} on the target.`)
     }
-    target = await loginAndUnlock(args.target, targetEmail, targetPassword, {
-      provider: args['target-2fa-provider'],
-      token: args['target-2fa-token'],
-    })
+    target = await loginWithTwoFactor(
+      args.target,
+      targetEmail,
+      targetPassword,
+      'Target',
+      'TARGET',
+      args['target-2fa-provider'],
+    )
   }
   const built = await buildImport(sync.data, source.userKey, target.userKey, {
     skipErrors: args.flags.has('skip-errors'),
@@ -431,7 +473,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     (err) => {
       console.error(
         err instanceof TwoFactorRequired
-          ? `${err.message}. Pass --source-2fa-provider and --source-2fa-token (or the target equivalents).`
+          ? `${err.message}. Set SOURCE_2FA_TOKEN or TARGET_2FA_TOKEN (and optionally the provider flag).`
           : `Error: ${err.message}`,
       )
       process.exit(1)

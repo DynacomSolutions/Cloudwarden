@@ -330,8 +330,9 @@ export const twofactor = sqliteTable(
 )
 
 /**
- * Organisation level second factor providers (Duo, type 6). `data` is JSON. Members of an
- * organisation with an enabled provider must complete it at login (TASKS #124).
+ * Organisation level second factor providers (Duo, type 6). `data` is JSON. As in the official
+ * clients this is one more selectable provider (type 6) for confirmed members of the
+ * organisation, not a mandatory extra step; the clients list it first (TASKS #124).
  */
 export const organizationTwofactor = sqliteTable(
   'organization_twofactor',

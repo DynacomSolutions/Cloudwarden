@@ -22,7 +22,14 @@ import {
   verifyAssertion,
   WebAuthnError,
 } from './webauthn'
-import { isOtp, publicIdOf, verifyOtp, type YubicoConfig } from './yubico'
+import {
+  isLater,
+  isOtp,
+  type OtpPosition,
+  publicIdOf,
+  verifyOtp,
+  type YubicoConfig,
+} from './yubico'
 
 /** Provider type numbers used on the wire. */
 export const TwoFactorType = {
@@ -428,9 +435,17 @@ export function duoRedirectUri(c: Context<Env>): string {
   return `${originFor(c.env)}/duo-redirect-connector.html?client=${DUO_CLIENTS.has(name) ? name : 'web'}`
 }
 
-async function duoParams(c: Context<Env>, user: User, cfg: DuoData | null) {
+/** Challenge purpose: bound to the device the login came from, so a state cannot move devices. */
+const duoPurpose = (device: string | undefined) => `${CHALLENGE_DUO}:${device ?? ''}`
+
+async function duoParams(
+  c: Context<Env>,
+  user: User,
+  cfg: DuoData | null,
+  device: string | undefined,
+) {
   if (!cfg) return { Host: null, AuthUrl: null }
-  const state = await createChallenge(c.env, CHALLENGE_DUO, user.uuid, clock.now())
+  const state = await createChallenge(c.env, duoPurpose(device), user.uuid, clock.now())
   return {
     Host: cfg.host,
     AuthUrl: await duoAuthUrl(
@@ -443,26 +458,72 @@ async function duoParams(c: Context<Env>, user: User, cfg: DuoData | null) {
   }
 }
 
-async function verifyDuoLogin(
-  c: Context<Env>,
-  user: User,
-  cfg: DuoData | null,
-  token: string,
-): Promise<boolean> {
-  if (!cfg) return false
-  const sep = token.lastIndexOf('|')
-  if (sep < 1) return false
-  const code = token.slice(0, sep)
-  const state = token.slice(sep + 1)
-  if ((await checkChallenge(c.env, CHALLENGE_DUO, user.uuid, state, clock.now())) === null) {
-    return false
-  }
-  return duoVerifyCode(cfg, code, user.email, duoRedirectUri(c), Math.floor(clock.now() / 1000))
+/**
+ * Spends a Duo state: the newest accepted state time is stored (on the user's Duo row, or on a
+ * disabled ledger row for organisation Duo), so each state works once and older ones die.
+ */
+async function spendDuoState(db: Db, user: User, atype: number, ts: number): Promise<boolean> {
+  await db
+    .insert(schema.twofactor)
+    .values({
+      uuid: crypto.randomUUID(),
+      userUuid: user.uuid,
+      atype,
+      enabled: false,
+      data: '{}',
+      lastUsed: 0,
+    })
+    .onConflictDoNothing()
+  const result = await db
+    .update(schema.twofactor)
+    .set({ lastUsed: ts })
+    .where(
+      and(
+        eq(schema.twofactor.userUuid, user.uuid),
+        eq(schema.twofactor.atype, atype),
+        lt(schema.twofactor.lastUsed, ts),
+      ),
+    )
+  return result.meta.changes > 0
 }
 
-/** Duo configuration of the first organisation the user belongs to that enforces Duo. */
-export async function organizationDuoRow(db: Db, user: User): Promise<TwoFactorRow | undefined> {
-  const [row] = await db
+/** `configs` are tried in turn: a user in several organisations with Duo may satisfy any of them. */
+async function verifyDuoLogin(
+  c: Context<Env>,
+  db: Db,
+  user: User,
+  atype: number,
+  configs: DuoData[],
+  token: string,
+  device: string | undefined,
+): Promise<boolean> {
+  const sep = token.lastIndexOf('|')
+  if (configs.length === 0 || sep < 1) return false
+  const code = token.slice(0, sep)
+  const state = token.slice(sep + 1)
+  const ts = await checkChallenge(c.env, duoPurpose(device), user.uuid, state, clock.now())
+  if (ts === null || !(await spendDuoState(db, user, atype, ts))) return false
+  for (const cfg of configs) {
+    const ok = await duoVerifyCode(
+      cfg,
+      code,
+      user.email,
+      duoRedirectUri(c),
+      state,
+      Math.floor(clock.now() / 1000),
+    )
+    if (ok) return true
+  }
+  return false
+}
+
+/**
+ * Duo configurations of every organisation the user is a confirmed member of that enables Duo,
+ * ordered by organisation id. The wire format has one entry per provider type, so the challenge
+ * offers the first and verification accepts any of them.
+ */
+export async function organizationDuoRows(db: Db, user: User): Promise<TwoFactorRow[]> {
+  const rows = await db
     .select({
       orgUuid: schema.organizationTwofactor.organizationUuid,
       data: schema.organizationTwofactor.data,
@@ -481,16 +542,14 @@ export async function organizationDuoRow(db: Db, user: User): Promise<TwoFactorR
       ),
     )
     .orderBy(schema.organizationTwofactor.organizationUuid)
-    .limit(1)
-  if (!row) return undefined
-  return {
+  return rows.map((row) => ({
     uuid: row.orgUuid,
     userUuid: user.uuid,
     atype: TwoFactorType.OrganizationDuo,
     enabled: true,
     data: row.data,
     lastUsed: 0,
-  }
+  }))
 }
 
 // ---------------------------------------------------------------------------
@@ -501,6 +560,8 @@ export interface YubiKeyData {
   /** Twelve character public ids of the registered keys (at most five). */
   keys: string[]
   nfc: boolean
+  /** Newest accepted OTP position per public id; anything not later is a replay. */
+  last?: Record<string, OtpPosition>
 }
 
 export const MAX_YUBIKEYS = 5
@@ -514,12 +575,23 @@ export function yubicoConfig(env: Bindings): YubicoConfig | null {
   }
 }
 
-async function verifyYubiKeyLogin(env: Bindings, row: TwoFactorRow, token: string) {
+async function verifyYubiKeyLogin(
+  env: Bindings,
+  db: Db,
+  row: TwoFactorRow,
+  token: string,
+): Promise<boolean> {
   const data = parseData<YubiKeyData>(row)
   const cfg = yubicoConfig(env)
   const otp = token.trim().toLowerCase()
-  if (!data || !cfg || !isOtp(otp) || !data.keys.includes(publicIdOf(otp))) return false
-  return verifyOtp(cfg, otp)
+  if (!data || !cfg || !isOtp(otp)) return false
+  const id = publicIdOf(otp)
+  if (!data.keys.includes(id)) return false
+  const position = await verifyOtp(cfg, otp)
+  // Anything not later than the newest accepted OTP of this key is a replay, even if the
+  // validation service did not notice.
+  if (!position || !isLater(position, data.last?.[id])) return false
+  return swapData(db, row, { ...data, last: { ...data.last, [id]: position } })
 }
 
 // ---------------------------------------------------------------------------
@@ -617,7 +689,13 @@ export type TwoFactorHook = (
   form: Record<string, string>,
 ) => Promise<Response | null>
 
-async function challengeBody(c: Context<Env>, user: User, rows: TwoFactorRow[], message: string) {
+async function challengeBody(
+  c: Context<Env>,
+  user: User,
+  rows: TwoFactorRow[],
+  message: string,
+  device: string | undefined,
+) {
   const types = [...new Set(rows.map((r) => r.atype))].sort((a, b) => a - b)
   const params: Record<string, unknown> = {}
   for (const row of rows) {
@@ -628,7 +706,7 @@ async function challengeBody(c: Context<Env>, user: User, rows: TwoFactorRow[], 
       const data = parseData<WebAuthnData>(row) ?? { credentials: [] }
       params[String(row.atype)] = await assertionOptions(c.env, user, data)
     } else if (row.atype === TwoFactorType.Duo || row.atype === TwoFactorType.OrganizationDuo) {
-      params[String(row.atype)] = await duoParams(c, user, parseData<DuoData>(row))
+      params[String(row.atype)] = await duoParams(c, user, parseData<DuoData>(row), device)
     } else if (row.atype === TwoFactorType.YubiKey) {
       params[String(row.atype)] = { Nfc: parseData<YubiKeyData>(row)?.nfc ?? false }
     } else {
@@ -657,11 +735,11 @@ export const enforceTwoFactor: TwoFactorHook = async (c, user, form) => {
     .select()
     .from(schema.twofactor)
     .where(and(eq(schema.twofactor.userUuid, user.uuid), eq(schema.twofactor.enabled, true)))
-  const orgDuo = await organizationDuoRow(db, user)
-  if (all.length === 0 && !orgDuo) return null
+  const orgDuo = await organizationDuoRows(db, user)
+  if (all.length === 0 && orgDuo.length === 0) return null
   const rows = all.filter((r) => SUPPORTED_TYPES.includes(r.atype))
   const unsupported = all.length > rows.length
-  if (orgDuo) rows.push(orgDuo)
+  if (orgDuo[0]) rows.push(orgDuo[0])
 
   const provider = Number.parseInt(form.twoFactorProvider ?? '', 10)
   const token = form.twoFactorToken
@@ -673,7 +751,7 @@ export const enforceTwoFactor: TwoFactorHook = async (c, user, form) => {
     )
   }
   if (!token || !Number.isFinite(provider)) {
-    return challengeBody(c, user, rows, 'Two factor required.')
+    return challengeBody(c, user, rows, 'Two factor required.', form.deviceIdentifier?.trim())
   }
 
   if (await overLimit(c, 'two-factor', user.uuid)) return tooManyRequests(c)
@@ -698,7 +776,7 @@ export const enforceTwoFactor: TwoFactorHook = async (c, user, form) => {
 
   if (provider === TwoFactorType.Remember) {
     if (await rememberValid(db, user.uuid, form.deviceIdentifier?.trim(), token)) return null
-    return challengeBody(c, user, rows, 'Two factor required.')
+    return challengeBody(c, user, rows, 'Two factor required.', form.deviceIdentifier?.trim())
   }
 
   const row = rows.find((r) => r.atype === provider)
@@ -718,9 +796,12 @@ export const enforceTwoFactor: TwoFactorHook = async (c, user, form) => {
   } else if (row?.atype === TwoFactorType.WebAuthn) {
     ok = await verifyWebAuthnLogin(c, db, user, row, token)
   } else if (row?.atype === TwoFactorType.Duo || row?.atype === TwoFactorType.OrganizationDuo) {
-    ok = await verifyDuoLogin(c, user, parseData<DuoData>(row), token)
+    const configs = (row.atype === TwoFactorType.Duo ? [row] : orgDuo)
+      .map((r) => parseData<DuoData>(r))
+      .filter((d): d is DuoData => d !== null)
+    ok = await verifyDuoLogin(c, db, user, row.atype, configs, token, form.deviceIdentifier?.trim())
   } else if (row?.atype === TwoFactorType.YubiKey) {
-    ok = await verifyYubiKeyLogin(c.env, row, token)
+    ok = await verifyYubiKeyLogin(c.env, db, row, token)
   }
 
   if (!ok) {

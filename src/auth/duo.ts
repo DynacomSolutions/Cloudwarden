@@ -47,6 +47,7 @@ export async function verifyHs512(
   token: string,
   secret: string,
   nowS = Math.floor(Date.now() / 1000),
+  requireExp = true,
 ): Promise<Record<string, unknown> | null> {
   const parts = token.split('.')
   if (parts.length !== 3) return null
@@ -65,7 +66,11 @@ export async function verifyHs512(
     if (!ok) return null
     const claims = JSON.parse(new TextDecoder().decode(fromB64u(p) ?? new Uint8Array()))
     if (!claims || typeof claims !== 'object') return null
-    if (typeof claims.exp === 'number' && claims.exp <= nowS) return null
+    if (typeof claims.exp === 'number') {
+      if (claims.exp <= nowS) return null
+    } else if (requireExp) {
+      return null
+    }
     if (typeof claims.nbf === 'number' && claims.nbf > nowS + 60) return null
     return claims as Record<string, unknown>
   } catch {
@@ -121,12 +126,14 @@ export async function duoAuthUrl(
   redirectUri: string,
   nowS = Math.floor(Date.now() / 1000),
 ): Promise<string> {
+  const nonce = await nonceFor(state)
   const request = await signHs512(
     {
       scope: 'openid',
       client_id: cfg.clientId,
       redirect_uri: redirectUri,
       state,
+      nonce,
       response_type: 'code',
       duo_uname: username,
       iss: cfg.clientId,
@@ -144,12 +151,26 @@ export async function duoAuthUrl(
   return `${endpoint(cfg.host, 'authorize')}?${q}`
 }
 
+/** Nonce bound to the state: the identity token must echo it. */
+export async function nonceFor(state: string): Promise<string> {
+  return toB64u(new Uint8Array(await crypto.subtle.digest('SHA-256', utf8(`duo-nonce:${state}`))))
+}
+
+const IAT_PAST_S = 600
+const IAT_FUTURE_S = 60
+
 /** Checks a decoded `id_token` against the expected issuer, audience and user. */
 export function idTokenValid(
   claims: Record<string, unknown>,
   cfg: DuoConfig,
   username: string,
+  nonce: string,
+  nowS = Math.floor(Date.now() / 1000),
 ): boolean {
+  if (typeof claims.exp !== 'number') return false
+  const iat = claims.iat
+  if (typeof iat !== 'number' || iat > nowS + IAT_FUTURE_S || iat < nowS - IAT_PAST_S) return false
+  if (typeof claims.nonce !== 'string' || !safeEqualStrings(claims.nonce, nonce)) return false
   if (claims.iss !== endpoint(cfg.host, 'token')) return false
   const aud = claims.aud
   if (!(aud === cfg.clientId || (Array.isArray(aud) && aud.includes(cfg.clientId)))) return false
@@ -165,6 +186,7 @@ export async function duoVerifyCode(
   code: string,
   username: string,
   redirectUri: string,
+  state: string,
   nowS = Math.floor(Date.now() / 1000),
 ): Promise<boolean> {
   if (!isDuoHost(cfg.host) || !code) return false
@@ -187,7 +209,7 @@ export async function duoVerifyCode(
     const body = (await res.json()) as { id_token?: string }
     if (!body.id_token) return false
     const claims = await verifyHs512(body.id_token, cfg.clientSecret, nowS)
-    return claims !== null && idTokenValid(claims, cfg, username)
+    return claims !== null && idTokenValid(claims, cfg, username, await nonceFor(state), nowS)
   } catch {
     return false
   }

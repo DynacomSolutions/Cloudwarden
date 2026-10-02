@@ -178,6 +178,7 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 | 274 | Event integrations: signed webhook (HMAC-SHA256 over timestamp and body), Splunk HEC, Datadog, Microsoft Sentinel (Logs Ingestion API); minute cron delivery in insertion order with lease, exponential back-off and status; test event; secrets sealed; integrations page | done | agent | `test/integrations.test.ts` |
 | 275 | Web client: SCIM settings (`settings/scim`) and integrations (`integrations`) pages under `web/apps/web/src/app/cloudwarden/org-integrations/`; event log CSV export (upstream) works against the event API | done | agent | Jest specs; `pnpm web:build` |
 | 276 | Docs: `docs/integrations.md` (setup for Entra ID, Okta, Directory Connector, webhook verification, `DATA_ENCRYPTION_KEY`) | done | agent | |
+| 277 | Instance admin managed mobile push settings: `instance_settings` table (migration `0017_instance_settings`), installation key sealed at rest and never returned, region us, eu or custom with derived URIs, `GET`/`PUT`/`DELETE /api/cloudwarden/admin/push-settings` and rate-limited `POST .../test`, Worker secrets override the store, re-registration of mobile devices on change, admin audit events 9009 to 9011, Instance admin > Mobile push page. See `docs/push-notifications.md` | done | agent | `test/push-settings.test.ts` (403 for non-admin, key never returned, sealed row, env precedence, URI derivation, stand-in relay test, re-registration); Jest spec for the page |
 
 ## Phase 14: Single sign-on, trusted devices, Key Connector, claimed domains
 

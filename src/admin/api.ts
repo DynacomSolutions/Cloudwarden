@@ -7,11 +7,15 @@ import type { EmailTransport } from '../email'
 import type { Bindings, Env } from '../env'
 import { ApiError, errorBody } from '../errors'
 import { createNotification, notificationJson } from '../notifications/center'
-import { relayStatus } from '../notifications/relay'
+import { relayStatus, relayTestConnection } from '../notifications/relay'
 import { parseBody } from '../validation'
+import { relayStatus, relayTestConnection } from '../notifications/relay'
+import { deletePushSettings, pushSettingsView, savePushSettings } from './push-settings'
 import { isAdminUser, isPlausibleEmail, normaliseEmail, rateLimit } from './security'
 import {
+  AdminEventType,
   type Audit,
+  auditStatement,
   countUsers,
   createInvitation,
   deauthorizeUser,
@@ -112,9 +116,37 @@ export function createAdminApi(deps: AdminApiDeps = {}) {
         dbRoundTripMs: d.dbRoundTripMs,
       },
       server: serverConfig(c.env, emailTransportFor(c.env, deps.emailTransport)),
-      push: relayStatus(c.env),
+      push: await relayStatus(c.env),
       pendingInvitations: d.pendingInvitations,
     })
+  })
+
+  // Mobile push settings (TASKS #277) -------------------------------------
+  const later = (c: Context<Env>) => (work: Promise<unknown>) => {
+    try {
+      c.executionCtx.waitUntil(work)
+    } catch {
+      void work
+    }
+  }
+  api.get(`${PREFIX}/push-settings`, async (c) => c.json(await pushSettingsView(c.env)))
+  api.put(`${PREFIX}/push-settings`, async (c) =>
+    c.json(
+      await savePushSettings(c.env, await c.req.json().catch(() => null), auditOf(c), later(c)),
+    ),
+  )
+  api.delete(`${PREFIX}/push-settings`, async (c) =>
+    c.json(await deletePushSettings(c.env, auditOf(c))),
+  )
+  api.post(`${PREFIX}/push-settings/test`, async (c) => {
+    if (!(await rateLimit(c.env.DB, `pushtest:${c.var.user.uuid}`, 5, 60_000, Date.now()))) {
+      return c.json(errorBody('Too many tests. Try again in a minute.'), 429, {
+        'Retry-After': '60',
+      })
+    }
+    const result = await relayTestConnection(c.env)
+    await c.env.DB.batch([auditStatement(c.env.DB, auditOf(c), AdminEventType.PushSettingsTested)])
+    return c.json({ ok: result === 'ok', error: result === 'ok' ? null : result })
   })
 
   // Users ---------------------------------------------------------------

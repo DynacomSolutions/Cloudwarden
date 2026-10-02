@@ -2,6 +2,7 @@ import { and, eq, inArray } from 'drizzle-orm'
 import { createDb, schema } from '../db'
 import type { Bindings } from '../env'
 import { errorKind, log } from '../log'
+import { loadStoredPush } from './push-config'
 
 /**
  * Mobile push through the Bitwarden push relay (TASKS #103, #262).
@@ -28,7 +29,7 @@ export interface RelayConfig {
 
 const trimUri = (s: string) => s.replace(/\/+$/, '')
 
-/** Null when push is not configured (either credential missing). */
+/** Config from the Worker secrets alone. Null when either credential is missing. */
 export function relayConfig(env: Bindings): RelayConfig | null {
   const installationId = env.PUSH_INSTALLATION_ID?.trim()
   const installationKey = env.PUSH_INSTALLATION_KEY?.trim()
@@ -41,16 +42,32 @@ export function relayConfig(env: Bindings): RelayConfig | null {
   }
 }
 
+export type RelaySource = 'env' | 'settings'
+
+/** Effective config: Worker secrets override the instance admin settings stored in the database. */
+export async function resolveRelay(
+  env: Bindings,
+): Promise<{ cfg: RelayConfig; source: RelaySource } | null> {
+  const fromEnv = relayConfig(env)
+  if (fromEnv) return { cfg: fromEnv, source: 'env' }
+  const stored = await loadStoredPush(env)
+  if (!stored) return null
+  const { installationId, installationKey, relayUri, identityUri } = stored
+  return { cfg: { installationId, installationKey, relayUri, identityUri }, source: 'settings' }
+}
+
 /** Status for diagnostics. Never includes the key. */
-export function relayStatus(env: Bindings) {
-  const cfg = relayConfig(env)
+export async function relayStatus(env: Bindings) {
+  const r = await resolveRelay(env)
   const partial =
     Boolean(env.PUSH_INSTALLATION_ID?.trim()) !== Boolean(env.PUSH_INSTALLATION_KEY?.trim())
   return {
-    configured: cfg !== null,
-    state: cfg ? 'configured' : partial ? 'incomplete' : 'not configured',
-    relayHost: cfg ? new URL(cfg.relayUri).host : null,
-    identityHost: cfg ? new URL(cfg.identityUri).host : null,
+    configured: r !== null,
+    state: r ? 'configured' : partial ? 'incomplete' : 'not configured',
+    source: r?.source ?? null,
+    envOverride: relayConfig(env) !== null,
+    relayHost: r ? new URL(r.cfg.relayUri).host : null,
+    identityHost: r ? new URL(r.cfg.identityUri).host : null,
     lastResult: last,
   }
 }
@@ -68,8 +85,11 @@ const record = (ok: boolean, status: number | null) => {
 // Access token for the relay, cached per isolate until shortly before it expires.
 let cached: { key: string; token: string; expires: number } | null = null
 
+const tokenKey = (cfg: RelayConfig) =>
+  `${cfg.identityUri}|${cfg.installationId}|${cfg.installationKey}`
+
 async function accessToken(cfg: RelayConfig, force = false): Promise<string> {
-  const key = `${cfg.identityUri}|${cfg.installationId}|${cfg.installationKey}`
+  const key = tokenKey(cfg)
   if (!force && cached && cached.key === key && cached.expires > Date.now() + 60_000) {
     return cached.token
   }
@@ -121,10 +141,10 @@ async function call(
 
 /** Runs a relay call, swallowing every failure into a log line without payloads. */
 async function guarded(env: Bindings, event: string, work: (cfg: RelayConfig) => Promise<void>) {
-  const cfg = relayConfig(env)
-  if (!cfg) return
+  const resolved = await resolveRelay(env).catch(() => null)
+  if (!resolved) return
   try {
-    await work(cfg)
+    await work(resolved.cfg)
   } catch (err) {
     log('warn', event, { errorKind: errorKind(err) }, env)
   }
@@ -182,7 +202,7 @@ export async function relayDeleteDevice(env: Bindings, device: RelayDevice): Pro
 
 /** Registers every mobile device of a user again, for example after their organisations changed. */
 export async function relayRefreshUser(env: Bindings, userUuid: string): Promise<void> {
-  if (!relayConfig(env)) return
+  if (!(await resolveRelay(env).catch(() => null))) return
   try {
     const rows = await createDb(env.DB)
       .select()
@@ -233,4 +253,62 @@ export async function relaySend(env: Bindings, push: RelayPush): Promise<void> {
     })
     if (!res.ok) log('warn', 'push.send_rejected', { status: res.status }, env)
   })
+}
+
+/** Registers every mobile device with a push token again, after the credentials changed. */
+export async function relayReregisterAll(env: Bindings, limit = 400): Promise<number> {
+  if (!(await resolveRelay(env).catch(() => null))) return 0
+  let count = 0
+  try {
+    const rows = await createDb(env.DB)
+      .select()
+      .from(schema.devices)
+      .where(inArray(schema.devices.type, [...MOBILE_TYPES]))
+      .limit(limit)
+    const withToken = rows.filter((d) => d.pushToken)
+    for (let i = 0; i < withToken.length; i += 10) {
+      await Promise.all(
+        withToken.slice(i, i + 10).map((d) =>
+          relayRegisterDevice(env, {
+            uuid: d.uuid,
+            identifier: d.identifier,
+            type: d.type,
+            pushToken: d.pushToken,
+            userUuid: d.userUuid,
+          }),
+        ),
+      )
+    }
+    count = withToken.length
+  } catch (err) {
+    log('warn', 'push.reregister_failed', { errorKind: errorKind(err) }, env)
+  }
+  return count
+}
+
+export type TestClass = 'ok' | 'not_configured' | 'rejected' | 'unreachable' | 'bad_response'
+
+/** Asks the identity server for a relay token with the effective config. Returns a class only. */
+export async function relayTestConnection(env: Bindings): Promise<TestClass> {
+  const r = await resolveRelay(env).catch(() => null)
+  if (!r) return 'not_configured'
+  try {
+    const res = await fetch(`${r.cfg.identityUri}/connect/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        scope: 'api.push',
+        client_id: `installation.${r.cfg.installationId}`,
+        client_secret: r.cfg.installationKey,
+      }),
+    })
+    record(res.ok, res.status)
+    if (!res.ok) return 'rejected'
+    const body = (await res.json().catch(() => null)) as { access_token?: string } | null
+    return body?.access_token ? 'ok' : 'bad_response'
+  } catch {
+    record(false, null)
+    return 'unreachable'
+  }
 }

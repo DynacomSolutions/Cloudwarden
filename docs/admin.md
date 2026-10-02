@@ -47,7 +47,7 @@ The operations are documented under the `x-cloudwarden` tag in `docs/api/openapi
 
 Invitations are stored in the `invitations` table and gate registration. Deleting a user or
 organisation also removes its R2 attachment and Send blobs. Every write inserts a row in `events`
-(types 9001 to 9008, outside the codes the official clients use) recording the acting admin.
+(types 9001 to 9011, outside the codes the official clients use) recording the acting admin.
 Invitation events never contain the address.
 
 Registration and admin addresses: invitations and `SIGNUPS_DOMAINS_WHITELIST` only say who may

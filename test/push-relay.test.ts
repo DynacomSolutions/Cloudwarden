@@ -56,20 +56,22 @@ it('is a silent no-op without credentials and reports why', async () => {
   await pushUserUpdate(env, crypto.randomUUID(), PushType.SyncVault, { UserId: 'u', Date: 'd' })
   await pushLogOut(env, crypto.randomUUID())
   expect(seen).toHaveLength(0)
-  expect(relayStatus(env)).toMatchObject({
+  expect(await relayStatus(env)).toMatchObject({
     configured: false,
     state: 'not configured',
     relayHost: null,
   })
-  expect(relayStatus({ ...env, PUSH_INSTALLATION_ID: 'x' })).toMatchObject({ state: 'incomplete' })
+  expect(await relayStatus({ ...env, PUSH_INSTALLATION_ID: 'x' })).toMatchObject({
+    state: 'incomplete',
+  })
 })
 
-it('defaults to the Bitwarden relay and never reports the key', () => {
+it('defaults to the Bitwarden relay and never reports the key', async () => {
   expect(relayConfig(on)).toMatchObject({
     relayUri: 'https://push.bitwarden.com',
     identityUri: 'https://identity.bitwarden.com',
   })
-  const st = relayStatus({ ...on, PUSH_RELAY_URI: 'https://push.bitwarden.eu/' })
+  const st = await relayStatus({ ...on, PUSH_RELAY_URI: 'https://push.bitwarden.eu/' })
   expect(st).toMatchObject({ configured: true, relayHost: 'push.bitwarden.eu' })
   expect(JSON.stringify(st)).not.toContain(cfg.PUSH_INSTALLATION_KEY)
 })

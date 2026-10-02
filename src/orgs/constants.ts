@@ -94,8 +94,11 @@ export const AdminEventType = {
   InvitationCreated: 9006,
   InvitationDeleted: 9007,
   OrganizationDeleted: 9008,
+  PushSettingsUpdated: 9009,
+  PushSettingsRemoved: 9010,
+  PushSettingsTested: 9011,
 } as const
 
 /** Range of admin audit codes; user event feeds must exclude it. */
 export const ADMIN_EVENT_MIN = 9001
-export const ADMIN_EVENT_MAX = 9008
+export const ADMIN_EVENT_MAX = 9011

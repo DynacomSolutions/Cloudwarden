@@ -18466,5 +18466,151 @@
         "example": "example.com"
       }
     }
+  },
+  "cwMobilePush": {
+    "message": "Mobile push"
+  },
+  "cwPushDesc": {
+    "message": "The official mobile apps are woken by Apple and Google push services. A self-hosted server reaches them through the Bitwarden push relay, which needs an installation ID and key. Request them for free at bitwarden.com/host, then enter them here. Push is optional: without it the apps still sync when opened."
+  },
+  "cwPushGetKey": {
+    "message": "Get an installation ID and key"
+  },
+  "cwPushEnvNotice": {
+    "message": "Worker secrets (PUSH_INSTALLATION_ID and PUSH_INSTALLATION_KEY) are set on this server and override the values below. Remove the secrets to manage push from this page."
+  },
+  "cwPushInstallationId": {
+    "message": "Installation ID"
+  },
+  "cwPushInstallationKey": {
+    "message": "Installation key"
+  },
+  "cwPushKeyKeepHint": {
+    "message": "A key is stored (ends in $TAIL$). Leave this blank to keep it.",
+    "placeholders": {
+      "tail": {
+        "content": "$1",
+        "example": "x"
+      }
+    }
+  },
+  "cwPushKeyStoredHint": {
+    "message": "A key is stored. Leave this blank to keep it."
+  },
+  "cwPushKeyHint": {
+    "message": "Stored encrypted and never shown again."
+  },
+  "cwPushRegion": {
+    "message": "Region"
+  },
+  "cwPushRegionUs": {
+    "message": "United States (push.bitwarden.com)"
+  },
+  "cwPushRegionEu": {
+    "message": "Europe (push.bitwarden.eu)"
+  },
+  "cwPushRegionCustom": {
+    "message": "Custom"
+  },
+  "cwPushRelayUri": {
+    "message": "Relay address"
+  },
+  "cwPushIdentityUri": {
+    "message": "Identity address"
+  },
+  "cwPushSaved": {
+    "message": "Mobile push settings saved"
+  },
+  "cwPushRemoved": {
+    "message": "Mobile push settings removed"
+  },
+  "cwPushTest": {
+    "message": "Test connection"
+  },
+  "cwPushTestOk": {
+    "message": "The relay accepted the credentials."
+  },
+  "cwPushTestFailed": {
+    "message": "The test failed: $REASON$",
+    "placeholders": {
+      "reason": {
+        "content": "$1",
+        "example": "x"
+      }
+    }
+  },
+  "cwPushRemove": {
+    "message": "Remove"
+  },
+  "cwPushRemoveConfirm": {
+    "message": "Remove the stored installation ID and key? Mobile push stops until you configure it again."
+  },
+  "cwPushStatus": {
+    "message": "Status"
+  },
+  "cwPushStatusConfigured": {
+    "message": "Configured"
+  },
+  "cwPushStatusNotConfigured": {
+    "message": "Not configured"
+  },
+  "cwPushStatusIncomplete": {
+    "message": "Incomplete"
+  },
+  "cwPushSource": {
+    "message": "Source"
+  },
+  "cwPushSourceEnv": {
+    "message": "Worker secrets"
+  },
+  "cwPushSourceSettings": {
+    "message": "This page"
+  },
+  "cwPushRelayHost": {
+    "message": "Relay host"
+  },
+  "cwPushLastResult": {
+    "message": "Last relay result"
+  },
+  "cwPushLastResultNone": {
+    "message": "No relay call yet on this server instance"
+  },
+  "cwPushLastResultOk": {
+    "message": "Succeeded (HTTP $STATUS$) at $TIME$",
+    "placeholders": {
+      "status": {
+        "content": "$1",
+        "example": "x"
+      },
+      "time": {
+        "content": "$2",
+        "example": "x"
+      }
+    }
+  },
+  "cwPushLastResultFail": {
+    "message": "Failed (HTTP $STATUS$) at $TIME$",
+    "placeholders": {
+      "status": {
+        "content": "$1",
+        "example": "x"
+      },
+      "time": {
+        "content": "$2",
+        "example": "x"
+      }
+    }
+  },
+  "cwPushErrNotConfigured": {
+    "message": "push is not configured"
+  },
+  "cwPushErrRejected": {
+    "message": "the relay rejected the installation ID or key"
+  },
+  "cwPushErrUnreachable": {
+    "message": "the relay could not be reached"
+  },
+  "cwPushErrBadResponse": {
+    "message": "the relay answered unexpectedly"
   }
 }

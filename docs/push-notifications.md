@@ -11,21 +11,43 @@ their normal refresh.
 
 ## What you need (owner action)
 
-1. Open the Bitwarden self-host registration page (bitwarden.com/host) and request an installation id and
-   key with a contact email. Use the US or EU cloud region you will relay through. Keep the key secret.
-2. Set the Worker secrets (never commit them):
-
-   ```sh
-   pnpm exec cf workers secrets update PUSH_INSTALLATION_ID
-   pnpm exec cf workers secrets update PUSH_INSTALLATION_KEY
-   # EU region only:
-   pnpm exec cf workers secrets update PUSH_RELAY_URI       # https://push.bitwarden.eu
-   pnpm exec cf workers secrets update PUSH_IDENTITY_URI    # https://identity.bitwarden.eu
-   ```
-
-   The defaults are `https://push.bitwarden.com` and `https://identity.bitwarden.com`.
+1. Open the Bitwarden self-host registration page (https://bitwarden.com/host) and request an installation
+   id and key with a contact email. Use the US or EU cloud region you will relay through. Keep the key
+   secret.
+2. Sign in to the web vault as an instance admin and open Instance admin > Mobile push. Enter the
+   installation ID and key, choose the region (US, EU or custom) and Save. Use Test connection to check
+   the credentials against the relay. Nothing needs redeploying.
 3. In the mobile app, the server URL is your Cloudwarden address as usual. Log in; the app sends its push
-   token to `PUT /api/devices/identifier/{id}/token` and the server registers it with the relay.
+   token to `PUT /api/devices/identifier/{id}/token` and the server registers it with the relay. When you
+   save new credentials the server registers existing phones again in the background.
+
+### Settings API
+
+`GET`, `PUT` and `DELETE /api/cloudwarden/admin/push-settings` and `POST .../push-settings/test` (admin
+only; the test is limited to 5 per minute per admin and returns only `ok` or an error class:
+`not_configured`, `rejected`, `unreachable`, `bad_response`). The installation key is write only: it is
+sealed at rest with the same key as other server-held secrets (`DATA_ENCRYPTION_KEY`, falling back to a key
+derived from `JWT_SECRET`, see `docs/integrations.md`) and responses carry only `keySet` and the last four
+characters. Leave the key blank on save to keep the stored one. Region `us` uses `push.bitwarden.com` and
+`identity.bitwarden.com`, `eu` uses `push.bitwarden.eu` and `identity.bitwarden.eu`, and `custom` takes two
+public https URLs. Saves, removals and tests are recorded as admin events (9009 to 9011).
+
+### Optional: Worker secrets (override)
+
+Operators who prefer configuration as code can set Worker secrets instead. When both
+`PUSH_INSTALLATION_ID` and `PUSH_INSTALLATION_KEY` are set they take precedence over the settings page,
+which then shows a notice and its values are ignored.
+
+```sh
+pnpm exec cf workers secrets update PUSH_INSTALLATION_ID
+pnpm exec cf workers secrets update PUSH_INSTALLATION_KEY
+# EU region only:
+pnpm exec cf workers secrets update PUSH_RELAY_URI       # https://push.bitwarden.eu
+pnpm exec cf workers secrets update PUSH_IDENTITY_URI    # https://identity.bitwarden.eu
+```
+
+The defaults are `https://push.bitwarden.com` and `https://identity.bitwarden.com`. Settings changes are
+cached for up to ten seconds per Worker instance.
 
 ## How it works
 
@@ -46,7 +68,7 @@ their normal refresh.
 
 ## Diagnostics
 
-`GET /api/cloudwarden/admin/diagnostics` has a `push` object: `configured`, `state` (`configured`,
+`GET /api/cloudwarden/admin/diagnostics` has a `push` object: `configured`, `source` (`env` or `settings`), `envOverride`, `state` (`configured`,
 `not configured` or `incomplete` when only one of id and key is set), the relay and identity hosts, and the
 outcome of the last relay call seen by that Worker instance (`lastResult`, best effort because Workers
 instances are short lived). The key is never returned.

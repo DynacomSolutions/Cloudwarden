@@ -66,7 +66,7 @@ The server-rendered `/admin` (magic link, admin token, cookie sessions) was remo
 |---|---|---|---|
 | S | Impersonating an admin | Admin is a normal vault login (master password, second factor) for an enabled account whose verified address is in `ADMIN_EMAILS`; admin addresses cannot be claimed by registering them (verification token required); disabled by default (API 403, `/admin` is 404) | A compromised admin vault account is a compromised admin |
 | T | CSRF against admin actions | Bearer token only, no cookie authentication, so a cross-site request carries no credential | |
-| R | Unattributed admin changes | Every write inserts an `events` row (types 9001 to 9008) with the acting admin | No per-field audit trail |
+| R | Unattributed admin changes | Every write inserts an `events` row (types 9001 to 9011) with the acting admin | No per-field audit trail |
 | I | Admin sees vault contents | Admin can view accounts and metadata, not decrypt vaults | Admin can still delete or disable accounts |
 | D | Admin lockout | No recovery web surface to attack; the operator restores access with documented D1 statements (`docs/admin.md`, Recovery) | Needs Cloudflare account access |
 | E | Email access becomes admin access | There is no email sign-in any more; a mailbox alone grants nothing. Admin addresses must be verified | Account recovery by email (if enabled elsewhere) is out of scope |

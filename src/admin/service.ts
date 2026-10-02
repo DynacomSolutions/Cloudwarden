@@ -34,7 +34,7 @@ export const tfaName = (type: number) => TFA_NAMES[type] ?? `Type ${type}`
 const nowOf = (a?: Audit) => a?.now ?? Date.now()
 
 /** One audit event insert; add it to the batch of the write it records. */
-function auditStatement(
+export function auditStatement(
   db: D1Database,
   audit: Audit,
   type: number,

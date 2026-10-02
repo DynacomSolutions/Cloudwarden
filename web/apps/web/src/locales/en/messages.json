@@ -18018,5 +18018,165 @@
         "example": "Example"
       }
     }
+  },
+  "cwSmAccessSaved": {
+    "message": "Access saved"
+  },
+  "cwSmAddPeople": {
+    "message": "Add people or groups"
+  },
+  "cwSmAddProject": {
+    "message": "Add project"
+  },
+  "cwSmBulkPartial": {
+    "message": "$DONE$ deleted, $FAILED$ could not be deleted (not found or no access)",
+    "placeholders": {
+      "done": {
+        "content": "$1",
+        "example": "3"
+      },
+      "failed": {
+        "content": "$2",
+        "example": "3"
+      }
+    }
+  },
+  "cwSmCreateToken": {
+    "message": "Create access token"
+  },
+  "cwSmDeleted": {
+    "message": "$COUNT$ deleted",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "cwSmDeleteDesc": {
+    "message": "Permanently delete $COUNT$ selected item(s)? This cannot be undone.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "cwSmDeleteTitle": {
+    "message": "Delete $WHAT$",
+    "placeholders": {
+      "what": {
+        "content": "$1",
+        "example": "Projects"
+      }
+    }
+  },
+  "cwSmGrantsDesc": {
+    "message": "Projects this machine account can read, or read and write. Tokens of this machine account reach only these projects."
+  },
+  "cwSmMachineAccessHint": {
+    "message": "Grant machine accounts access to this project from the machine account's Projects tab."
+  },
+  "cwSmMachineAccountSaved": {
+    "message": "Machine account saved"
+  },
+  "cwSmNeedProject": {
+    "message": "You need write access to a project before you can create secrets."
+  },
+  "cwSmNewAccessToken": {
+    "message": "New access token"
+  },
+  "cwSmNoGrants": {
+    "message": "This machine account has no project access yet."
+  },
+  "cwSmNoMachineAccess": {
+    "message": "No machine accounts can access this project."
+  },
+  "cwSmNoMachineAccounts": {
+    "message": "No machine accounts yet"
+  },
+  "cwSmNoMachineAccountsDesc": {
+    "message": "Machine accounts give applications and pipelines read or write access to secrets with an access token."
+  },
+  "cwSmNoPeople": {
+    "message": "No people or groups have been granted access."
+  },
+  "cwSmNoProject": {
+    "message": "No project"
+  },
+  "cwSmNoProjects": {
+    "message": "No projects yet"
+  },
+  "cwSmNoProjectsDesc": {
+    "message": "Projects group secrets and control who can reach them."
+  },
+  "cwSmNoSecrets": {
+    "message": "No secrets yet"
+  },
+  "cwSmNoSecretsDesc": {
+    "message": "Secrets are encrypted with the organisation key before they leave this browser."
+  },
+  "cwSmNoTokens": {
+    "message": "No access tokens yet."
+  },
+  "cwSmPeopleDesc": {
+    "message": "Members and groups with access. Owners and admins with Secrets Manager access can always see everything."
+  },
+  "cwSmProjectSaved": {
+    "message": "Project saved"
+  },
+  "cwSmReadOnly": {
+    "message": "You can read this secret but not change it."
+  },
+  "cwSmRename": {
+    "message": "Rename"
+  },
+  "cwSmRevokeDesc": {
+    "message": "Revoke the access token $NAME$? Applications using it stop working immediately.",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "ci token"
+      }
+    }
+  },
+  "cwSmRevokeTitle": {
+    "message": "Revoke access token"
+  },
+  "cwSmSecretSaved": {
+    "message": "Secret saved"
+  },
+  "cwSmSecretDetails": {
+    "message": "Secret"
+  },
+  "cwSmSelected": {
+    "message": "$COUNT$ selected",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "cwSmTokenCreated": {
+    "message": "Access token created"
+  },
+  "cwSmTokenOnceTitle": {
+    "message": "Copy the token now"
+  },
+  "cwSmTokenOnce": {
+    "message": "This is the only time the access token is shown. Store it somewhere safe: it cannot be shown again, and anyone holding it can read the secrets this machine account can reach."
+  },
+  "cwSmTokenRevoked": {
+    "message": "Access token revoked"
+  },
+  "cwSmDays": {
+    "message": "$DAYS$ days",
+    "placeholders": {
+      "days": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
   }
 }

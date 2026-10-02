@@ -6,8 +6,8 @@ machine login. Like the rest of the server it stores only what clients encrypt: 
 secret keys, values and notes, machine account and token names are EncStrings under the
 organisation key, and the server never sees plaintext.
 
-Phase 1 is the server API. There is no Secrets Manager user interface in the forked web client
-(#211 removed the entry points).
+Phase 1 is the server API (TASKS #220 to #225). Phase 2 is a user interface in the forked web
+client (TASKS #227 to #230, see "Web client" below).
 
 ## Sources and licensing
 
@@ -170,6 +170,41 @@ M = machine tokens accepted.
 | `GET /organizations/{orgId}/sm-counts`, `/projects/{id}/sm-counts`, `/service-accounts/{id}/sm-counts` | no |
 | `GET /sm/events/service-accounts/{id}` | no |
 | `PUT /organizations/{orgId}/users/enable-secrets-manager` | no |
+
+## Web client
+
+Cloudwarden's web client has its own Secrets Manager pages under
+`web/apps/web/src/app/cloudwarden/secrets-manager/`, written from scratch against this document
+and the OpenAPI spec. Bitwarden's Secrets Manager web app is under the Bitwarden License
+(`bitwarden_license/`) and was neither vendored nor read; `pnpm check:web-licence` guards that.
+
+- Route `/#/sm/<organizationId>` (guarded: the organisation must use Secrets Manager and the
+  member must have `accessSecretsManager`). The product switcher shows "Secrets Manager" when the
+  user has such an organisation.
+- Projects: list, create, rename, bulk delete; a project page with its secrets, a people and
+  groups access editor (`PUT /projects/{id}/access-policies/people`) and the machine accounts
+  that can reach it.
+- Secrets: list for the organisation or a project, create, view (hidden value with reveal and
+  copy), edit key, value, note and project, bulk delete. Only owners and admins are offered
+  "No project".
+- Machine accounts: list, create, rename, bulk delete; per-account project access with read or
+  read and write (`PUT /service-accounts/{id}/granted-policies`), a people editor and access
+  tokens.
+- Access tokens: the client picks a 16 byte seed, derives the token key (as in "Machine login"),
+  and sends `name` and `key` (the seed in base64) as EncStrings under the organisation key and
+  `encryptedPayload` (`{"encryptionKey":"<org key b64>"}`) under the token key. The resulting
+  `0.<id>.<clientSecret>:<seed>` is shown once with a copy button and a warning; it is never
+  stored. Tokens can be listed and revoked.
+- Members: the existing member dialog in the Admin Console carries the "Secrets Manager" access
+  checkbox (`accessSecretsManager` on invite and update) and the bulk "Activate Secrets Manager"
+  action; both are shown only to those who can manage members. The dialogs first read
+  `GET /api/organizations/{id}/billing/vnext/self-host/metadata`, which Cloudwarden now serves
+  (no Secrets Manager standalone plan, occupied seats = members not revoked); before that the
+  member dialogs did not open at all.
+
+Encryption uses the client's own `KeyService` (organisation key) and `EncryptService` (type 2
+EncStrings). The token helpers (`sm-crypto.ts`) are checked by Jest against the `bitwarden-core`
+vector and by running `e2e/sm-client.mjs`'s parser and decryptor over a UI-built token.
 
 ## Not implemented (deferred)
 

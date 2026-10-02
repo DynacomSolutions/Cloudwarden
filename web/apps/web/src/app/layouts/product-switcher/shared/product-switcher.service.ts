@@ -268,10 +268,15 @@ export class ProductSwitcherService {
           },
         } satisfies Record<string, ProductSwitcherItem>;
 
-        // Cloudwarden: only Password Manager and the Admin Console. Secrets Manager, the
-        // Provider Portal and marketing links ("More from ...") are not offered (web/NOTICE.md).
+        // Cloudwarden: Password Manager, Cloudwarden's own Secrets Manager pages (only for members
+        // with access on an organisation that uses it) and the Admin Console. The Provider Portal
+        // and marketing links ("More from ...") are not offered (web/NOTICE.md).
         const bento: ProductSwitcherItem[] = [products.pm];
         const other: ProductSwitcherItem[] = [];
+
+        if (smOrg) {
+          bento.push(products.sm);
+        }
 
         if (acOrg) {
           bento.push(products.ac);

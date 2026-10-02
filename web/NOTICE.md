@@ -16,7 +16,10 @@ under the Bitwarden License v1.0) is included, the web vault is built with the o
 (`oss`) variant that does not import it, and `scripts/check-web-licence.mjs` fails CI if any such
 path appears. Features that upstream ships only under the Bitwarden License, such as Secrets
 Manager, the Provider Portal, SSO and SCIM administration and other enterprise features, are
-therefore not part of this build.
+therefore not part of this build. Cloudwarden's own Secrets Manager pages
+(`apps/web/src/app/cloudwarden/secrets-manager/`) are written from scratch against Cloudwarden's
+API contract (`docs/secrets-manager.md`); no code, structure or assets were taken from
+Bitwarden's Secrets Manager web app.
 
 ## Trademarks
 
@@ -37,8 +40,8 @@ Summary of changes made by Cloudwarden (see `git log -- web/` for the full histo
   shield glyph replaced (names of real Bitwarden products the user installs separately, such as
   the browser extension, apps and Authenticator, are kept; `web/scripts/rebrand-locales.py`);
   the upstream extension videos are not shown; the
-  "More from Bitwarden" product switcher entries, premium upsell, Secrets Manager and Provider
-  Portal entry points and marketing links are hidden. The footer reads "Cloudwarden, based on
+  "More from Bitwarden" product switcher entries, premium upsell, Provider Portal entry points
+  and marketing links are hidden; the Secrets Manager entry opens Cloudwarden's own pages. The footer reads "Cloudwarden, based on
   Bitwarden clients (GPL-3.0)".
 - Theme: colours, typography and radii mapped onto the component library tokens
   (`libs/components/src/cloudwarden/theme.css`).
@@ -46,5 +49,9 @@ Summary of changes made by Cloudwarden (see `git log -- web/` for the full histo
   plan) instead of the licence upload.
 - Instance admin: an admin area (`apps/web/src/app/cloudwarden/`) that talks to Cloudwarden's
   admin API.
+- Secrets Manager: projects, secrets, machine accounts, access tokens and access policies at
+  `/sm/:organizationId` (`apps/web/src/app/cloudwarden/secrets-manager/`), shown in the product
+  switcher for members with Secrets Manager access; the Secrets Manager logo is replaced with a
+  Cloudwarden one.
 
 Files Cloudwarden adds live in directories named `cloudwarden/` where practical.

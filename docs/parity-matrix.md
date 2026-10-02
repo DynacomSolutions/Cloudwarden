@@ -30,10 +30,10 @@ Directory Connector, SCIM, event integrations; G this audit.
 | | Rows |
 |---|---|
 | Distinct method and path pairs | 625 |
-| Implemented (including self-host answers) | 242 |
+| Implemented (including self-host answers) | 311 |
 | Owned by workstreams A to F, not yet implemented | 109 |
-| Remaining for G | 167 |
-| Not called by any client (SDK-generated only) | 107 |
+| Remaining for G | 113 |
+| Not called by any client (SDK-generated only) | 92 |
 
 ## Matrix
 
@@ -52,7 +52,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/access-requests/history` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | GET | `/api/access-requests/inbox` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | GET | `/api/access-requests/mine` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| GET | `/api/account/billing/subscription/preview` | sdk, web | missing | G |  |
+| GET | `/api/account/billing/subscription/preview` | sdk, web | implemented |  |  |
 | GET | `/api/account/billing/subscription/purchase/preview` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | GET | `/api/account/billing/subscription/upgrade/preview` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | POST | `/api/account/billing/subscriptions/organizations/invoice/preview` | web | missing | G |  |
@@ -78,11 +78,11 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/api/account/billing/vnext/upgrade` | sdk, web | missing | G |  |
 | DELETE | `/api/accounts` | ios, sdk, web | implemented |  |  |
 | POST | `/api/accounts/api-key` | sdk, web | implemented |  |  |
-| PUT | `/api/accounts/avatar` | sdk, web | missing | G |  |
-| GET | `/api/accounts/billing/history` | sdk, web | missing | G |  |
-| GET | `/api/accounts/billing/invoices` | sdk, web | missing | G |  |
-| GET | `/api/accounts/billing/transactions` | sdk, web | missing | G |  |
-| POST | `/api/accounts/cancel` | sdk, web | missing | G |  |
+| PUT | `/api/accounts/avatar` | sdk, web | implemented |  |  |
+| GET | `/api/accounts/billing/history` | sdk, web | implemented |  |  |
+| GET | `/api/accounts/billing/invoices` | sdk, web | implemented |  |  |
+| GET | `/api/accounts/billing/transactions` | sdk, web | implemented |  |  |
+| POST | `/api/accounts/cancel` | sdk, web | implemented |  |  |
 | POST | `/api/accounts/convert-to-key-connector` | android, ios, sdk, web | missing | E |  |
 | POST | `/api/accounts/delete-recover` | sdk, web | missing | A |  |
 | POST | `/api/accounts/delete-recover-token` | sdk, web | missing | A |  |
@@ -96,16 +96,16 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/api/accounts/key-management/rotate-user-account-keys` | sdk, web | implemented |  |  |
 | POST | `/api/accounts/key-management/rotate-user-keys` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | POST | `/api/accounts/key-management/user-key-id` | sdk | implemented |  |  |
-| GET | `/api/accounts/keys` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
+| GET | `/api/accounts/keys` | sdk | implemented |  |  |
 | POST | `/api/accounts/keys` | android, ios, sdk, web | implemented |  |  |
-| POST | `/api/accounts/license` | sdk, web | missing | G |  |
-| GET | `/api/accounts/organizations` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
+| POST | `/api/accounts/license` | sdk, web | implemented |  |  |
+| GET | `/api/accounts/organizations` | sdk | implemented |  |  |
 | POST | `/api/accounts/password` | android, ios, sdk, web | implemented |  |  |
 | POST | `/api/accounts/password-hint` | android, ios, sdk, web | missing | A |  |
-| POST | `/api/accounts/premium` | web | missing | G |  |
+| POST | `/api/accounts/premium` | web | implemented |  |  |
 | GET | `/api/accounts/profile` | sdk, web | implemented |  |  |
 | PUT | `/api/accounts/profile` | sdk, web | implemented |  |  |
-| POST | `/api/accounts/register/verification-email-clicked` | ios | missing | G |  |
+| POST | `/api/accounts/register/verification-email-clicked` | ios | implemented |  |  |
 | POST | `/api/accounts/request-otp` | android, ios, sdk, web | missing | A |  |
 | POST | `/api/accounts/resend-new-device-otp` | android, ios, sdk, web | missing | A |  |
 | GET | `/api/accounts/revision-date` | android, ios, sdk, web | implemented |  |  |
@@ -115,7 +115,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/api/accounts/set-password` | android, ios, sdk, web | missing | E |  |
 | DELETE | `/api/accounts/sso/{orgId}` | sdk, web | missing | E |  |
 | GET | `/api/accounts/sso/user-identifier` | sdk, web | missing | E |  |
-| GET | `/api/accounts/subscription` | sdk, web | missing | G |  |
+| GET | `/api/accounts/subscription` | sdk, web | implemented |  |  |
 | PUT | `/api/accounts/update-tde-offboarding-password` | sdk, web | missing | E |  |
 | PUT | `/api/accounts/update-temp-password` | android, ios, sdk, web | missing | C |  |
 | POST | `/api/accounts/verify-devices` | web | missing | G |  |
@@ -179,7 +179,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/api/ciphers/create` | android, ios, sdk, web | implemented |  |  |
 | PUT | `/api/ciphers/delete` | sdk, web | implemented |  |  |
 | PUT | `/api/ciphers/delete-admin` | sdk, web | implemented |  |  |
-| GET | `/api/ciphers/has-unassigned-ciphers` | android | missing | G |  |
+| GET | `/api/ciphers/has-unassigned-ciphers` | android | implemented |  |  |
 | POST | `/api/ciphers/import` | android, ios, sdk, web | implemented |  |  |
 | POST | `/api/ciphers/import-organization` | sdk, web | implemented |  |  |
 | PUT | `/api/ciphers/move` | sdk, web | implemented |  |  |
@@ -205,7 +205,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/collections` | cli, sdk, web | implemented |  |  |
 | GET | `/api/config` | android, ios, sdk, web | implemented |  |  |
 | GET | `/api/devices` | android, ios, sdk, web | implemented |  |  |
-| POST | `/api/devices` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
+| POST | `/api/devices` | sdk | implemented |  |  |
 | DELETE | `/api/devices/{id}` | sdk | implemented |  |  |
 | GET | `/api/devices/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | PUT | `/api/devices/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
@@ -224,7 +224,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | DELETE | `/api/emergency-access/{id}` | sdk, web | implemented |  |  |
 | GET | `/api/emergency-access/{id}` | sdk, web | implemented |  |  |
 | PUT | `/api/emergency-access/{id}` | sdk, web | implemented |  |  |
-| GET | `/api/emergency-access/{id}/{cipherId}/attachment/{attachmentId}` | cli, sdk, web | missing | G |  |
+| GET | `/api/emergency-access/{id}/{cipherId}/attachment/{attachmentId}` | cli, sdk, web | implemented |  |  |
 | POST | `/api/emergency-access/{id}/accept` | sdk, web | implemented |  |  |
 | POST | `/api/emergency-access/{id}/approve` | sdk, web | implemented |  |  |
 | POST | `/api/emergency-access/{id}/confirm` | sdk, web | implemented |  |  |
@@ -246,7 +246,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/folders/{id}` | android, ios, sdk, web | implemented |  |  |
 | PUT | `/api/folders/{id}` | android, cli, ios, sdk, web | implemented |  |  |
 | DELETE | `/api/folders/all` | sdk, web | missing | G |  |
-| GET | `/api/hibp/breach` | sdk, web | missing | G |  |
+| GET | `/api/hibp/breach` | sdk, web | implemented |  |  |
 | POST | `/api/installations` | sdk | missing | A |  |
 | GET | `/api/installations/{id}` | sdk | missing | A |  |
 | POST | `/api/leases/{id}/extend` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
@@ -259,13 +259,13 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/leases/mine` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | GET | `/api/licenses/organization/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | GET | `/api/licenses/user/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| GET | `/api/notifications` | sdk, web | missing | G |  |
-| DELETE | `/api/notifications/{notificationId}/delete` | web | missing | G |  |
-| PATCH | `/api/notifications/{id}/delete` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| PATCH | `/api/notifications/{notificationId}/read` | sdk, web | missing | G |  |
-| GET | `/api/organization/{orgId}/projects/{id}/events` | sdk, web | missing | G |  |
-| GET | `/api/organization/{orgId}/secrets/{id}/events` | sdk, web | missing | G |  |
-| GET | `/api/organization/{orgId}/service-account/{id}/events` | sdk, web | missing | G |  |
+| GET | `/api/notifications` | sdk, web | implemented |  |  |
+| DELETE | `/api/notifications/{notificationId}/delete` | web | implemented |  |  |
+| PATCH | `/api/notifications/{id}/delete` | sdk | implemented |  |  |
+| PATCH | `/api/notifications/{notificationId}/read` | sdk, web | implemented |  |  |
+| GET | `/api/organization/{orgId}/projects/{id}/events` | sdk, web | implemented |  |  |
+| GET | `/api/organization/{orgId}/secrets/{id}/events` | sdk, web | implemented |  |  |
+| GET | `/api/organization/{orgId}/service-account/{id}/events` | sdk, web | implemented |  |  |
 | DELETE | `/api/organization/sponsorship/{orgId}` | sdk, web | missing | G |  |
 | DELETE | `/api/organization/sponsorship/{orgId}/{sponsoredFriendlyName}/revoke` | sdk, web | missing | G |  |
 | POST | `/api/organization/sponsorship/{orgId}/families-for-enterprise` | sdk, web | missing | G |  |
@@ -280,7 +280,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | DELETE | `/api/organization/sponsorship/sponsored/{orgId}` | sdk, web | missing | G |  |
 | POST | `/api/organization/sponsorship/sync` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | POST | `/api/organization/sponsorship/validate-token` | sdk, web | missing | G |  |
-| GET | `/api/organizations` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
+| GET | `/api/organizations` | sdk | implemented |  |  |
 | POST | `/api/organizations` | sdk, web | implemented |  |  |
 | DELETE | `/api/organizations/{id}` | sdk, web | implemented |  |  |
 | GET | `/api/organizations/{id}` | sdk, web | implemented |  |  |
@@ -324,14 +324,14 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/api/organizations/{id}/auth-requests/{id}` | sdk | missing | C |  |
 | POST | `/api/organizations/{id}/auth-requests/deny` | sdk | missing | C |  |
 | GET | `/api/organizations/{identifier}/auto-enroll-status` | android, ios, sdk, web | missing | C |  |
-| GET | `/api/organizations/{id}/billing` | sdk, web | missing | G |  |
+| GET | `/api/organizations/{id}/billing` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/{orgId}/billing/change-frequency` | sdk, web | missing | G |  |
-| GET | `/api/organizations/{id}/billing/history` | sdk, web | missing | G |  |
+| GET | `/api/organizations/{id}/billing/history` | sdk, web | implemented |  |  |
 | GET | `/api/organizations/{id}/billing/invoices` | sdk, web | missing | G |  |
 | POST | `/api/organizations/{orgId}/billing/restart-subscription` | web | missing | G |  |
 | POST | `/api/organizations/{id}/billing/setup-business-unit` | sdk, web | missing | G |  |
 | POST | `/api/organizations/{orgId}/billing/subscription/plan-change/invoice/preview` | web | missing | G |  |
-| GET | `/api/organizations/{orgId}/billing/subscription/preview` | sdk, web | missing | G |  |
+| GET | `/api/organizations/{orgId}/billing/subscription/preview` | sdk, web | implemented |  |  |
 | GET | `/api/organizations/{id}/billing/transactions` | sdk, web | missing | G |  |
 | GET | `/api/organizations/{orgId}/billing/vnext/address` | sdk, web | missing | G |  |
 | PUT | `/api/organizations/{orgId}/billing/vnext/address` | sdk, web | missing | G |  |
@@ -341,7 +341,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/api/organizations/{orgId}/billing/vnext/churn-mitigation-offer/redeem` | sdk, web | missing | G |  |
 | GET | `/api/organizations/{orgId}/billing/vnext/credit` | sdk, web | missing | G |  |
 | POST | `/api/organizations/{orgId}/billing/vnext/credit/bitpay` | sdk, web | missing | G |  |
-| GET | `/api/organizations/{orgId}/billing/vnext/metadata` | sdk, web | missing | G |  |
+| GET | `/api/organizations/{orgId}/billing/vnext/metadata` | sdk, web | implemented |  |  |
 | GET | `/api/organizations/{orgId}/billing/vnext/payment-method` | sdk, web | missing | G |  |
 | PUT | `/api/organizations/{orgId}/billing/vnext/payment-method` | sdk, web | missing | G |  |
 | POST | `/api/organizations/{orgId}/billing/vnext/payment-method/verify-bank-account` | web | missing | G |  |
@@ -349,7 +349,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/api/organizations/{orgId}/billing/vnext/subscription/restart` | sdk, web | missing | G |  |
 | GET | `/api/organizations/{orgId}/billing/vnext/warnings` | sdk, web | missing | G |  |
 | POST | `/api/organizations/{orgId}/cancel` | sdk, web | missing | G |  |
-| PUT | `/api/organizations/{id}/collection-management` | sdk, web | missing | G |  |
+| PUT | `/api/organizations/{id}/collection-management` | sdk, web | implemented |  |  |
 | DELETE | `/api/organizations/{orgId}/collections` | sdk, web | implemented |  |  |
 | GET | `/api/organizations/{orgId}/collections` | cli, sdk, web | implemented |  |  |
 | POST | `/api/organizations/{orgId}/collections` | cli, sdk, web | implemented |  |  |
@@ -369,7 +369,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/api/organizations/{orgId}/domain/{orgId}/verify` | sdk, web | missing | E |  |
 | GET | `/api/organizations/{orgId}/domain/mini` | sdk, web | missing | E |  |
 | GET | `/api/organizations/{orgId}/events` | sdk, web | implemented |  |  |
-| GET | `/api/organizations/{orgId}/export` | sdk, web | missing | G |  |
+| GET | `/api/organizations/{orgId}/export` | sdk, web | implemented |  |  |
 | DELETE | `/api/organizations/{orgId}/groups` | sdk, web | implemented |  |  |
 | GET | `/api/organizations/{orgId}/groups` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/{orgId}/groups` | sdk, web | implemented |  |  |
@@ -377,7 +377,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/organizations/{id}/groups/{id}` | sdk | implemented |  |  |
 | PUT | `/api/organizations/{orgId}/groups/{id}` | sdk, web | implemented |  |  |
 | GET | `/api/organizations/{orgId}/groups/{groupId}/details` | sdk, web | implemented |  |  |
-| DELETE | `/api/organizations/{orgId}/groups/{id}/user/{orgId}` | sdk, web | missing | G |  |
+| DELETE | `/api/organizations/{orgId}/groups/{id}/user/{orgId}` | sdk, web | implemented |  |  |
 | GET | `/api/organizations/{orgId}/groups/{id}/users` | sdk, web | implemented |  |  |
 | GET | `/api/organizations/{orgId}/groups/details` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/{orgId}/import` | web | missing | F |  |
@@ -392,16 +392,16 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/organizations/{id}/integrations/{id}/teams/channels` | sdk | missing | F |  |
 | GET | `/api/organizations/{id}/integrations/slack/redirect` | sdk | missing | F |  |
 | GET | `/api/organizations/{id}/integrations/teams/redirect` | sdk | missing | F |  |
-| DELETE | `/api/organizations/{orgId}/invite-link` | sdk, web | missing | G |  |
-| GET | `/api/organizations/{orgId}/invite-link` | sdk, web | missing | G |  |
-| POST | `/api/organizations/{id}/invite-link` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| PUT | `/api/organizations/{orgId}/invite-link` | sdk, web | missing | G |  |
-| POST | `/api/organizations/{id}/invite-link/refresh` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| PUT | `/api/organizations/{id}/invite-link/support-confirm` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
+| DELETE | `/api/organizations/{orgId}/invite-link` | sdk, web | implemented |  |  |
+| GET | `/api/organizations/{orgId}/invite-link` | sdk, web | implemented |  |  |
+| POST | `/api/organizations/{id}/invite-link` | sdk | implemented |  |  |
+| PUT | `/api/organizations/{orgId}/invite-link` | sdk, web | implemented |  |  |
+| POST | `/api/organizations/{id}/invite-link/refresh` | sdk | implemented |  |  |
+| PUT | `/api/organizations/{id}/invite-link/support-confirm` | sdk | implemented |  |  |
 | GET | `/api/organizations/{id}/keys` | android, web | implemented |  |  |
 | POST | `/api/organizations/{id}/keys` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/{id}/leave` | android, cli, ios, sdk, web | implemented |  |  |
-| GET | `/api/organizations/{id}/license` | sdk, web | missing | G |  |
+| GET | `/api/organizations/{id}/license` | sdk, web | implemented |  |  |
 | GET | `/api/organizations/{orgId}/policies` | sdk, web | implemented |  |  |
 | GET | `/api/organizations/{orgId}/policies/{type}` | sdk, web | implemented |  |  |
 | PUT | `/api/organizations/{orgId}/policies/{type}` | sdk, web | implemented |  |  |
@@ -425,10 +425,10 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/organizations/{id}/sso` | sdk, web | missing | E |  |
 | POST | `/api/organizations/{id}/sso` | sdk, web | missing | E |  |
 | POST | `/api/organizations/{id}/storage` | sdk, web | missing | G |  |
-| POST | `/api/organizations/{id}/subscribe-secrets-manager` | sdk, web | missing | G |  |
-| GET | `/api/organizations/{id}/subscription` | sdk, web | missing | G |  |
+| POST | `/api/organizations/{id}/subscribe-secrets-manager` | sdk, web | implemented |  |  |
+| GET | `/api/organizations/{id}/subscription` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/{id}/subscription` | sdk, web | missing | G |  |
-| GET | `/api/organizations/{orgId}/two-factor` | sdk, web | missing | G |  |
+| GET | `/api/organizations/{orgId}/two-factor` | sdk, web | implemented |  |  |
 | DELETE | `/api/organizations/{orgId}/two-factor/duo` | sdk, web | missing | D |  |
 | PUT | `/api/organizations/{orgId}/two-factor/duo` | sdk, web | missing | D |  |
 | POST | `/api/organizations/{orgId}/two-factor/get-duo` | sdk, web | missing | D |  |
@@ -439,8 +439,8 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/organizations/{orgId}/users/{id}` | cli, sdk, web | implemented |  |  |
 | PUT | `/api/organizations/{orgId}/users/{id}` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/{orgId}/users/{id}/accept` | sdk, web | implemented |  |  |
-| POST | `/api/organizations/{orgId}/users/{id}/accept-init` | sdk, web | missing | G |  |
-| POST | `/api/organizations/{orgId}/users/{id}/auto-confirm` | sdk, web | missing | G |  |
+| POST | `/api/organizations/{orgId}/users/{id}/accept-init` | sdk, web | implemented |  |  |
+| POST | `/api/organizations/{orgId}/users/{id}/auto-confirm` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/{orgId}/users/{id}/confirm` | cli, sdk, web | implemented |  |  |
 | DELETE | `/api/organizations/{orgId}/users/{id}/delete-account` | sdk, web | missing | E |  |
 | GET | `/api/organizations/{orgId}/users/{id}/events` | sdk, web | implemented |  |  |
@@ -451,19 +451,19 @@ Directory Connector, SCIM, event integrations; G this audit.
 | PUT | `/api/organizations/{orgId}/users/{id}/restore/vnext` | sdk, web | implemented |  |  |
 | PUT | `/api/organizations/{orgId}/users/{id}/revoke` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/{orgId}/users/account-recovery-details` | sdk, web | missing | C |  |
-| POST | `/api/organizations/{orgId}/users/bulk-auto-confirm` | sdk, web | missing | G |  |
+| POST | `/api/organizations/{orgId}/users/bulk-auto-confirm` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/{orgId}/users/confirm` | sdk, web | implemented |  |  |
 | DELETE | `/api/organizations/{orgId}/users/delete-account` | sdk, web | missing | E |  |
-| PUT | `/api/organizations/{orgId}/users/enable-pam` | sdk, web | missing | G |  |
+| PUT | `/api/organizations/{orgId}/users/enable-pam` | sdk, web | implemented |  |  |
 | PUT | `/api/organizations/{orgId}/users/enable-secrets-manager` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/{orgId}/users/invite` | sdk, web | implemented |  |  |
 | GET | `/api/organizations/{orgId}/users/mini-details` | sdk, web | implemented |  |  |
-| GET | `/api/organizations/{orgId}/users/pending-auto-confirm` | sdk, web | missing | G |  |
+| GET | `/api/organizations/{orgId}/users/pending-auto-confirm` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/{orgId}/users/public-keys` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/{orgId}/users/reinvite` | sdk, web | implemented |  |  |
 | PUT | `/api/organizations/{orgId}/users/restore` | sdk, web | implemented |  |  |
 | PUT | `/api/organizations/{orgId}/users/revoke` | sdk, web | implemented |  |  |
-| PUT | `/api/organizations/{orgId}/users/revoke-self` | android, ios, sdk, web | missing | G |  |
+| PUT | `/api/organizations/{orgId}/users/revoke-self` | android, ios, sdk, web | implemented |  |  |
 | POST | `/api/organizations/{id}/users/send-invite` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | POST | `/api/organizations/billing/subscription/purchase/preview` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | POST | `/api/organizations/connections/` | sdk, web | missing | F |  |
@@ -471,22 +471,22 @@ Directory Connector, SCIM, event integrations; G this audit.
 | PUT | `/api/organizations/connections/{orgId}` | sdk, web | missing | F |  |
 | GET | `/api/organizations/connections/{id}/{type}` | sdk, web | missing | F |  |
 | GET | `/api/organizations/connections/enabled` | sdk, web | missing | F |  |
-| POST | `/api/organizations/create-without-payment` | sdk, web | missing | G |  |
+| POST | `/api/organizations/create-without-payment` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/domain/sso/verified` | android, ios, sdk, web | missing | E |  |
 | GET | `/api/organizations/integrations/slack/create` | sdk | missing | F |  |
 | GET | `/api/organizations/integrations/teams/create` | sdk | missing | F |  |
 | POST | `/api/organizations/integrations/teams/incoming` | sdk | missing | F |  |
-| POST | `/api/organizations/invite-link/policies` | sdk, web | missing | G |  |
-| POST | `/api/organizations/invite-link/status` | sdk, web | missing | G |  |
-| POST | `/api/organizations/invite-link/validate-email-domain` | sdk, web | missing | G |  |
-| POST | `/api/organizations/licenses/self-hosted` | sdk, web | missing | G |  |
+| POST | `/api/organizations/invite-link/policies` | sdk, web | implemented |  |  |
+| POST | `/api/organizations/invite-link/status` | sdk, web | implemented |  |  |
+| POST | `/api/organizations/invite-link/validate-email-domain` | sdk, web | implemented |  |  |
+| POST | `/api/organizations/licenses/self-hosted` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/licenses/self-hosted/{id}` | sdk, web | missing | G |  |
 | POST | `/api/organizations/licenses/self-hosted/{id}/sync/` | sdk, web | missing | G |  |
-| POST | `/api/organizations/users/invite-link/accept` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/organizations/users/invite-link/confirm` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/organizations/users/invite-link/invite` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| GET | `/api/plans` | sdk, web | missing | G |  |
-| GET | `/api/plans/premium` | android, ios, sdk, web | missing | G |  |
+| POST | `/api/organizations/users/invite-link/accept` | sdk | implemented |  |  |
+| POST | `/api/organizations/users/invite-link/confirm` | sdk | implemented |  |  |
+| POST | `/api/organizations/users/invite-link/invite` | sdk | implemented |  |  |
+| GET | `/api/plans` | sdk, web | implemented |  |  |
+| GET | `/api/plans/premium` | android, ios, sdk, web | implemented |  |  |
 | GET | `/api/projects/{id}` | bws, web | implemented |  |  |
 | PUT | `/api/projects/{id}` | bws, web | implemented |  |  |
 | GET | `/api/projects/{id}/access-policies/people` | bws, web | implemented |  |  |
@@ -556,20 +556,20 @@ Directory Connector, SCIM, event integrations; G this audit.
 | PATCH | `/api/reports/organizations/{id}/data/summary/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | GET | `/api/reports/organizations/{id}/latest` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | POST | `/api/reports/organizations/file/validate/azure` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| GET | `/api/reports/passkey-directory` | sdk, web | missing | G |  |
+| GET | `/api/reports/passkey-directory` | sdk, web | implemented |  |  |
 | DELETE | `/api/reports/password-health-report-application` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | POST | `/api/reports/password-health-report-applications` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | GET | `/api/reports/password-health-report-applications/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/request-access/request-sm-access` | sdk, web | missing | G |  |
+| POST | `/api/request-access/request-sm-access` | sdk, web | implemented |  |  |
 | GET | `/api/secret-versions/{id}` | sdk | missing | D |  |
 | POST | `/api/secret-versions/delete` | sdk | missing | D |  |
 | POST | `/api/secret-versions/get-by-ids` | sdk | missing | D |  |
 | GET | `/api/secrets/{id}` | bws, web | implemented |  |  |
 | PUT | `/api/secrets/{id}` | bws, web | implemented |  |  |
 | GET | `/api/secrets/{id}/access-policies` | bws | implemented |  |  |
-| GET | `/api/secrets/{id}/trash` | bws | missing | G |  |
-| POST | `/api/secrets/{id}/trash/empty` | bws | missing | G |  |
-| POST | `/api/secrets/{id}/trash/restore` | bws | missing | G |  |
+| GET | `/api/secrets/{id}/trash` | bws | implemented |  |  |
+| POST | `/api/secrets/{id}/trash/empty` | bws | implemented |  |  |
+| POST | `/api/secrets/{id}/trash/restore` | bws | implemented |  |  |
 | GET | `/api/secrets/{id}/versions` | bws | missing | D |  |
 | PUT | `/api/secrets/{id}/versions/restore` | bws | missing | D |  |
 | POST | `/api/secrets/delete` | bws, web | implemented |  |  |
@@ -609,11 +609,11 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/sm/events/service-accounts/{id}` | sdk | implemented |  |  |
 | GET | `/api/sso-cookie-vendor` | sdk | missing | E |  |
 | GET | `/api/sync` | android, ios, sdk, web | implemented |  |  |
-| GET | `/api/tasks` | sdk, web | missing | G |  |
-| POST | `/api/tasks/{id}/bulk-create` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| PATCH | `/api/tasks/{taskId}/complete` | sdk, web | missing | G |  |
-| GET | `/api/tasks/{id}/metrics` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| GET | `/api/tasks/organization` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
+| GET | `/api/tasks` | sdk, web | implemented |  |  |
+| POST | `/api/tasks/{id}/bulk-create` | sdk | implemented |  |  |
+| PATCH | `/api/tasks/{taskId}/complete` | sdk, web | implemented |  |  |
+| GET | `/api/tasks/{id}/metrics` | sdk | implemented |  |  |
+| GET | `/api/tasks/organization` | sdk | implemented |  |  |
 | GET | `/api/tax/is-country-supported` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | GET | `/api/two-factor` | sdk, web | implemented |  |  |
 | DELETE | `/api/two-factor/authenticator` | sdk, web | implemented |  |  |
@@ -646,7 +646,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/api/webauthn/attestation-options` | ios, sdk, web | implemented |  |  |
 | POST | `/events/collect` | android, ios, web | implemented |  |  |
 | GET | `/icons/{hostname}/icon.png` | android, browser, ios, web | implemented |  |  |
-| GET | `/icons/change-password-uri` | web | missing | G |  |
+| GET | `/icons/change-password-uri` | web | implemented |  |  |
 | POST | `/identity/accounts/prelogin` | android, ios | implemented |  |  |
 | POST | `/identity/accounts/prelogin/password` | sdk, web | implemented |  |  |
 | POST | `/identity/accounts/register/finish` | android, ios, sdk, web | implemented |  |  |
@@ -654,7 +654,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/identity/accounts/register/verification-email-clicked` | android, sdk, web | implemented |  |  |
 | POST | `/identity/accounts/trial/send-verification-email` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | GET | `/identity/accounts/webauthn/assertion-options` | sdk, web | implemented |  |  |
-| GET | `/identity/alive` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
+| GET | `/identity/alive` | sdk | implemented |  |  |
 | GET | `/identity/connect/authorize` | web | missing | E |  |
 | POST | `/identity/connect/token` | android, bws, cli, ios, web | implemented |  |  |
 | GET | `/identity/sso/ExternalCallback` | sdk | missing | E |  |

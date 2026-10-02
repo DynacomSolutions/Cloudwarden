@@ -3,6 +3,7 @@ import { randomB64u, safeEqualStrings, sha256B64u } from '../auth/crypto'
 import { normalizeEmail } from '../auth/users'
 import { type Db, runBatch, schema } from '../db'
 import type { Bindings, User } from '../env'
+import { isStandInUser } from '../federation/standin'
 import { Role, Status } from '../orgs/constants'
 import { orgClaimsEmail } from '../orgs/domains'
 import { SsoError } from './errors'
@@ -256,6 +257,12 @@ export async function provisionSsoUser(
     }
 
     if (user) {
+      // Stand-in accounts of federated members never link to or sign in through SSO here.
+      if (isStandInUser(user)) {
+        throw new SsoError(
+          'This account belongs to another server and cannot use single sign-on here.',
+        )
+      }
       const [existing] = await db
         .select()
         .from(schema.ssoUsers)

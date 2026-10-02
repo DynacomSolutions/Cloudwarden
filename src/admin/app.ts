@@ -236,14 +236,6 @@ export function createAdmin(deps: AdminDeps = {}) {
     })
   }
 
-  const strictSameOrigin = (c: Ctx) => {
-    const site = c.req.header('Sec-Fetch-Site')
-    return (
-      c.req.header('Origin') === new URL(c.env.DOMAIN).origin &&
-      (site === undefined || site === 'same-origin')
-    )
-  }
-
   const clientIp = (c: Ctx) => c.req.header('CF-Connecting-IP') ?? 'unknown'
 
   // Authenticated routes: require a session, and a matching CSRF field on POST.
@@ -313,45 +305,6 @@ ${kvTable(await serverRows(c))}`,
       ['JWT secret configured', cfg.jwtSecretConfigured],
     ]
   }
-
-  // Vault login exchange ------------------------------------------------
-  // The injected web vault script posts the vault's own access token here (never in a URL).
-  app.post('/admin/session/exchange', async (c) => {
-    const fail = (status: 401 | 403 | 429, message: string) =>
-      c.json({ message, validationErrors: null, object: 'error' }, status)
-    if (!strictSameOrigin(c)) {
-      return fail(403, 'Cross-origin request refused')
-    }
-    if (!(await rateLimit(c.env.DB, `ex:ip:${clientIp(c)}`, 30, WINDOW_MS, now()))) {
-      return fail(429, 'Too many attempts')
-    }
-    const match = /^Bearer\s+(\S+)$/i.exec(c.req.header('Authorization') ?? '')
-    const authed = match?.[1] ? await authenticateAccessToken(c.env, match[1]) : null
-    if (!authed) return fail(401, 'Unauthorized')
-    const email = normaliseEmail(authed.user.email)
-    if (!isAdminUser(c.env, authed.user)) return fail(403, 'Not an admin')
-    await startSession(c, email, authed.user)
-    return c.body(null, 204)
-  })
-
-  // Called by the vault script on vault logout. No CSRF field: the strict same-origin check
-  // stands in for it, and the only effect is ending this browser's admin session.
-  app.post('/admin/session/end', async (c) => {
-    if (!strictSameOrigin(c)) {
-      return c.json(
-        { message: 'Cross-origin request refused', validationErrors: null, object: 'error' },
-        403,
-      )
-    }
-    const raw = getCookie(c, COOKIE, 'host')
-    if (raw) {
-      await c.env.DB.prepare('DELETE FROM admin_sessions WHERE session_hash = ?1')
-        .bind(await sha256Hex(raw))
-        .run()
-    }
-    deleteCookie(c, COOKIE, { prefix: 'host', secure: true, path: '/' })
-    return c.body(null, 204)
-  })
 
   // Break-glass recovery ------------------------------------------------
   app.get('/admin/recovery', (c) => c.html(loginPage(c.get('nonce'))))
@@ -617,7 +570,7 @@ ${kvTable([
     )
   })
 
-  // Used by the injected web vault script to decide whether to show the admin link.
+  // Used by the web client to decide whether to show the Instance admin pages.
   app.get('/api/cloudwarden/me', async (c) => {
     c.header('Cache-Control', 'no-store')
     const match = /^Bearer\s+(\S+)$/i.exec(c.req.header('Authorization') ?? '')

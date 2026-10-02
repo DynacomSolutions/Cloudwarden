@@ -290,6 +290,38 @@ async function main() {
     bw(['send', 'delete', send.id, ...S])
     pass('send delete')
 
+    // Password-protected Send: the CLI runs the send_access grant, so this covers the
+    // password_hash_b64_required and _invalid error shapes the SDK reads.
+    const guarded = JSON.parse(
+      bwOut([
+        'send',
+        'create',
+        encode({
+          name: 'e2e guarded send',
+          notes: null,
+          type: 0,
+          text: { text: 'guarded body', hidden: false },
+          deletionDate: new Date(Date.now() + 400 * 86400000).toISOString(),
+          maxAccessCount: null,
+          disabled: false,
+          hideEmail: false,
+          password: 's3cret-pass',
+        }),
+        ...S,
+      ]),
+    )
+    assert.ok(guarded.id && guarded.accessUrl)
+    assert.equal(
+      bwOut(['send', 'receive', guarded.accessUrl, '--password', 's3cret-pass']),
+      'guarded body',
+    )
+    const refused = bw(['send', 'receive', guarded.accessUrl, '--password', 'wrong'], {
+      allowFail: true,
+    })
+    assert.notEqual(refused.status, 0)
+    pass('password Send receive (right and wrong password, 400 day deletion date)')
+    bw(['send', 'delete', guarded.id, ...S])
+
     // Soft delete, trash listing, restore, then permanent delete.
     bw(['delete', 'item', created.id, ...S])
     assert.equal(

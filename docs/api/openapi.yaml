@@ -4497,6 +4497,36 @@ paths:
           $ref: '#/components/responses/NotFound'
       x-source-version: web-v2026.9.1
       x-source-file: libs/common/src/tools/send/services/send-api.service.ts
+  /api/sends/{id}/remove-auth:
+    put:
+      tags:
+      - Sends
+      operationId: removeSendAuth
+      summary: Remove a Send's password and recipient email list
+      description: Cloudwarden extension of `remove-password` for Sends protected by emailed codes. Not called by the
+        2026.9 clients.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: cloudwarden
+      x-source-file: src/routes/sends.ts
   /api/settings/domains:
     get:
       tags:
@@ -11550,7 +11580,9 @@ components:
       type: object
       description: Obtains a Send access token. This grant is issued by the Bitwarden SDK, which is not part of
         the clients repository; the shape is inferred from the client error types (libs/common/src/auth/send-access)
-        and may be incomplete.
+        and the SDK bindings. A Send protected by emailed codes needs `email` (mails a code and answers `invalid_request`
+        with `send_access_error_type` `email_and_otp_required`), then `email` with `otp`. Errors carry
+        `send_access_error_type` next to `error`.
       properties:
         grant_type:
           type: string

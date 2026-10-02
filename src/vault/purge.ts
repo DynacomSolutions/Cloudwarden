@@ -55,6 +55,8 @@ async function purgeSends(env: Bindings, now: number): Promise<number> {
     total += all.length
     if (all.length < BATCH) break
   }
+  // Mailed codes outlive their ten minutes only as rows nobody can use.
+  await db.delete(schema.sendEmailCodes).where(lt(schema.sendEmailCodes.expiresAt, now))
   return total
 }
 

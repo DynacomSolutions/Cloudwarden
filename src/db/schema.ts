@@ -152,12 +152,37 @@ export const ciphers = sqliteTable(
     key: text('akey'),
     favorite: integer('favorite', { mode: 'boolean' }).notNull().default(false),
     deletedAt: integer('deleted_at'),
+    /** Personal items only; organisation items keep this per member in `cipher_user_state`. */
+    archivedAt: integer('archived_at'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (t) => [
     index('ciphers_user_idx').on(t.userUuid),
     index('ciphers_organization_idx').on(t.organizationUuid),
+  ],
+)
+
+/**
+ * Per-member state of an organisation item (TASKS #250). Favourite and archive are personal
+ * choices of each member, so they cannot live on the shared cipher row. Folders are per member
+ * too and stay in `folders_ciphers`.
+ */
+export const cipherUserState = sqliteTable(
+  'cipher_user_state',
+  {
+    userUuid: text('user_uuid')
+      .notNull()
+      .references(() => users.uuid, { onDelete: 'cascade' }),
+    cipherUuid: text('cipher_uuid')
+      .notNull()
+      .references(() => ciphers.uuid, { onDelete: 'cascade' }),
+    favorite: integer('favorite', { mode: 'boolean' }).notNull().default(false),
+    archivedAt: integer('archived_at'),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userUuid, t.cipherUuid] }),
+    index('cipher_user_state_cipher_idx').on(t.cipherUuid),
   ],
 )
 
@@ -298,6 +323,8 @@ export const sends = sqliteTable(
     accessCount: integer('access_count').notNull().default(0),
     disabled: integer('disabled', { mode: 'boolean' }).notNull().default(false),
     hideEmail: integer('hide_email', { mode: 'boolean' }),
+    /** Email-protected Sends: the allowed recipients, lowercase and comma separated. */
+    emails: text('emails'),
     r2Key: text('r2_key'),
     /** File Sends only: set once the blob is stored. */
     uploadedAt: integer('uploaded_at'),
@@ -312,6 +339,23 @@ export const sends = sqliteTable(
     index('sends_organization_idx').on(t.organizationUuid),
     index('sends_deletion_date_idx').on(t.deletionDate),
   ],
+)
+
+/** One-time codes mailed to a recipient of an email-protected Send (TASKS #252). */
+export const sendEmailCodes = sqliteTable(
+  'send_email_codes',
+  {
+    sendUuid: text('send_uuid')
+      .notNull()
+      .references(() => sends.uuid, { onDelete: 'cascade' }),
+    email: text('email').notNull(),
+    /** SHA-256 of the code bound to the Send and address; the code itself is never stored. */
+    codeHash: text('code_hash').notNull(),
+    expiresAt: integer('expires_at').notNull(),
+    sentAt: integer('sent_at').notNull(),
+    attempts: integer('attempts').notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.sendUuid, t.email] })],
 )
 
 export const twofactor = sqliteTable(

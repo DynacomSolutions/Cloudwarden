@@ -52,13 +52,21 @@ it('manages text Sends and includes them in sync', async () => {
 
   expect((await authed(`/api/sends/${made.id}`, s.access_token, 'DELETE')).status).toBe(200)
   expect((await authed(`/api/sends/${made.id}`, s.access_token)).status).toBe(404)
+  // No upper bound on the deletion date: clients offer a custom date.
   const far = await authed(
     '/api/sends',
     s.access_token,
     'POST',
-    textSend({ deletionDate: new Date(Date.now() + 40 * day).toISOString() }),
+    textSend({ deletionDate: new Date(Date.now() + 400 * day).toISOString() }),
   )
-  expect(far.status).toBe(400)
+  expect(far.status).toBe(200)
+  const past = await authed(
+    '/api/sends',
+    s.access_token,
+    'POST',
+    textSend({ deletionDate: new Date(Date.now() - day).toISOString() }),
+  )
+  expect(past.status).toBe(400)
 })
 
 it('enforces password and max access count on legacy access', async () => {
@@ -110,10 +118,15 @@ it('supports the send_access token flow', async () => {
     })
   const missing = await grant({})
   expect(missing.status).toBe(400)
-  expect(((await missing.json()) as { error_description: string }).error_description).toBe(
+  expect(((await missing.json()) as Record<string, string>).send_access_error_type).toBe(
     'password_hash_b64_required',
   )
-  expect((await grant({ password_hash_b64: 'nope' })).status).toBe(400)
+  const wrong = await grant({ password_hash_b64: 'nope' })
+  expect(wrong.status).toBe(400)
+  expect(await wrong.json()).toMatchObject({
+    error: 'invalid_grant',
+    send_access_error_type: 'password_hash_b64_invalid',
+  })
   const ok = (await (await grant({ password_hash_b64: 'aGFzaA==' })).json()) as {
     access_token: string
   }

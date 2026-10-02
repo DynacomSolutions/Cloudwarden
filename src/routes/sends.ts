@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { randomB64u, safeEqualStrings } from '../auth/crypto'
 import { requireAuth } from '../auth/middleware'
 import { changes, createDb, runBatch, schema } from '../db'
+import { createEmailTransport } from '../email'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
 import { PushType } from '../notifications/publish'
@@ -26,16 +27,22 @@ import {
   loadForAccess,
   notAvailable,
   passwordError,
+  requestSendCode,
   sendFromBearer,
+  verifySendCode,
 } from '../vault/send-access'
 import {
+  authColumns,
+  authTypeOf,
   claimAccess,
   fileUploadUrl,
-  passwordColumns,
+  normaliseEmail,
   requireOwnedSend,
+  SEND_AUTH_EMAIL,
   SEND_FILE,
   SEND_FILE_AUD,
   type SendBody,
+  type SendRow,
   sendAccessJson,
   sendData,
   sendJson,
@@ -47,6 +54,8 @@ import {
 export const sends = new Hono<Env>()
 
 type Ctx = Context<Env>
+
+const canMail = (c: Ctx) => createEmailTransport(c.env).configured
 
 const list = (rows: ReturnType<typeof sendJson>[]) => ({
   data: rows,
@@ -76,7 +85,39 @@ async function accessPayload(c: Ctx, sendUuid: string) {
   return c.json(sendAccessJson(send, await creatorEmail(c, send.userUuid)))
 }
 
-const passwordBody = z.object({ password: z.string().nullish() })
+const passwordBody = z.object({
+  password: z.string().nullish(),
+  email: z.string().nullish(),
+  otp: z.string().nullish(),
+})
+
+/**
+ * Legacy flows send the credentials with each request. Email-protected Sends take `email` (which
+ * mails a code) and then `email` with `otp`; a code is single use, so a file download needs its
+ * own. Current clients use the `send_access` grant instead and hold a token.
+ */
+async function checkLegacyAccess(
+  c: Ctx,
+  send: SendRow,
+  body: z.infer<typeof passwordBody> | null | undefined,
+) {
+  if (authTypeOf(send) !== SEND_AUTH_EMAIL) {
+    const bad = passwordError(await checkSendPassword(send, body?.password))
+    if (bad) throw bad
+    return
+  }
+  const db = createDb(c.env.DB)
+  const email = normaliseEmail(body?.email ?? '')
+  if (!email) throw new ApiError(401, 'Email required.')
+  const otp = (body?.otp ?? '').trim()
+  if (!otp) {
+    if (!(await requestSendCode(c, db, send, email))) throw new ApiError(429, 'Too many requests.')
+    throw new ApiError(401, 'Email and verification code required.')
+  }
+  if (!(await verifySendCode(db, send, email, otp))) {
+    throw new ApiError(401, 'Email and verification code required.')
+  }
+}
 
 // Newer clients: Bearer token from the `send_access` grant on the identity endpoint.
 sends.post('/api/sends/access', rateLimit('send-access'), async (c) => {
@@ -98,8 +139,7 @@ sends.post('/api/sends/access/file/:fileId', rateLimit('send-access'), async (c)
 sends.post('/api/sends/access/:accessId', rateLimit('send-access'), async (c) => {
   const body = await parseBody(c, passwordBody.nullish())
   const send = await loadForAccess(createDb(c.env.DB), c.req.param('accessId') ?? '')
-  const bad = passwordError(await checkSendPassword(send, body?.password))
-  if (bad) throw bad
+  await checkLegacyAccess(c, send, body)
   return accessPayload(c, send.uuid)
 })
 
@@ -107,8 +147,7 @@ sends.post('/api/sends/:id/access/file/:fileId', rateLimit('send-access'), async
   const body = await parseBody(c, passwordBody.nullish())
   const db = createDb(c.env.DB)
   const send = await loadForAccess(db, c.req.param('id') ?? '')
-  const bad = passwordError(await checkSendPassword(send, body?.password))
-  if (bad) throw bad
+  await checkLegacyAccess(c, send, body)
   return c.json(await fileDownloadUrl(db, c.env, send, c.req.param('fileId') ?? ''))
 })
 
@@ -168,7 +207,7 @@ sends.post('/api/sends', requireAuth, async (c) => {
       data: sendData(body),
       akey: body.key,
       ...sendValues(body, now, true),
-      ...(await passwordColumns(body.password)),
+      ...(await authColumns(body, undefined, canMail(c))),
       createdAt: now,
       updatedAt: now,
     }),
@@ -199,7 +238,7 @@ sends.post('/api/sends/file/v2', requireAuth, async (c) => {
       akey: body.key,
       r2Key: sendFileKey(id, fileId),
       ...sendValues(body, now, true),
-      ...(await passwordColumns(body.password)),
+      ...(await authColumns(body, undefined, canMail(c))),
       createdAt: now,
       updatedAt: now,
     }),
@@ -228,7 +267,7 @@ sends.put('/api/sends/:id', requireAuth, async (c) => {
       .set({
         ...fileData,
         ...sendValues(body, now),
-        ...(await passwordColumns(body.password)),
+        ...(await authColumns(body, existing, canMail(c))),
         updatedAt: now,
       })
       .where(eq(schema.sends.uuid, existing.uuid)),
@@ -238,21 +277,30 @@ sends.put('/api/sends/:id', requireAuth, async (c) => {
   return c.json(await respond(c, existing.uuid))
 })
 
-sends.put('/api/sends/:id/remove-password', requireAuth, async (c) => {
+/** Drops the password (`remove-password`) or any recipient authentication (`remove-auth`). */
+const removeAuth = (all: boolean) => async (c: Ctx) => {
   const db = createDb(c.env.DB)
   const user = c.var.user
-  const existing = await requireOwnedSend(db, user.uuid, c.req.param('id'))
+  const existing = await requireOwnedSend(db, user.uuid, c.req.param('id') ?? '')
   const now = Date.now()
   await runBatch(db, [
     db
       .update(schema.sends)
-      .set({ passwordHash: null, passwordSalt: null, passwordIter: null, updatedAt: now })
+      .set({
+        passwordHash: null,
+        passwordSalt: null,
+        passwordIter: null,
+        ...(all ? { emails: null } : {}),
+        updatedAt: now,
+      })
       .where(eq(schema.sends.uuid, existing.uuid)),
     bumpRevision(db, user.uuid, now),
   ])
   notifySend(c, PushType.SyncSendUpdate, existing.uuid, now)
   return c.json(await respond(c, existing.uuid))
-})
+}
+sends.put('/api/sends/:id/remove-password', requireAuth, removeAuth(false))
+sends.put('/api/sends/:id/remove-auth', requireAuth, removeAuth(true))
 
 sends.delete('/api/sends/:id', requireAuth, async (c) => {
   const db = createDb(c.env.DB)

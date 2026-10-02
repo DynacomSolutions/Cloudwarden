@@ -7,6 +7,7 @@ import { createDb, type Db, schema } from '../db'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
 import { PushType } from '../notifications/publish'
+import { notifyCiphers } from '../notifications/vault-events'
 import {
   bumpOrgRevision,
   canManageAllCiphers,
@@ -27,6 +28,9 @@ import {
   listOrgCipherRows,
   loadCipherById,
   orgCipherJson,
+  setUserStateStatement,
+  userCipherState,
+  userCipherStates,
   userFolderStatements,
 } from '../orgs/ciphers'
 import { EventType } from '../orgs/constants'
@@ -101,7 +105,8 @@ async function respond(c: Ctx, id: string, admin: boolean) {
   const r = await resolve(c, id, admin)
   if (!r) throw NOT_FOUND()
   const folderId = await userFolderOf(db, c.var.user.uuid, id)
-  return c.json(orgCipherJson({ cipher: r.cipher, folderId, access: r.access }))
+  const state = await userCipherState(db, c.var.user.uuid, id)
+  return c.json(orgCipherJson({ cipher: r.cipher, folderId, access: r.access, state }))
 }
 
 const canDelete = (a: ItemAccess) => a.edit || a.manage
@@ -139,6 +144,7 @@ async function createOrgCipher(c: Ctx, body: CipherBody, collectionIds: string[]
     ...(body.folderId && !admin
       ? [db.insert(schema.foldersCiphers).values({ cipherUuid: id, folderUuid: body.folderId })]
       : []),
+    ...(body.favorite ? [setUserStateStatement(db, user.uuid, id, { favorite: true })] : []),
     eventStatement(db, c, {
       type: EventType.CipherCreated,
       organizationUuid: orgUuid,
@@ -260,7 +266,7 @@ orgCiphers.get('/api/ciphers/organization-details', async (c) => {
   const member = await requireMember(db, c.var.user.uuid, orgUuid)
   if (!canManageAllCiphers(member))
     throw new ApiError(403, 'You do not have permission to do this.')
-  const [rows, links, folders] = await Promise.all([
+  const [rows, links, folders, states] = await Promise.all([
     db.select().from(schema.ciphers).where(eq(schema.ciphers.organizationUuid, orgUuid)),
     db
       .select({
@@ -274,6 +280,7 @@ orgCiphers.get('/api/ciphers/organization-details', async (c) => {
       )
       .where(eq(schema.collections.organizationUuid, orgUuid)),
     folderLinks(db, c.var.user.uuid),
+    userCipherStates(db, c.var.user.uuid),
   ])
   const byCipher = new Map<string, string[]>()
   for (const l of links) byCipher.set(l.cipher, [...(byCipher.get(l.cipher) ?? []), l.id])
@@ -283,6 +290,7 @@ orgCiphers.get('/api/ciphers/organization-details', async (c) => {
         orgCipherJson({
           cipher,
           folderId: folders.get(cipher.uuid) ?? null,
+          state: states.get(cipher.uuid),
           access: {
             edit: true,
             viewPassword: true,
@@ -333,8 +341,24 @@ async function shareStatements(
   return [
     db
       .update(schema.ciphers)
-      .set({ ...cipherValues(body), userUuid: null, organizationUuid: orgUuid, updatedAt: now })
+      .set({
+        ...cipherValues(body),
+        // Favourite and archive were the owner's; from now on they are per member.
+        favorite: false,
+        archivedAt: null,
+        userUuid: null,
+        organizationUuid: orgUuid,
+        updatedAt: now,
+      })
       .where(and(eq(schema.ciphers.uuid, id), eq(schema.ciphers.userUuid, user.uuid))),
+    ...(body.favorite || cipher.archivedAt != null
+      ? [
+          setUserStateStatement(db, user.uuid, id, {
+            favorite: body.favorite ?? false,
+            archivedAt: cipher.archivedAt,
+          }),
+        ]
+      : []),
     ...[...new Set(collectionIds)].map((collectionUuid) =>
       db.insert(schema.ciphersCollections).values({ cipherUuid: id, collectionUuid }),
     ),
@@ -380,14 +404,23 @@ orgCiphers.put('/api/ciphers/share', async (c) => {
   ])
   notifyCiphersChanged(c, await activeMemberIds(db, member.organizationUuid), now)
   const folders = await folderLinks(db, c.var.user.uuid)
+  const states = await userCipherStates(db, c.var.user.uuid)
   const ua = await loadUserAccess(db, c.var.user.uuid)
   const out = []
   for (const ci of body.ciphers) {
     const cipher = await loadCipherById(db, ci.id)
     const access =
       cipher && itemAccess(ua, member.organizationUuid, await linkedCollections(db, ci.id))
-    if (cipher && access)
-      out.push(orgCipherJson({ cipher, folderId: folders.get(ci.id) ?? null, access }))
+    if (cipher && access) {
+      out.push(
+        orgCipherJson({
+          cipher,
+          folderId: folders.get(ci.id) ?? null,
+          access,
+          state: states.get(ci.id),
+        }),
+      )
+    }
   }
   return c.json(list(out))
 })
@@ -492,6 +525,7 @@ function bulk(op: BulkOp, admin: boolean, respondList: boolean) {
     if (!respondList) return c.body(null, 200)
     const fresh = await loadMany(db, ids)
     const folders = await folderLinks(db, user.uuid)
+    const states = await userCipherStates(db, user.uuid)
     const accessUa = await loadUserAccess(db, user.uuid)
     const out = []
     for (const cipher of fresh) {
@@ -503,7 +537,8 @@ function bulk(op: BulkOp, admin: boolean, respondList: boolean) {
       const access = admin
         ? await adminItemAccess(db, cipher)
         : itemAccess(accessUa, cipher.organizationUuid, await linkedCollections(db, cipher.uuid))
-      if (access) out.push(orgCipherJson({ cipher, folderId, access }))
+      if (access)
+        out.push(orgCipherJson({ cipher, folderId, access, state: states.get(cipher.uuid) }))
     }
     return c.json(list(out))
   }
@@ -665,10 +700,13 @@ const update = (admin: boolean) => async (c: Ctx, next: Next) => {
   await batch(db, [
     db
       .update(schema.ciphers)
-      // Favorites are stored on the item, so an update never changes them for other members.
-      .set({ ...cipherValues(body), favorite: r.cipher.favorite, updatedAt: now })
+      // Favourites are per member (below), so the shared row never carries one.
+      .set({ ...cipherValues(body), favorite: false, updatedAt: now })
       .where(eq(schema.ciphers.uuid, id)),
     ...(admin ? [] : userFolderStatements(db, user.uuid, id, body.folderId ?? null)),
+    ...(admin || body.favorite == null
+      ? []
+      : [setUserStateStatement(db, user.uuid, id, { favorite: body.favorite })]),
     eventStatement(db, c, {
       type: EventType.CipherUpdated,
       organizationUuid: orgUuid,
@@ -694,10 +732,13 @@ const partial = async (c: Ctx, next: Next) => {
   )
   const db = createDb(c.env.DB)
   if (body.folderId) await requireFolder(db, c.var.user.uuid, body.folderId)
+  const now = Date.now()
   await batch(db, [
     ...userFolderStatements(db, c.var.user.uuid, id, body.folderId ?? null),
-    bumpRevision(db, c.var.user.uuid, Date.now()),
+    setUserStateStatement(db, c.var.user.uuid, id, { favorite: body.favorite }),
+    bumpRevision(db, c.var.user.uuid, now),
   ])
+  notifyCiphers(c, PushType.SyncCipherUpdate, [id], now)
   return respond(c, id, false)
 }
 orgCiphers.put('/api/ciphers/:id/partial', partial)

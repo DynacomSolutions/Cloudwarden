@@ -1,13 +1,17 @@
-import { eq } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
+import type { Context } from 'hono'
 import { safeEqualStrings, sha256B64u } from '../auth/crypto'
 import { signJwt, verifyJwt } from '../auth/jwt'
 import { type StoredPassword, verifyMasterPassword } from '../auth/passwords'
 import type { Db } from '../db'
 import { schema } from '../db'
-import type { Bindings } from '../env'
+import { createEmailTransport, sendCodeEmail } from '../email'
+import type { Bindings, Env } from '../env'
 import { ApiError } from '../errors'
+import { overLimit } from '../ratelimit'
 import { baseUrl, signBlobToken, signingKeyFor, verificationKeysFor } from './blobs'
 import {
+  allowedEmails,
   claimAccess,
   SEND_FILE,
   SEND_FILE_AUD,
@@ -33,6 +37,98 @@ export async function loadForAccess(
     : []
   if (!row || unavailable(row, now)) throw notAvailable()
   return row
+}
+
+export const OTP_TTL_MS = 10 * 60_000
+/** A code is burned after this many wrong guesses; the recipient must ask for a new one. */
+export const OTP_MAX_ATTEMPTS = 5
+/** Asking again inside this window does not mail another code. */
+export const OTP_RESEND_MS = 30_000
+
+const otpHash = (sendUuid: string, email: string, code: string) =>
+  sha256B64u(`send-otp:${sendUuid}:${email}:${code}`)
+
+/** A uniformly random six digit code. */
+function newCode(): string {
+  const limit = 4_294_000_000 // largest multiple of 1e6 below 2^32, so the modulo is unbiased
+  const buf = new Uint32Array(1)
+  do crypto.getRandomValues(buf)
+  while ((buf[0] as number) >= limit)
+  return String((buf[0] as number) % 1_000_000).padStart(6, '0')
+}
+
+/**
+ * Mails a fresh code to a recipient of an email-protected Send. Addresses outside the list get
+ * nothing and no different response, so the list cannot be probed. Returns false when the
+ * request was rate limited.
+ */
+export async function requestSendCode(
+  c: Context<Env>,
+  db: Db,
+  send: SendRow,
+  email: string,
+  now = Date.now(),
+): Promise<boolean> {
+  if (!allowedEmails(send).includes(email)) return true
+  if (await overLimit(c, 'send-otp', send.uuid)) return false
+  const [prior] = await db
+    .select({ sentAt: schema.sendEmailCodes.sentAt })
+    .from(schema.sendEmailCodes)
+    .where(
+      and(eq(schema.sendEmailCodes.sendUuid, send.uuid), eq(schema.sendEmailCodes.email, email)),
+    )
+    .limit(1)
+  if (prior && now - prior.sentAt < OTP_RESEND_MS) return true
+  const transport = createEmailTransport(c.env)
+  if (!transport.configured) throw new ApiError(400, 'Email delivery is not configured.')
+  const code = newCode()
+  const row = {
+    codeHash: await otpHash(send.uuid, email, code),
+    expiresAt: now + OTP_TTL_MS,
+    sentAt: now,
+    attempts: 0,
+  }
+  await db
+    .insert(schema.sendEmailCodes)
+    .values({ sendUuid: send.uuid, email, ...row })
+    .onConflictDoUpdate({
+      target: [schema.sendEmailCodes.sendUuid, schema.sendEmailCodes.email],
+      set: row,
+    })
+  await transport.send({ to: email, ...sendCodeEmail(code, OTP_TTL_MS / 60_000) })
+  return true
+}
+
+/** Checks a mailed code. Every try counts, and a correct code works once. */
+export async function verifySendCode(
+  db: Db,
+  send: SendRow,
+  email: string,
+  code: string,
+  now = Date.now(),
+): Promise<boolean> {
+  if (!allowedEmails(send).includes(email)) return false
+  const key = and(
+    eq(schema.sendEmailCodes.sendUuid, send.uuid),
+    eq(schema.sendEmailCodes.email, email),
+  )
+  const counted = await db
+    .update(schema.sendEmailCodes)
+    .set({ attempts: sql`${schema.sendEmailCodes.attempts} + 1` })
+    .where(
+      and(
+        key,
+        sql`${schema.sendEmailCodes.expiresAt} > ${now}`,
+        sql`${schema.sendEmailCodes.attempts} < ${OTP_MAX_ATTEMPTS}`,
+      ),
+    )
+  if (counted.meta.changes === 0) return false
+  const spent = await db
+    .delete(schema.sendEmailCodes)
+    .where(
+      and(key, eq(schema.sendEmailCodes.codeHash, await otpHash(send.uuid, email, code.trim()))),
+    )
+  return spent.meta.changes > 0
 }
 
 export type PasswordCheck = 'ok' | 'required' | 'invalid'

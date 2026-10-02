@@ -1,4 +1,4 @@
-import { and, eq, sql } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { z } from 'zod'
@@ -9,7 +9,7 @@ import { ApiError } from '../errors'
 import { PushType } from '../notifications/publish'
 import { notifyFolder } from '../notifications/vault-events'
 import { parseBody } from '../validation'
-import { bumpRevision } from '../vault/ciphers'
+import { bumpRevision, chunk } from '../vault/ciphers'
 import { folderJson } from '../vault/folders'
 
 export const folders = new Hono<Env>()
@@ -98,5 +98,38 @@ const remove = async (c: Ctx) => {
   notifyFolder(c, PushType.SyncFolderDelete, id, Date.now())
   return c.body(null, 200)
 }
+
+const MAX_BULK = 500
+
+/** Deletes the user's folders in one batch; ciphers inside them become unfiled. */
+async function removeMany(c: Ctx, ids: string[] | null) {
+  const db = createDb(c.env.DB)
+  const user = c.var.user
+  const mine = db
+    .select({ id: schema.folders.uuid })
+    .from(schema.folders)
+    .where(eq(schema.folders.userUuid, user.uuid))
+  const owned = (await mine).map((f) => f.id)
+  const targets = ids === null ? owned : [...new Set(ids)]
+  if (targets.length > MAX_BULK) throw new ApiError(400, 'Too many folders in one request.')
+  const own = new Set(owned)
+  if (targets.some((id) => !own.has(id))) throw new ApiError(404, 'Folder not found.')
+  const now = Date.now()
+  await runBatch(db, [
+    ...chunk(targets).flatMap((part) => [
+      db.delete(schema.foldersCiphers).where(inArray(schema.foldersCiphers.folderUuid, part)),
+      db
+        .delete(schema.folders)
+        .where(and(eq(schema.folders.userUuid, user.uuid), inArray(schema.folders.uuid, part))),
+    ]),
+    bumpRevision(db, user.uuid, now),
+  ])
+  for (const id of targets) notifyFolder(c, PushType.SyncFolderDelete, id, now)
+  return c.body(null, 200)
+}
+folders.delete('/api/folders/all', (c) => removeMany(c, null))
+folders.delete('/api/folders', async (c) =>
+  removeMany(c, (await parseBody(c, z.object({ ids: z.array(z.string()).default([]) }))).ids),
+)
 folders.delete('/api/folders/:id', remove)
 folders.post('/api/folders/:id/delete', remove)

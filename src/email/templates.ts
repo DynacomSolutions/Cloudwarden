@@ -43,6 +43,18 @@ export function twoFactorCodeEmail(code: string, minutes: number): Template {
   }
 }
 
+export function sendCodeEmail(code: string, minutes: number): Template {
+  const lines = [
+    `Your Cloudwarden verification code to view a Send is ${code}.`,
+    `It expires in ${minutes} minutes. If you did not request it, you can ignore this message.`,
+  ]
+  return {
+    subject: 'Your verification code to view a Send',
+    text: plain(lines),
+    html: shell('Verification code', lines),
+  }
+}
+
 export function orgInviteEmail(orgName: string, acceptUrl: string): Template {
   const lines = [
     `You have been invited to join the organization ${orgName} on this Cloudwarden server.`,

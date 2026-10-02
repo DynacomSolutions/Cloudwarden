@@ -22,14 +22,22 @@ export interface ItemAccess {
   collectionIds: string[]
 }
 
+/** A member's own favourite flag and archive date for an organisation item. */
+export interface UserCipherState {
+  favorite: boolean
+  archivedAt: number | null
+}
+
 export interface OrgCipherRow {
   cipher: CipherRecord
   folderId: string | null
   access: ItemAccess
+  /** The viewing member's state; absent means not a favourite and not archived. */
+  state?: UserCipherState
 }
 
 export function orgCipherJson(
-  { cipher, folderId, access }: OrgCipherRow,
+  { cipher, folderId, access, state }: OrgCipherRow,
   attachments: Parameters<typeof cipherJson>[1] = null,
 ) {
   const canDelete = access.edit || access.manage
@@ -41,7 +49,63 @@ export function orgCipherJson(
     viewPassword: access.viewPassword,
     permissions: { delete: canDelete, restore: canDelete },
     collectionIds: access.collectionIds,
+    // Favourite and archive belong to the member, never to the shared item.
+    favorite: state?.favorite ?? false,
+    archivedDate: state?.archivedAt == null ? null : new Date(state.archivedAt).toISOString(),
   }
+}
+
+/** The member's favourite and archive state of every organisation item they have marked. */
+export async function userCipherStates(
+  db: Db,
+  userUuid: string,
+): Promise<Map<string, UserCipherState>> {
+  const rows = await db
+    .select()
+    .from(schema.cipherUserState)
+    .where(eq(schema.cipherUserState.userUuid, userUuid))
+  return new Map(
+    rows.map((r) => [r.cipherUuid, { favorite: r.favorite, archivedAt: r.archivedAt }]),
+  )
+}
+
+export async function userCipherState(
+  db: Db,
+  userUuid: string,
+  cipherUuid: string,
+): Promise<UserCipherState | undefined> {
+  const [row] = await db
+    .select()
+    .from(schema.cipherUserState)
+    .where(
+      and(
+        eq(schema.cipherUserState.userUuid, userUuid),
+        eq(schema.cipherUserState.cipherUuid, cipherUuid),
+      ),
+    )
+    .limit(1)
+  return row && { favorite: row.favorite, archivedAt: row.archivedAt }
+}
+
+/** Upserts part of a member's state for an item; fields left out keep their value. */
+export function setUserStateStatement(
+  db: Db,
+  userUuid: string,
+  cipherUuid: string,
+  patch: { favorite?: boolean; archivedAt?: number | null },
+) {
+  return db
+    .insert(schema.cipherUserState)
+    .values({
+      userUuid,
+      cipherUuid,
+      favorite: patch.favorite ?? false,
+      archivedAt: patch.archivedAt ?? null,
+    })
+    .onConflictDoUpdate({
+      target: [schema.cipherUserState.userUuid, schema.cipherUserState.cipherUuid],
+      set: patch,
+    })
 }
 
 /** The user's own folder for each cipher; folders are private even when ciphers are shared. */
@@ -131,17 +195,25 @@ export async function listOrgCipherRows(
     for (const r of rows) found.set(r.c.uuid, r.c)
   }
   if (found.size === 0) return []
-  const [links, folders] = await Promise.all([
+  const [links, folders, states] = await Promise.all([
     collectionLinks(
       db,
       access.members.map((m) => m.organizationUuid),
     ),
     folderLinks(db, userUuid),
+    userCipherStates(db, userUuid),
   ])
   const out: OrgCipherRow[] = []
   for (const cipher of found.values()) {
     const a = itemAccess(access, cipher.organizationUuid as string, links.get(cipher.uuid) ?? [])
-    if (a) out.push({ cipher, folderId: folders.get(cipher.uuid) ?? null, access: a })
+    if (a) {
+      out.push({
+        cipher,
+        folderId: folders.get(cipher.uuid) ?? null,
+        access: a,
+        state: states.get(cipher.uuid),
+      })
+    }
   }
   return out.sort((a, b) => b.cipher.createdAt - a.cipher.createdAt)
 }

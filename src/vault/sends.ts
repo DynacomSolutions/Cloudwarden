@@ -17,7 +17,9 @@ export const SEND_AUTH_EMAIL = 0
 export const SEND_AUTH_PASSWORD = 1
 export const SEND_AUTH_NONE = 2
 export const SEND_FILE_AUD = 'send-file'
-const MAX_DELETION_DAYS = 31
+/** Most addresses one email-protected Send may name. */
+export const MAX_SEND_EMAILS = 100
+const EMAIL_SHAPE = /^[^\s@,]+@[^\s@,]+\.[^\s@,]+$/
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -59,13 +61,23 @@ function payload(send: SendRow) {
   }
 }
 
+/** How a recipient proves access: an emailed code, a password, or nothing. */
+export const authTypeOf = (send: Pick<SendRow, 'emails' | 'passwordHash'>) =>
+  send.emails ? SEND_AUTH_EMAIL : send.passwordHash ? SEND_AUTH_PASSWORD : SEND_AUTH_NONE
+
+/** The allowed recipient addresses of an email-protected Send. */
+export const allowedEmails = (send: Pick<SendRow, 'emails'>): string[] =>
+  send.emails ? send.emails.split(',') : []
+
+export const normaliseEmail = (email: string) => email.trim().toLowerCase()
+
 export function sendJson(send: SendRow) {
   return {
     object: 'send',
     id: send.uuid,
     accessId: accessIdOf(send.uuid),
     type: send.atype,
-    authType: send.passwordHash ? SEND_AUTH_PASSWORD : SEND_AUTH_NONE,
+    authType: authTypeOf(send),
     name: send.name,
     notes: send.notes,
     key: send.akey,
@@ -75,7 +87,7 @@ export function sendJson(send: SendRow) {
     expirationDate: iso(send.expirationDate),
     deletionDate: iso(send.deletionDate),
     password: send.passwordHash,
-    emails: null,
+    emails: send.emails,
     disabled: send.disabled,
     hideEmail: send.hideEmail ?? false,
     ...payload(send),
@@ -138,15 +150,12 @@ function parseDate(value: string, field: string): number {
   return ms
 }
 
-/** Validates dates and the type payload; returns the column values shared by create and update. */
+/**
+ * Validates dates and returns the column values shared by create and update. The deletion date
+ * has no upper bound: the clients offer a custom date and the server does not second-guess it.
+ */
 export function sendValues(body: SendBody, now: number, creating = false) {
-  if (body.authType === SEND_AUTH_EMAIL || body.emails) {
-    throw new ApiError(400, 'Email-protected Sends are not supported.')
-  }
   const deletionDate = parseDate(body.deletionDate, 'deletionDate')
-  if (deletionDate > now + MAX_DELETION_DAYS * 86_400_000) {
-    throw invalid('deletionDate', 'The deletion date is too far in the future.')
-  }
   if (creating && deletionDate < now - 300_000)
     throw invalid('deletionDate', 'The deletion date is in the past.')
   const expirationDate = body.expirationDate
@@ -164,6 +173,56 @@ export function sendValues(body: SendBody, now: number, creating = false) {
     disabled: body.disabled ?? false,
     hideEmail: body.hideEmail ?? false,
   }
+}
+
+/** Parses the comma separated recipient list the clients send; lowercase, deduplicated. */
+export function parseEmails(raw: string | null | undefined): string[] {
+  const out = new Set<string>()
+  for (const part of (raw ?? '').split(',')) {
+    const email = normaliseEmail(part)
+    if (!email) continue
+    if (email.length > 256 || !EMAIL_SHAPE.test(email)) {
+      throw invalid('emails', 'Enter valid email addresses.')
+    }
+    out.add(email)
+  }
+  if (out.size > MAX_SEND_EMAILS) throw invalid('emails', 'Too many email addresses.')
+  return [...out]
+}
+
+/**
+ * The authentication columns for a create or update. `authType` wins when the client sends it;
+ * older clients omit it, so the password and emails fields decide, and a password left out of an
+ * update keeps the stored one.
+ */
+export async function authColumns(
+  body: SendBody,
+  existing?: Pick<SendRow, 'emails' | 'passwordHash'>,
+  canMail = true,
+) {
+  const kind =
+    body.authType ??
+    (body.emails
+      ? SEND_AUTH_EMAIL
+      : body.password
+        ? SEND_AUTH_PASSWORD
+        : existing
+          ? authTypeOf(existing)
+          : SEND_AUTH_NONE)
+  const noPassword = { passwordHash: null, passwordSalt: null, passwordIter: null }
+  if (kind === SEND_AUTH_EMAIL) {
+    const emails = parseEmails(body.emails ?? existing?.emails)
+    if (emails.length === 0) throw invalid('emails', 'At least one email address is required.')
+    if (!canMail) throw new ApiError(400, 'Email delivery is not configured on this server.')
+    return { ...noPassword, emails: emails.join(',') }
+  }
+  if (kind === SEND_AUTH_PASSWORD) {
+    if (!body.password && !existing?.passwordHash)
+      throw invalid('password', 'A password is required.')
+    return { emails: null, ...(await passwordColumns(body.password)) }
+  }
+  if (kind === SEND_AUTH_NONE) return { ...noPassword, emails: null }
+  throw invalid('authType', 'Unknown authentication type.')
 }
 
 /** The stored `data` JSON for the Send type; File Sends keep the server issued file id. */

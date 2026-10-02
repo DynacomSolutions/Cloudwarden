@@ -23,11 +23,14 @@ import { folders } from './routes/folders'
 import { groupsRouter } from './routes/groups'
 import { icons } from './routes/icons'
 import { notifications } from './routes/notifications'
+import { orgApiKeys } from './routes/org-api-keys'
 import { orgCiphers } from './routes/org-ciphers'
+import { orgIntegrations } from './routes/org-integrations'
 import { orgUsers } from './routes/org-users'
 import { organizations } from './routes/organizations'
 import { policies, publicPolicies } from './routes/policies'
 import { prelogin } from './routes/prelogin'
+import { publicApi } from './routes/public-api'
 import { register } from './routes/register'
 import { secretsManager } from './routes/secrets-manager'
 import { downloadSendFile, sends } from './routes/sends'
@@ -37,6 +40,7 @@ import { token } from './routes/token'
 import { twofactor } from './routes/twofactor'
 import { webauthn } from './routes/webauthn'
 import { scheduled } from './scheduled'
+import { scim } from './scim/routes'
 
 const app = new Hono<Env>()
 
@@ -55,6 +59,9 @@ app.route('/', devices)
 app.route('/', accounts)
 app.route('/', accountEmail)
 app.route('/', sync)
+// Organisation-token APIs (TASKS #261, #263): their own authentication, before member routers.
+app.route('/', publicApi)
+app.route('/', scim)
 // Secrets Manager accepts machine tokens, so it runs before the organisation routers whose
 // `authOnce` middleware would refuse them (TASKS #220).
 app.route('/', secretsManager)
@@ -70,6 +77,8 @@ for (const path of [
   app.use(path, secretsRevisionOnMemberChange)
 }
 app.route('/', publicPolicies)
+app.route('/', orgApiKeys)
+app.route('/', orgIntegrations)
 app.route('/', organizations)
 app.route('/', orgUsers)
 app.route('/', collectionsRouter)

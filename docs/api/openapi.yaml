@@ -71,6 +71,10 @@ tags:
   description: Website favicon service. Served under `/icons`.
 - name: secrets-manager
   description: 'Secrets Manager: projects, secrets, machine accounts (`service-accounts` on the wire), access tokens, access policies and counts. Read from the GPL-3.0 generated API client in github.com/bitwarden/sdk-internal (`crates/bitwarden-api-api`), see docs/secrets-manager.md. Members need `accessSecretsManager`; machine account tokens are accepted only where stated.'
+- name: PublicApi
+  description: 'Bitwarden Public API for organizations, served at `/api/public` (self-hosted layout) and `/public` (cloud layout). Authenticated with an organization token (see `organizationToken`). Models follow Bitwarden''s published Public API reference. Used by the Directory Connector (`/public/organization/import`).'
+- name: Scim
+  description: 'SCIM 2.0 (RFC 7643, RFC 7644) per organization at `/scim/v2/{orgId}` (and `/v2/{orgId}`), for identity providers such as Microsoft Entra ID and Okta. Authenticated with the organization SCIM API key.'
 - name: x-cloudwarden
   description: 'Cloudwarden extensions, not part of the Bitwarden API: the admin JSON API under `/api/cloudwarden`. Admin routes need a vault access token whose account address is listed in `ADMIN_EMAILS` with `ADMIN_ENABLED` true, otherwise 403. Responses are `no-store`, camelCase, and rate limited per admin (120 per minute).'
 paths:
@@ -7232,8 +7236,2561 @@ paths:
           $ref: "#/components/responses/NotFound"
       x-source-version: web-v2026.9.1
       x-source-file: libs/admin-console/src/common/organization-user/services/default-organization-user-api.service.ts
+  /api/public/members:
+    get:
+      tags:
+      - PublicApi
+      operationId: publicListMembers
+      summary: List members
+      security:
+      - organizationToken: []
+      responses:
+        '200': &id001
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicMemberList'
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+    post:
+      tags:
+      - PublicApi
+      operationId: publicCreateMember
+      summary: Invite a member
+      security:
+      - organizationToken: []
+      requestBody: &id002
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublicMemberCreateRequest'
+      responses:
+        '200': &id003
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicMember'
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+  /public/members:
+    get:
+      tags:
+      - PublicApi
+      operationId: publicListMembersCloud
+      summary: List members (cloud path layout)
+      security:
+      - organizationToken: []
+      responses:
+        '200': *id001
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+    post:
+      tags:
+      - PublicApi
+      operationId: publicCreateMemberCloud
+      summary: Invite a member (cloud path layout)
+      security:
+      - organizationToken: []
+      requestBody: *id002
+      responses:
+        '200': *id003
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+  /api/public/members/{id}:
+    get:
+      tags:
+      - PublicApi
+      operationId: publicGetMember
+      summary: Get a member
+      security:
+      - organizationToken: []
+      parameters:
+      - &id004
+        name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200': &id005
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicMember'
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+    put:
+      tags:
+      - PublicApi
+      operationId: publicUpdateMember
+      summary: Update a member
+      security:
+      - organizationToken: []
+      parameters:
+      - &id006
+        name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody: &id007
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublicMemberUpdateRequest'
+      responses:
+        '200': &id008
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicMember'
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+    delete:
+      tags:
+      - PublicApi
+      operationId: publicDeleteMember
+      summary: Remove a member
+      security:
+      - organizationToken: []
+      parameters:
+      - &id009
+        name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200': &id010
+          description: Success.
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+  /public/members/{id}:
+    get:
+      tags:
+      - PublicApi
+      operationId: publicGetMemberCloud
+      summary: Get a member (cloud path layout)
+      security:
+      - organizationToken: []
+      parameters:
+      - *id004
+      responses:
+        '200': *id005
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+    put:
+      tags:
+      - PublicApi
+      operationId: publicUpdateMemberCloud
+      summary: Update a member (cloud path layout)
+      security:
+      - organizationToken: []
+      parameters:
+      - *id006
+      requestBody: *id007
+      responses:
+        '200': *id008
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+    delete:
+      tags:
+      - PublicApi
+      operationId: publicDeleteMemberCloud
+      summary: Remove a member (cloud path layout)
+      security:
+      - organizationToken: []
+      parameters:
+      - *id009
+      responses:
+        '200': *id010
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+  /api/public/members/{id}/group-ids:
+    get:
+      tags:
+      - PublicApi
+      operationId: publicGetMemberGroupIds
+      summary: Get the group ids of a member
+      security:
+      - organizationToken: []
+      parameters:
+      - &id011
+        name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200': &id012
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  format: uuid
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+    put:
+      tags:
+      - PublicApi
+      operationId: publicUpdateMemberGroupIds
+      summary: Set the groups of a member
+      security:
+      - organizationToken: []
+      parameters:
+      - &id013
+        name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody: &id014
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublicUpdateGroupIdsRequest'
+      responses:
+        '200': &id015
+          description: Success.
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+  /public/members/{id}/group-ids:
+    get:
+      tags:
+      - PublicApi
+      operationId: publicGetMemberGroupIdsCloud
+      summary: Get the group ids of a member (cloud path layout)
+      security:
+      - organizationToken: []
+      parameters:
+      - *id011
+      responses:
+        '200': *id012
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+    put:
+      tags:
+      - PublicApi
+      operationId: publicUpdateMemberGroupIdsCloud
+      summary: Set the groups of a member (cloud path layout)
+      security:
+      - organizationToken: []
+      parameters:
+      - *id013
+      requestBody: *id014
+      responses:
+        '200': *id015
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+  /api/public/members/{id}/reinvite:
+    post:
+      tags:
+      - PublicApi
+      operationId: publicReinviteMember
+      summary: Send the invitation again
+      security:
+      - organizationToken: []
+      parameters:
+      - &id016
+        name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200': &id017
+          description: Success.
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+  /public/members/{id}/reinvite:
+    post:
+      tags:
+      - PublicApi
+      operationId: publicReinviteMemberCloud
+      summary: Send the invitation again (cloud path layout)
+      security:
+      - organizationToken: []
+      parameters:
+      - *id016
+      responses:
+        '200': *id017
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+  /api/public/members/{id}/revoke:
+    post:
+      tags:
+      - PublicApi
+      operationId: publicRevokeMember
+      summary: Revoke a member
+      security:
+      - organizationToken: []
+      parameters:
+      - &id018
+        name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200': &id019
+          description: Success.
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+  /public/members/{id}/revoke:
+    post:
+      tags:
+      - PublicApi
+      operationId: publicRevokeMemberCloud
+      summary: Revoke a member (cloud path layout)
+      security:
+      - organizationToken: []
+      parameters:
+      - *id018
+      responses:
+        '200': *id019
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+  /api/public/members/{id}/restore:
+    post:
+      tags:
+      - PublicApi
+      operationId: publicRestoreMember
+      summary: Restore a revoked member
+      security:
+      - organizationToken: []
+      parameters:
+      - &id020
+        name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200': &id021
+          description: Success.
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+  /public/members/{id}/restore:
+    post:
+      tags:
+      - PublicApi
+      operationId: publicRestoreMemberCloud
+      summary: Restore a revoked member (cloud path layout)
+      security:
+      - organizationToken: []
+      parameters:
+      - *id020
+      responses:
+        '200': *id021
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+  /api/public/groups:
+    get:
+      tags:
+      - PublicApi
+      operationId: publicListGroups
+      summary: List groups
+      security:
+      - organizationToken: []
+      responses:
+        '200': &id022
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicGroupList'
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+    post:
+      tags:
+      - PublicApi
+      operationId: publicCreateGroup
+      summary: Create a group
+      security:
+      - organizationToken: []
+      requestBody: &id023
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublicGroupRequest'
+      responses:
+        '200': &id024
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicGroup'
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+  /public/groups:
+    get:
+      tags:
+      - PublicApi
+      operationId: publicListGroupsCloud
+      summary: List groups (cloud path layout)
+      security:
+      - organizationToken: []
+      responses:
+        '200': *id022
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+    post:
+      tags:
+      - PublicApi
+      operationId: publicCreateGroupCloud
+      summary: Create a group (cloud path layout)
+      security:
+      - organizationToken: []
+      requestBody: *id023
+      responses:
+        '200': *id024
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+  /api/public/groups/{id}:
+    get:
+      tags:
+      - PublicApi
+      operationId: publicGetGroup
+      summary: Get a group
+      security:
+      - organizationToken: []
+      parameters:
+      - &id025
+        name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200': &id026
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicGroup'
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+    put:
+      tags:
+      - PublicApi
+      operationId: publicUpdateGroup
+      summary: Update a group
+      security:
+      - organizationToken: []
+      parameters:
+      - &id027
+        name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody: &id028
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublicGroupRequest'
+      responses:
+        '200': &id029
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicGroup'
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+    delete:
+      tags:
+      - PublicApi
+      operationId: publicDeleteGroup
+      summary: Delete a group
+      security:
+      - organizationToken: []
+      parameters:
+      - &id030
+        name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200': &id031
+          description: Success.
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+  /public/groups/{id}:
+    get:
+      tags:
+      - PublicApi
+      operationId: publicGetGroupCloud
+      summary: Get a group (cloud path layout)
+      security:
+      - organizationToken: []
+      parameters:
+      - *id025
+      responses:
+        '200': *id026
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+    put:
+      tags:
+      - PublicApi
+      operationId: publicUpdateGroupCloud
+      summary: Update a group (cloud path layout)
+      security:
+      - organizationToken: []
+      parameters:
+      - *id027
+      requestBody: *id028
+      responses:
+        '200': *id029
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+    delete:
+      tags:
+      - PublicApi
+      operationId: publicDeleteGroupCloud
+      summary: Delete a group (cloud path layout)
+      security:
+      - organizationToken: []
+      parameters:
+      - *id030
+      responses:
+        '200': *id031
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+  /api/public/groups/{id}/member-ids:
+    get:
+      tags:
+      - PublicApi
+      operationId: publicGetGroupMemberIds
+      summary: Get the member ids of a group
+      security:
+      - organizationToken: []
+      parameters:
+      - &id032
+        name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200': &id033
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  format: uuid
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+    put:
+      tags:
+      - PublicApi
+      operationId: publicUpdateGroupMemberIds
+      summary: Set the members of a group
+      security:
+      - organizationToken: []
+      parameters:
+      - &id034
+        name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody: &id035
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublicUpdateMemberIdsRequest'
+      responses:
+        '200': &id036
+          description: Success.
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+  /public/groups/{id}/member-ids:
+    get:
+      tags:
+      - PublicApi
+      operationId: publicGetGroupMemberIdsCloud
+      summary: Get the member ids of a group (cloud path layout)
+      security:
+      - organizationToken: []
+      parameters:
+      - *id032
+      responses:
+        '200': *id033
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+    put:
+      tags:
+      - PublicApi
+      operationId: publicUpdateGroupMemberIdsCloud
+      summary: Set the members of a group (cloud path layout)
+      security:
+      - organizationToken: []
+      parameters:
+      - *id034
+      requestBody: *id035
+      responses:
+        '200': *id036
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+  /api/public/collections:
+    get:
+      tags:
+      - PublicApi
+      operationId: publicListCollections
+      summary: List collections
+      security:
+      - organizationToken: []
+      responses:
+        '200': &id037
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicCollectionList'
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+  /public/collections:
+    get:
+      tags:
+      - PublicApi
+      operationId: publicListCollectionsCloud
+      summary: List collections (cloud path layout)
+      security:
+      - organizationToken: []
+      responses:
+        '200': *id037
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+  /api/public/collections/{id}:
+    get:
+      tags:
+      - PublicApi
+      operationId: publicGetCollection
+      summary: Get a collection
+      security:
+      - organizationToken: []
+      parameters:
+      - &id038
+        name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200': &id039
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicCollection'
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+    put:
+      tags:
+      - PublicApi
+      operationId: publicUpdateCollection
+      summary: Update the external id and group access of a collection
+      security:
+      - organizationToken: []
+      parameters:
+      - &id040
+        name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody: &id041
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublicCollectionUpdateRequest'
+      responses:
+        '200': &id042
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicCollection'
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+    delete:
+      tags:
+      - PublicApi
+      operationId: publicDeleteCollection
+      summary: Delete a collection
+      security:
+      - organizationToken: []
+      parameters:
+      - &id043
+        name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200': &id044
+          description: Success.
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+  /public/collections/{id}:
+    get:
+      tags:
+      - PublicApi
+      operationId: publicGetCollectionCloud
+      summary: Get a collection (cloud path layout)
+      security:
+      - organizationToken: []
+      parameters:
+      - *id038
+      responses:
+        '200': *id039
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+    put:
+      tags:
+      - PublicApi
+      operationId: publicUpdateCollectionCloud
+      summary: Update the external id and group access of a collection (cloud path layout)
+      security:
+      - organizationToken: []
+      parameters:
+      - *id040
+      requestBody: *id041
+      responses:
+        '200': *id042
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+    delete:
+      tags:
+      - PublicApi
+      operationId: publicDeleteCollectionCloud
+      summary: Delete a collection (cloud path layout)
+      security:
+      - organizationToken: []
+      parameters:
+      - *id043
+      responses:
+        '200': *id044
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+  /api/public/policies:
+    get:
+      tags:
+      - PublicApi
+      operationId: publicListPolicies
+      summary: List policies
+      security:
+      - organizationToken: []
+      responses:
+        '200': &id045
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicPolicyList'
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+  /public/policies:
+    get:
+      tags:
+      - PublicApi
+      operationId: publicListPoliciesCloud
+      summary: List policies (cloud path layout)
+      security:
+      - organizationToken: []
+      responses:
+        '200': *id045
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+  /api/public/policies/{type}:
+    get:
+      tags:
+      - PublicApi
+      operationId: publicGetPolicy
+      summary: Get a policy
+      security:
+      - organizationToken: []
+      parameters:
+      - &id046
+        name: type
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200': &id047
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicPolicy'
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+    put:
+      tags:
+      - PublicApi
+      operationId: publicUpdatePolicy
+      summary: Update a policy
+      security:
+      - organizationToken: []
+      parameters:
+      - *id046
+      requestBody: &id048
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublicPolicyUpdateRequest'
+      responses:
+        '200': &id049
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicPolicy'
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+  /public/policies/{type}:
+    get:
+      tags:
+      - PublicApi
+      operationId: publicGetPolicyCloud
+      summary: Get a policy (cloud path layout)
+      security:
+      - organizationToken: []
+      parameters:
+      - *id046
+      responses:
+        '200': *id047
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+    put:
+      tags:
+      - PublicApi
+      operationId: publicUpdatePolicyCloud
+      summary: Update a policy (cloud path layout)
+      security:
+      - organizationToken: []
+      parameters:
+      - *id046
+      requestBody: *id048
+      responses:
+        '200': *id049
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+        '404':
+          $ref: '#/components/responses/PublicNotFound'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+  /api/public/events:
+    get:
+      tags:
+      - PublicApi
+      operationId: publicListEvents
+      summary: List organization events, newest first
+      security:
+      - organizationToken: []
+      parameters:
+      - &id050
+        name: start
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - &id051
+        name: end
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - &id052
+        name: actingUserId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - &id053
+        name: itemId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - &id054
+        name: continuationToken
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        '200': &id055
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicEventList'
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+  /public/events:
+    get:
+      tags:
+      - PublicApi
+      operationId: publicListEventsCloud
+      summary: List organization events, newest first (cloud path layout)
+      security:
+      - organizationToken: []
+      parameters:
+      - *id050
+      - *id051
+      - *id052
+      - *id053
+      - *id054
+      responses:
+        '200': *id055
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+  /api/public/organization/import:
+    post:
+      tags:
+      - PublicApi
+      operationId: publicImportOrganization
+      summary: Import members and groups from a directory
+      security:
+      - organizationToken: []
+      requestBody: &id056
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationImportRequest'
+      responses:
+        '200': &id057
+          description: Success.
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+      x-source-version: bitwarden-public-api
+      x-source-file: github.com/bitwarden/directory-connector libs/services/api.service.ts (postPublicImportDirectory),
+        libs/models/request/organizationImportRequest.ts
+  /public/organization/import:
+    post:
+      tags:
+      - PublicApi
+      operationId: publicImportOrganizationCloud
+      summary: Import members and groups from a directory (cloud path layout)
+      security:
+      - organizationToken: []
+      requestBody: *id056
+      responses:
+        '200': *id057
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+      x-source-version: bitwarden-public-api
+      x-source-file: github.com/bitwarden/directory-connector libs/services/api.service.ts (postPublicImportDirectory),
+        libs/models/request/organizationImportRequest.ts
+  /api/organizations/{id}/api-key-information/{type}:
+    get:
+      tags:
+      - Organizations
+      operationId: getOrganizationApiKeyInformationByType
+      summary: Get one organization API key type
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - *id046
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationApiKeyInformationResponseList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: web-v2026.9.1
+      x-source-file: libs/common/src/admin-console/services/organization/organization-api.service.ts
+  /scim/v2/{orgId}/ServiceProviderConfig:
+    get:
+      tags:
+      - Scim
+      operationId: scimServiceProviderConfig
+      summary: SCIM service provider configuration
+      security: []
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200': &id058
+          description: Success.
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/ScimServiceProviderConfig'
+        '400':
+          $ref: '#/components/responses/ScimBadRequest'
+      x-source-version: rfc7644
+      x-source-file: RFC 7643 and RFC 7644
+  /v2/{orgId}/ServiceProviderConfig:
+    get:
+      tags:
+      - Scim
+      operationId: scimServiceProviderConfigCloud
+      summary: SCIM service provider configuration (cloud path layout)
+      security: []
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200': *id058
+        '400':
+          $ref: '#/components/responses/ScimBadRequest'
+      x-source-version: rfc7644
+      x-source-file: RFC 7643 and RFC 7644
+  /scim/v2/{orgId}/ResourceTypes:
+    get:
+      tags:
+      - Scim
+      operationId: scimResourceTypes
+      summary: SCIM resource types
+      security: []
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200': &id059
+          description: Success.
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/ScimListResponse'
+        '400':
+          $ref: '#/components/responses/ScimBadRequest'
+        '404':
+          $ref: '#/components/responses/ScimNotFound'
+      x-source-version: rfc7644
+      x-source-file: RFC 7643 and RFC 7644
+  /v2/{orgId}/ResourceTypes:
+    get:
+      tags:
+      - Scim
+      operationId: scimResourceTypesCloud
+      summary: SCIM resource types (cloud path layout)
+      security: []
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200': *id059
+        '400':
+          $ref: '#/components/responses/ScimBadRequest'
+        '404':
+          $ref: '#/components/responses/ScimNotFound'
+      x-source-version: rfc7644
+      x-source-file: RFC 7643 and RFC 7644
+  /scim/v2/{orgId}/ResourceTypes/{id}:
+    get:
+      tags:
+      - Scim
+      operationId: scimResourceType
+      summary: One SCIM resource type
+      security: []
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - &id060
+        name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200': &id061
+          description: Success.
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/ScimResourceType'
+        '400':
+          $ref: '#/components/responses/ScimBadRequest'
+        '404':
+          $ref: '#/components/responses/ScimNotFound'
+      x-source-version: rfc7644
+      x-source-file: RFC 7643 and RFC 7644
+  /v2/{orgId}/ResourceTypes/{id}:
+    get:
+      tags:
+      - Scim
+      operationId: scimResourceTypeCloud
+      summary: One SCIM resource type (cloud path layout)
+      security: []
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - *id060
+      responses:
+        '200': *id061
+        '400':
+          $ref: '#/components/responses/ScimBadRequest'
+        '404':
+          $ref: '#/components/responses/ScimNotFound'
+      x-source-version: rfc7644
+      x-source-file: RFC 7643 and RFC 7644
+  /scim/v2/{orgId}/Schemas:
+    get:
+      tags:
+      - Scim
+      operationId: scimSchemas
+      summary: SCIM schemas
+      security: []
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200': &id062
+          description: Success.
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/ScimListResponse'
+        '400':
+          $ref: '#/components/responses/ScimBadRequest'
+        '404':
+          $ref: '#/components/responses/ScimNotFound'
+      x-source-version: rfc7644
+      x-source-file: RFC 7643 and RFC 7644
+  /v2/{orgId}/Schemas:
+    get:
+      tags:
+      - Scim
+      operationId: scimSchemasCloud
+      summary: SCIM schemas (cloud path layout)
+      security: []
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200': *id062
+        '400':
+          $ref: '#/components/responses/ScimBadRequest'
+        '404':
+          $ref: '#/components/responses/ScimNotFound'
+      x-source-version: rfc7644
+      x-source-file: RFC 7643 and RFC 7644
+  /scim/v2/{orgId}/Schemas/{id}:
+    get:
+      tags:
+      - Scim
+      operationId: scimSchema
+      summary: One SCIM schema
+      security: []
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - *id060
+      responses:
+        '200': &id063
+          description: Success.
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/ScimSchema'
+        '400':
+          $ref: '#/components/responses/ScimBadRequest'
+        '404':
+          $ref: '#/components/responses/ScimNotFound'
+      x-source-version: rfc7644
+      x-source-file: RFC 7643 and RFC 7644
+  /v2/{orgId}/Schemas/{id}:
+    get:
+      tags:
+      - Scim
+      operationId: scimSchemaCloud
+      summary: One SCIM schema (cloud path layout)
+      security: []
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - *id060
+      responses:
+        '200': *id063
+        '400':
+          $ref: '#/components/responses/ScimBadRequest'
+        '404':
+          $ref: '#/components/responses/ScimNotFound'
+      x-source-version: rfc7644
+      x-source-file: RFC 7643 and RFC 7644
+  /scim/v2/{orgId}/Users:
+    get:
+      tags:
+      - Scim
+      operationId: scimListUsers
+      summary: List or filter users
+      security:
+      - scimKey: []
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - &id064
+        name: filter
+        in: query
+        required: false
+        schema:
+          type: string
+      - &id065
+        name: startIndex
+        in: query
+        required: false
+        schema:
+          type: integer
+      - &id066
+        name: count
+        in: query
+        required: false
+        schema:
+          type: integer
+      - &id067
+        name: attributes
+        in: query
+        required: false
+        schema:
+          type: string
+      - &id068
+        name: excludedAttributes
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        '200': &id069
+          description: Success.
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/ScimListResponse'
+        '400':
+          $ref: '#/components/responses/ScimBadRequest'
+        '401':
+          $ref: '#/components/responses/ScimUnauthorized'
+      x-source-version: rfc7644
+      x-source-file: RFC 7643 and RFC 7644
+    post:
+      tags:
+      - Scim
+      operationId: scimCreateUser
+      summary: Provision a user (invites the member)
+      security:
+      - scimKey: []
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody: &id070
+        required: true
+        content:
+          application/scim+json:
+            schema:
+              $ref: '#/components/schemas/ScimUser'
+      responses:
+        '201': &id071
+          description: Success.
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/ScimUser'
+        '400':
+          $ref: '#/components/responses/ScimBadRequest'
+        '401':
+          $ref: '#/components/responses/ScimUnauthorized'
+        '409':
+          $ref: '#/components/responses/ScimConflict'
+      x-source-version: rfc7644
+      x-source-file: RFC 7643 and RFC 7644
+  /v2/{orgId}/Users:
+    get:
+      tags:
+      - Scim
+      operationId: scimListUsersCloud
+      summary: List or filter users (cloud path layout)
+      security:
+      - scimKey: []
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - *id064
+      - *id065
+      - *id066
+      - *id067
+      - *id068
+      responses:
+        '200': *id069
+        '400':
+          $ref: '#/components/responses/ScimBadRequest'
+        '401':
+          $ref: '#/components/responses/ScimUnauthorized'
+      x-source-version: rfc7644
+      x-source-file: RFC 7643 and RFC 7644
+    post:
+      tags:
+      - Scim
+      operationId: scimCreateUserCloud
+      summary: Provision a user (invites the member) (cloud path layout)
+      security:
+      - scimKey: []
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody: *id070
+      responses:
+        '201': *id071
+        '400':
+          $ref: '#/components/responses/ScimBadRequest'
+        '401':
+          $ref: '#/components/responses/ScimUnauthorized'
+        '409':
+          $ref: '#/components/responses/ScimConflict'
+      x-source-version: rfc7644
+      x-source-file: RFC 7643 and RFC 7644
+  /scim/v2/{orgId}/Users/{id}:
+    get:
+      tags:
+      - Scim
+      operationId: scimGetUser
+      summary: Get a user
+      security:
+      - scimKey: []
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - *id060
+      responses:
+        '200': &id072
+          description: Success.
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/ScimUser'
+        '400':
+          $ref: '#/components/responses/ScimBadRequest'
+        '401':
+          $ref: '#/components/responses/ScimUnauthorized'
+        '404':
+          $ref: '#/components/responses/ScimNotFound'
+      x-source-version: rfc7644
+      x-source-file: RFC 7643 and RFC 7644
+    put:
+      tags:
+      - Scim
+      operationId: scimReplaceUser
+      summary: Replace a user (active, externalId)
+      security:
+      - scimKey: []
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - *id060
+      requestBody: &id073
+        required: true
+        content:
+          application/scim+json:
+            schema:
+              $ref: '#/components/schemas/ScimUser'
+      responses:
+        '200': &id074
+          description: Success.
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/ScimUser'
+        '400':
+          $ref: '#/components/responses/ScimBadRequest'
+        '401':
+          $ref: '#/components/responses/ScimUnauthorized'
+        '404':
+          $ref: '#/components/responses/ScimNotFound'
+        '409':
+          $ref: '#/components/responses/ScimConflict'
+      x-source-version: rfc7644
+      x-source-file: RFC 7643 and RFC 7644
+    patch:
+      tags:
+      - Scim
+      operationId: scimPatchUser
+      summary: Patch a user; active false revokes, true restores
+      security:
+      - scimKey: []
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - *id060
+      requestBody: &id075
+        required: true
+        content:
+          application/scim+json:
+            schema:
+              $ref: '#/components/schemas/ScimPatchRequest'
+      responses:
+        '200': &id076
+          description: Success.
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/ScimUser'
+        '400':
+          $ref: '#/components/responses/ScimBadRequest'
+        '401':
+          $ref: '#/components/responses/ScimUnauthorized'
+        '404':
+          $ref: '#/components/responses/ScimNotFound'
+        '409':
+          $ref: '#/components/responses/ScimConflict'
+      x-source-version: rfc7644
+      x-source-file: RFC 7643 and RFC 7644
+    delete:
+      tags:
+      - Scim
+      operationId: scimDeleteUser
+      summary: Deprovision a user (removes the member)
+      security:
+      - scimKey: []
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - *id060
+      responses:
+        '204': &id077
+          description: Removed.
+        '400':
+          $ref: '#/components/responses/ScimBadRequest'
+        '401':
+          $ref: '#/components/responses/ScimUnauthorized'
+        '404':
+          $ref: '#/components/responses/ScimNotFound'
+      x-source-version: rfc7644
+      x-source-file: RFC 7643 and RFC 7644
+  /v2/{orgId}/Users/{id}:
+    get:
+      tags:
+      - Scim
+      operationId: scimGetUserCloud
+      summary: Get a user (cloud path layout)
+      security:
+      - scimKey: []
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - *id060
+      responses:
+        '200': *id072
+        '400':
+          $ref: '#/components/responses/ScimBadRequest'
+        '401':
+          $ref: '#/components/responses/ScimUnauthorized'
+        '404':
+          $ref: '#/components/responses/ScimNotFound'
+      x-source-version: rfc7644
+      x-source-file: RFC 7643 and RFC 7644
+    put:
+      tags:
+      - Scim
+      operationId: scimReplaceUserCloud
+      summary: Replace a user (active, externalId) (cloud path layout)
+      security:
+      - scimKey: []
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - *id060
+      requestBody: *id073
+      responses:
+        '200': *id074
+        '400':
+          $ref: '#/components/responses/ScimBadRequest'
+        '401':
+          $ref: '#/components/responses/ScimUnauthorized'
+        '404':
+          $ref: '#/components/responses/ScimNotFound'
+        '409':
+          $ref: '#/components/responses/ScimConflict'
+      x-source-version: rfc7644
+      x-source-file: RFC 7643 and RFC 7644
+    patch:
+      tags:
+      - Scim
+      operationId: scimPatchUserCloud
+      summary: Patch a user; active false revokes, true restores (cloud path layout)
+      security:
+      - scimKey: []
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - *id060
+      requestBody: *id075
+      responses:
+        '200': *id076
+        '400':
+          $ref: '#/components/responses/ScimBadRequest'
+        '401':
+          $ref: '#/components/responses/ScimUnauthorized'
+        '404':
+          $ref: '#/components/responses/ScimNotFound'
+        '409':
+          $ref: '#/components/responses/ScimConflict'
+      x-source-version: rfc7644
+      x-source-file: RFC 7643 and RFC 7644
+    delete:
+      tags:
+      - Scim
+      operationId: scimDeleteUserCloud
+      summary: Deprovision a user (removes the member) (cloud path layout)
+      security:
+      - scimKey: []
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - *id060
+      responses:
+        '204': *id077
+        '400':
+          $ref: '#/components/responses/ScimBadRequest'
+        '401':
+          $ref: '#/components/responses/ScimUnauthorized'
+        '404':
+          $ref: '#/components/responses/ScimNotFound'
+      x-source-version: rfc7644
+      x-source-file: RFC 7643 and RFC 7644
+  /scim/v2/{orgId}/Groups:
+    get:
+      tags:
+      - Scim
+      operationId: scimListGroups
+      summary: List or filter groups
+      security:
+      - scimKey: []
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - *id064
+      - *id065
+      - *id066
+      - *id067
+      - *id068
+      responses:
+        '200': &id078
+          description: Success.
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/ScimListResponse'
+        '400':
+          $ref: '#/components/responses/ScimBadRequest'
+        '401':
+          $ref: '#/components/responses/ScimUnauthorized'
+      x-source-version: rfc7644
+      x-source-file: RFC 7643 and RFC 7644
+    post:
+      tags:
+      - Scim
+      operationId: scimCreateGroup
+      summary: Create a group
+      security:
+      - scimKey: []
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody: &id079
+        required: true
+        content:
+          application/scim+json:
+            schema:
+              $ref: '#/components/schemas/ScimGroup'
+      responses:
+        '201': &id080
+          description: Success.
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/ScimGroup'
+        '400':
+          $ref: '#/components/responses/ScimBadRequest'
+        '401':
+          $ref: '#/components/responses/ScimUnauthorized'
+        '409':
+          $ref: '#/components/responses/ScimConflict'
+      x-source-version: rfc7644
+      x-source-file: RFC 7643 and RFC 7644
+  /v2/{orgId}/Groups:
+    get:
+      tags:
+      - Scim
+      operationId: scimListGroupsCloud
+      summary: List or filter groups (cloud path layout)
+      security:
+      - scimKey: []
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - *id064
+      - *id065
+      - *id066
+      - *id067
+      - *id068
+      responses:
+        '200': *id078
+        '400':
+          $ref: '#/components/responses/ScimBadRequest'
+        '401':
+          $ref: '#/components/responses/ScimUnauthorized'
+      x-source-version: rfc7644
+      x-source-file: RFC 7643 and RFC 7644
+    post:
+      tags:
+      - Scim
+      operationId: scimCreateGroupCloud
+      summary: Create a group (cloud path layout)
+      security:
+      - scimKey: []
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody: *id079
+      responses:
+        '201': *id080
+        '400':
+          $ref: '#/components/responses/ScimBadRequest'
+        '401':
+          $ref: '#/components/responses/ScimUnauthorized'
+        '409':
+          $ref: '#/components/responses/ScimConflict'
+      x-source-version: rfc7644
+      x-source-file: RFC 7643 and RFC 7644
+  /scim/v2/{orgId}/Groups/{id}:
+    get:
+      tags:
+      - Scim
+      operationId: scimGetGroup
+      summary: Get a group
+      security:
+      - scimKey: []
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - *id060
+      responses:
+        '200': &id081
+          description: Success.
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/ScimGroup'
+        '400':
+          $ref: '#/components/responses/ScimBadRequest'
+        '401':
+          $ref: '#/components/responses/ScimUnauthorized'
+        '404':
+          $ref: '#/components/responses/ScimNotFound'
+      x-source-version: rfc7644
+      x-source-file: RFC 7643 and RFC 7644
+    put:
+      tags:
+      - Scim
+      operationId: scimReplaceGroup
+      summary: Replace a group
+      security:
+      - scimKey: []
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - *id060
+      requestBody: &id082
+        required: true
+        content:
+          application/scim+json:
+            schema:
+              $ref: '#/components/schemas/ScimGroup'
+      responses:
+        '200': &id083
+          description: Success.
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/ScimGroup'
+        '400':
+          $ref: '#/components/responses/ScimBadRequest'
+        '401':
+          $ref: '#/components/responses/ScimUnauthorized'
+        '404':
+          $ref: '#/components/responses/ScimNotFound'
+      x-source-version: rfc7644
+      x-source-file: RFC 7643 and RFC 7644
+    patch:
+      tags:
+      - Scim
+      operationId: scimPatchGroup
+      summary: Patch a group (members, displayName, externalId)
+      security:
+      - scimKey: []
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - *id060
+      requestBody: &id084
+        required: true
+        content:
+          application/scim+json:
+            schema:
+              $ref: '#/components/schemas/ScimPatchRequest'
+      responses:
+        '200': &id085
+          description: Success.
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/ScimGroup'
+        '400':
+          $ref: '#/components/responses/ScimBadRequest'
+        '401':
+          $ref: '#/components/responses/ScimUnauthorized'
+        '404':
+          $ref: '#/components/responses/ScimNotFound'
+      x-source-version: rfc7644
+      x-source-file: RFC 7643 and RFC 7644
+    delete:
+      tags:
+      - Scim
+      operationId: scimDeleteGroup
+      summary: Delete a group
+      security:
+      - scimKey: []
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - *id060
+      responses:
+        '204': &id086
+          description: Deleted.
+        '400':
+          $ref: '#/components/responses/ScimBadRequest'
+        '401':
+          $ref: '#/components/responses/ScimUnauthorized'
+        '404':
+          $ref: '#/components/responses/ScimNotFound'
+      x-source-version: rfc7644
+      x-source-file: RFC 7643 and RFC 7644
+  /v2/{orgId}/Groups/{id}:
+    get:
+      tags:
+      - Scim
+      operationId: scimGetGroupCloud
+      summary: Get a group (cloud path layout)
+      security:
+      - scimKey: []
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - *id060
+      responses:
+        '200': *id081
+        '400':
+          $ref: '#/components/responses/ScimBadRequest'
+        '401':
+          $ref: '#/components/responses/ScimUnauthorized'
+        '404':
+          $ref: '#/components/responses/ScimNotFound'
+      x-source-version: rfc7644
+      x-source-file: RFC 7643 and RFC 7644
+    put:
+      tags:
+      - Scim
+      operationId: scimReplaceGroupCloud
+      summary: Replace a group (cloud path layout)
+      security:
+      - scimKey: []
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - *id060
+      requestBody: *id082
+      responses:
+        '200': *id083
+        '400':
+          $ref: '#/components/responses/ScimBadRequest'
+        '401':
+          $ref: '#/components/responses/ScimUnauthorized'
+        '404':
+          $ref: '#/components/responses/ScimNotFound'
+      x-source-version: rfc7644
+      x-source-file: RFC 7643 and RFC 7644
+    patch:
+      tags:
+      - Scim
+      operationId: scimPatchGroupCloud
+      summary: Patch a group (members, displayName, externalId) (cloud path layout)
+      security:
+      - scimKey: []
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - *id060
+      requestBody: *id084
+      responses:
+        '200': *id085
+        '400':
+          $ref: '#/components/responses/ScimBadRequest'
+        '401':
+          $ref: '#/components/responses/ScimUnauthorized'
+        '404':
+          $ref: '#/components/responses/ScimNotFound'
+      x-source-version: rfc7644
+      x-source-file: RFC 7643 and RFC 7644
+    delete:
+      tags:
+      - Scim
+      operationId: scimDeleteGroupCloud
+      summary: Delete a group (cloud path layout)
+      security:
+      - scimKey: []
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - *id060
+      responses:
+        '204': *id086
+        '400':
+          $ref: '#/components/responses/ScimBadRequest'
+        '401':
+          $ref: '#/components/responses/ScimUnauthorized'
+        '404':
+          $ref: '#/components/responses/ScimNotFound'
+      x-source-version: rfc7644
+      x-source-file: RFC 7643 and RFC 7644
+  /api/organizations/{orgId}/scim-config:
+    get:
+      tags:
+      - x-cloudwarden
+      operationId: getScimConfig
+      summary: SCIM settings of an organization
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScimConfig'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: cloudwarden
+      x-source-file: src/routes/org-integrations.ts
+    put:
+      tags:
+      - x-cloudwarden
+      operationId: updateScimConfig
+      summary: Enable or disable SCIM
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScimConfigRequest'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScimConfig'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: cloudwarden
+      x-source-file: src/routes/org-integrations.ts
+  /api/organizations/{orgId}/event-integrations:
+    get:
+      tags:
+      - x-cloudwarden
+      operationId: listEventIntegrations
+      summary: List event integrations
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventIntegrationList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: cloudwarden
+      x-source-file: src/routes/org-integrations.ts
+    post:
+      tags:
+      - x-cloudwarden
+      operationId: createEventIntegration
+      summary: Create an event integration
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventIntegrationRequest'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventIntegration'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: cloudwarden
+      x-source-file: src/routes/org-integrations.ts
+  /api/organizations/{orgId}/event-integrations/{id}:
+    put:
+      tags:
+      - x-cloudwarden
+      operationId: updateEventIntegration
+      summary: Update an event integration (blank secrets are kept)
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - &id087
+        name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventIntegrationUpdateRequest'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventIntegration'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: cloudwarden
+      x-source-file: src/routes/org-integrations.ts
+    delete:
+      tags:
+      - x-cloudwarden
+      operationId: deleteEventIntegration
+      summary: Delete an event integration
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - *id087
+      responses:
+        '200':
+          description: Success.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: cloudwarden
+      x-source-file: src/routes/org-integrations.ts
+  /api/organizations/{orgId}/event-integrations/{id}/rotate-secret:
+    post:
+      tags:
+      - x-cloudwarden
+      operationId: rotateEventIntegrationSecret
+      summary: Replace a webhook signing secret
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - *id087
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventIntegration'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: cloudwarden
+      x-source-file: src/routes/org-integrations.ts
+  /api/organizations/{orgId}/event-integrations/{id}/test:
+    post:
+      tags:
+      - x-cloudwarden
+      operationId: testEventIntegration
+      summary: Send a test event
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - *id087
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventIntegrationTestResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: cloudwarden
+      x-source-file: src/routes/org-integrations.ts
 components:
   securitySchemes:
+    organizationToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Organization token from `/identity/connect/token` with `grant_type=client_credentials`, `client_id=organization.<id>`,
+        `scope=api.organization` and the organization API key as `client_secret`. Rotating the key revokes earlier tokens.
+    scimKey:
+      type: http
+      scheme: bearer
+      description: The organization SCIM API key (`api-key` type 2), sent as a Bearer token. SCIM must be enabled for
+        the organization.
     bearerAuth:
       type: http
       scheme: bearer
@@ -7249,6 +9806,48 @@ components:
       name: access_token
       description: User access token passed as a query parameter on the WebSocket upgrade.
   responses:
+    PublicBadRequest:
+      description: Validation failure.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PublicErrorResponse'
+    PublicUnauthorized:
+      description: Missing, invalid or revoked organization token.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PublicErrorResponse'
+    PublicNotFound:
+      description: Not found in this organization.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PublicErrorResponse'
+    ScimBadRequest:
+      description: Invalid request (scimType invalidFilter, invalidPath, invalidValue, invalidSyntax or noTarget).
+      content:
+        application/scim+json:
+          schema:
+            $ref: '#/components/schemas/ScimError'
+    ScimUnauthorized:
+      description: SCIM disabled, or a missing or wrong SCIM API key.
+      content:
+        application/scim+json:
+          schema:
+            $ref: '#/components/schemas/ScimError'
+    ScimNotFound:
+      description: Resource not found.
+      content:
+        application/scim+json:
+          schema:
+            $ref: '#/components/schemas/ScimError'
+    ScimConflict:
+      description: A user or group with that identity exists (scimType uniqueness).
+      content:
+        application/scim+json:
+          schema:
+            $ref: '#/components/schemas/ScimError'
     BadRequest:
       description: Validation or business rule failure.
       content:
@@ -7280,6 +9879,833 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponseModel'
   schemas:
+    PublicAssociation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        readOnly:
+          type: boolean
+        hidePasswords:
+          type: boolean
+        manage:
+          type: boolean
+      required:
+      - id
+      - readOnly
+      - hidePasswords
+      - manage
+    PublicMember:
+      type: object
+      description: Bitwarden Public API MemberResponseModel.
+      properties:
+        object:
+          type: string
+          enum:
+          - member
+        id:
+          type: string
+          format: uuid
+        userId: &id003
+          type:
+          - string
+          - 'null'
+          format: uuid
+        name: &id001
+          type:
+          - string
+          - 'null'
+        email:
+          type: string
+        twoFactorEnabled:
+          type: boolean
+        status:
+          type: integer
+          enum:
+          - -1
+          - 0
+          - 1
+          - 2
+        collections:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicAssociation'
+        resetPasswordEnrolled:
+          type: boolean
+        ssoExternalId: *id001
+        type:
+          type: integer
+          enum:
+          - 0
+          - 1
+          - 2
+          - 3
+          - 4
+        accessAll:
+          type: boolean
+        externalId: *id001
+        permissions: &id002
+          additionalProperties:
+            type: boolean
+          type:
+          - object
+          - 'null'
+      required:
+      - object
+      - id
+      - email
+      - status
+      - type
+      - collections
+      - externalId
+    PublicMemberCreateRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        type:
+          type: integer
+        accessAll:
+          type:
+          - boolean
+          - 'null'
+        externalId: *id001
+        resetPasswordEnrolled:
+          type:
+          - boolean
+          - 'null'
+        permissions: *id002
+        collections:
+          type:
+          - array
+          - 'null'
+          items:
+            $ref: '#/components/schemas/PublicAssociation'
+        groups:
+          type:
+          - array
+          - 'null'
+          items:
+            type: string
+            format: uuid
+      required:
+      - email
+      - type
+    PublicMemberUpdateRequest:
+      type: object
+      properties:
+        type:
+          type: integer
+        accessAll:
+          type:
+          - boolean
+          - 'null'
+        externalId: *id001
+        permissions: *id002
+        collections:
+          type:
+          - array
+          - 'null'
+          items:
+            $ref: '#/components/schemas/PublicAssociation'
+        groups:
+          type:
+          - array
+          - 'null'
+          items:
+            type: string
+            format: uuid
+      required:
+      - type
+    PublicUpdateGroupIdsRequest:
+      type: object
+      properties:
+        groupIds:
+          type:
+          - array
+          - 'null'
+          items:
+            type: string
+            format: uuid
+    PublicUpdateMemberIdsRequest:
+      type: object
+      properties:
+        memberIds:
+          type:
+          - array
+          - 'null'
+          items:
+            type: string
+            format: uuid
+    PublicGroup:
+      type: object
+      description: Bitwarden Public API GroupResponseModel.
+      properties:
+        object:
+          type: string
+          enum:
+          - group
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        accessAll:
+          type: boolean
+        externalId: *id001
+        collections:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicAssociation'
+      required:
+      - object
+      - id
+      - name
+      - externalId
+      - collections
+    PublicGroupRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        accessAll:
+          type:
+          - boolean
+          - 'null'
+        externalId: *id001
+        collections:
+          type:
+          - array
+          - 'null'
+          items:
+            $ref: '#/components/schemas/PublicAssociation'
+      required:
+      - name
+    PublicCollection:
+      type: object
+      description: Bitwarden Public API CollectionResponseModel.
+      properties:
+        object:
+          type: string
+          enum:
+          - collection
+        id:
+          type: string
+          format: uuid
+        externalId: *id001
+        groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicAssociation'
+      required:
+      - object
+      - id
+      - externalId
+      - groups
+    PublicCollectionUpdateRequest:
+      type: object
+      properties:
+        externalId: *id001
+        groups:
+          type:
+          - array
+          - 'null'
+          items:
+            $ref: '#/components/schemas/PublicAssociation'
+    PublicPolicy:
+      type: object
+      description: Bitwarden Public API PolicyResponseModel.
+      properties:
+        object:
+          type: string
+          enum:
+          - policy
+        id:
+          type: string
+          format: uuid
+        type:
+          type: integer
+        enabled:
+          type: boolean
+        data:
+          type:
+          - object
+          - 'null'
+      required:
+      - object
+      - id
+      - type
+      - enabled
+      - data
+    PublicPolicyUpdateRequest:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        data:
+          type:
+          - object
+          - 'null'
+      required:
+      - enabled
+    PublicEvent:
+      type: object
+      description: Bitwarden Public API EventResponseModel.
+      properties:
+        object:
+          type: string
+          enum:
+          - event
+        type:
+          type: integer
+        itemId: *id003
+        collectionId: *id003
+        groupId: *id003
+        policyId: *id003
+        memberId: *id003
+        actingUserId: *id003
+        installationId: *id003
+        date:
+          type: string
+          format: date-time
+        device:
+          type:
+          - integer
+          - 'null'
+        ipAddress: *id001
+        secretId: *id003
+        projectId: *id003
+        serviceAccountId: *id003
+      required:
+      - object
+      - type
+      - date
+    PublicErrorResponse:
+      type: object
+      description: Bitwarden Public API ErrorResponseModel.
+      properties:
+        object:
+          type: string
+          enum:
+          - error
+        message:
+          type: string
+        errors:
+          type:
+          - object
+          - 'null'
+          additionalProperties:
+            type: array
+            items:
+              type: string
+      required:
+      - object
+      - message
+    OrganizationImportRequest:
+      type: object
+      description: Directory Connector import. Members are matched by `externalId`, then email; new members are invited
+        unless `inviteUsersAfterProvisioning` is false (then they are added without an email).
+      properties:
+        groups:
+          type:
+          - array
+          - 'null'
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              externalId:
+                type: string
+              memberExternalIds:
+                type:
+                - array
+                - 'null'
+                items:
+                  type: string
+            required:
+            - name
+            - externalId
+        members:
+          type:
+          - array
+          - 'null'
+          items:
+            type: object
+            properties:
+              email: *id001
+              externalId:
+                type: string
+              deleted:
+                type:
+                - boolean
+                - 'null'
+            required:
+            - externalId
+        overwriteExisting:
+          type:
+          - boolean
+          - 'null'
+        largeImport:
+          type:
+          - boolean
+          - 'null'
+        inviteUsersAfterProvisioning:
+          type:
+          - boolean
+          - 'null'
+    ScimMeta:
+      type: object
+      properties:
+        resourceType:
+          type: string
+        created:
+          type: string
+          format: date-time
+        lastModified:
+          type: string
+          format: date-time
+        location:
+          type: string
+      required:
+      - resourceType
+    ScimUser:
+      type: object
+      description: RFC 7643 User resource as served for an organization member.
+      properties:
+        schemas:
+          type: array
+          items:
+            type: string
+        id:
+          type: string
+        externalId: *id001
+        userName:
+          type: string
+        displayName:
+          type: string
+        name:
+          type: object
+        active:
+          type:
+          - boolean
+          - string
+        emails:
+          type: array
+          items:
+            type: object
+        meta:
+          $ref: '#/components/schemas/ScimMeta'
+      required:
+      - schemas
+    ScimGroup:
+      type: object
+      description: RFC 7643 Group resource.
+      properties:
+        schemas:
+          type: array
+          items:
+            type: string
+        id:
+          type: string
+        externalId: *id001
+        displayName:
+          type: string
+        members:
+          type: array
+          items:
+            type: object
+            properties:
+              value:
+                type: string
+              display:
+                type: string
+              $ref:
+                type: string
+            required:
+            - value
+        meta:
+          $ref: '#/components/schemas/ScimMeta'
+      required:
+      - schemas
+    ScimListResponse:
+      type: object
+      properties:
+        schemas:
+          type: array
+          items:
+            type: string
+            enum:
+            - urn:ietf:params:scim:api:messages:2.0:ListResponse
+        totalResults:
+          type: integer
+        startIndex:
+          type: integer
+        itemsPerPage:
+          type: integer
+        Resources:
+          type: array
+          items:
+            type: object
+      required:
+      - schemas
+      - totalResults
+      - Resources
+    ScimPatchRequest:
+      type: object
+      properties:
+        schemas:
+          type: array
+          items:
+            type: string
+        Operations:
+          type: array
+          items:
+            type: object
+            properties:
+              op:
+                type: string
+              path:
+                type: string
+              value: {}
+            required:
+            - op
+      required:
+      - Operations
+    ScimError:
+      type: object
+      properties:
+        schemas:
+          type: array
+          items:
+            type: string
+            enum:
+            - urn:ietf:params:scim:api:messages:2.0:Error
+        status:
+          type: string
+        scimType:
+          type: string
+        detail:
+          type: string
+      required:
+      - schemas
+      - status
+    ScimServiceProviderConfig:
+      type: object
+      properties:
+        schemas:
+          type: array
+          items:
+            type: string
+        patch:
+          type: object
+        bulk:
+          type: object
+        filter:
+          type: object
+        changePassword:
+          type: object
+        sort:
+          type: object
+        etag:
+          type: object
+        authenticationSchemes:
+          type: array
+          items:
+            type: object
+      required:
+      - schemas
+      - patch
+      - filter
+    ScimResourceType:
+      type: object
+      properties:
+        schemas:
+          type: array
+          items:
+            type: string
+        id:
+          type: string
+        name:
+          type: string
+        endpoint:
+          type: string
+        schema:
+          type: string
+      required:
+      - id
+      - endpoint
+      - schema
+    ScimSchema:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        attributes:
+          type: array
+          items:
+            type: object
+      required:
+      - id
+      - attributes
+    ScimConfig:
+      type: object
+      properties:
+        object:
+          type: string
+          enum:
+          - scimConfig
+        enabled:
+          type: boolean
+        provider:
+          type:
+          - integer
+          - 'null'
+        scimUrl:
+          type: string
+        hasApiKey:
+          type: boolean
+        apiKeyRevisionDate:
+          type:
+          - string
+          - 'null'
+          format: date-time
+      required:
+      - object
+      - enabled
+      - scimUrl
+      - hasApiKey
+    ScimConfigRequest:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        provider:
+          type:
+          - integer
+          - 'null'
+      required:
+      - enabled
+    EventIntegration:
+      type: object
+      description: Integration settings; secrets are never returned except `signingSecret` on webhook creation and rotation.
+      properties:
+        object:
+          type: string
+          enum:
+          - eventIntegration
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum:
+          - webhook
+          - splunk
+          - datadog
+          - sentinel
+        name:
+          type: string
+        enabled:
+          type: boolean
+        config:
+          type: object
+        eventTypes:
+          type:
+          - array
+          - 'null'
+          items:
+            type: integer
+        status:
+          type: object
+          properties:
+            failureCount:
+              type: integer
+            nextAttemptDate:
+              type:
+              - string
+              - 'null'
+            lastError: *id001
+            lastSuccessDate:
+              type:
+              - string
+              - 'null'
+          required:
+          - failureCount
+        signingSecret: *id001
+      required:
+      - object
+      - id
+      - type
+      - name
+      - enabled
+      - config
+      - status
+    EventIntegrationRequest:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+          - webhook
+          - splunk
+          - datadog
+          - sentinel
+        name:
+          type: string
+        enabled:
+          type:
+          - boolean
+          - 'null'
+        config:
+          type: object
+        secrets:
+          type:
+          - object
+          - 'null'
+        eventTypes:
+          type:
+          - array
+          - 'null'
+          items:
+            type: integer
+      required:
+      - type
+      - name
+      - config
+    EventIntegrationUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        enabled:
+          type:
+          - boolean
+          - 'null'
+        config:
+          type: object
+        secrets:
+          type:
+          - object
+          - 'null'
+        eventTypes:
+          type:
+          - array
+          - 'null'
+          items:
+            type: integer
+      required:
+      - name
+      - config
+    EventIntegrationTestResult:
+      type: object
+      properties:
+        object:
+          type: string
+        success:
+          type: boolean
+        error: *id001
+      required:
+      - success
+    PublicMemberList:
+      type: object
+      properties:
+        object:
+          type: string
+          enum:
+          - list
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicMember'
+        continuationToken: *id001
+      required:
+      - object
+      - data
+      - continuationToken
+    PublicGroupList:
+      type: object
+      properties:
+        object:
+          type: string
+          enum:
+          - list
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicGroup'
+        continuationToken: *id001
+      required:
+      - object
+      - data
+      - continuationToken
+    PublicCollectionList:
+      type: object
+      properties:
+        object:
+          type: string
+          enum:
+          - list
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicCollection'
+        continuationToken: *id001
+      required:
+      - object
+      - data
+      - continuationToken
+    PublicPolicyList:
+      type: object
+      properties:
+        object:
+          type: string
+          enum:
+          - list
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicPolicy'
+        continuationToken: *id001
+      required:
+      - object
+      - data
+      - continuationToken
+    PublicEventList:
+      type: object
+      properties:
+        object:
+          type: string
+          enum:
+          - list
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicEvent'
+        continuationToken: *id001
+      required:
+      - object
+      - data
+      - continuationToken
+    EventIntegrationList:
+      type: object
+      properties:
+        object:
+          type: string
+          enum:
+          - list
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventIntegration'
+        continuationToken: *id001
+      required:
+      - object
+      - data
+      - continuationToken
     ApiKeyResponse:
       type: object
       properties:

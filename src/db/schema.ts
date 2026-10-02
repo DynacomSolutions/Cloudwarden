@@ -442,6 +442,8 @@ export const events = sqliteTable(
     projectUuid: text('project_uuid'),
     serviceAccountUuid: text('service_account_uuid'),
     grantedServiceAccountUuid: text('granted_service_account_uuid'),
+    /** Non-member actor (TASKS #260): 1 SCIM, 2 domain verification, 3 Public API. */
+    systemUser: integer('system_user'),
     deviceType: integer('device_type'),
     ipAddress: text('ip_address'),
     eventDate: integer('event_date').notNull(),
@@ -700,4 +702,63 @@ export const smAccessPolicies = sqliteTable(
     index('sm_access_policies_granted_sa_idx').on(t.grantedServiceAccountUuid),
     index('sm_access_policies_sa_idx').on(t.serviceAccountUuid),
   ],
+)
+
+// ----- Organisation API keys, SCIM and event integrations (TASKS #260 to #266). Secrets are
+// sealed with the instance key (src/orgs/sealed.ts); the server needs them back in clear to show
+// the key again or to sign deliveries, so they are encrypted rather than hashed. -----
+
+/** Organisation API keys. `atype`: 0 Public API (Default), 2 SCIM. */
+export const organizationApiKeys = sqliteTable(
+  'organization_api_keys',
+  {
+    uuid: id(),
+    organizationUuid: text('organization_uuid')
+      .notNull()
+      .references(() => organizations.uuid, { onDelete: 'cascade' }),
+    atype: integer('atype').notNull(),
+    sealedKey: text('sealed_key').notNull(),
+    revisionDate: integer('revision_date').notNull(),
+  },
+  (t) => [uniqueIndex('organization_api_keys_org_type_unique').on(t.organizationUuid, t.atype)],
+)
+
+/** SCIM provisioning switch per organisation. `provider` is informational (0 default, 1 Entra ID, 2 Okta, ...). */
+export const organizationScim = sqliteTable('organization_scim', {
+  organizationUuid: text('organization_uuid')
+    .primaryKey()
+    .references(() => organizations.uuid, { onDelete: 'cascade' }),
+  enabled: integer('enabled', { mode: 'boolean' }).notNull().default(false),
+  provider: integer('provider'),
+  updatedAt: updatedAt(),
+})
+
+/**
+ * Event integrations (webhook, Splunk HEC, Datadog, Microsoft Sentinel). `config` is the public
+ * JSON settings; `sealedSecrets` holds the tokens. `cursor` is the `rowid` of the last event
+ * delivered, so delivery follows insertion order even when a client reports an older date.
+ */
+export const orgIntegrations = sqliteTable(
+  'org_integrations',
+  {
+    uuid: id(),
+    organizationUuid: text('organization_uuid')
+      .notNull()
+      .references(() => organizations.uuid, { onDelete: 'cascade' }),
+    atype: text('atype').notNull(),
+    name: text('name').notNull(),
+    enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
+    config: text('config').notNull(),
+    sealedSecrets: text('sealed_secrets').notNull(),
+    /** JSON array of event types to send, or null for every type. */
+    eventTypes: text('event_types'),
+    cursor: integer('cursor').notNull().default(0),
+    failureCount: integer('failure_count').notNull().default(0),
+    nextAttemptAt: integer('next_attempt_at').notNull().default(0),
+    lastError: text('last_error'),
+    lastSuccessAt: integer('last_success_at'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index('org_integrations_organization_idx').on(t.organizationUuid)],
 )

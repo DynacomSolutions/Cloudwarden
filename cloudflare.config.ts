@@ -1,7 +1,7 @@
 import { bindings, defineConfig, exports, triggers } from 'cf/config'
 
 // Secrets (set with `cf workers secrets update`, never committed): JWT_SECRET (32+ characters),
-// JWT_SECRET_PREVIOUS (only while rotating), ADMIN_EMAILS. Deploy-time values
+// JWT_SECRET_PREVIOUS (only while rotating), ADMIN_EMAILS, DATA_ENCRYPTION_KEY (32+ characters). Deploy-time values
 // come from the environment (see docs/deploy.md); the committed defaults are placeholders.
 const env = process.env
 const domain = env.DEPLOY_DOMAIN || undefined
@@ -31,6 +31,10 @@ export default defineConfig({
         '/send-files/*',
         '/alive',
         '/app-id.json',
+        // Public API and SCIM (TASKS #261, #263); `/v2/*` is the cloud SCIM path layout.
+        '/public/*',
+        '/scim/*',
+        '/v2/*',
       ],
     },
     // Workers Logs: structured JSON lines from src/log.ts (TASKS #164), see docs/observability.md.
@@ -79,6 +83,8 @@ export default defineConfig({
     triggers: [
       triggers.scheduled({ schedule: '17 * * * *' }),
       triggers.scheduled({ schedule: '17 3 * * *' }),
+      // Event integrations (TASKS #264); must equal DELIVERY_CRON in src/integrations/deliver.ts.
+      triggers.scheduled({ schedule: '* * * * *' }),
     ],
     exports: {
       NotificationHub: exports.durableObject({ storage: 'sqlite' }),

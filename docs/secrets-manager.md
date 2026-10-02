@@ -206,10 +206,31 @@ Encryption uses the client's own `KeyService` (organisation key) and `EncryptSer
 EncStrings). The token helpers (`sm-crypto.ts`) are checked by Jest against the `bitwarden-core`
 vector and by running `e2e/sm-client.mjs`'s parser and decryptor over a UI-built token.
 
+## Secret versions, import and export (TASKS #224)
+
+Shapes come from `apis/secret_versions_api.rs`, `apis/secrets_manager_porting_api.rs` and the
+`SecretVersionResponseModel`, `RestoreSecretVersionRequestModel`, `SmExportResponseModel` and
+`SmImportRequestModel` models of the same `bitwarden-api-api` crate (GPL-3.0).
+
+- A change that alters the stored value records the value it replaces (`sm_secret_versions`,
+  migration `0015`) with the time of the change and the editor: a member (name read live from the
+  account) or a machine account (its EncString name). The stored value decides, `valueChanged` is
+  only accepted. At most 50 versions are kept per secret, the oldest are dropped. The current value
+  is not a version. Restoring sets the secret to the version and records the value it replaced.
+- `GET /secrets/{id}/versions` (newest first), `GET /secret-versions/{id}`,
+  `POST /secret-versions/get-by-ids`, `POST /secret-versions/delete` (all-or-nothing, empty
+  response) and `PUT /secrets/{id}/versions/restore`. Reading needs read access to the secret,
+  restoring and deleting need write access; no access is a 404. Machine accounts may call them.
+- `GET /sm/{organizationId}/export` returns the projects and secrets the caller can read (admins:
+  all) as encrypted fields; `POST /sm/{organizationId}/import` creates them. Both are for members,
+  not machine accounts. Ids in a file only link secrets to projects; every object is created under
+  a fresh id, so an import cannot overwrite or claim existing data. Importers get creator access
+  to the projects they create, and only owners and admins may import secrets without a project.
+  Imports above 400 statements are written in several batches (D1 limit), projects first, so a
+  failure part way keeps what was written. The web client's own import and export UI is a
+  follow-up (#230).
+
 ## Not implemented (deferred)
 
-- Secret versions (`/secret-versions/*`, `/secrets/{id}/versions`): `valueChanged` is accepted and
-  ignored (TASKS #224).
-- Import and export (`/sm/{organizationId}/import`, `/export`) (TASKS #224).
 - Machine account token refresh: tokens are re-issued by logging in again, as the SDK does.
 - Seat or machine account limits: none apply on a self-hosted server.

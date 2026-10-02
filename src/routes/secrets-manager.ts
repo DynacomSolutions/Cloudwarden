@@ -1,7 +1,7 @@
 // Secrets Manager API (TASKS #220): projects, secrets, machine accounts, access tokens, access
 // policies, counts and events. Paths and shapes are documented under the `secrets-manager` tag in
 // docs/api/openapi.yaml; the access model is in docs/secrets-manager.md.
-import { and, eq, inArray, isNotNull, isNull, or } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm'
 import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { z } from 'zod'
@@ -60,6 +60,7 @@ for (const path of [
   '/api/organization/:orgId/*',
   '/api/projects/*',
   '/api/secrets/*',
+  '/api/secret-versions/*',
   '/api/service-accounts/*',
   '/api/sm/*',
 ]) {
@@ -632,6 +633,35 @@ secretsManager.get('/api/secrets/:id', async (c) => {
   return c.json(out)
 })
 
+/** Versions kept per secret; older ones are dropped when a new one is recorded. */
+const MAX_VERSIONS = 50
+
+/**
+ * Statements recording the value a change replaces, naming the editor. Nothing is recorded when
+ * the value stays the same (the clients send `valueChanged`, but the stored value decides).
+ */
+function versionStatements(db: Db, ctx: SmContext, secret: Secret, newValue: string, now: number) {
+  if (newValue === secret.value) return []
+  return [
+    db.insert(schema.smSecretVersions).values({
+      uuid: crypto.randomUUID(),
+      secretUuid: secret.uuid,
+      value: secret.value,
+      versionDate: now,
+      editorServiceAccountUuid: ctx.actor.kind === 'machine' ? ctx.serviceAccountUuid : null,
+      editorOrganizationUserUuid: ctx.actor.kind === 'user' ? ctx.memberUuid : null,
+    }),
+    db
+      .delete(schema.smSecretVersions)
+      .where(
+        and(
+          eq(schema.smSecretVersions.secretUuid, secret.uuid),
+          sql`${schema.smSecretVersions.uuid} not in (select uuid from sm_secret_versions where secret_uuid = ${secret.uuid} order by version_date desc, rowid desc limit ${MAX_VERSIONS})`,
+        ),
+      ),
+  ]
+}
+
 secretsManager.put('/api/secrets/:id', async (c) => {
   const body = await parseBody(c, secretSchema)
   const db = db_(c)
@@ -642,6 +672,7 @@ secretsManager.put('/api/secrets/:id', async (c) => {
   const projects = body.projectIds == null ? null : await writableProjects(db, ctx, body.projectIds)
   const policies = await secretPolicyStatements(db, ctx, s.uuid, body.accessPoliciesRequests, now)
   await batch(db, [
+    ...versionStatements(db, ctx, s, body.value, now),
     db
       .update(schema.smSecrets)
       .set({ key: body.key, value: body.value, note: body.note ?? '', updatedAt: now })
@@ -1536,5 +1567,254 @@ secretsManager.post('/api/secrets/:orgId/trash/restore', async (c) => {
     ]),
     bumpSecretsRevision(db, ctx.orgUuid, now),
   ])
+  return c.body(null, 200)
+})
+
+// ----- secret versions (TASKS #224) -----
+
+const versionRows = (db: Db, where: ReturnType<typeof eq>) =>
+  db
+    .select({
+      v: schema.smSecretVersions,
+      userName: schema.users.name,
+      accountName: schema.smServiceAccounts.name,
+    })
+    .from(schema.smSecretVersions)
+    .leftJoin(
+      schema.usersOrganizations,
+      eq(schema.usersOrganizations.uuid, schema.smSecretVersions.editorOrganizationUserUuid),
+    )
+    .leftJoin(schema.users, eq(schema.users.uuid, schema.usersOrganizations.userUuid))
+    .leftJoin(
+      schema.smServiceAccounts,
+      eq(schema.smServiceAccounts.uuid, schema.smSecretVersions.editorServiceAccountUuid),
+    )
+    .where(where)
+    .orderBy(desc(schema.smSecretVersions.versionDate), desc(sql`${schema.smSecretVersions}.rowid`))
+
+type VersionRow = Awaited<ReturnType<typeof versionRows>>[number]
+
+const versionJson = (r: VersionRow) => ({
+  object: 'secretVersion',
+  id: r.v.uuid,
+  secretId: r.v.secretUuid,
+  value: r.v.value,
+  versionDate: new Date(r.v.versionDate).toISOString(),
+  editorServiceAccountId: r.v.editorServiceAccountUuid,
+  editorOrganizationUserId: r.v.editorOrganizationUserUuid,
+  editorOrganizationUserName: r.userName ?? null,
+  editorServiceAccountName: r.accountName ?? null,
+})
+
+/** The caller's context for the secret's organisation, with 404 unless they hold `need` on it. */
+async function secretFor(c: Ctx, db: Db, secretUuid: string, need: 'read' | 'write') {
+  const s = await findSecret(db, secretUuid)
+  const ctx = await ctxFor(c, db, s.organizationUuid)
+  const out = await secretResponse(db, ctx, s)
+  check(out, need, 'Secret')
+  return { s, ctx }
+}
+
+secretsManager.get('/api/secrets/:id/versions', async (c) => {
+  const db = db_(c)
+  const { s } = await secretFor(c, db, param(c, 'id'), 'read')
+  const rows = await versionRows(db, eq(schema.smSecretVersions.secretUuid, s.uuid))
+  return c.json(list(rows.map(versionJson)))
+})
+
+/** Loads versions by id; every one must exist and be readable (or writable) by the caller. */
+async function versionsByIds(c: Ctx, db: Db, ids: string[], need: 'read' | 'write') {
+  const uuids = [...new Set(ids.map((i) => i.toLowerCase()))]
+  if (!uuids.every(isUuid)) throw notFound('Secret version')
+  const rows = await inChunks(uuids, (part) =>
+    versionRows(db, inArray(schema.smSecretVersions.uuid, part)),
+  )
+  if (rows.length !== uuids.length) throw notFound('Secret version')
+  for (const secretUuid of new Set(rows.map((r) => r.v.secretUuid))) {
+    await secretFor(c, db, secretUuid, need) // throws 404 or 403
+  }
+  return rows
+}
+
+secretsManager.post('/api/secret-versions/get-by-ids', async (c) => {
+  const ids = await parseBody(c, idList)
+  const rows = await versionsByIds(c, db_(c), ids, 'read')
+  return c.json(list(rows.map(versionJson)))
+})
+
+secretsManager.get('/api/secret-versions/:id', async (c) => {
+  const [row] = await versionsByIds(c, db_(c), [param(c, 'id')], 'read')
+  return c.json(versionJson(row as VersionRow))
+})
+
+secretsManager.post('/api/secret-versions/delete', async (c) => {
+  const ids = await parseBody(c, idList)
+  const db = db_(c)
+  const rows = await versionsByIds(c, db, ids, 'write')
+  await db.delete(schema.smSecretVersions).where(
+    inArray(
+      schema.smSecretVersions.uuid,
+      rows.map((r) => r.v.uuid),
+    ),
+  )
+  return c.body(null, 200)
+})
+
+secretsManager.put('/api/secrets/:id/versions/restore', async (c) => {
+  const { versionId } = await parseBody(c, z.object({ versionId: z.string() }))
+  const db = db_(c)
+  const { s, ctx } = await secretFor(c, db, param(c, 'id'), 'write')
+  if (!isUuid(versionId)) throw notFound('Secret version')
+  const [row] = await versionRows(db, eq(schema.smSecretVersions.uuid, versionId.toLowerCase()))
+  if (!row || row.v.secretUuid !== s.uuid) throw notFound('Secret version')
+  const now = Date.now()
+  await batch(db, [
+    ...versionStatements(db, ctx, s, row.v.value, now),
+    db
+      .update(schema.smSecrets)
+      .set({ value: row.v.value, updatedAt: now })
+      .where(eq(schema.smSecrets.uuid, s.uuid)),
+    bumpSecretsRevision(db, ctx.orgUuid, now),
+    eventStatement(db, c, {
+      type: EventType.SecretEdited,
+      organizationUuid: ctx.orgUuid,
+      secretUuid: s.uuid,
+      ...actorEventFields(ctx),
+    }),
+  ])
+  return c.json(await secretResponse(db, ctx, await findSecret(db, s.uuid)))
+})
+
+// ----- import and export (TASKS #224) -----
+
+/** Export of everything the caller can read: projects and secrets with their encrypted fields. */
+secretsManager.get('/api/sm/:orgId/export', async (c) => {
+  const db = db_(c)
+  const ctx = await ctxFor(c, db, param(c, 'orgId'))
+  requireUser(ctx)
+  const rows = await readableSecrets(db, ctx)
+  const projects = (
+    await db
+      .select()
+      .from(schema.smProjects)
+      .where(eq(schema.smProjects.organizationUuid, ctx.orgUuid))
+  ).filter((p) => projectAccess(ctx, p.uuid).read)
+  return c.json({
+    object: 'sm-export',
+    projects: projects.map((p) => ({ id: p.uuid, name: p.name })),
+    secrets: rows.map((r) => ({
+      id: r.s.uuid,
+      key: r.s.key,
+      value: r.s.value,
+      note: r.s.note,
+      projectIds: r.projects.map((p) => p.id),
+    })),
+  })
+})
+
+const MAX_IMPORT_ITEMS = 5000
+const IMPORT_CHUNK = 400
+const importSchema = z.object({
+  projects: z
+    .array(z.object({ id: z.string(), name: enc(1000) }))
+    .max(MAX_IMPORT_ITEMS)
+    .nullish(),
+  secrets: z
+    .array(
+      z.object({
+        id: z.string(),
+        key: enc(10_000),
+        value: enc(100_000),
+        note: z.string().max(100_000).nullish(),
+        projectIds: z.array(z.string()).max(1, 'A secret can belong to one project.').nullish(),
+      }),
+    )
+    .max(MAX_IMPORT_ITEMS)
+    .nullish(),
+})
+
+/**
+ * Creates the projects and secrets of an export under fresh ids (ids in the file only link secrets
+ * to projects, so an import can never overwrite or claim existing data). Needs Secrets Manager
+ * access; secrets without a project need an owner or admin, as everywhere else. Large imports are
+ * written in several batches (D1 limit), projects first, so a failure part way leaves what was
+ * written; the revision and events come last.
+ */
+secretsManager.post('/api/sm/:orgId/import', async (c) => {
+  const body = await parseBody(c, importSchema)
+  const db = db_(c)
+  const ctx = await ctxFor(c, db, param(c, 'orgId'))
+  requireUser(ctx)
+  const projects = body.projects ?? []
+  const secrets = body.secrets ?? []
+  const projectIds = new Map<string, string>()
+  for (const p of projects) {
+    if (!isUuid(p.id) || projectIds.has(p.id.toLowerCase())) {
+      throw new ApiError(400, 'Invalid or repeated project id.')
+    }
+    projectIds.set(p.id.toLowerCase(), crypto.randomUUID())
+  }
+  const seen = new Set<string>()
+  for (const s of secrets) {
+    if (!isUuid(s.id) || seen.has(s.id.toLowerCase())) {
+      throw new ApiError(400, 'Invalid or repeated secret id.')
+    }
+    seen.add(s.id.toLowerCase())
+    const linked = s.projectIds ?? []
+    if (linked.some((p) => !projectIds.has(p.toLowerCase()))) {
+      throw new ApiError(400, 'A secret refers to a project that is not in the file.')
+    }
+    if (linked.length === 0 && !ctx.admin) throw forbidden()
+  }
+  const now = Date.now()
+  const statements: unknown[] = []
+  for (const p of projects) {
+    const uuid = projectIds.get(p.id.toLowerCase()) as string
+    statements.push(
+      db.insert(schema.smProjects).values({
+        uuid,
+        organizationUuid: ctx.orgUuid,
+        name: p.name,
+        createdAt: now,
+        updatedAt: now,
+      }),
+      ...creatorPolicy(db, ctx, { project: uuid }, now),
+      eventStatement(db, c, {
+        type: EventType.ProjectCreated,
+        organizationUuid: ctx.orgUuid,
+        projectUuid: uuid,
+        ...actorEventFields(ctx),
+      }),
+    )
+  }
+  for (const s of secrets) {
+    const uuid = crypto.randomUUID()
+    statements.push(
+      db.insert(schema.smSecrets).values({
+        uuid,
+        organizationUuid: ctx.orgUuid,
+        key: s.key,
+        value: s.value,
+        note: s.note ?? '',
+        createdAt: now,
+        updatedAt: now,
+      }),
+      ...projectLinks(
+        db,
+        uuid,
+        (s.projectIds ?? []).map((p) => projectIds.get(p.toLowerCase()) as string),
+      ),
+      eventStatement(db, c, {
+        type: EventType.SecretCreated,
+        organizationUuid: ctx.orgUuid,
+        secretUuid: uuid,
+        ...actorEventFields(ctx),
+      }),
+    )
+  }
+  for (let i = 0; i < statements.length; i += IMPORT_CHUNK) {
+    await batch(db, statements.slice(i, i + IMPORT_CHUNK))
+  }
+  await batch(db, [bumpSecretsRevision(db, ctx.orgUuid, now)])
   return c.body(null, 200)
 })

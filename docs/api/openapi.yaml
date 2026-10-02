@@ -6503,7 +6503,7 @@ paths:
       - secrets-manager
       operationId: smUpdateSecret
       summary: Update a secret
-      description: Needs write access. `projectIds` replaces the project when present; `valueChanged` is accepted and ignored (no secret versions). Accepts a member access token or a machine account access token (scope `api.secrets`).
+      description: Needs write access. `projectIds` replaces the project when present; A changed value records the replaced one as a secret version (the stored value decides, not `valueChanged`). Accepts a member access token or a machine account access token (scope `api.secrets`).
       parameters:
       - *a3
       requestBody:
@@ -6529,6 +6529,237 @@ paths:
           $ref: "#/components/responses/NotFound"
       x-source-version: sdk-internal@main
       x-source-file: crates/bitwarden-api-api/src/apis/secrets_api.rs
+  /api/secrets/{secretId}/versions:
+    get:
+      tags:
+        - secrets-manager
+      operationId: smListSecretVersions
+      summary: List the earlier values of a secret
+      description: Newest first. Needs read access. At most 50 versions are kept.
+      parameters:
+        - name: secretId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmSecretVersionList"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/secret_versions_api.rs
+  /api/secrets/{secretId}/versions/restore:
+    put:
+      tags:
+        - secrets-manager
+      operationId: smRestoreSecretVersion
+      summary: Restore a secret version
+      description: Needs write access. Sets the secret value to the version and records the value it replaces as a new version.
+      parameters:
+        - name: secretId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - versionId
+              properties:
+                versionId:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmSecret"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/secret_versions_api.rs
+  /api/secret-versions/{id}:
+    get:
+      tags:
+        - secrets-manager
+      operationId: smGetSecretVersion
+      summary: Get a secret version
+      description: Needs read access to the secret.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmSecretVersion"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/secret_versions_api.rs
+  /api/secret-versions/get-by-ids:
+    post:
+      tags:
+        - secrets-manager
+      operationId: smGetSecretVersionsByIds
+      summary: Get secret versions by id
+      description: The body is a JSON array of ids. Every version must exist and be readable, else 404.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+                format: uuid
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmSecretVersionList"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/secret_versions_api.rs
+  /api/secret-versions/delete:
+    post:
+      tags:
+        - secrets-manager
+      operationId: smDeleteSecretVersions
+      summary: Delete secret versions
+      description: The body is a JSON array of ids. Needs write access to every parent secret, else nothing is deleted.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+                format: uuid
+      responses:
+        "200":
+          description: Success.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/secret_versions_api.rs
+  /api/sm/{organizationId}/export:
+    get:
+      tags:
+        - secrets-manager
+      operationId: smExport
+      summary: Export projects and secrets
+      description: Everything the caller can read, with encrypted names, keys, values and notes. Members only, not machine accounts.
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmExport"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/secrets_manager_porting_api.rs
+  /api/sm/{organizationId}/import:
+    post:
+      tags:
+        - secrets-manager
+      operationId: smImport
+      summary: Import projects and secrets
+      description: Creates the projects and secrets under fresh ids (file ids only link them). Secrets without a project need an owner or admin. Large files are written in several batches.
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SmImport"
+      responses:
+        "200":
+          description: Success.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/secrets_manager_porting_api.rs
   /api/secrets/get-by-ids:
     post:
       tags:
@@ -21436,6 +21667,123 @@ components:
       - value
       - note
       - projects
+    SmSecretVersion:
+      type: object
+      properties:
+        object:
+          type: string
+          example: secretVersion
+        id:
+          type: string
+          format: uuid
+        secretId:
+          type: string
+          format: uuid
+        value:
+          type: string
+          description: EncString value that a change replaced.
+        versionDate:
+          type: string
+          format: date-time
+        editorServiceAccountId:
+          type: [string, "null"]
+          format: uuid
+        editorOrganizationUserId:
+          type: [string, "null"]
+          format: uuid
+        editorOrganizationUserName:
+          type: [string, "null"]
+        editorServiceAccountName:
+          type: [string, "null"]
+          description: EncString.
+    SmSecretVersionList:
+      type: object
+      properties:
+        object:
+          type: string
+          example: list
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SmSecretVersion"
+        continuationToken:
+          type: [string, "null"]
+    SmExport:
+      type: object
+      properties:
+        object:
+          type: string
+          example: sm-export
+        projects:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              name:
+                type: string
+        secrets:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              key:
+                type: string
+              value:
+                type: string
+              note:
+                type: string
+              projectIds:
+                type: array
+                items:
+                  type: string
+                  format: uuid
+    SmImport:
+      type: object
+      properties:
+        projects:
+          type: [array, "null"]
+          items:
+            type: object
+            required:
+              - id
+              - name
+            properties:
+              id:
+                type: string
+                format: uuid
+              name:
+                type: string
+        secrets:
+          type: [array, "null"]
+          items:
+            type: object
+            required:
+              - id
+              - key
+              - value
+              - note
+              - projectIds
+            properties:
+              id:
+                type: string
+                format: uuid
+              key:
+                type: string
+              value:
+                type: string
+              note:
+                type: string
+              projectIds:
+                type: array
+                items:
+                  type: string
+                  format: uuid
     SmSecret:
       type: object
       description: SecretResponseModel.

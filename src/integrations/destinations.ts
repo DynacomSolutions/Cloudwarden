@@ -4,7 +4,7 @@
 // from the public documentation of each product.
 import { z } from 'zod'
 import { toB64u, utf8 } from '../auth/crypto'
-import { validateHost } from '../icons/ssrf'
+import { isBlockedIpLiteral, isIpLiteral, validateHost } from '../icons/ssrf'
 
 export type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 
@@ -20,6 +20,13 @@ export interface Destination<C, S> {
   secrets: z.ZodType<S>
   /** Secret fields; the update form leaves blank ones unchanged. */
   secretKeys: (keyof S & string)[]
+  /**
+   * Where the secrets are sent. When an update changes it, stored secrets that travel to the
+   * destination are dropped and must be entered again, so an admin cannot redirect them.
+   */
+  target(cfg: C): string
+  /** Secrets that stay on the server even when the target changes (the webhook signing key). */
+  keptOnRetarget?: (keyof S & string)[]
   /** Events sent per request (1 for webhooks: one signed POST per event). */
   batchSize: number
   send(
@@ -38,6 +45,72 @@ export interface SendContext {
 }
 
 export class DeliveryError extends Error {}
+
+export const REQUEST_TIMEOUT_MS = 10_000
+
+/** Resolves a host name to its addresses (A and AAAA). */
+export type Resolver = (host: string) => Promise<string[]>
+
+/** DNS over HTTPS (Cloudflare's JSON API): the addresses a host name points at now. */
+export const dohResolver =
+  (fetcher: Fetcher = (i, init) => fetch(i, init)): Resolver =>
+  async (host) => {
+    const out: string[] = []
+    for (const type of ['A', 'AAAA']) {
+      const res = await fetcher(
+        `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(host)}&type=${type}`,
+        { headers: { Accept: 'application/dns-json' }, signal: AbortSignal.timeout(5000) },
+      )
+      if (!res.ok) throw new DeliveryError('The destination host name could not be resolved.')
+      const body = (await res.json()) as { Answer?: { type: number; data: string }[] }
+      for (const a of body.Answer ?? []) if (a.type === 1 || a.type === 28) out.push(a.data)
+    }
+    return out
+  }
+
+/**
+ * Wraps a fetcher for outbound deliveries: every request times out after 10 seconds, and its host
+ * must resolve only to public addresses (checked once per host per run). This narrows DNS
+ * rebinding; the Workers runtime does its own resolution afterwards, and cannot reach private
+ * networks in any case.
+ */
+export function guardedFetcher(fetcher: Fetcher, resolve: Resolver): Fetcher {
+  const checked = new Map<string, Promise<void>>()
+  const check = (host: string) => {
+    let p = checked.get(host)
+    if (!p) {
+      p = (async () => {
+        if (isIpLiteral(host)) throw new DeliveryError('The destination host is not public.')
+        const addresses = await resolve(host)
+        if (addresses.length === 0) {
+          throw new DeliveryError('The destination host name does not resolve.')
+        }
+        if (addresses.some((a) => isBlockedIpLiteral(a))) {
+          throw new DeliveryError('The destination host resolves to a private address.')
+        }
+      })()
+      checked.set(host, p)
+    }
+    return p
+  }
+  return async (input, init) => {
+    await check(new URL(String(input)).hostname)
+    const ctl = new AbortController()
+    let timedOut = false
+    const timer = setTimeout(() => {
+      timedOut = true
+      ctl.abort()
+    }, REQUEST_TIMEOUT_MS)
+    try {
+      return await fetcher(input, { ...init, signal: ctl.signal })
+    } catch (err) {
+      if (timedOut) throw new DeliveryError('The destination did not answer within 10 seconds.')
+      throw err
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+}
 
 /** HTTPS URL to a public DNS name (no IP literals, credentials or reserved names). */
 export const httpsUrl = z
@@ -73,7 +146,14 @@ export async function webhookSignature(secret: string, timestamp: string, body: 
   return `v1=${hex(await crypto.subtle.sign('HMAC', key, utf8(`${timestamp}.${body}`)))}`
 }
 
+/** Options every destination accepts. */
+const common = {
+  /** Leave out the client IP address (personal data) from delivered events. */
+  omitIpAddress: z.boolean().nullish(),
+}
+
 const webhookConfig = z.object({
+  ...common,
   url: httpsUrl,
   /** Optional extra header for receivers that want their own credential, e.g. `Authorization`. */
   headerName: z
@@ -90,6 +170,8 @@ export const webhook: Destination<z.infer<typeof webhookConfig>, z.infer<typeof 
   config: webhookConfig,
   secrets: webhookSecrets,
   secretKeys: ['signingSecret', 'headerValue'],
+  target: (cfg) => cfg.url,
+  keptOnRetarget: ['signingSecret'],
   batchSize: 1,
   async send(fetcher, cfg, secrets, events, ctx) {
     for (const e of events) {
@@ -112,6 +194,7 @@ export const webhook: Destination<z.infer<typeof webhookConfig>, z.infer<typeof 
 }
 
 const splunkConfig = z.object({
+  ...common,
   /** HEC base URL, for example `https://splunk.example.com:8088`. */
   url: httpsUrl,
   index: z.string().max(80).nullish(),
@@ -132,6 +215,7 @@ export const splunk: Destination<z.infer<typeof splunkConfig>, z.infer<typeof sp
   config: splunkConfig,
   secrets: splunkSecrets,
   secretKeys: ['token'],
+  target: (cfg) => splunkEndpoint(cfg.url),
   batchSize: 100,
   async send(fetcher, cfg, secrets, events, ctx) {
     // HEC accepts several event objects concatenated in one body.
@@ -171,6 +255,7 @@ export const DATADOG_SITES = [
 ] as const
 
 const datadogConfig = z.object({
+  ...common,
   site: z.enum(DATADOG_SITES),
   service: z.string().max(100).nullish(),
   tags: z.string().max(1000).nullish(),
@@ -181,6 +266,7 @@ export const datadog: Destination<z.infer<typeof datadogConfig>, z.infer<typeof 
   config: datadogConfig,
   secrets: datadogSecrets,
   secretKeys: ['apiKey'],
+  target: (cfg) => cfg.site,
   batchSize: 100,
   async send(fetcher, cfg, secrets, events, ctx) {
     const body = JSON.stringify(
@@ -207,6 +293,7 @@ export const datadog: Destination<z.infer<typeof datadogConfig>, z.infer<typeof 
 
 const guid = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
 const sentinelConfig = z.object({
+  ...common,
   tenantId: guid,
   clientId: guid,
   /** Data collection endpoint (logs ingestion) URI. */
@@ -225,6 +312,7 @@ export const sentinel: Destination<
   config: sentinelConfig,
   secrets: sentinelSecrets,
   secretKeys: ['clientSecret'],
+  target: (cfg) => `${cfg.tenantId.toLowerCase()} ${cfg.clientId.toLowerCase()} ${cfg.endpoint}`,
   batchSize: 100,
   async send(fetcher, cfg, secrets, events) {
     const tokenRes = await fetcher(

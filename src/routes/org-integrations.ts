@@ -18,6 +18,8 @@ import {
 import {
   DESTINATIONS,
   DeliveryError,
+  dohResolver,
+  guardedFetcher,
   INTEGRATION_TYPES,
   type IntegrationType,
   newSigningSecret,
@@ -26,6 +28,7 @@ import { isAdminRole, requireMember, requirePermission } from '../orgs/access'
 import { ApiKeyType, loadApiKey } from '../orgs/api-keys'
 import { seal } from '../orgs/sealed'
 import { authOnce } from '../orgs/util'
+import { overLimit, tooManyRequests } from '../ratelimit'
 import { parseBody } from '../validation'
 
 export const orgIntegrations = new Hono<Env>()
@@ -207,8 +210,21 @@ orgIntegrations.put('/api/organizations/:orgId/event-integrations/:id', async (c
   await requireAdmin(c)
   const db = createDb(c.env.DB)
   const row = await loadIntegration(db, org(c), c.req.param('id'))
-  const merged = { ...(await openSecrets(c.env, row)), ...filled(body.secrets) }
-  const { config, secrets } = validate(row.atype as IntegrationType, body.config, merged)
+  const type = row.atype as IntegrationType
+  const dest = DESTINATIONS[type]
+  const stored = await openSecrets(c.env, row)
+  // A new destination gets no stored secret that would travel to it: those must be typed again.
+  const next = dest.config.safeParse(body.config)
+  const retargeted =
+    next.success &&
+    dest.target(next.data) !== dest.target(dest.config.parse(JSON.parse(row.config)))
+  const kept = retargeted
+    ? Object.fromEntries(
+        Object.entries(stored).filter(([k]) => (dest.keptOnRetarget ?? []).includes(k as never)),
+      )
+    : stored
+  const merged = { ...kept, ...filled(body.secrets) }
+  const { config, secrets } = validate(type, body.config, merged)
   await db
     .update(schema.orgIntegrations)
     .set({
@@ -257,6 +273,9 @@ orgIntegrations.delete('/api/organizations/:orgId/event-integrations/:id', async
 /** Sends one synthetic event (type 1600, organisation updated) to check the settings. */
 orgIntegrations.post('/api/organizations/:orgId/event-integrations/:id/test', async (c) => {
   await requireAdmin(c)
+  if (await overLimit(c, 'integration-test', `${c.var.user.uuid}:${org(c)}`)) {
+    return tooManyRequests(c)
+  }
   const db = createDb(c.env.DB)
   const row = await loadIntegration(db, org(c), c.req.param('id'))
   const now = Date.now()
@@ -275,7 +294,7 @@ orgIntegrations.post('/api/organizations/:orgId/event-integrations/:id/test', as
           test: true,
         },
       ],
-      (input, init) => fetch(input, init),
+      guardedFetcher((input, init) => fetch(input, init), dohResolver()),
       now,
     )
     return c.json({ object: 'eventIntegrationTest', success: true, error: null })

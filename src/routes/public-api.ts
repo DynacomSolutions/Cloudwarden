@@ -31,7 +31,8 @@ import {
   type Selection,
   VALID_ROLES,
 } from '../orgs/members'
-import { parseData, revokeNonCompliantMembers } from '../orgs/policies'
+import { parseData } from '../orgs/policies'
+import { findPolicy, savePolicy } from '../orgs/policy-save'
 import {
   insertMemberStatements,
   invitedMember,
@@ -678,15 +679,6 @@ const policyType = (c: Ctx) => {
   return t
 }
 
-async function findPolicy(db: Db, orgUuid: string, type: number) {
-  const [row] = await db
-    .select()
-    .from(schema.policies)
-    .where(and(eq(schema.policies.organizationUuid, orgUuid), eq(schema.policies.atype, type)))
-    .limit(1)
-  return row
-}
-
 function registerPolicies(r: Hono<Env>, p: string) {
   r.get(`${p}/policies`, async (c) => {
     const rows = await createDb(c.env.DB)
@@ -709,34 +701,7 @@ function registerPolicies(r: Hono<Env>, p: string) {
       z.object({ enabled: z.boolean(), data: z.record(z.string(), z.unknown()).nullish() }),
     )
     const db = createDb(c.env.DB)
-    const orgUuid = orgOf(c)
-    const existing = await findPolicy(db, orgUuid, type)
-    const uuid = existing?.uuid ?? crypto.randomUUID()
-    const data = b.data ? JSON.stringify(b.data) : null
-    const now = Date.now()
-    await batch(db, [
-      db
-        .insert(schema.policies)
-        .values({
-          uuid,
-          organizationUuid: orgUuid,
-          atype: type,
-          enabled: b.enabled,
-          data,
-          updatedAt: now,
-        })
-        .onConflictDoUpdate({
-          target: [schema.policies.organizationUuid, schema.policies.atype],
-          set: { enabled: b.enabled, data, updatedAt: now },
-        }),
-      ...(type === PolicyType.TwoFactorAuthentication && b.enabled
-        ? [revokeNonCompliantMembers(db, orgUuid, now)]
-        : []),
-      ev(db, c, { type: EventType.PolicyUpdated, policyUuid: uuid }),
-      bumpOrgRevision(db, orgUuid, now),
-    ])
-    const row = await findPolicy(db, orgUuid, type)
-    if (!row) throw new ApiError(500, 'Policy was not saved.')
+    const row = await savePolicy(c, db, orgOf(c), type, b, EventSystemUser.PublicApi)
     return c.json(policyJson(row))
   })
 }

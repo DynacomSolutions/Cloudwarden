@@ -42,6 +42,9 @@ const ALL_KEYS = [...new Set(Object.values(FIELDS).flatMap((f) => f.map((x) => x
         {{ (data.integration ? "cwIntEdit" : "cwIntAdd") | i18n }}
       </span>
       <div bitDialogContent>
+        @if (data.integration && !signingSecret()) {
+          <p bitTypography="body2" class="tw-text-muted">{{ "cwIntRetargetHint" | i18n }}</p>
+        }
         @if (signingSecret(); as secret) {
           <p bitTypography="body1">{{ "cwIntSigningSecretDesc" | i18n }}</p>
           <bit-form-field>
@@ -97,6 +100,11 @@ const ALL_KEYS = [...new Set(Object.values(FIELDS).flatMap((f) => f.map((x) => x
             <bit-hint>{{ "cwIntEventTypesHint" | i18n }}</bit-hint>
           </bit-form-field>
           <bit-form-control>
+            <input type="checkbox" bitCheckbox formControlName="omitIp" />
+            <bit-label>{{ "cwIntOmitIp" | i18n }}</bit-label>
+            <bit-hint>{{ "cwIntOmitIpHint" | i18n }}</bit-hint>
+          </bit-form-control>
+          <bit-form-control>
             <input type="checkbox" bitCheckbox formControlName="enabled" />
             <bit-label>{{ "cwIntEnabled" | i18n }}</bit-label>
           </bit-form-control>
@@ -135,10 +143,11 @@ export class IntegrationDialogComponent {
     type: [{ value: this.data.integration?.type ?? "webhook", disabled: !!this.data.integration }],
     name: [this.data.integration?.name ?? "", [Validators.required, Validators.maxLength(100)]],
     enabled: [this.data.integration?.enabled ?? true],
+    omitIp: [this.data.integration?.config.omitIpAddress === true],
     eventTypes: [this.data.integration?.eventTypes?.join(", ") ?? ""],
     values: this.fb.group(
       Object.fromEntries(
-        ALL_KEYS.map((k) => [k, [(this.data.integration?.config[k] as string | null) ?? ""]]),
+        ALL_KEYS.map((k) => [k, [String(this.data.integration?.config[k] ?? "")]]),
       ),
     ),
   });
@@ -175,7 +184,7 @@ export class IntegrationDialogComponent {
     const input = {
       name: (this.form.value.name ?? "").trim(),
       enabled: this.form.value.enabled !== false,
-      config,
+      config: { ...config, omitIpAddress: this.form.value.omitIp === true },
       secrets,
       eventTypes,
     };

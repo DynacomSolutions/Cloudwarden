@@ -10255,6 +10255,12 @@ components:
           type:
           - boolean
           - 'null'
+        removePrivilegedMembers:
+          type:
+          - boolean
+          - 'null'
+          description: Cloudwarden extension (not sent by the Directory Connector). Without it, admins and custom
+            members are never removed by `deleted` entries or `overwriteExisting`; owners never are.
     ScimMeta:
       type: object
       properties:

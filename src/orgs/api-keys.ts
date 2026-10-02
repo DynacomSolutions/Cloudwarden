@@ -20,6 +20,19 @@ const purpose = (orgUuid: string, type: number) => `org-api-key:${orgUuid}:${typ
 
 export type ApiKeyRow = typeof schema.organizationApiKeys.$inferSelect
 
+/**
+ * Whether the organisation exists and is not disabled. Organisations have no disabled state yet;
+ * a future `enabled` column is honoured here so API keys stop working with it.
+ */
+export async function organizationActive(db: Db, orgUuid: string) {
+  const [org] = await db
+    .select()
+    .from(schema.organizations)
+    .where(eq(schema.organizations.uuid, orgUuid))
+    .limit(1)
+  return Boolean(org) && (org as { enabled?: boolean }).enabled !== false
+}
+
 export async function loadApiKey(db: Db, orgUuid: string, type: number) {
   const [row] = await db
     .select()
@@ -102,6 +115,7 @@ export async function organizationLoginGrant(c: Context<Env>, form: Record<strin
   const db = createDb(c.env.DB_PRIMARY ?? c.env.DB)
   const row = await loadApiKey(db, orgUuid, ApiKeyType.Default)
   if (!row || !(await apiKeyMatches(c.env, row, form.client_secret))) return bad()
+  if (!(await organizationActive(db, orgUuid))) return bad()
   const now = Math.floor(Date.now() / 1000)
   const claims: OrgTokenClaims = {
     nbf: now,
@@ -144,12 +158,10 @@ export const requireOrgApiAuth: MiddlewareHandler<Env> = async (c, next) => {
   ) {
     return publicUnauthorized(c)
   }
-  const row = await loadApiKey(
-    createDb(c.env.DB_PRIMARY ?? c.env.DB),
-    claims.sub,
-    ApiKeyType.Default,
-  )
+  const db = createDb(c.env.DB_PRIMARY ?? c.env.DB)
+  const row = await loadApiKey(db, claims.sub, ApiKeyType.Default)
   if (!row || row.revisionDate !== claims.rev) return publicUnauthorized(c)
+  if (!(await organizationActive(db, claims.sub))) return publicUnauthorized(c)
   c.set('orgApi', { organizationUuid: claims.sub })
   return next()
 }

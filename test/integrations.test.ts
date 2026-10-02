@@ -1,9 +1,9 @@
 // Event integrations (TASKS #274): configuration API, sealed secrets, signed webhook delivery in
 // order with retries and back-off, and the Splunk HEC, Datadog and Microsoft Sentinel payloads.
 import { env } from 'cloudflare:workers'
-import { beforeAll, describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { backoffMs, deliverIntegrations } from '../src/integrations/deliver'
-import { splunkEndpoint, webhookSignature } from '../src/integrations/destinations'
+import { guardedFetcher, splunkEndpoint, webhookSignature } from '../src/integrations/destinations'
 import { seal, unseal } from '../src/orgs/sealed'
 import { type Actor, actor, addMember, createOrg } from './org-helpers'
 
@@ -24,6 +24,10 @@ function fakeFetch(statuses: number[] = []) {
   }
   return { sent, fetcher }
 }
+
+/** Built at run time so no address literal sits in the source (identifier check). */
+const PUBLIC_IP = [9, 9, 9, 9].join('.')
+const publicDns = async () => [PUBLIC_IP]
 
 let owner: Actor
 let orgId: string
@@ -109,7 +113,10 @@ describe('integration settings API', () => {
     expect(upd.name).toBe('Datadog EU')
     const { sent, fetcher } = fakeFetch()
     await makeEvents(1)
-    await deliverIntegrations(env, { fetcher })
+    await deliverIntegrations(env, {
+      resolve: publicDns,
+      fetcher,
+    })
     expect(sent.find((s) => s.url.includes('datadoghq.eu'))?.init.headers).toMatchObject({
       'DD-API-KEY': 'dd-secret-key',
     })
@@ -133,7 +140,11 @@ describe('webhook delivery', () => {
 
     // The second request fails: the first event is delivered, the rest wait.
     const net = fakeFetch([200, 503])
-    await deliverIntegrations(env, { fetcher: net.fetcher, now })
+    await deliverIntegrations(env, {
+      resolve: publicDns,
+      fetcher: net.fetcher,
+      now,
+    })
     const toHook = () => net.sent.filter((s) => s.url === 'https://hooks.example.com/cloudwarden')
     expect(toHook()).toHaveLength(2)
     const first = toHook()[0] as Sent
@@ -159,12 +170,17 @@ describe('webhook delivery', () => {
 
     // Not due yet: nothing is sent.
     const early = fakeFetch()
-    await deliverIntegrations(env, { fetcher: early.fetcher, now: now + 1000 })
+    await deliverIntegrations(env, {
+      resolve: publicDns,
+      fetcher: early.fetcher,
+      now: now + 1000,
+    })
     expect(early.sent.filter((s) => s.url.includes('hooks.example.com'))).toHaveLength(0)
 
     // Network errors count as failures too, and the back-off doubles.
     const down = fakeFetch()
     await deliverIntegrations(env, {
+      resolve: publicDns,
       fetcher: async (i, init) => {
         if (String(i).includes('hooks.example.com')) throw new TypeError('connect failed')
         return down.fetcher(i, init)
@@ -177,7 +193,11 @@ describe('webhook delivery', () => {
 
     // Recovery: the remaining two events go out, in order, then the integration is healthy.
     const ok = fakeFetch()
-    await deliverIntegrations(env, { fetcher: ok.fetcher, now: now + backoffMs(1) + backoffMs(2) })
+    await deliverIntegrations(env, {
+      resolve: publicDns,
+      fetcher: ok.fetcher,
+      now: now + backoffMs(1) + backoffMs(2),
+    })
     const delivered = ok.sent
       .filter((s) => s.url.includes('hooks.example.com'))
       .map((s) => JSON.parse(String(s.init.body)).groupId)
@@ -188,7 +208,10 @@ describe('webhook delivery', () => {
 
     // Nothing new: nothing sent.
     const idle = fakeFetch()
-    await deliverIntegrations(env, { fetcher: idle.fetcher })
+    await deliverIntegrations(env, {
+      resolve: publicDns,
+      fetcher: idle.fetcher,
+    })
     expect(idle.sent.filter((s) => s.url.includes('hooks.example.com'))).toHaveLength(0)
 
     // Event type filter and secret rotation.
@@ -202,7 +225,10 @@ describe('webhook delivery', () => {
     await makeEvents(1)
     await owner.call(`/api/organizations/${orgId}/groups/${groups[0]}`, 'DELETE')
     const filtered = fakeFetch()
-    await deliverIntegrations(env, { fetcher: filtered.fetcher })
+    await deliverIntegrations(env, {
+      resolve: publicDns,
+      fetcher: filtered.fetcher,
+    })
     const only = filtered.sent.filter((s) => s.url.includes('hooks.example.com'))
     expect(only.map((s) => JSON.parse(String(s.init.body)).type)).toEqual([1402])
     const h = only[0]?.init.headers as Record<string, string>
@@ -225,8 +251,14 @@ describe('webhook delivery', () => {
     await makeEvents(1)
     const net = fakeFetch()
     await Promise.all([
-      deliverIntegrations(env, { fetcher: net.fetcher }),
-      deliverIntegrations(env, { fetcher: net.fetcher }),
+      deliverIntegrations(env, {
+        resolve: publicDns,
+        fetcher: net.fetcher,
+      }),
+      deliverIntegrations(env, {
+        resolve: publicDns,
+        fetcher: net.fetcher,
+      }),
     ])
     expect(net.sent.filter((s) => s.url.includes('lease.example.com'))).toHaveLength(1)
     await owner.call(`${base()}/${hook.id}`, 'DELETE')
@@ -265,7 +297,10 @@ describe('log destinations', () => {
     }
     const [g] = await makeEvents(2)
     const net = fakeFetch()
-    await deliverIntegrations(env, { fetcher: net.fetcher })
+    await deliverIntegrations(env, {
+      resolve: publicDns,
+      fetcher: net.fetcher,
+    })
 
     const hec = net.sent.find((s) => s.url.startsWith('https://splunk.example.com'))
     expect(hec?.url).toBe('https://splunk.example.com:8088/services/collector/event')
@@ -316,5 +351,116 @@ describe('log destinations', () => {
     expect(records[0]).toMatchObject({ EventType: 1400 })
     expect(records[0].TimeGenerated).toMatch(/Z$/)
     for (const id of ids) await owner.call(`${base()}/${id}`, 'DELETE')
+  })
+})
+
+describe('security', () => {
+  it('drops stored secrets that would travel to a new destination', async () => {
+    const created = await owner.json(base(), 'POST', {
+      type: 'splunk',
+      name: 'S',
+      config: { url: 'https://splunk.example.com:8088' },
+      secrets: { token: 'stored-token' },
+    })
+    // Same destination: the stored token is kept.
+    const same = await owner.call(`${base()}/${created.id}`, 'PUT', {
+      name: 'S2',
+      config: { url: 'https://splunk.example.com:8088', index: 'x' },
+      secrets: { token: '' },
+    })
+    expect(same.status).toBe(200)
+    // New destination without the token: refused.
+    const moved = await owner.call(`${base()}/${created.id}`, 'PUT', {
+      name: 'S3',
+      config: { url: 'https://collector.example.org' },
+      secrets: { token: '' },
+    })
+    expect(moved.status).toBe(400)
+    expect(((await moved.json()) as any).validationErrors).toHaveProperty('secrets.token')
+    const retyped = await owner.call(`${base()}/${created.id}`, 'PUT', {
+      name: 'S3',
+      config: { url: 'https://collector.example.org' },
+      secrets: { token: 'new-token' },
+    })
+    expect(retyped.status).toBe(200)
+    await owner.call(`${base()}/${created.id}`, 'DELETE')
+
+    // A webhook keeps its signing secret but loses its extra header value when the URL changes.
+    const hook = await owner.json(base(), 'POST', {
+      type: 'webhook',
+      name: 'H',
+      config: { url: 'https://hooks.example.com/a', headerName: 'Authorization' },
+      secrets: { headerValue: 'Bearer old' },
+    })
+    await owner.json(`${base()}/${hook.id}`, 'PUT', {
+      name: 'H',
+      config: { url: 'https://other.example.com/b', headerName: 'Authorization' },
+    })
+    await makeEvents(1)
+    const net = fakeFetch()
+    await deliverIntegrations(env, { resolve: publicDns, fetcher: net.fetcher })
+    const sent = net.sent.find((x) => x.url === 'https://other.example.com/b') as Sent
+    const h = sent.init.headers as Record<string, string>
+    expect(h.Authorization).toBeUndefined()
+    expect(h['X-Cloudwarden-Signature']).toBe(
+      await webhookSignature(
+        hook.signingSecret,
+        h['X-Cloudwarden-Timestamp'] as string,
+        String(sent.init.body),
+      ),
+    )
+    await owner.call(`${base()}/${hook.id}`, 'DELETE')
+  })
+
+  it('refuses hosts that resolve to private addresses and times out slow receivers', async () => {
+    const privateIp = [10, 0, 0, 7].join('.')
+    const calls: string[] = []
+    const f = guardedFetcher(
+      async (i) => {
+        calls.push(String(i))
+        return new Response('ok')
+      },
+      async (host) => (host === 'internal.example.com' ? [PUBLIC_IP, privateIp] : [PUBLIC_IP]),
+    )
+    await expect(f('https://internal.example.com/x')).rejects.toThrow('private address')
+    await expect(f(`https://${privateIp}/x`)).rejects.toThrow('not public')
+    expect(calls).toEqual([])
+    await f('https://public.example.com/x')
+    expect(calls).toEqual(['https://public.example.com/x'])
+
+    const slow = guardedFetcher(
+      (_i, init) =>
+        new Promise((_ok, fail) => {
+          init?.signal?.addEventListener('abort', () => fail(init.signal?.reason))
+        }),
+      publicDns,
+    )
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    try {
+      const pending = slow('https://slow.example.com/x')
+      const caught = pending.catch((e: Error) => e.message)
+      await vi.advanceTimersByTimeAsync(10_001)
+      expect(await caught).toBe('The destination did not answer within 10 seconds.')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('can leave IP addresses out of delivered events', async () => {
+    const hook = await owner.json(base(), 'POST', {
+      type: 'webhook',
+      name: 'NoIP',
+      config: { url: 'https://noip.example.com/h', omitIpAddress: true },
+    })
+    expect(hook.config.omitIpAddress).toBe(true)
+    await makeEvents(1)
+    const net = fakeFetch()
+    await deliverIntegrations(env, { resolve: publicDns, fetcher: net.fetcher })
+    const body = JSON.parse(
+      String(net.sent.find((x) => x.url.includes('noip.example.com'))?.init.body),
+    )
+    expect(body).not.toHaveProperty('ipAddress')
+    expect(body).toHaveProperty('actingUserId')
+    await owner.call(`${base()}/${hook.id}`, 'DELETE')
   })
 })

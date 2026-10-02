@@ -414,6 +414,20 @@ describe('SCIM service', () => {
     expect((await s(`/Groups/${gid}`)).status).toBe(404)
   })
 
+  it('limits failed SCIM authentication per address and organisation', async () => {
+    let last = 0
+    for (let i = 0; i < 25 && last !== 429; i++) {
+      last = (
+        await raw(`/scim/v2/${orgId}/Users`, {
+          headers: { ...bearer('wrong'), 'CF-Connecting-IP': '127.0.0.1' },
+        })
+      ).status
+    }
+    expect(last).toBe(429)
+    // Another address is unaffected.
+    expect((await s('/Users')).status).toBe(200)
+  })
+
   it('stops answering once disabled or the key is rotated', async () => {
     const rotated = await orgApiKey(owner, orgId, 2, true)
     expect((await s('/Users')).status).toBe(401)

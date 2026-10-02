@@ -18403,5 +18403,14 @@
         "example": "x"
       }
     }
+  },
+  "cwIntOmitIp": {
+    "message": "Leave out IP addresses"
+  },
+  "cwIntOmitIpHint": {
+    "message": "Events include the member's IP address and ids, which are personal data. Tick to send events without the IP address."
+  },
+  "cwIntRetargetHint": {
+    "message": "If you change where events go, enter the tokens again: stored tokens are never sent to a new destination."
   }
 }

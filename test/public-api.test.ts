@@ -417,4 +417,35 @@ describe('directory import', () => {
     expect(bad.status).toBe(400)
     expect(await bad.json()).toMatchObject({ object: 'error' })
   })
+
+  it('keeps admins and custom members unless removing them is requested', async () => {
+    const o = await actor('dcp-owner@example.com')
+    const { id } = await createOrg(o, 'Privileged Org')
+    const admin = await actor('dcp-admin@example.com')
+    const custom = await actor('dcp-custom@example.com')
+    await addMember(o, id, admin, { type: 1 })
+    await addMember(o, id, custom, { type: 4, permissions: { accessEventLogs: true } })
+    const h = bearer((await orgToken(id, await orgApiKey(o, id))).body.access_token)
+    const sync = (body: unknown) =>
+      call('/public/organization/import', { method: 'POST', headers: h, body })
+    await sync({
+      members: [
+        { email: 'dcp-admin@example.com', externalId: 'a' },
+        { email: 'dcp-custom@example.com', externalId: 'c' },
+      ],
+    })
+    const emails = async () =>
+      (await o.json(`/api/organizations/${id}/users`)).data.map((m: any) => m.email).sort()
+    await sync({
+      members: [{ email: 'dcp-admin@example.com', externalId: 'a', deleted: true }],
+      overwriteExisting: true,
+    })
+    expect(await emails()).toEqual([
+      'dcp-admin@example.com',
+      'dcp-custom@example.com',
+      'dcp-owner@example.com',
+    ])
+    await sync({ members: [], overwriteExisting: true, removePrivilegedMembers: true })
+    expect(await emails()).toEqual(['dcp-owner@example.com'])
+  })
 })

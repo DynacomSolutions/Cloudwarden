@@ -31,7 +31,10 @@ The Public API is served at `<base>/api/public/*` (the self-hosted layout) and `
 | `events` | list with `start`, `end`, `actingUserId`, `itemId`, `continuationToken` |
 | `organization/import` | directory import, below |
 
-Changes made through the Public API act with admin authority: owners can be neither created nor
+Policies saved through the Public API go through the same code as the Admin Console (for example,
+requiring two-step login revokes non-compliant members). An organisation that no longer exists
+(or, once organisations can be disabled, is disabled) is refused at token issue and on every
+request. Changes made through the Public API act with admin authority: owners can be neither created nor
 changed, matching an admin in the web client. Events they raise carry `systemUser: 3` and no
 acting user. Billing endpoints (`organization/subscription`) are not served: there is no billing.
 
@@ -51,7 +54,10 @@ with the organisation `client_id` and `client_secret`, configure the directory a
 - groups are matched by external id, renamed and their membership replaced;
 - with **Remove and re-add organization users during the next sync** (`overwriteExisting`),
   members and groups whose external id is not in the import are removed;
-- owners are never removed. Large imports arrive in several requests and are applied in slices.
+- owners are never removed, and admins and custom members are not removed either unless the
+  request sets `removePrivilegedMembers: true` (a Cloudwarden extension the connector does not
+  send), so a directory mistake cannot lock the administrators out. Large imports arrive in several
+  requests and are applied in slices.
 
 `pnpm e2e` runs the connector's Linux CLI (`bwdc`, pinned with a checksum in `e2e/bwdc.lock.json`)
 against a small LDAP server (`e2e/ldap-server.mjs`) and checks the members and groups it creates.
@@ -90,7 +96,8 @@ PATCH operations (paths, value filters, sub-attributes, URN-qualified names, ope
 path, Entra ID's `"True"` and `"False"` strings). `startIndex`, `count`, `attributes` and
 `excludedAttributes` are supported; bulk, sorting and ETags are not
 (`/ServiceProviderConfig` says so). Owners cannot be revoked or removed through SCIM. Events carry
-`systemUser: 1`.
+`systemUser: 1`. Failed SCIM authentication is rate limited per client address and organisation
+(HTTP 429 once exceeded).
 
 ## Event export and integrations
 
@@ -120,8 +127,21 @@ event straight away. Optional event type filters (for example `1100-1116, 1500`)
 sent.
 
 Destination URLs must be https on a public DNS name (IP literals and reserved names such as
-`localhost` are refused). Response bodies are never stored or logged; the page shows only the HTTP
-status of the last failure.
+`localhost` are refused). Before each run's first request to a host, the host name is resolved
+over DNS over HTTPS and refused if any address is private, loopback, link-local or otherwise not
+public, which narrows DNS rebinding (the Workers runtime then resolves again itself; Workers
+cannot reach private networks in any case). Every request times out after 10 seconds, up to six
+integrations are delivered at once, and a run starts no new batch after 25 seconds, so one slow
+receiver cannot hold up other organisations. Response bodies are never stored or logged; the page
+shows only the HTTP status of the last failure. **Send test event** is rate limited.
+
+When an edit changes where events go (webhook URL, Splunk URL, Datadog site, Sentinel tenant,
+client or endpoint), stored tokens are not carried over and must be entered again, so a token can
+never be redirected to another host. The webhook signing secret stays, since it is never sent.
+
+**Personal data.** Events contain member, item and collection ids, the acting user id, the device
+type and the client IP address. Tick **Leave out IP addresses** on an integration to send events
+without `ipAddress`. Choose destinations whose retention suits your data protection duties.
 
 ## Secrets at rest
 

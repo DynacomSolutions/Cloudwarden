@@ -39,6 +39,6 @@
 
 # Public vendor endpoints of the event integrations (TASKS #274, docs/integrations.md)
 datadoghq\.(com|eu)|ddog-gov\.com
-login\.microsoftonline\.com|monitor\.azure\.com
+login\.microsoftonline\.com|monitor\.azure\.com|cloudflare-dns\.com
 # Pinned libatomic1 package for the bwdc e2e steps (TASKS #272)
 deb\.debian\.org

@@ -15,7 +15,7 @@ import type { Env } from '../env'
 import { ApiError } from '../errors'
 import { errorKind, log } from '../log'
 import { bumpOrgRevision, type Member, requireOrg } from '../orgs/access'
-import { ApiKeyType, apiKeyMatches, loadApiKey } from '../orgs/api-keys'
+import { ApiKeyType, apiKeyMatches, loadApiKey, organizationActive } from '../orgs/api-keys'
 import { EventSystemUser, EventType, Status } from '../orgs/constants'
 import { eventStatement } from '../orgs/events'
 import { assertCanAssign, assertNotLastOwner } from '../orgs/members'
@@ -27,6 +27,7 @@ import {
   systemActor,
 } from '../orgs/provisioning'
 import { batch } from '../orgs/util'
+import { overLimit } from '../ratelimit'
 import { sendInvite } from '../routes/org-users'
 import { isUuid } from '../sm/auth'
 import { matches, parseFilter, ScimError } from './filter'
@@ -73,7 +74,8 @@ const requireScimAuth: MiddlewareHandler<Env> = async (c, next) => {
   const orgUuid = orgOf(c)
   const match = /^Bearer\s+(\S+)$/i.exec(c.req.header('Authorization') ?? '')
   const fail = () => scimError(c, 401, 'Authorization failure.')
-  if (!match?.[1] || !isUuid(orgUuid)) return fail()
+  if (!isUuid(orgUuid)) return fail()
+  if (!match?.[1]) return fail()
   const db = createDb(c.env.DB_PRIMARY ?? c.env.DB)
   const [config] = await db
     .select()
@@ -82,7 +84,14 @@ const requireScimAuth: MiddlewareHandler<Env> = async (c, next) => {
     .limit(1)
   const key = await loadApiKey(db, orgUuid, ApiKeyType.Scim)
   const ok = await apiKeyMatches(c.env, key, match[1])
-  if (!config?.enabled || !ok) return fail()
+  if (!config?.enabled || !ok || !(await organizationActive(db, orgUuid))) {
+    // Failed attempts are limited per client address and organisation.
+    const ip = c.req.header('CF-Connecting-IP') ?? 'unknown'
+    if (await overLimit(c, 'scim-auth', `${ip}:${orgUuid}`)) {
+      return scimError(c, 429, 'Too many failed attempts. Try again later.')
+    }
+    return fail()
+  }
   return next()
 }
 

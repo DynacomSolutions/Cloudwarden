@@ -2,7 +2,8 @@
 // Directory Connector sends after reading users and groups from LDAP, Entra ID, Google, Okta or
 // OneLogin. Members are matched by external id, then by email; new ones are invited. Groups are
 // matched by external id and their membership replaced. With `overwriteExisting`, members and
-// groups that carry an external id absent from the import are removed. Owners are never removed.
+// groups that carry an external id absent from the import are removed. Owners are never removed;
+// admins and custom members only with `removePrivilegedMembers`.
 import { eq } from 'drizzle-orm'
 import type { Context } from 'hono'
 import { z } from 'zod'
@@ -43,6 +44,11 @@ export const importSchema = z.object({
   overwriteExisting: z.boolean().nullish(),
   largeImport: z.boolean().nullish(),
   inviteUsersAfterProvisioning: z.boolean().nullish(),
+  /**
+   * Cloudwarden extension, not sent by the Directory Connector: also remove admins and custom
+   * members that the import deletes or leaves out under `overwriteExisting`.
+   */
+  removePrivilegedMembers: z.boolean().nullish(),
 })
 export type ImportRequest = z.infer<typeof importSchema>
 
@@ -97,7 +103,10 @@ export async function importDirectory(
   const invited: Member[] = []
   const removed = new Set<string>()
   const remove = (m: Member) => {
-    if (m.atype === Role.Owner || removed.has(m.uuid)) return
+    // Owners are never removed; admins and custom members only on explicit request.
+    const privileged = m.atype === Role.Owner || m.atype === Role.Admin || m.atype === Role.Custom
+    if (removed.has(m.uuid) || m.atype === Role.Owner) return
+    if (privileged && body.removePrivilegedMembers !== true) return
     removed.add(m.uuid)
     statements.push(
       db.delete(schema.usersOrganizations).where(eq(schema.usersOrganizations.uuid, m.uuid)),

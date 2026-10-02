@@ -12,9 +12,12 @@ import { unseal } from '../orgs/sealed'
 import {
   DESTINATIONS,
   DeliveryError,
+  dohResolver,
   type EventPayload,
   type Fetcher,
+  guardedFetcher,
   type IntegrationType,
+  type Resolver,
 } from './destinations'
 
 export const DELIVERY_CRON = '* * * * *'
@@ -23,6 +26,10 @@ const MAX_INTEGRATIONS_PER_RUN = 50
 const MAX_BATCHES_PER_RUN = 5
 const BACKOFF_BASE_MS = 30_000
 const BACKOFF_MAX_MS = 6 * 3600_000
+/** Integrations delivered at once, so one slow receiver does not hold up the others. */
+const CONCURRENCY = 6
+/** No new batch starts after this much of a run; the rest waits for the next minute. */
+const RUN_BUDGET_MS = 25_000
 
 export type IntegrationRow = typeof schema.orgIntegrations.$inferSelect
 type EventRow = typeof schema.events.$inferSelect
@@ -64,7 +71,10 @@ export async function openSecrets(env: Bindings, row: IntegrationRow) {
   >
 }
 
-/** Sends events through one integration. Throws `DeliveryError` (or a fetch error) on failure. */
+/**
+ * Sends events through one integration. `fetcher` must already be guarded (`guardedFetcher`).
+ * Throws `DeliveryError` (or a fetch error) on failure.
+ */
 export async function sendEvents(
   env: Bindings,
   row: IntegrationRow,
@@ -76,7 +86,13 @@ export async function sendEvents(
   if (!dest) throw new DeliveryError(`Unknown integration type ${row.atype}.`)
   const cfg = dest.config.parse(JSON.parse(row.config))
   const secrets = dest.secrets.parse(await openSecrets(env, row))
-  await dest.send(fetcher, cfg, secrets, events, { host: new URL(env.DOMAIN).hostname, now })
+  const payload = cfg.omitIpAddress
+    ? events.map((e) => {
+        const { ipAddress: _ip, ...rest } = e
+        return rest as EventPayload
+      })
+    : events
+  await dest.send(fetcher, cfg, secrets, payload, { host: new URL(env.DOMAIN).hostname, now })
 }
 
 const describe = (err: unknown) =>
@@ -93,6 +109,7 @@ async function deliverOne(
   row: IntegrationRow,
   fetcher: Fetcher,
   now: number,
+  deadline: number,
 ): Promise<number> {
   // Take the lease; a concurrent run that read the same row loses here.
   const lease = await db
@@ -111,7 +128,7 @@ async function deliverOne(
   let cursor = row.cursor
   let sent = 0
   try {
-    for (let i = 0; i < MAX_BATCHES_PER_RUN; i++) {
+    for (let i = 0; i < MAX_BATCHES_PER_RUN && (i === 0 || Date.now() < deadline); i++) {
       const batch = await eventsAfter(db, row.organizationUuid, cursor, dest?.batchSize ?? 100)
       if (batch.length === 0) break
       const chosen = batch.filter((e) => !wanted || wanted.has(e.eventType)).map(eventPayload)
@@ -155,10 +172,12 @@ async function deliverOne(
 /** Cron entry: delivers pending events for every due integration. */
 export async function deliverIntegrations(
   env: Bindings,
-  options: { fetcher?: Fetcher; now?: number } = {},
+  options: { fetcher?: Fetcher; resolve?: Resolver; now?: number } = {},
 ): Promise<number> {
-  const fetcher = options.fetcher ?? ((input, init) => fetch(input, init))
+  const raw = options.fetcher ?? ((input, init) => fetch(input, init))
+  const fetcher = guardedFetcher(raw, options.resolve ?? dohResolver())
   const now = options.now ?? Date.now()
+  const deadline = Date.now() + RUN_BUDGET_MS
   const db = createDb(env.DB)
   const due = await db
     .select()
@@ -169,6 +188,13 @@ export async function deliverIntegrations(
     .orderBy(schema.orgIntegrations.nextAttemptAt)
     .limit(MAX_INTEGRATIONS_PER_RUN)
   let total = 0
-  for (const row of due) total += await deliverOne(env, db, row, fetcher, now)
+  const queue = [...due]
+  const worker = async () => {
+    for (let row = queue.shift(); row; row = queue.shift()) {
+      if (Date.now() >= deadline) return
+      total += await deliverOne(env, db, row, fetcher, now, deadline)
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, due.length) }, worker))
   return total
 }

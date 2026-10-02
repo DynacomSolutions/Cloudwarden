@@ -21,7 +21,7 @@ export interface EventIntegration {
   type: IntegrationType;
   name: string;
   enabled: boolean;
-  config: Record<string, string | null>;
+  config: Record<string, string | boolean | null>;
   eventTypes: number[] | null;
   status: {
     failureCount: number;
@@ -37,7 +37,7 @@ export interface IntegrationInput {
   type?: IntegrationType;
   name: string;
   enabled: boolean;
-  config: Record<string, string | null>;
+  config: Record<string, string | boolean | null>;
   secrets: Record<string, string | null>;
   eventTypes: number[] | null;
 }

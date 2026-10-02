@@ -217,6 +217,21 @@ sends.post('/api/sends', requireAuth, async (c) => {
   return c.json(await respond(c, id))
 })
 
+// Azure Event Grid callback of the official cloud. Files go to R2 here, so only the handshake is
+// answered, to keep a stray subscription from erroring; every other event is refused.
+sends.post('/api/sends/file/validate/azure', async (c) => {
+  const events = (await c.req.json().catch(() => null)) as
+    | { eventType?: string; data?: { validationCode?: string } }[]
+    | null
+  const handshake = Array.isArray(events)
+    ? events.find((e) => e?.eventType === 'Microsoft.EventGrid.SubscriptionValidationEvent')
+    : undefined
+  if (handshake?.data?.validationCode) {
+    return c.json({ validationResponse: handshake.data.validationCode })
+  }
+  throw new ApiError(400, 'Azure blob storage is not used by this server.')
+})
+
 sends.post('/api/sends/file/v2', requireAuth, async (c) => {
   const body = await parseBody(c, sendSchema)
   if (body.type !== SEND_FILE) throw new ApiError(400, 'Not a file Send.')

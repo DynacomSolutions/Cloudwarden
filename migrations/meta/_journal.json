@@ -64,6 +64,13 @@
       "when": 1790854396942,
       "tag": "0008_admin_session_user",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1790920743361,
+      "tag": "0009_secrets_manager",
+      "breakpoints": true
     }
   ]
 }

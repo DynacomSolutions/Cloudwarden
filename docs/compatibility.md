@@ -21,7 +21,10 @@ client family and per release line.
 "Target" means the release line the implementation is built against. Nothing is listed as "Verified" until the
 end-to-end suite (TASKS #181) has run it; update this table with the date and the exact client version at that point.
 
-Not supported by design: Secrets Manager, SSO, SCIM, directory connectors, key connector, and Bitwarden-hosted
+Secrets Manager is served as an API (machine accounts and the SDK wire contract, see
+[secrets-manager.md](secrets-manager.md)); the official `bws` CLI has not been run against it (TASKS #225).
+
+Not supported by design: SSO, SCIM, directory connectors, key connector, and Bitwarden-hosted
 push relay. Clients treat the corresponding config fields as absent.
 
 ## `/api/config` and the server version

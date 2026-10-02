@@ -113,6 +113,7 @@ const inviteSchema = z.object({
   collections: z.array(selectionSchema).nullish(),
   groups: z.array(z.string()).nullish(),
   permissions: permissionsSchema,
+  accessSecretsManager: z.boolean().nullish(),
 })
 
 function inviteLink(c: Ctx, orgRow: { uuid: string; name: string }, m: Member, token: string) {
@@ -152,6 +153,7 @@ orgUsers.post('/api/organizations/:orgId/users/invite', async (c) => {
   const actor = await requirePermission(db, c.var.user.uuid, orgUuid, 'manageUsers')
   assertCanAssign(actor, body.type)
   assertCanGrant(actor, body)
+  if (body.accessSecretsManager === true) assertCanGrantSecretsManager(actor, null)
   const orgRow = await requireOrg(db, orgUuid)
   const collections = dedupeSelections(body.collections ?? [])
   const groupIds = [...new Set(body.groups ?? [])]
@@ -202,6 +204,7 @@ orgUsers.post('/api/organizations/:orgId/users/invite', async (c) => {
       atype: body.type,
       resetPasswordKey: null,
       externalId: null,
+      accessSecretsManager: body.accessSecretsManager === true,
       createdAt: now,
       updatedAt: now,
     })
@@ -503,6 +506,42 @@ const single = async (c: Ctx, op: Op) => {
   return c.body(null, 200)
 }
 
+/**
+ * Changing Secrets Manager access: owners and admins, or custom members who already have it.
+ * Nobody changes their own (TASKS #220 review).
+ */
+function assertCanGrantSecretsManager(actor: Member, target: Member | null) {
+  const ok =
+    actor.atype === Role.Owner ||
+    actor.atype === Role.Admin ||
+    (actor.atype === Role.Custom && actor.accessSecretsManager)
+  if (!ok) throw new ApiError(403, 'You cannot change Secrets Manager access.')
+  if (target && target.uuid === actor.uuid) {
+    throw new ApiError(403, 'You cannot change your own Secrets Manager access.')
+  }
+}
+
+/** Grants Secrets Manager access (TASKS #220); the web client's bulk "activate Secrets Manager". */
+const enableSecretsManagerOp: Op = async (c, db, actor, target) => {
+  assertCanAssign(actor, target.atype)
+  assertCanGrantSecretsManager(actor, target)
+  return [
+    db
+      .update(schema.usersOrganizations)
+      .set({ accessSecretsManager: true, updatedAt: Date.now() })
+      .where(eq(schema.usersOrganizations.uuid, target.uuid)),
+    eventStatement(db, c, {
+      type: EventType.OrganizationUserUpdated,
+      organizationUuid: target.organizationUuid,
+      organizationUserUuid: target.uuid,
+      userUuid: target.userUuid,
+    }),
+  ]
+}
+
+orgUsers.put('/api/organizations/:orgId/users/enable-secrets-manager', async (c) =>
+  bulkOk(await runOps(c, (await parseBody(c, idsSchema)).ids, enableSecretsManagerOp), c),
+)
 orgUsers.put('/api/organizations/:orgId/users/revoke', async (c) =>
   bulkOk(await runOps(c, (await parseBody(c, idsSchema)).ids, revokeOp), c),
 )
@@ -541,6 +580,7 @@ const updateSchema = z.object({
   collections: z.array(selectionSchema).nullish(),
   groups: z.array(z.string()).nullish(),
   permissions: permissionsSchema,
+  accessSecretsManager: z.boolean().nullish(),
 })
 const updateMember = async (c: Ctx) => {
   const body = await parseBody(c, updateSchema)
@@ -556,6 +596,12 @@ const updateMember = async (c: Ctx) => {
     throw new ApiError(403, 'You cannot change your own access.')
   }
   if (body.type !== Role.Owner) await assertNotLastOwner(db, orgUuid, target)
+  if (
+    body.accessSecretsManager != null &&
+    body.accessSecretsManager !== target.accessSecretsManager
+  ) {
+    assertCanGrantSecretsManager(actor, target)
+  }
   const collections = dedupeSelections(body.collections ?? [])
   const groupIds = [...new Set(body.groups ?? [])]
   if (collections.length)
@@ -575,6 +621,9 @@ const updateMember = async (c: Ctx) => {
         atype: body.type,
         accessAll,
         permissions: permissionsColumn(body.type, body.permissions),
+        ...(body.accessSecretsManager == null
+          ? {}
+          : { accessSecretsManager: body.accessSecretsManager }),
         updatedAt: now,
       })
       .where(eq(schema.usersOrganizations.uuid, target.uuid)),

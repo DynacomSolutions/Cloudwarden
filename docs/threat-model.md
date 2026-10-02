@@ -102,6 +102,16 @@ The proxy makes server-side requests to attacker-chosen hosts, so SSRF is the ma
 | D | Connection flood | Per-user connection cap, idle timeout | DO costs scale with connections |
 | E | Client sends privileged frames | Server ignores client frames other than protocol pings | |
 
+### Secrets Manager (TASKS #220 to #225, `docs/secrets-manager.md`)
+
+- **Spoofing:** machine logins check a SHA-256 of a 30 character random client secret in constant time, against a fixed dummy hash for unknown token ids; the token endpoint is rate limited. Machine JWTs are accepted only by `requireSmAuth`; every other route requires scope `api`.
+- **Tampering and information disclosure:** values are client-encrypted EncStrings; the server cannot read the organisation key inside `encrypted_payload` (the seed never leaves the client). Access is decided per request from policies; no read is 404, so ids of other projects and secrets are not confirmed.
+- **Elevation of privilege (token minting):** an access token carries everything its machine account can reach, so a non-admin may create one only when they can already read every project and secret granted to that account (403 otherwise). Owners and admins with Secrets Manager access may always.
+- **Elevation of privilege (access flag):** only owners, admins, or custom members who already have Secrets Manager access may change `accessSecretsManager`, never their own. Only confirmed members can be grantees.
+- **Elevation of privilege:** machine accounts are confined to their organisation and granted projects and secrets, and cannot manage machine accounts, tokens or policies. Members need `accessSecretsManager`; non-admins only grant access to machine accounts they can see.
+- **Repudiation:** creates, edits, deletes and machine reads are events (2100 to 2305) with the acting member or machine account.
+- **Residual:** revocation is immediate (token row read per request), but a copied access token string stays valid until revoked or expired; tokens without `expireAt` never expire.
+
 ### Operations and supply chain
 
 | Threat | Mitigation | Residual |

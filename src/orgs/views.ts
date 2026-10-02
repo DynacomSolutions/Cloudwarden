@@ -15,7 +15,8 @@ const FEATURES = {
   use2fa: true,
   useApi: false,
   useResetPassword: false,
-  useSecretsManager: false,
+  // Secrets Manager API (TASKS #220); members still need `accessSecretsManager`.
+  useSecretsManager: true,
   usePasswordManager: true,
   usePam: false,
   useRiskInsights: false,
@@ -93,7 +94,7 @@ export const profileOrgJson = (o: OrgRow, m: Member) => ({
   familySponsorshipLastSyncDate: null,
   familySponsorshipValidUntil: null,
   familySponsorshipToDelete: null,
-  accessSecretsManager: false,
+  accessSecretsManager: m.accessSecretsManager,
   limitCollectionCreation: true,
   limitCollectionDeletion: true,
   limitItemDeletion: false,

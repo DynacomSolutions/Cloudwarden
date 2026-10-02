@@ -15,7 +15,7 @@ async function pbkdf2(password, salt, iterations) {
 }
 
 // HKDF-Expand only (RFC 5869 step 2), with the master key used directly as the PRK.
-function hkdfExpand(prk, info, length) {
+export function hkdfExpand(prk, info, length) {
   const out = []
   let prev = Buffer.alloc(0)
   for (let i = 1; Buffer.concat(out).length < length; i++) {
@@ -28,7 +28,7 @@ function hkdfExpand(prk, info, length) {
 }
 
 /** Encrypts `data` with a 64 byte key (32 enc + 32 mac) into a type 2 EncString. */
-async function encType2(data, key) {
+export async function encType2(data, key) {
   const iv = randomBytes(16)
   const aes = await subtle.importKey('raw', key.subarray(0, 32), 'AES-CBC', false, ['encrypt'])
   const ct = Buffer.from(await subtle.encrypt({ name: 'AES-CBC', iv }, aes, data))
@@ -91,4 +91,29 @@ export async function buildAccount(email, password, iterations = 600000) {
       kdfIterations: iterations,
     },
   }
+}
+
+/** Decrypts a type 2 EncString with a 64 byte key after checking its MAC. */
+export async function decType2(encString, key) {
+  const [type, rest] = encString.split('.')
+  if (type !== '2') throw new Error(`unsupported EncString type ${type}`)
+  const [iv, ct, mac] = rest.split('|').map((p) => Buffer.from(p, 'base64'))
+  const expected = createHmac('sha256', key.subarray(32))
+    .update(Buffer.concat([iv, ct]))
+    .digest()
+  if (!expected.equals(mac)) throw new Error('EncString MAC mismatch')
+  const aes = await subtle.importKey('raw', key.subarray(0, 32), 'AES-CBC', false, ['decrypt'])
+  return Buffer.from(await subtle.decrypt({ name: 'AES-CBC', iv }, aes, ct))
+}
+
+/** RSA-OAEP (SHA-1) encryption to a SPKI public key: a type 4 EncString. */
+export async function encType4(data, publicKeyB64) {
+  const key = await subtle.importKey(
+    'spki',
+    Buffer.from(publicKeyB64, 'base64'),
+    { name: 'RSA-OAEP', hash: 'SHA-1' },
+    false,
+    ['encrypt'],
+  )
+  return `4.${b64(await subtle.encrypt({ name: 'RSA-OAEP' }, key, data))}`
 }

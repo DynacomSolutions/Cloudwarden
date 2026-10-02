@@ -15,6 +15,11 @@ export interface EventInput {
   policyUuid?: string | null
   organizationUserUuid?: string | null
   actingUserUuid?: string | null
+  secretUuid?: string | null
+  projectUuid?: string | null
+  /** Machine account that acted, or that the event is about. */
+  serviceAccountUuid?: string | null
+  grantedServiceAccountUuid?: string | null
   date?: number
 }
 
@@ -46,6 +51,10 @@ export function eventStatement(
     policyUuid: e.policyUuid ?? null,
     organizationUserUuid: e.organizationUserUuid ?? null,
     actingUserUuid: e.actingUserUuid ?? actor,
+    secretUuid: e.secretUuid ?? null,
+    projectUuid: e.projectUuid ?? null,
+    serviceAccountUuid: e.serviceAccountUuid ?? null,
+    grantedServiceAccountUuid: e.grantedServiceAccountUuid ?? null,
     deviceType: meta.deviceType,
     ipAddress: meta.ipAddress,
     eventDate: e.date ?? Date.now(),
@@ -75,6 +84,10 @@ export function eventJson(e: typeof schema.events.$inferSelect) {
     installationId: null,
     systemUser: null,
     domainName: null,
+    secretId: e.secretUuid,
+    projectId: e.projectUuid,
+    serviceAccountId: e.serviceAccountUuid,
+    grantedServiceAccountId: e.grantedServiceAccountUuid,
   }
 }
 

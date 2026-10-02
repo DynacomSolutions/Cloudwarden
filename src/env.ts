@@ -65,8 +65,35 @@ export interface AuthContext {
   deviceIdentifier: string
 }
 
+/** Machine account access token claims (Secrets Manager, TASKS #220). */
+export interface MachineTokenClaims {
+  nbf: number
+  exp: number
+  iss: string
+  /** Machine account (service account) id. */
+  sub: string
+  /** Organisation the machine account belongs to; the SDK reads it to pick the key. */
+  organization: string
+  /** Access token id. */
+  client_id: string
+  scope: string[]
+  type: 'ServiceAccount'
+}
+
+/** Who is calling a Secrets Manager route: a member (user token) or a machine account. */
+export type SmActor =
+  | { kind: 'user'; user: User }
+  | {
+      kind: 'machine'
+      serviceAccountUuid: string
+      organizationUuid: string
+      accessTokenUuid: string
+    }
+
 /** Values set on the Hono context by `requireAuth`. */
 export interface Variables {
+  /** Set by `requireSmAuth` on Secrets Manager routes. */
+  sm?: SmActor
   user: User
   auth: AuthContext
   /** Set by the token endpoint when a real second factor (not a remember token) was verified. */

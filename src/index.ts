@@ -5,7 +5,7 @@ import type { Env } from './env'
 import { ApiError, errorBody } from './errors'
 import { errorKind, log, requestLogger } from './log'
 import { securityHeaders } from './middleware'
-import { orgChangeNotifier } from './orgs/notify'
+import { orgChangeNotifier, secretsRevisionOnMemberChange } from './orgs/notify'
 import { accounts } from './routes/accounts'
 import { admin } from './routes/admin'
 import { alive } from './routes/alive'
@@ -28,6 +28,7 @@ import { organizations } from './routes/organizations'
 import { policies, publicPolicies } from './routes/policies'
 import { prelogin } from './routes/prelogin'
 import { register } from './routes/register'
+import { secretsManager } from './routes/secrets-manager'
 import { downloadSendFile, sends } from './routes/sends'
 import { settings } from './routes/settings'
 import { sync } from './routes/sync'
@@ -52,8 +53,20 @@ app.route('/', token)
 app.route('/', devices)
 app.route('/', accounts)
 app.route('/', sync)
+// Secrets Manager accepts machine tokens, so it runs before the organisation routers whose
+// `authOnce` middleware would refuse them (TASKS #220).
+app.route('/', secretsManager)
 // Public and organisation routes come first: org-ciphers hands personal items on to `ciphers`.
 app.use('/api/organizations/:orgId/*', orgChangeNotifier)
+for (const path of [
+  '/api/organizations/:orgId/users',
+  '/api/organizations/:orgId/users/*',
+  '/api/organizations/:orgId/groups',
+  '/api/organizations/:orgId/groups/*',
+  '/api/organizations/:id/leave',
+]) {
+  app.use(path, secretsRevisionOnMemberChange)
+}
 app.route('/', publicPolicies)
 app.route('/', organizations)
 app.route('/', orgUsers)

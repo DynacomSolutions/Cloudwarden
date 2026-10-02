@@ -22,6 +22,7 @@ import { createDb, schema } from '../db'
 import type { Env, User } from '../env'
 import { oauthError } from '../errors'
 import { rateLimit } from '../ratelimit'
+import { MACHINE_SCOPE, machineLoginGrant } from '../sm/auth'
 import {
   checkSendPassword,
   SEND_TOKEN_TTL_SECONDS,
@@ -335,6 +336,8 @@ token.post('/identity/connect/token', rateLimit('token'), async (c) => {
     case 'refresh_token':
       return refreshGrant(c, form)
     case 'client_credentials':
+      // Secrets Manager machine accounts log in with their access token (TASKS #220).
+      if ((form.scope ?? '').split(' ').includes(MACHINE_SCOPE)) return machineLoginGrant(c, form)
       return clientCredentialsGrant(c, form)
     case 'send_access':
       return sendAccessGrant(c, form)

@@ -129,6 +129,21 @@ export const notifyOrgKeys = (c: Ctx, userUuid: string, revision = Date.now()) =
  * Announces any successful organisation write (collections, groups, policies, members, settings)
  * as a full sync to everyone who was a member before it ran, so removed members hear it too.
  */
+/**
+ * Membership, group and Secrets Manager access changes alter who can reach Secrets Manager data,
+ * so they mark it changed for `secrets/sync` (TASKS #220 review).
+ */
+export const secretsRevisionOnMemberChange: MiddlewareHandler<Env> = async (c, next) => {
+  await next()
+  const write = c.req.method !== 'GET' && c.req.method !== 'HEAD'
+  const orgUuid = c.req.param('orgId') ?? c.req.param('id')
+  if (!write || !orgUuid || !c.res.ok) return
+  await createDb(c.env.DB)
+    .update(schema.organizations)
+    .set({ secretsRevisionDate: Date.now() })
+    .where(eq(schema.organizations.uuid, orgUuid))
+}
+
 export const orgChangeNotifier: MiddlewareHandler<Env> = async (c, next) => {
   const write = c.req.method !== 'GET' && c.req.method !== 'HEAD'
   const orgUuid = c.req.param('orgId') ?? c.req.param('id')

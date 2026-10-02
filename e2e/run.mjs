@@ -312,16 +312,18 @@ async function main() {
       ]),
     )
     assert.ok(guarded.id && guarded.accessUrl)
-    assert.equal(
-      bwOut(['send', 'receive', guarded.accessUrl, '--password', 's3cret-pass']),
-      'guarded body',
-    )
+    // Wrong password first: the CLI may reuse a send_access token it already holds for this Send,
+    // so a refusal can only be judged before a right password has been accepted.
     const refused = bw(['send', 'receive', guarded.accessUrl, '--password', 'wrong'], {
       allowFail: true,
     })
     assert.ok(
       !`${refused.stdout}`.includes('guarded body'),
-      'wrong password must not reveal the Send',
+      `wrong password must not reveal the Send: ${refused.stdout} ${refused.stderr}`,
+    )
+    assert.equal(
+      bwOut(['send', 'receive', guarded.accessUrl, '--password', 's3cret-pass']),
+      'guarded body',
     )
     pass('password Send receive (right and wrong password, 400 day deletion date)')
     bw(['send', 'delete', guarded.id, ...S])

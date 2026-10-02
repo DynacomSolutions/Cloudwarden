@@ -240,6 +240,31 @@ describe('SSO with OpenID Connect', () => {
     expect(profile.organizations.find((o: any) => o.id === org.id)).toMatchObject({ status: 1 })
   })
 
+  it('requires email_verified for new accounts unless the organization opts out', async () => {
+    const { owner, org, identifier } = await ssoOrg()
+    // A provider that does not say the address is verified.
+    const missing = await oidcLogin(idp, identifier, {
+      sub: unique('sub'),
+      email: `${unique('noflag')}@example.com`,
+      email_verified: undefined as unknown as boolean,
+    })
+    expect(missing.back.status).toBe(400)
+    expect(await missing.back.text()).toMatch(/not verified/)
+    const cfg = await owner.json(`/api/organizations/${org.id}/sso`)
+    const saved = await owner.call(`/api/organizations/${org.id}/sso`, 'POST', {
+      enabled: true,
+      identifier,
+      data: { ...cfg.data, allowUnverifiedEmail: true },
+    })
+    expect(saved.status).toBe(200)
+    const optedOut = await oidcLogin(idp, identifier, {
+      sub: unique('sub'),
+      email: `${unique('optout')}@example.com`,
+      email_verified: false,
+    })
+    expect(optedOut.token?.status).toBe(200)
+  })
+
   it('uses only verified email claims, never usernames', async () => {
     const { identifier } = await ssoOrg()
     const unverified = await oidcLogin(idp, identifier, {
@@ -475,7 +500,11 @@ describe('SSO security', () => {
       additionalEmailClaimTypes: 'mail_custom',
     })
     const email = `${unique('claims')}@example.com`
-    const r = await oidcLogin(idp, identifier, { sub: unique('sub'), mail_custom: email })
+    const r = await oidcLogin(idp, identifier, {
+      sub: unique('sub'),
+      mail_custom: email,
+      email_verified: true,
+    })
     expect(r.token?.status).toBe(200)
     const profile = (await (
       await authedCall(r.body.access_token, '/api/accounts/profile')
@@ -534,6 +563,44 @@ describe('SSO configuration', () => {
       data: { ...cfg.data, authority: `${idp.issuer}/missing-tenant` },
     })
     expect(broken.success).toBe(false)
+  })
+
+  it('requires the client secret again when the provider settings change', async () => {
+    const { owner, org, identifier } = await ssoOrg()
+    const cfg = await owner.json(`/api/organizations/${org.id}/sso`)
+    for (const change of [
+      { authority: 'https://other-idp.example.com' },
+      { metadataAddress: `${idp.issuer}/.well-known/openid-configuration` },
+      { clientId: 'another-client' },
+    ]) {
+      const data = { ...cfg.data, ...change }
+      const save = await owner.call(`/api/organizations/${org.id}/sso`, 'POST', {
+        enabled: true,
+        identifier,
+        data,
+      })
+      expect(save.status, JSON.stringify(change)).toBe(400)
+      const test = await owner.json(`/api/organizations/${org.id}/sso/test`, 'POST', { data })
+      expect(test.success).toBe(false)
+      expect(test.problems.join(' ')).toMatch(/client secret again/)
+    }
+    // With the secret entered again the change is accepted.
+    const ok = await owner.call(`/api/organizations/${org.id}/sso`, 'POST', {
+      enabled: true,
+      identifier,
+      data: { ...cfg.data, clientId: 'another-client', clientSecret: 'new-secret' },
+    })
+    expect(ok.status).toBe(200)
+  })
+
+  it('refuses a link token to a session without a master password', async () => {
+    const { identifier } = await ssoOrg()
+    const r = await oidcLogin(idp, identifier, {
+      sub: unique('sub'),
+      email: `${unique('nomp')}@example.com`,
+    })
+    const res = await authedCall(r.body.access_token, '/api/accounts/sso/user-identifier')
+    expect(res.status).toBe(400)
   })
 
   it('only lets members with the manage SSO permission read or change it', async () => {

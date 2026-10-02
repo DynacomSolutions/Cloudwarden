@@ -184,6 +184,10 @@ export class OidcIdp {
       iat: now,
       exp: now + 300,
       ...(pending.nonce ? { nonce: pending.nonce } : {}),
+      // Like most providers, vouch for the address unless the test says otherwise.
+      ...(pending.user.email && !('email_verified' in pending.user)
+        ? { email_verified: true }
+        : {}),
       ...pending.user,
     }
     if (this.tamper.idToken) claims = this.tamper.idToken(claims)

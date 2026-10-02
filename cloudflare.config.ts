@@ -1,7 +1,8 @@
 import { bindings, defineConfig, exports, triggers } from 'cf/config'
 
 // Secrets (set with `cf workers secrets update`, never committed): JWT_SECRET (32+ characters),
-// JWT_SECRET_PREVIOUS (only while rotating), ADMIN_EMAILS, DATA_ENCRYPTION_KEY (32+ characters). Deploy-time values
+// JWT_SECRET_PREVIOUS (only while rotating), JWT_SIGNING_KEY and JWT_SIGNING_KEY_PREVIOUS (optional
+// ES256 access tokens, docs/sso.md), ADMIN_EMAILS, DATA_ENCRYPTION_KEY (32+ characters). Deploy-time values
 // come from the environment (see docs/deploy.md); the committed defaults are placeholders.
 const env = process.env
 const domain = env.DEPLOY_DOMAIN || undefined
@@ -54,7 +55,12 @@ export default defineConfig({
       // JWT_SECRET and ADMIN_EMAILS (to try the web client's Instance admin pages). Never set the
       // flag when deploying; production secrets are set out of band with `cf workers secrets`.
       ...(env.LOCAL_DEV_SECRETS === 'true'
-        ? { JWT_SECRET: bindings.secret(), ADMIN_EMAILS: bindings.secret() }
+        ? {
+            JWT_SECRET: bindings.secret(),
+            ADMIN_EMAILS: bindings.secret(),
+            // Development and e2e only: allow an http loopback OIDC provider (docs/sso.md).
+            SSO_ALLOW_INSECURE_LOOPBACK: bindings.text(env.SSO_ALLOW_INSECURE_LOOPBACK || 'false'),
+          }
         : {}),
       DOMAIN: bindings.text(domain ? `https://${domain}` : 'https://vault.example.com'),
       SIGNUPS_ALLOWED: bindings.text(env.SIGNUPS_ALLOWED || 'false'),

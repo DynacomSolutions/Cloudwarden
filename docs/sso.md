@@ -44,8 +44,10 @@ what the GPL clients send and expect.
      an address it invited; only a claimed domain marks the address verified;
    - revoked members are refused; invitations are accepted; new members join as accepted Users
      for an administrator to confirm.
-   OIDC email comes only from the `email` claim (or claim types the administrator names) and is
-   refused when `email_verified` is false. SAML email comes from the standard email attributes or
+   OIDC email comes only from the `email` claim (or claim types the administrator names). Linking
+   or provisioning by email requires `email_verified: true` unless the organisation turns on
+   "Accept email addresses the provider has not verified" (`allowUnverifiedEmail`); logins of
+   already linked identities are not affected. SAML email comes from the standard email attributes or
    an email-shaped NameID.
 5. A one-time code (5 minutes) bound to client, redirect URI and PKCE challenge goes to the
    client's redirect URI with its `state` unchanged. `POST /identity/connect/token` with
@@ -56,8 +58,10 @@ what the GPL clients send and expect.
 
 The OIDC client secret and the SAML SP private key are encrypted with AES-256-GCM under a key
 derived from `DATA_ENCRYPTION_KEY` (or, without it, from `JWT_SECRET`; `src/orgs/sealed.ts`). The
-settings page shows the client secret as a placeholder; saving the placeholder keeps the stored
-value. Discovery documents are cached for 5 minutes and JWKS per issuer within an isolate. A
+settings page shows the client secret as a placeholder; saving (or testing) with the placeholder
+keeps the stored value, unless the authority, metadata address or client ID changed: then the
+secret must be entered again. Account link tokens (`GET /api/accounts/sso/user-identifier`) are
+issued only to sessions of accounts with a master password. Discovery documents are cached for 5 minutes and JWKS per issuer within an isolate. A
 custom metadata address must be on the authority's host. SAML: AES-CBC encrypted assertions are
 decrypted only inside a verified signed response, all decryption failures give one generic
 error, and a signed response must carry `Destination`.
@@ -95,11 +99,42 @@ serves members whose organisation left trusted devices.
 and admins keep their password), `GET /api/accounts/key-connector/confirmation-details/{identifier}`.
 The client talks to the Key Connector directly (`GET/POST {url}/user-keys`, `GET {url}/alive`).
 
-Bitwarden's Key Connector (github.com/bitwarden/key-connector) is under the Bitwarden License, not
-GPL or AGPL, so Cloudwarden does not ship, test against or read it. A Key Connector must accept
-Cloudwarden access tokens; Cloudwarden signs them with HS256 and publishes no JWKS, so a
-deployment needs a Key Connector that validates tokens through Cloudwarden or shares the secret.
-This is a known interoperability gap (TASKS #285).
+### Token signing for a Key Connector
+
+A Key Connector validates the bearer token the client sends it, so it must be able to verify
+Cloudwarden access tokens:
+
+- Set the Worker secret `JWT_SIGNING_KEY` to a P-256 private key (PKCS#8, base64 DER or PEM):
+
+  ```sh
+  openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 \
+    | openssl pkcs8 -topk8 -nocrypt -outform DER | base64 -w0
+  ```
+
+  Access tokens are then signed ES256 with a `kid`. Without the secret they stay HS256.
+- Discovery: `GET {DOMAIN}/identity/.well-known/openid-configuration` (issuer is `{DOMAIN}`),
+  keys at `GET {DOMAIN}/identity/.well-known/openid-configuration/jwks`.
+- Rotation: move the old value to `JWT_SIGNING_KEY_PREVIOUS` (still published and accepted) and
+  set a new `JWT_SIGNING_KEY`; drop the previous key after the access token lifetime (1 hour).
+  HS256 tokens issued before the switch stay valid until they expire.
+
+### Running the official Key Connector
+
+Bitwarden's Key Connector is under the Bitwarden License (not GPL or AGPL). Users may run it under
+that licence; Cloudwarden does not ship it, and its source was not read for this work. To use it:
+
+1. Set `JWT_SIGNING_KEY` as above and deploy.
+2. Run the Key Connector over https on a host your clients reach, following Bitwarden's
+   documentation, and point its identity server and web vault settings at your Cloudwarden
+   `DOMAIN` (identity at `{DOMAIN}/identity`). Its token validation uses the discovery document
+   and JWKS above.
+3. In the organisation's SSO settings choose Key Connector and enter its URL; use the Test
+   button to check `GET {url}/alive` from the browser (the Key Connector must allow your vault
+   origin for CORS).
+
+This setup has not been tested end to end against the official Key Connector (it would require
+running Bitwarden-licensed software in CI). The client side of the protocol (`GET`/`POST
+{url}/user-keys`) is covered by Cloudwarden's tests of the server endpoints (TASKS #285).
 
 ## Claimed domains
 
@@ -112,6 +147,13 @@ verified by another. Members on a claimed domain are claimed (`userIsClaimedByOr
 `claimedByOrganization`): they cannot delete their account, purge the vault, change their email or
 leave, and administrators with manage users can delete their accounts
 (`DELETE .../users/{id}/delete-account`, bulk `DELETE .../users/delete-account`).
+
+## End-to-end test
+
+`pnpm e2e` runs `e2e/sso.mjs` against `e2e/oidc-idp.mjs`, a mock OpenID Connect provider on
+`127.0.0.1` (TASKS #288). The provider is plain http, which the Worker accepts only with
+`SSO_ALLOW_INSECURE_LOOPBACK=true`; that variable is declared only together with
+`LOCAL_DEV_SECRETS` (local development and the e2e run) and must never be set in production.
 
 ## Web UI
 

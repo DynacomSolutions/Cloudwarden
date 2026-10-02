@@ -15,12 +15,28 @@ export interface OidcClaims {
   externalId: string
   email: string | null
   name: string | null
+  /** `email_verified === true`, or the administrator accepts unverified addresses. */
+  emailVerified: boolean
 }
 
 const DISCOVERY_TIMEOUT_MS = 10_000
 
-/** The authority as an issuer URL; https only. */
-function issuerUrl(data: SsoConfigData): URL {
+/**
+ * Local development and the end-to-end run only (`SSO_ALLOW_INSECURE_LOOPBACK=true`, declared only
+ * with `LOCAL_DEV_SECRETS`): an `http://127.0.0.1` or `http://localhost` provider is accepted so a
+ * mock provider can run without TLS. Never set in production.
+ */
+export const insecureLoopback = (env?: Bindings) => env?.SSO_ALLOW_INSECURE_LOOPBACK === 'true'
+
+const isLoopbackHttp = (u: URL) =>
+  u.protocol === 'http:' && (u.hostname === '127.0.0.1' || u.hostname === 'localhost')
+
+/** `oauth4webapi` option allowing plain http, only for a loopback provider in development. */
+const httpOk = (insecure: boolean) =>
+  insecure ? { [oauth.allowInsecureRequests]: true as const } : {}
+
+/** The authority as an issuer URL; https only (see `insecureLoopback`). */
+function issuerUrl(data: SsoConfigData, insecure = false): URL {
   const raw = (data.authority ?? '').trim()
   let url: URL
   try {
@@ -28,7 +44,9 @@ function issuerUrl(data: SsoConfigData): URL {
   } catch {
     throw new SsoError('The OpenID Connect authority is not a valid URL.')
   }
-  if (url.protocol !== 'https:') throw new SsoError('The OpenID Connect authority must use https.')
+  if (url.protocol !== 'https:' && !(insecure && isLoopbackHttp(url))) {
+    throw new SsoError('The OpenID Connect authority must use https.')
+  }
   return url
 }
 
@@ -42,17 +60,23 @@ const discoveryCache = new Map<string, { as: oauth.AuthorizationServer; at: numb
 /** JWKS per issuer, reused by `oauth4webapi` between logins in the same isolate. */
 const jwksCaches = new Map<string, oauth.JWKSCacheInput>()
 
-export async function discover(data: SsoConfigData): Promise<oauth.AuthorizationServer> {
+export async function discover(
+  data: SsoConfigData,
+  insecure = false,
+): Promise<oauth.AuthorizationServer> {
   const key = `${data.authority ?? ''}|${data.metadataAddress ?? ''}`
   const hit = discoveryCache.get(key)
   if (hit && Date.now() - hit.at < DISCOVERY_TTL_MS) return hit.as
-  const as = await discoverUncached(data)
+  const as = await discoverUncached(data, insecure)
   discoveryCache.set(key, { as, at: Date.now() })
   return as
 }
 
-async function discoverUncached(data: SsoConfigData): Promise<oauth.AuthorizationServer> {
-  const issuer = issuerUrl(data)
+async function discoverUncached(
+  data: SsoConfigData,
+  insecure: boolean,
+): Promise<oauth.AuthorizationServer> {
+  const issuer = issuerUrl(data, insecure)
   const signal = AbortSignal.timeout(DISCOVERY_TIMEOUT_MS)
   let response: Response
   if (data.metadataAddress?.trim()) {
@@ -62,13 +86,18 @@ async function discoverUncached(data: SsoConfigData): Promise<oauth.Authorizatio
     } catch {
       throw new SsoError('The OpenID Connect metadata address is not a valid URL.')
     }
-    if (meta.protocol !== 'https:') throw new SsoError('The metadata address must use https.')
+    if (meta.protocol !== 'https:' && !(insecure && isLoopbackHttp(meta)))
+      throw new SsoError('The metadata address must use https.')
     if (meta.host !== issuer.host) {
       throw new SsoError('The metadata address must be on the same host as the authority.')
     }
     response = await fetch(meta, { headers: { Accept: 'application/json' }, signal })
   } else {
-    response = await oauth.discoveryRequest(issuer, { algorithm: 'oidc', signal })
+    response = await oauth.discoveryRequest(issuer, {
+      algorithm: 'oidc',
+      signal,
+      ...httpOk(insecure),
+    })
   }
   try {
     return await oauth.processDiscoveryResponse(issuer, response)
@@ -112,7 +141,7 @@ export async function oidcAuthorizationUrl(
   params: { state: string; nonce: string; codeVerifier: string; loginHint?: string },
 ): Promise<URL> {
   if (!data.clientId?.trim()) throw new SsoError('The OpenID Connect client ID is not set.')
-  const as = await discover(data)
+  const as = await discover(data, insecureLoopback(env))
   if (!as.authorization_endpoint) throw new SsoError('The provider has no authorization endpoint.')
   const url = new URL(as.authorization_endpoint)
   url.searchParams.set('client_id', data.clientId.trim())
@@ -172,16 +201,18 @@ export function mapOidcClaims(data: SsoConfigData, claims: Record<string, unknow
   // Only the standard `email` claim and claim types the administrator named. Usernames (`upn`,
   // `preferred_username`) are not email addresses the provider vouches for.
   const email = firstString(claims, [...extra(data.additionalEmailClaimTypes), 'email'])
-  if (email && claims.email_verified === false) {
-    throw new SsoError('The identity provider has not verified this email address.')
-  }
   const name = firstString(claims, [
     ...extra(data.additionalNameClaimTypes),
     'name',
     'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name',
     'given_name',
   ])
-  return { externalId, email: email?.includes('@') ? email : null, name }
+  return {
+    externalId,
+    email: email?.includes('@') ? email : null,
+    name,
+    emailVerified: claims.email_verified === true || data.allowUnverifiedEmail === true,
+  }
 }
 
 /**
@@ -196,7 +227,8 @@ export async function completeOidc(
   params: URLSearchParams,
   expected: { state: string; nonce: string; codeVerifier: string },
 ): Promise<OidcClaims> {
-  const as = await discover(data)
+  const insecure = insecureLoopback(env)
+  const as = await discover(data, insecure)
   const c = client(data)
   let callback: URLSearchParams
   try {
@@ -214,7 +246,7 @@ export async function completeOidc(
       callback,
       ssoUrls(env, orgUuid).callbackPath,
       expected.codeVerifier,
-      { signal: AbortSignal.timeout(DISCOVERY_TIMEOUT_MS) },
+      { signal: AbortSignal.timeout(DISCOVERY_TIMEOUT_MS), ...httpOk(insecure) },
     )
     result = await oauth.processAuthorizationCodeResponse(as, c, tokenResponse, {
       expectedNonce: expected.nonce,
@@ -245,7 +277,10 @@ export async function completeOidc(
         cache = {}
         jwksCaches.set(as.issuer, cache)
       }
-      await oauth.validateApplicationLevelSignature(as, tokenResponse, { [oauth.jwksCache]: cache })
+      await oauth.validateApplicationLevelSignature(as, tokenResponse, {
+        [oauth.jwksCache]: cache,
+        ...httpOk(insecure),
+      })
     } catch (err) {
       throw new SsoError('The ID token signature is invalid.', err)
     }
@@ -265,6 +300,7 @@ export async function completeOidc(
     try {
       const response = await oauth.userInfoRequest(as, c, result.access_token, {
         signal: AbortSignal.timeout(DISCOVERY_TIMEOUT_MS),
+        ...httpOk(insecure),
       })
       const info = await oauth.processUserInfoResponse(as, c, idClaims.sub, response)
       claims = { ...claims, ...info, sub: idClaims.sub }
@@ -276,8 +312,8 @@ export async function completeOidc(
 }
 
 /** Fetches discovery and checks the client settings look usable. Used by the admin test button. */
-export async function testOidc(data: SsoConfigData) {
-  const as = await discover(data)
+export async function testOidc(data: SsoConfigData, env?: Bindings) {
+  const as = await discover(data, insecureLoopback(env))
   const problems: string[] = []
   if (!data.clientId?.trim()) problems.push('Client ID is not set.')
   if (!as.authorization_endpoint) problems.push('No authorization endpoint in the metadata.')

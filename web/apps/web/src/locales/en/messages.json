@@ -18954,5 +18954,11 @@
   },
   "decline": {
     "message": "Decline"
+  },
+  "cwAllowUnverifiedEmail": {
+    "message": "Accept email addresses the provider has not verified"
+  },
+  "cwAllowUnverifiedEmailHint": {
+    "message": "Only for providers that never send email_verified. New accounts and links then rely on the provider's email claim alone."
   }
 }

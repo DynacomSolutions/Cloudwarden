@@ -20,6 +20,7 @@ import { ciphers } from './routes/ciphers'
 import { collectionsRouter } from './routes/collections'
 import { config } from './routes/config'
 import { devices } from './routes/devices'
+import { discovery } from './routes/discovery'
 import { emergencyAccess } from './routes/emergency-access'
 import { events } from './routes/events'
 import { folders } from './routes/folders'
@@ -66,6 +67,7 @@ app.route('/', icons)
 app.route('/', prelogin)
 app.route('/', register)
 app.route('/', token)
+app.route('/', discovery)
 // SSO browser endpoints and service provider callbacks (TASKS #280 to #282).
 app.route('/', sso)
 app.route('/', devices)

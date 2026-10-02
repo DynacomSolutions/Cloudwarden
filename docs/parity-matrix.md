@@ -30,9 +30,9 @@ Directory Connector, SCIM, event integrations; G this audit.
 | | Rows |
 |---|---|
 | Distinct method and path pairs | 625 |
-| Implemented (including self-host answers) | 311 |
-| Owned by workstreams A to F, not yet implemented | 109 |
-| Remaining for G | 113 |
+| Implemented (including self-host answers) | 319 |
+| Owned by workstreams A to F, not yet implemented | 102 |
+| Remaining for G | 112 |
 | Not called by any client (SDK-generated only) | 92 |
 
 ## Matrix
@@ -84,8 +84,8 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/accounts/billing/transactions` | sdk, web | implemented |  |  |
 | POST | `/api/accounts/cancel` | sdk, web | implemented |  |  |
 | POST | `/api/accounts/convert-to-key-connector` | android, ios, sdk, web | missing | E |  |
-| POST | `/api/accounts/delete-recover` | sdk, web | missing | A |  |
-| POST | `/api/accounts/delete-recover-token` | sdk, web | missing | A |  |
+| POST | `/api/accounts/delete-recover` | sdk, web | implemented | A |  |
+| POST | `/api/accounts/delete-recover-token` | sdk, web | implemented | A |  |
 | POST | `/api/accounts/email` | sdk, web | implemented |  |  |
 | POST | `/api/accounts/email-token` | sdk, web | implemented |  |  |
 | POST | `/api/accounts/kdf` | android, ios, sdk | implemented |  |  |
@@ -101,12 +101,12 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/api/accounts/license` | sdk, web | implemented |  |  |
 | GET | `/api/accounts/organizations` | sdk | implemented |  |  |
 | POST | `/api/accounts/password` | android, ios, sdk, web | implemented |  |  |
-| POST | `/api/accounts/password-hint` | android, ios, sdk, web | missing | A |  |
+| POST | `/api/accounts/password-hint` | android, ios, sdk, web | implemented | A |  |
 | POST | `/api/accounts/premium` | web | implemented |  |  |
 | GET | `/api/accounts/profile` | sdk, web | implemented |  |  |
 | PUT | `/api/accounts/profile` | sdk, web | implemented |  |  |
 | POST | `/api/accounts/register/verification-email-clicked` | ios | implemented |  |  |
-| POST | `/api/accounts/request-otp` | android, ios, sdk, web | missing | A |  |
+| POST | `/api/accounts/request-otp` | android, ios, sdk, web | implemented | A |  |
 | POST | `/api/accounts/resend-new-device-otp` | android, ios, sdk, web | missing | A |  |
 | GET | `/api/accounts/revision-date` | android, ios, sdk, web | implemented |  |  |
 | POST | `/api/accounts/rotate-api-key` | sdk, web | implemented |  |  |
@@ -118,11 +118,11 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/accounts/subscription` | sdk, web | implemented |  |  |
 | PUT | `/api/accounts/update-tde-offboarding-password` | sdk, web | missing | E |  |
 | PUT | `/api/accounts/update-temp-password` | android, ios, sdk, web | missing | C |  |
-| POST | `/api/accounts/verify-devices` | web | missing | G |  |
+| POST | `/api/accounts/verify-devices` | web | implemented |  |  |
 | PUT | `/api/accounts/verify-devices` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/accounts/verify-email` | sdk, web | missing | A |  |
-| POST | `/api/accounts/verify-email-token` | sdk, web | missing | A |  |
-| POST | `/api/accounts/verify-otp` | android, ios, sdk, web | missing | A |  |
+| POST | `/api/accounts/verify-email` | sdk, web | implemented | A |  |
+| POST | `/api/accounts/verify-email-token` | sdk, web | implemented | A |  |
+| POST | `/api/accounts/verify-otp` | android, ios, sdk, web | implemented | A |  |
 | POST | `/api/accounts/verify-password` | sdk, web | implemented |  |  |
 | GET | `/api/alive` | sdk | implemented |  |  |
 | GET | `/api/auth-requests` | android, ios, sdk, web | implemented |  |  |

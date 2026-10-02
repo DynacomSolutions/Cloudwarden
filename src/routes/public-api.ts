@@ -15,7 +15,7 @@ import { ApiError } from '../errors'
 import { errorKind, log } from '../log'
 import { bumpOrgRevision, type Member, requireOrg, storedPermissions } from '../orgs/access'
 import { requireOrgApiAuth } from '../orgs/api-keys'
-import { EventSystemUser, EventType, PolicyType, Role, Status } from '../orgs/constants'
+import { EventSystemUser, EventType, Role, Status } from '../orgs/constants'
 import { importDirectory, importSchema } from '../orgs/directory-import'
 import { eventStatement, listEvents } from '../orgs/events'
 import {

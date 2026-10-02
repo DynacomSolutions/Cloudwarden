@@ -50,7 +50,13 @@ async function libatomicEnv(dir) {
     for (let q = 0; q + 512 <= tar.length; ) {
       const entry = tar.toString('utf8', q, q + 100).replace(/\0.*$/s, '')
       if (!entry) break
-      const size = Number.parseInt(tar.toString('ascii', q + 124, q + 136).replace(/\0.*$/s, '').trim() || '0', 8)
+      const size = Number.parseInt(
+        tar
+          .toString('ascii', q + 124, q + 136)
+          .replace(/\0.*$/s, '')
+          .trim() || '0',
+        8,
+      )
       const type = String.fromCharCode(tar[q + 156])
       if (type === '0' && /libatomic\.so\.1\.\d/.test(entry)) {
         writeFileSync(join(so, 'libatomic.so.1'), tar.subarray(q + 512, q + 512 + size))

@@ -6,15 +6,9 @@ import { verifyPurposeToken } from '../auth/purpose-token'
 import { createDb, schema } from '../db'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
-import { bumpOrgRevision, requireMember, requirePermission } from '../orgs/access'
-import { EventType, PolicyType } from '../orgs/constants'
-import { eventStatement } from '../orgs/events'
-import {
-  emptyPolicyJson,
-  type PolicyRow,
-  policyJson,
-  revokeNonCompliantMembers,
-} from '../orgs/policies'
+import { requireMember, requirePermission } from '../orgs/access'
+import { PolicyType } from '../orgs/constants'
+import { emptyPolicyJson, type PolicyRow, policyJson } from '../orgs/policies'
 import { savePolicy } from '../orgs/policy-save'
 import { authOnce } from '../orgs/util'
 import { parseBody } from '../validation'

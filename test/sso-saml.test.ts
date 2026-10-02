@@ -223,11 +223,45 @@ describe('SAML encrypted assertions', () => {
         '',
       )
       const enc = await encryptAssertion(signed, sp.certificateDer, mode)
-      const xml = parts.response.replace('__ASSERTION__', enc)
+      let xml = parts.response.replace('__ASSERTION__', enc)
+      // CBC is accepted only inside a signed response.
+      if (mode === 'cbc') xml = await signElement(xml, parts.rid, idp)
       const r = await validate(btoa(xml))
       expect(r.identity.externalId).toBe('user-123')
     })
   }
+
+  it('refuses AES-CBC in an unsigned response and hides decryption failures', async () => {
+    const parts = responseXml(idp, base())
+    const signed = (await signElement(parts.assertion, parts.aid, idp)).replace(
+      /^<\?xml[^>]*\?>/,
+      '',
+    )
+    const enc = await encryptAssertion(signed, sp.certificateDer, 'cbc')
+    await rejects(
+      validate(btoa(parts.response.replace('__ASSERTION__', enc))),
+      /only in a signed response/,
+    )
+    // A corrupted ciphertext gives the same message as a wrong key (no padding oracle).
+    const gcm = await encryptAssertion(signed, sp.certificateDer, 'gcm')
+    const values = [...gcm.matchAll(/<xenc:CipherValue>([^<]+)</g)]
+    const last = values[values.length - 1]?.[1] ?? ''
+    const flipped = gcm.replace(
+      last,
+      `${last.slice(0, 10)}${last[10] === 'A' ? 'B' : 'A'}${last.slice(11)}`,
+    )
+    await rejects(
+      validate(btoa(parts.response.replace('__ASSERTION__', flipped))),
+      /^The encrypted assertion could not be decrypted\.$/,
+    )
+  })
+
+  it('requires a destination on a signed response', async () => {
+    await rejects(
+      validate(await buildResponse(idp, base({ destination: null, signResponse: true }))),
+      /no destination/,
+    )
+  })
 
   it('rejects an encrypted assertion signed by another key', async () => {
     const parts = responseXml(idp, base())

@@ -298,7 +298,25 @@ async function verifySignature(
 }
 
 /** Decrypts an EncryptedAssertion into its own document (xmlenc, RSA-OAEP key transport). */
+/**
+ * Decrypts an EncryptedAssertion. Every failure (key transport, cipher, padding, XML) surfaces as
+ * the same error, so the response gives no decryption or padding oracle.
+ */
 async function decryptAssertion(encrypted: Element, sp: SpKeys): Promise<Document> {
+  try {
+    return await decryptAssertionInner(encrypted, sp)
+  } catch (err) {
+    throw new SsoError('The encrypted assertion could not be decrypted.', err)
+  }
+}
+
+/** The data encryption algorithm of an EncryptedAssertion, read before any decryption. */
+function encryptionMethod(encrypted: Element): string {
+  const data = descendants(encrypted, NS.xenc, 'EncryptedData')[0]
+  return (data ? child(data, NS.xenc, 'EncryptionMethod')?.getAttribute('Algorithm') : '') ?? ''
+}
+
+async function decryptAssertionInner(encrypted: Element, sp: SpKeys): Promise<Document> {
   const data = descendants(encrypted, NS.xenc, 'EncryptedData')
   if (data.length !== 1) throw new SsoError('The encrypted assertion is malformed.')
   const encData = data[0] as Element
@@ -579,6 +597,10 @@ export async function validateSamlResponse(
   const destination = response.getAttribute('Destination')
   if (destination !== null && destination !== acs)
     throw new SsoError('The SAML response destination is wrong.')
+  // A signed response must name its destination, so it cannot be replayed to another endpoint.
+  if (destination === null && child(response, NS.ds, 'Signature')) {
+    throw new SsoError('The signed SAML response has no destination.')
+  }
   const inResponseTo = response.getAttribute('InResponseTo')
   if (inResponseTo) {
     if (inResponseTo !== expected.requestId)
@@ -609,6 +631,12 @@ export async function validateSamlResponse(
   if (encrypted.length === 1) {
     if ((encrypted[0] as Element).parentNode !== response)
       throw new SsoError('The encrypted assertion is misplaced.')
+    // AES-CBC is malleable: only decrypt it when the response signature, which covers the
+    // ciphertext, has already been verified.
+    const method = encryptionMethod(encrypted[0] as Element)
+    if (/#aes(128|192|256)-cbc$/.test(method) && !responseSig) {
+      throw new SsoError('AES-CBC encrypted assertions are accepted only in a signed response.')
+    }
     assertionDoc = await decryptAssertion(encrypted[0] as Element, sp)
     assertion = assertionDoc.documentElement as Element
     if (assertion.namespaceURI !== NS.saml || assertion.localName !== 'Assertion') {

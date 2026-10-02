@@ -1,5 +1,6 @@
 import { env } from 'cloudflare:workers'
 import { vi } from 'vitest'
+import { createDb, schema } from '../src/db'
 import { BASE } from './helpers'
 import { OidcIdp } from './oidc-idp'
 import type { Actor } from './org-helpers'
@@ -65,13 +66,37 @@ export async function pkce() {
   return { verifier, challenge }
 }
 
+/**
+ * Marks `domain` verified for the organisation directly in the database (the DNS flow has its own
+ * tests). New SSO accounts are provisioned only for claimed domains or invited addresses.
+ */
+export async function claimDomain(orgId: string, domain = 'example.com') {
+  const db = createDb(env.DB)
+  await db
+    .insert(schema.organizationDomains)
+    .values({
+      uuid: crypto.randomUUID(),
+      organizationUuid: orgId,
+      domainName: domain,
+      txt: 'bw=test',
+      verifiedAt: Date.now(),
+      lastCheckedAt: Date.now(),
+      nextRunAt: Date.now(),
+      jobRunCount: 0,
+      createdAt: Date.now(),
+    })
+    .onConflictDoNothing()
+}
+
 export async function configureOidc(
   owner: Actor,
   orgId: string,
   identifier: string,
   idp: OidcIdp,
   data: Record<string, unknown> = {},
+  claim = true,
 ) {
+  if (claim) await claimDomain(orgId)
   const res = await owner.call(`/api/organizations/${orgId}/sso`, 'POST', {
     enabled: true,
     identifier,

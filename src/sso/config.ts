@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type { Db } from '../db'
 import { schema } from '../db'
 import type { Bindings } from '../env'
+import { seal, unseal } from '../orgs/sealed'
 
 /** `SsoType` on the wire. */
 export const SsoType = { None: 0, OpenIdConnect: 1, Saml2: 2 } as const
@@ -153,3 +154,27 @@ export const listSetting = (s: string | null | undefined): string[] =>
     .split(/[,\s]+/)
     .map((v) => v.trim())
     .filter(Boolean)
+
+/** Shown instead of the OIDC client secret; saving it unchanged keeps the stored secret. */
+export const REDACTED_SECRET = '********'
+
+const secretPurpose = (orgUuid: string) => `sso-client-secret:${orgUuid}`
+const isSealed = (v: string) => v.startsWith('v1.')
+
+/** The configuration as stored: the OIDC client secret encrypted at rest. */
+export async function sealConfig(env: Bindings, orgUuid: string, data: SsoConfigData) {
+  const secret = data.clientSecret
+  if (!secret || isSealed(secret)) return data
+  return { ...data, clientSecret: await seal(env, secretPurpose(orgUuid), secret) }
+}
+
+/** The configuration with the OIDC client secret decrypted, for talking to the provider. */
+export async function openConfig(env: Bindings, orgUuid: string, data: SsoConfigData) {
+  const secret = data.clientSecret
+  if (!secret || !isSealed(secret)) return data
+  return { ...data, clientSecret: await unseal(env, secretPurpose(orgUuid), secret) }
+}
+
+/** The configuration shown to administrators: the client secret replaced by a placeholder. */
+export const redactConfig = (data: SsoConfigData): SsoConfigData =>
+  data.clientSecret ? { ...data, clientSecret: REDACTED_SECRET } : data

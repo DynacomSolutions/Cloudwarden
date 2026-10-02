@@ -365,6 +365,10 @@ async function clientCredentialsGrant(c: Ctx, form: Form) {
   const matches = safeEqualStrings(user?.apiKey ?? '\0', form.client_secret)
   if (!user?.apiKey || !matches || !user.enabled) return bad()
 
+  // Require SSO also covers personal API keys; only owners and admins are exempt (TASKS #283).
+  const ssoIdentifier = await requiredSsoIdentifier(db, user.uuid)
+  if (ssoIdentifier) return ssoRequired(c, ssoIdentifier)
+
   const challenge = await enforceTwoFactor(c, user, form)
   if (challenge) return challenge
 

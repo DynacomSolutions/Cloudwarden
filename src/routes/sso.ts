@@ -10,7 +10,14 @@ import { errorKind, log } from '../log'
 import { eventStatement } from '../orgs/events'
 import { batch } from '../orgs/util'
 import { rateLimit } from '../ratelimit'
-import { activeSso, loadSsoConfig, orgByIdentifier, parseConfigData, SsoType } from '../sso/config'
+import {
+  activeSso,
+  loadSsoConfig,
+  openConfig,
+  orgByIdentifier,
+  parseConfigData,
+  SsoType,
+} from '../sso/config'
 import { SsoError } from '../sso/errors'
 import {
   CLIENT_IDS,
@@ -131,6 +138,10 @@ sso.get('/identity/connect/authorize', rateLimit('sso'), async (c) => {
     if (q.user_identifier) {
       const link = await verifyPurposeToken(c.env, LINK_PURPOSE, q.user_identifier)
       if (!link) throw new SsoError('The account link request has expired.')
+      // Single use: the token is spent by this flow, which is bound to this browser.
+      if (!(await recordAssertion(db, `link|${q.user_identifier}`, link.exp * 1000))) {
+        throw new SsoError('The account link request was already used.')
+      }
       linkUserUuid = link.sub
     }
 
@@ -155,7 +166,7 @@ sso.get('/identity/connect/authorize', rateLimit('sso'), async (c) => {
     const setCookie = flowCookie(cookie, FLOW_TTL_MS / 1000)
 
     if (isSaml) {
-      const sp = await ensureSpKeys(db, cfg.row)
+      const sp = await ensureSpKeys(c.env, db, cfg.row)
       const out = await buildAuthnRequest(
         c.env,
         org.uuid,
@@ -239,7 +250,8 @@ const oidcCallback = async (c: Ctx) => {
     ) {
       throw new SsoError('Single sign-on is no longer configured for this organization.')
     }
-    const identity = await completeOidc(c.env, flow.organizationUuid, cfg.data, params, {
+    const data = await openConfig(c.env, flow.organizationUuid, cfg.data)
+    const identity = await completeOidc(c.env, flow.organizationUuid, data, params, {
       state: flow.uuid,
       nonce: flow.nonce,
       codeVerifier: flow.idpCodeVerifier,
@@ -271,7 +283,7 @@ sso.post('/sso/saml2/:orgId/Acs', rateLimit('sso'), async (c) => {
     if (!cfg || cfg.data.configType !== SsoType.Saml2) {
       throw new SsoError('Single sign-on is no longer configured for this organization.')
     }
-    const sp = await ensureSpKeys(db, cfg.row)
+    const sp = await ensureSpKeys(c.env, db, cfg.row)
     const result = await validateSamlResponse(
       c.env,
       flow.organizationUuid,
@@ -298,7 +310,7 @@ sso.get('/sso/saml2/:orgId', async (c) => {
   const orgId = c.req.param('orgId')
   const row = await loadSsoConfig(db, orgId)
   if (!row) return page(c, 'Not found', 'This organization has no SSO configuration.')
-  const sp = await ensureSpKeys(db, row)
+  const sp = await ensureSpKeys(c.env, db, row)
   return c.body(spMetadata(c.env, orgId, parseConfigData(row), sp.certificateDer), 200, {
     'Content-Type': 'application/samlmetadata+xml; charset=utf-8',
     'Cache-Control': 'no-store',

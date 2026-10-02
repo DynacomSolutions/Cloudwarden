@@ -1,4 +1,4 @@
-import { and, eq, isNull, lt, sql } from 'drizzle-orm'
+import { and, eq, inArray, isNull, lt, sql } from 'drizzle-orm'
 import { randomB64u, safeEqualStrings, sha256B64u } from '../auth/crypto'
 import { normalizeEmail } from '../auth/users'
 import { type Db, runBatch, schema } from '../db'
@@ -174,12 +174,12 @@ type Member = typeof schema.usersOrganizations.$inferSelect
  * makes sure it is a member. Rules:
  *
  * - An existing link (organisation, external ID) decides the account.
- * - Otherwise the account explicitly linking (`user_identifier`) or the account with the asserted
- *   email is linked, but only when it is already invited to or a member of the organisation, or
- *   the organisation has verified the email's domain. This stops a provider from taking over an
- *   unrelated account by asserting its address.
- * - With no account, one is created just in time without a master password; the person sets one
- *   (or trusts the device, or uses the key connector) after signing in.
+ * - Otherwise an existing account is linked only when (a) it signed in with its master password
+ *   and asked to link (`user_identifier`, same email, must be invited or a member), or (b) it is
+ *   already an accepted or confirmed member. Pending invitations and claimed domains never link an
+ *   existing account silently, so a provider cannot take over an account by asserting its address.
+ * - With no account, one is created just in time (no master password) only for a claimed domain
+ *   or a pending invitation of that address; only a claimed domain marks the address verified.
  * - Membership: an invitation by email is accepted, a missing membership is created as an
  *   accepted User for an administrator to confirm, a revoked membership is refused.
  */
@@ -215,6 +215,7 @@ export async function provisionSsoUser(
     }
   } else {
     const email = identity.email ? normalizeEmail(identity.email) : null
+    if (!email) throw new SsoError('The identity provider did not return an email address.')
     if (linkUserUuid) {
       ;[user] = await db
         .select()
@@ -224,25 +225,28 @@ export async function provisionSsoUser(
       if (!user) throw new SsoError('The account to link was not found.')
       // Linking is started by the signed-in account; the provider must vouch for the same address,
       // so a crafted link URL cannot attach someone else's identity to an attacker's account.
-      if (email && email !== user.email) {
+      if (email !== user.email) {
         throw new SsoError(
           'The identity provider returned a different email address than your account.',
         )
       }
-    } else if (email) {
-      ;[user] = await db.select().from(schema.users).where(eq(schema.users.email, email)).limit(1)
+      const m = await findMembership(db, orgUuid, user)
+      if (!m || m.status === Status.Revoked) {
+        throw new SsoError('Your account is not a member of this organization.')
+      }
     } else {
-      throw new SsoError('The identity provider did not return an email address.')
+      ;[user] = await db.select().from(schema.users).where(eq(schema.users.email, email)).limit(1)
+      // An existing account is linked by email only when it already joined the organisation
+      // (accepted or confirmed). A pending invitation, or a claimed domain, is not enough: the
+      // person must sign in with their master password and link SSO (or accept the invitation).
+      if (user && !(await joinedMembership(db, orgUuid, user.uuid))) {
+        throw new SsoError(
+          'An account with this email already exists. Log in with your master password, accept the organization invitation or link single sign-on from your account, then use SSO.',
+        )
+      }
     }
 
     if (user) {
-      const membership = await findMembership(db, orgUuid, user)
-      const claimed = await orgClaimsEmail(db, orgUuid, user.email)
-      if (!membership && !claimed && !linkUserUuid) {
-        throw new SsoError(
-          'An account with this email already exists. Sign in with your master password and accept the organization invitation, or ask an administrator to invite you.',
-        )
-      }
       const [existing] = await db
         .select()
         .from(schema.ssoUsers)
@@ -255,8 +259,15 @@ export async function provisionSsoUser(
         .limit(1)
       if (existing) throw new SsoError('This account is already linked to another identity.')
     } else {
-      // Just-in-time provisioning: an account without a master password.
-      if (!email) throw new SsoError('The identity provider did not return an email address.')
+      // Just-in-time provisioning, only for addresses the organisation vouches for: a domain it
+      // has claimed, or an invitation it sent. The address counts as verified only for a claimed
+      // domain.
+      const claimed = await orgClaimsEmail(db, orgUuid, email)
+      if (!claimed && !(await pendingInvitation(db, orgUuid, email))) {
+        throw new SsoError(
+          'You need an invitation to join this organization. Ask an administrator to invite you.',
+        )
+      }
       const created: typeof schema.users.$inferInsert = {
         uuid: crypto.randomUUID(),
         email,
@@ -266,8 +277,7 @@ export async function provisionSsoUser(
         passwordIterations: 0,
         akey: '',
         securityStamp: crypto.randomUUID(),
-        // The organisation's identity provider vouches for the address.
-        verifiedAt: now,
+        verifiedAt: claimed ? now : null,
         createdAt: now,
         updatedAt: now,
       }
@@ -295,6 +305,39 @@ export async function provisionSsoUser(
   if (!user.enabled) throw new SsoError('This account has been disabled.')
   await ensureMembership(db, orgUuid, user, now)
   return { user, firstLogin }
+}
+
+/** Accepted or confirmed membership of the account itself. */
+async function joinedMembership(db: Db, orgUuid: string, userUuid: string) {
+  const [m] = await db
+    .select({ uuid: schema.usersOrganizations.uuid })
+    .from(schema.usersOrganizations)
+    .where(
+      and(
+        eq(schema.usersOrganizations.organizationUuid, orgUuid),
+        eq(schema.usersOrganizations.userUuid, userUuid),
+        inArray(schema.usersOrganizations.status, [Status.Accepted, Status.Confirmed]),
+      ),
+    )
+    .limit(1)
+  return m !== undefined
+}
+
+/** A pending invitation of the address (no account attached yet). */
+async function pendingInvitation(db: Db, orgUuid: string, email: string) {
+  const [m] = await db
+    .select({ uuid: schema.usersOrganizations.uuid })
+    .from(schema.usersOrganizations)
+    .where(
+      and(
+        eq(schema.usersOrganizations.organizationUuid, orgUuid),
+        eq(schema.usersOrganizations.status, Status.Invited),
+        isNull(schema.usersOrganizations.userUuid),
+        sql`lower(${schema.usersOrganizations.email}) = ${email}`,
+      ),
+    )
+    .limit(1)
+  return m !== undefined
 }
 
 async function findMembership(db: Db, orgUuid: string, user: User): Promise<Member | undefined> {

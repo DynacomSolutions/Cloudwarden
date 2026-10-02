@@ -35,15 +35,32 @@ what the GPL clients send and expect.
      skew, replay protection (assertion IDs stored until expiry), encrypted assertions (RSA-OAEP
      with AES-CBC or AES-GCM). `spValidateCertificates` checks the certificate validity period.
 4. The account is found or provisioned (`src/sso/flow.ts`):
-   existing SSO link; else the account with the asserted email when it is invited to or a member
-   of the organisation, or its domain is claimed by it; else a new account without a master
-   password (JIT). Linking with `user_identifier` requires the same email. Revoked members are
-   refused; invitations are accepted; new members are added as accepted Users for an
-   administrator to confirm.
+   - an existing SSO link decides the account;
+   - an existing account with the asserted email is linked only when it is already an accepted or
+     confirmed member, or when it signed in with its master password and started the link itself
+     (`user_identifier`: single-use token, same email, must be invited or a member). A pending
+     invitation or a claimed domain never links an existing account silently;
+   - a new account (no master password) is created only for a domain the organisation claims or
+     an address it invited; only a claimed domain marks the address verified;
+   - revoked members are refused; invitations are accepted; new members join as accepted Users
+     for an administrator to confirm.
+   OIDC email comes only from the `email` claim (or claim types the administrator names) and is
+   refused when `email_verified` is false. SAML email comes from the standard email attributes or
+   an email-shaped NameID.
 5. A one-time code (5 minutes) bound to client, redirect URI and PKCE challenge goes to the
    client's redirect URI with its `state` unchanged. `POST /identity/connect/token` with
    `grant_type=authorization_code` redeems it; two-step login applies and the code is spent only
    once everything passed.
+
+## Secrets at rest and caching
+
+The OIDC client secret and the SAML SP private key are encrypted with AES-256-GCM under a key
+derived from `DATA_ENCRYPTION_KEY` (or, without it, from `JWT_SECRET`; `src/orgs/sealed.ts`). The
+settings page shows the client secret as a placeholder; saving the placeholder keeps the stored
+value. Discovery documents are cached for 5 minutes and JWKS per issuer within an isolate. A
+custom metadata address must be on the authority's host. SAML: AES-CBC encrypted assertions are
+decrypted only inside a verified signed response, all decryption failures give one generic
+error, and a signed response must carry `Destination`.
 
 ## Token response
 
@@ -55,9 +72,10 @@ account without keys yet.
 
 ## Policies
 
-- Require SSO (4): password and passkey logins of non-admin members get 400 with
-  `SsoOrganizationIdentifier`, which the clients turn into an SSO redirect. Login with device
-  stays allowed. Needs the single organisation policy first.
+- Require SSO (4): password, passkey and personal API key logins of non-admin members get 400
+  with `SsoOrganizationIdentifier`, which the clients turn into an SSO redirect. Login with device
+  stays allowed. Existing refresh tokens keep working until they expire (30 days of inactivity)
+  or the account's sessions are revoked. Needs the single organisation policy first.
 - Trusted devices turns on single organisation, require SSO and account recovery with automatic
   enrolment; these cannot be relaxed while it is on. Key Connector requires single organisation
   and require SSO, and cannot be turned off while members use it.

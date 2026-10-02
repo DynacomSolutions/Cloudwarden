@@ -35,10 +35,14 @@ import { rateLimit } from '../ratelimit'
 import {
   loadSsoConfig,
   MemberDecryptionType,
+  openConfig,
   orgByIdentifier,
   parseConfigData,
+  REDACTED_SECRET,
+  redactConfig,
   type SsoConfigData,
   SsoType,
+  sealConfig,
   ssoConfigSchema,
   ssoUrls,
 } from '../sso/config'
@@ -133,7 +137,7 @@ async function ssoJson(c: Ctx, orgUuid: string) {
     object: 'organizationSso',
     enabled: row?.enabled ?? false,
     identifier: org.identifier,
-    data: row ? { ...parseConfigData(row) } : null,
+    data: row ? redactConfig(parseConfigData(row)) : null,
     urls: {
       callbackPath: urls.callbackPath,
       signedOutCallbackPath: urls.signedOutCallbackPath,
@@ -303,7 +307,12 @@ ssoAdmin.post('/api/organizations/:orgId/sso', async (c) => {
   }
 
   const now = Date.now()
-  const json = JSON.stringify(ssoConfigSchema.parse(data))
+  // The placeholder shown to administrators keeps the stored (encrypted) secret.
+  const toStore =
+    data.clientSecret === REDACTED_SECRET
+      ? { ...data, clientSecret: before?.clientSecret ?? null }
+      : await sealConfig(c.env, orgUuid, data)
+  const json = JSON.stringify(ssoConfigSchema.parse(toStore))
   const statements: unknown[] = [
     db
       .insert(schema.ssoConfigs)
@@ -369,7 +378,7 @@ ssoAdmin.post('/api/organizations/:orgId/sso', async (c) => {
   }
   if (data.configType === SsoType.Saml2) {
     const row = await loadSsoConfig(db, orgUuid)
-    if (row) await ensureSpKeys(db, row)
+    if (row) await ensureSpKeys(c.env, db, row)
   }
   return c.json(await ssoJson(c, orgUuid))
 })
@@ -377,7 +386,13 @@ ssoAdmin.post('/api/organizations/:orgId/sso', async (c) => {
 /** Checks a configuration against the identity provider without saving it (admin test button). */
 ssoAdmin.post('/api/organizations/:orgId/sso/test', rateLimit('sso-test'), async (c) => {
   await requirePermission(createDb(c.env.DB), c.var.user.uuid, orgParam(c), 'manageSso')
-  const { data } = await parseBody(c, z.object({ data: ssoConfigSchema }))
+  const body = await parseBody(c, z.object({ data: ssoConfigSchema }))
+  let data = body.data
+  if (data.clientSecret === REDACTED_SECRET) {
+    const row = await loadSsoConfig(createDb(c.env.DB), orgParam(c))
+    const stored = row ? await openConfig(c.env, orgParam(c), parseConfigData(row)) : null
+    data = { ...data, clientSecret: stored?.clientSecret ?? null }
+  }
   try {
     if (data.configType === SsoType.OpenIdConnect) {
       const r = await testOidc(data)
@@ -603,7 +618,10 @@ async function deleteClaimedAccount(
   if (target.m.atype === 0 && actor.atype !== 0) return 'Only owners can delete owners.'
   if (isAdminRole(target.m) && !isAdminRole(actor))
     return 'Custom members cannot delete administrators.'
-  if (target.m.status < Status.Accepted || !(await orgClaimsEmail(db, orgUuid, target.u.email))) {
+  if (
+    target.m.status !== Status.Confirmed ||
+    !(await orgClaimsEmail(db, orgUuid, target.u.email))
+  ) {
     return 'Only accounts claimed by the organization can be deleted.'
   }
   try {
@@ -850,6 +868,8 @@ ssoAccounts.post('/api/accounts/convert-to-key-connector', requireAuth, async (c
   const user = c.var.user
   if (user.usesKeyConnector) throw new ApiError(400, 'This account already uses Key Connector.')
   if (!hasMasterPassword(user)) throw new ApiError(400, 'This account has no master password.')
+  // The official clients send no body here (the remove-password page confirms with the user and
+  // has already stored the master key in the Key Connector), so no password proof is required.
   const rows = await db
     .select({ m: schema.usersOrganizations, cfg: schema.ssoConfigs })
     .from(schema.usersOrganizations)
@@ -864,11 +884,11 @@ ssoAccounts.post('/api/accounts/convert-to-key-connector', requireAuth, async (c
         ne(schema.usersOrganizations.status, Status.Revoked),
       ),
     )
-  const kc = rows.find(
+  const kcRows = rows.filter(
     (r) => parseConfigData(r.cfg).memberDecryptionType === MemberDecryptionType.KeyConnector,
   )
-  if (!kc) throw new ApiError(400, 'None of your organizations use Key Connector.')
-  if (isAdminRole(kc.m))
+  if (kcRows.length === 0) throw new ApiError(400, 'None of your organizations use Key Connector.')
+  if (kcRows.some((r) => isAdminRole(r.m)))
     throw new ApiError(400, 'Owners and administrators keep their master password.')
   await batch(db, [
     db

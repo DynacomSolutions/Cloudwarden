@@ -37,7 +37,21 @@ function issuerUrl(data: SsoConfigData): URL {
  * standard `/.well-known/openid-configuration` under the authority. The issuer in the document
  * must equal the authority.
  */
+const DISCOVERY_TTL_MS = 5 * 60 * 1000
+const discoveryCache = new Map<string, { as: oauth.AuthorizationServer; at: number }>()
+/** JWKS per issuer, reused by `oauth4webapi` between logins in the same isolate. */
+const jwksCaches = new Map<string, oauth.JWKSCacheInput>()
+
 export async function discover(data: SsoConfigData): Promise<oauth.AuthorizationServer> {
+  const key = `${data.authority ?? ''}|${data.metadataAddress ?? ''}`
+  const hit = discoveryCache.get(key)
+  if (hit && Date.now() - hit.at < DISCOVERY_TTL_MS) return hit.as
+  const as = await discoverUncached(data)
+  discoveryCache.set(key, { as, at: Date.now() })
+  return as
+}
+
+async function discoverUncached(data: SsoConfigData): Promise<oauth.AuthorizationServer> {
   const issuer = issuerUrl(data)
   const signal = AbortSignal.timeout(DISCOVERY_TIMEOUT_MS)
   let response: Response
@@ -49,6 +63,9 @@ export async function discover(data: SsoConfigData): Promise<oauth.Authorization
       throw new SsoError('The OpenID Connect metadata address is not a valid URL.')
     }
     if (meta.protocol !== 'https:') throw new SsoError('The metadata address must use https.')
+    if (meta.host !== issuer.host) {
+      throw new SsoError('The metadata address must be on the same host as the authority.')
+    }
     response = await fetch(meta, { headers: { Accept: 'application/json' }, signal })
   } else {
     response = await oauth.discoveryRequest(issuer, { algorithm: 'oidc', signal })
@@ -152,13 +169,12 @@ const extra = (s: string | null | undefined) =>
 export function mapOidcClaims(data: SsoConfigData, claims: Record<string, unknown>): OidcClaims {
   const externalId = firstString(claims, [...extra(data.additionalUserIdClaimTypes), 'sub'])
   if (!externalId) throw new SsoError('The identity provider did not return a subject.')
-  const email = firstString(claims, [
-    ...extra(data.additionalEmailClaimTypes),
-    'email',
-    'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress',
-    'upn',
-    'preferred_username',
-  ])
+  // Only the standard `email` claim and claim types the administrator named. Usernames (`upn`,
+  // `preferred_username`) are not email addresses the provider vouches for.
+  const email = firstString(claims, [...extra(data.additionalEmailClaimTypes), 'email'])
+  if (email && claims.email_verified === false) {
+    throw new SsoError('The identity provider has not verified this email address.')
+  }
   const name = firstString(claims, [
     ...extra(data.additionalNameClaimTypes),
     'name',
@@ -224,7 +240,12 @@ export async function completeOidc(
     await verifySymmetricIdToken(idToken, data.clientSecret ?? '')
   } else {
     try {
-      await oauth.validateApplicationLevelSignature(as, tokenResponse)
+      let cache = jwksCaches.get(as.issuer)
+      if (!cache) {
+        cache = {}
+        jwksCaches.set(as.issuer, cache)
+      }
+      await oauth.validateApplicationLevelSignature(as, tokenResponse, { [oauth.jwksCache]: cache })
     } catch (err) {
       throw new SsoError('The ID token signature is invalid.', err)
     }

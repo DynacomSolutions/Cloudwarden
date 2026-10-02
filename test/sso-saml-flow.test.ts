@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import { BASE } from './helpers'
 import { actor, createOrg } from './org-helpers'
 import { buildResponse, type SamlIdp, samlIdp } from './saml-idp'
-import { call, codeFrom, redeem, startSso } from './sso-helpers'
+import { call, claimDomain, codeFrom, redeem, startSso } from './sso-helpers'
 
 let idp: SamlIdp
 beforeAll(async () => {
@@ -16,6 +16,7 @@ async function samlOrg(extra: Record<string, unknown> = {}) {
   const owner = await actor(`${unique('owner')}@example.com`)
   const org = await createOrg(owner)
   const identifier = unique('saml')
+  await claimDomain(org.id)
   const res = await owner.call(`/api/organizations/${org.id}/sso`, 'POST', {
     enabled: true,
     identifier,

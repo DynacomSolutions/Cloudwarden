@@ -1,10 +1,12 @@
 import { env } from 'cloudflare:workers'
+import { eq } from 'drizzle-orm'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { generateTotpKey, totpAt } from '../src/auth/totp'
 import { clock } from '../src/auth/twofactor'
+import { createDb, schema } from '../src/db'
 import { BASE, login } from './helpers'
 import type { OidcIdp } from './oidc-idp'
-import { actor, addMember, createOrg } from './org-helpers'
+import { actor, addMember, createOrg, linkParams, mail } from './org-helpers'
 import {
   authedCall,
   call,
@@ -127,6 +129,33 @@ describe('SSO with OpenID Connect', () => {
     expect(err.ErrorModel.Message).toMatch(/SSO/)
     // Owners are exempt.
     expect((await login(owner.email)).status).toBe(200)
+    // Personal API keys are covered as well.
+    const memberToken = (
+      await oidcLogin(idp, identifier, {
+        sub: (await profileSub(owner, org.id, email)) ?? '',
+        email,
+      })
+    ).body.access_token
+    const key = (await (
+      await authedCall(memberToken, '/api/accounts/api-key', 'POST', {
+        masterPasswordHash: 'client-derived-hash',
+      })
+    ).json()) as any
+    const apiLogin = await call('/identity/connect/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: `user.${((await (await authedCall(memberToken, '/api/accounts/profile')).json()) as any).id}`,
+        client_secret: key.apiKey,
+        scope: 'api',
+        deviceType: '8',
+        deviceName: 'cli',
+        deviceIdentifier: 'cli-1',
+      }).toString(),
+    })
+    expect(apiLogin.status).toBe(400)
+    expect(((await apiLogin.json()) as any).SsoOrganizationIdentifier).toBe(identifier)
     // SSO itself still works, now with the master password option.
     const again2 = await oidcLogin(idp, identifier, {
       sub: (await profileSub(owner, org.id, email)) ?? '',
@@ -146,9 +175,10 @@ describe('SSO with OpenID Connect', () => {
     expect(await r.back.text()).toMatch(/already exists/)
   })
 
-  it('links an invited existing account and accepts the invitation', async () => {
+  it('does not link an existing account by a pending invitation; it must accept first', async () => {
     const { owner, org, identifier } = await ssoOrg()
     const member = await actor(`${unique('invited')}@example.com`)
+    const before = mail.sent.length
     const inv = await owner.call(`/api/organizations/${org.id}/users/invite`, 'POST', {
       emails: [member.email],
       type: 2,
@@ -157,7 +187,20 @@ describe('SSO with OpenID Connect', () => {
       groups: [],
     })
     expect(inv.status).toBe(200)
-    const r = await oidcLogin(idp, identifier, { sub: unique('sub'), email: member.email })
+    const sub = unique('sub')
+    const refused = await oidcLogin(idp, identifier, { sub, email: member.email })
+    expect(refused.back.status).toBe(400)
+    expect(await refused.back.text()).toMatch(/already exists/)
+
+    // After accepting with the master password, SSO links the account.
+    const params = linkParams(mail.sent[before])
+    const accepted = await member.call(
+      `/api/organizations/${org.id}/users/${params.get('organizationUserId')}/accept`,
+      'POST',
+      { token: params.get('token') },
+    )
+    expect(accepted.status).toBe(200)
+    const r = await oidcLogin(idp, identifier, { sub, email: member.email })
     expect(r.token?.status).toBe(200)
     expect(r.body.UserDecryptionOptions.HasMasterPassword).toBe(true)
     const profile = await member.json('/api/accounts/profile')
@@ -165,6 +208,54 @@ describe('SSO with OpenID Connect', () => {
       status: 1,
       ssoBound: true,
     })
+  })
+
+  it('provisions new accounts only for claimed domains or invited addresses', async () => {
+    const owner = await actor(`${unique('owner')}@example.com`)
+    const org = await createOrg(owner)
+    const identifier = unique('noclaim')
+    await configureOidc(owner, org.id, identifier, idp, {}, false)
+    const stranger = await oidcLogin(idp, identifier, {
+      sub: unique('sub'),
+      email: `${unique('stranger')}@unclaimed.example.org`,
+    })
+    expect(stranger.back.status).toBe(400)
+    expect(await stranger.back.text()).toMatch(/invitation/)
+
+    const invitedEmail = `${unique('newbie')}@unclaimed.example.org`
+    await owner.call(`/api/organizations/${org.id}/users/invite`, 'POST', {
+      emails: [invitedEmail],
+      type: 2,
+      accessAll: false,
+      collections: [],
+      groups: [],
+    })
+    const ok = await oidcLogin(idp, identifier, { sub: unique('sub'), email: invitedEmail })
+    expect(ok.token?.status).toBe(200)
+    const profile = (await (
+      await authedCall(ok.body.access_token, '/api/accounts/profile')
+    ).json()) as any
+    // An invited (not claimed) address is not marked verified by SSO.
+    expect(profile.emailVerified).toBe(false)
+    expect(profile.organizations.find((o: any) => o.id === org.id)).toMatchObject({ status: 1 })
+  })
+
+  it('uses only verified email claims, never usernames', async () => {
+    const { identifier } = await ssoOrg()
+    const unverified = await oidcLogin(idp, identifier, {
+      sub: unique('sub'),
+      email: `${unique('unv')}@example.com`,
+      email_verified: false,
+    })
+    expect(unverified.back.status).toBe(400)
+    expect(await unverified.back.text()).toMatch(/not verified/)
+    const username = await oidcLogin(idp, identifier, {
+      sub: unique('sub'),
+      preferred_username: `${unique('pu')}@example.com`,
+      upn: `${unique('upn')}@example.com`,
+    })
+    expect(username.back.status).toBe(400)
+    expect(await username.back.text()).toMatch(/did not return an email/)
   })
 
   it('links a signed-in account through the user identifier, only for the same email', async () => {
@@ -180,7 +271,11 @@ describe('SSO with OpenID Connect', () => {
     expect(bad.status).toBe(400)
     expect(await bad.text()).toMatch(/different email/)
 
-    const s = await startSso({ identifier, userIdentifier })
+    // The link token is single use.
+    const reused = await startSso({ identifier, userIdentifier })
+    expect(reused.res.status).toBe(400)
+    const fresh = await (await member.call('/api/accounts/sso/user-identifier')).text()
+    const s = await startSso({ identifier, userIdentifier: fresh })
     const ok = await callback(
       idp.authorize(s.location, { sub: unique('sub'), email: member.email }),
       s.cookie,
@@ -397,6 +492,25 @@ describe('SSO configuration', () => {
     expect(cfg.urls.callbackPath).toBe(`${BASE}/sso/oidc-signin`)
     expect(cfg.urls.spAcsUrl).toBe(`${BASE}/sso/saml2/${org.id}/Acs`)
     expect(cfg.data.clientId).toBe(idp.clientId)
+    // The client secret is never returned and is encrypted at rest.
+    expect(cfg.data.clientSecret).toBe('********')
+    const [stored] = await createDb(env.DB)
+      .select()
+      .from(schema.ssoConfigs)
+      .where(eq(schema.ssoConfigs.organizationUuid, org.id))
+    expect(stored?.data).not.toContain(idp.clientSecret)
+    // Saving the placeholder keeps the stored secret: logins still authenticate to the provider.
+    const resave = await owner.call(`/api/organizations/${org.id}/sso`, 'POST', {
+      enabled: true,
+      identifier,
+      data: cfg.data,
+    })
+    expect(resave.status).toBe(200)
+    const after = await oidcLogin(idp, identifier, {
+      sub: unique('sub'),
+      email: `${unique('resave')}@example.com`,
+    })
+    expect(after.token?.status).toBe(200)
 
     const bad = await owner.call(`/api/organizations/${org.id}/sso`, 'POST', {
       enabled: true,

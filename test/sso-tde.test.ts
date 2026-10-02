@@ -335,8 +335,13 @@ describe('Key Connector', () => {
     const { owner, org: o } = await org(1)
     const member = await actor(`${unique('conv')}@example.com`)
     await addMember(owner, o.id, member)
-    expect((await owner.call('/api/accounts/convert-to-key-connector', 'POST')).status).toBe(400)
-    expect((await member.call('/api/accounts/convert-to-key-connector', 'POST')).status).toBe(200)
+    const pw = { masterPasswordHash: 'client-derived-hash' }
+    expect((await owner.call('/api/accounts/convert-to-key-connector', 'POST', pw)).status).toBe(
+      400,
+    )
+    expect((await member.call('/api/accounts/convert-to-key-connector', 'POST', pw)).status).toBe(
+      200,
+    )
     const profile = await member.json('/api/accounts/profile')
     expect(profile.usesKeyConnector).toBe(true)
   })
@@ -381,8 +386,21 @@ describe('claimed domains', () => {
       expect.objectContaining({ organizationIdentifier: identifier, domainName: domain }),
     ])
 
-    // An existing account on the claimed domain may sign in with SSO without an invitation.
+    // An existing account on the claimed domain is not linked silently: it must join first.
     const claimed = await actor(`person@${domain}`)
+    const silent = await oidcLogin(idp, identifier, { sub: unique('sub'), email: claimed.email })
+    expect(silent.back.status).toBe(400)
+    // A new address on the claimed domain is provisioned and marked verified.
+    const jit = await oidcLogin(idp, identifier, {
+      sub: unique('sub'),
+      email: `new-${n}@${domain}`,
+    })
+    expect(jit.token?.status).toBe(200)
+    const jitProfile = (await (
+      await authedCall(jit.body.access_token, '/api/accounts/profile')
+    ).json()) as any
+    expect(jitProfile.emailVerified).toBe(true)
+    await addMember(owner, o.id, claimed)
     const r = await oidcLogin(idp, identifier, { sub: unique('sub'), email: claimed.email })
     expect(r.token?.status).toBe(200)
     const profile = await claimed.json('/api/accounts/profile')
@@ -395,10 +413,6 @@ describe('claimed domains', () => {
     ).toBe(400)
     const members = await owner.json(`/api/organizations/${o.id}/users`)
     const m = members.data.find((x: any) => x.email === claimed.email)
-    expect(
-      (await owner.call(`/api/organizations/${o.id}/users/${m.id}/confirm`, 'POST', { key: '4.k' }))
-        .status,
-    ).toBe(200)
     expect((await claimed.call(`/api/organizations/${o.id}/leave`, 'POST')).status).toBe(400)
 
     expect(m.claimedByOrganization).toBe(true)

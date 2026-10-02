@@ -5,7 +5,8 @@ import { z } from 'zod'
 import { signPurposeToken, verifyPurposeToken } from '../auth/purpose-token'
 import { normalizeEmail } from '../auth/users'
 import { createDb, type Db, runBatch, schema } from '../db'
-import { createEmailTransport, orgInviteEmail } from '../email'
+import { createEmailTransport, orgAcceptedEmail, orgConfirmedEmail, orgInviteEmail } from '../email'
+import { later, sendNotice } from '../email/send'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
 import {
@@ -331,8 +332,46 @@ orgUsers.post('/api/organizations/:orgId/users/:id/accept', async (c) => {
   } catch {
     throw new ApiError(400, 'You are already a member of this organization.')
   }
+  later(c, announceAccepted(c, orgUuid, user.email))
   return c.body(null, 200)
 })
+
+/** Tells the organisation's owners and admins that an invitation was accepted. */
+async function announceAccepted(c: Ctx, orgUuid: string, memberEmail: string) {
+  const db = createDb(c.env.DB)
+  const [org] = await db
+    .select({ name: schema.organizations.name })
+    .from(schema.organizations)
+    .where(eq(schema.organizations.uuid, orgUuid))
+    .limit(1)
+  if (!org) return
+  const admins = await db
+    .select({ email: schema.users.email })
+    .from(schema.usersOrganizations)
+    .innerJoin(schema.users, eq(schema.users.uuid, schema.usersOrganizations.userUuid))
+    .where(
+      and(
+        eq(schema.usersOrganizations.organizationUuid, orgUuid),
+        eq(schema.usersOrganizations.status, Status.Confirmed),
+        inArray(schema.usersOrganizations.atype, [Role.Owner, Role.Admin]),
+      ),
+    )
+  await Promise.all(
+    admins.map((a) => sendNotice(c.env, a.email, orgAcceptedEmail(org.name, memberEmail))),
+  )
+}
+
+/** Tells a member that they were confirmed. */
+async function announceConfirmed(c: Ctx, orgUuid: string, userUuid: string) {
+  const db = createDb(c.env.DB)
+  const [row] = await db
+    .select({ name: schema.organizations.name, email: schema.users.email })
+    .from(schema.organizations)
+    .innerJoin(schema.users, eq(schema.users.uuid, userUuid))
+    .where(eq(schema.organizations.uuid, orgUuid))
+    .limit(1)
+  if (row) await sendNotice(c.env, row.email, orgConfirmedEmail(row.name))
+}
 
 /** Statements that confirm one accepted member, or an error message. */
 async function confirmStatements(
@@ -391,7 +430,10 @@ orgUsers.post('/api/organizations/:orgId/users/confirm', async (c) => {
     }
   }
   await batch(db, statements)
-  for (const u of confirmed) notifyOrgKeys(c, u)
+  for (const u of confirmed) {
+    notifyOrgKeys(c, u)
+    later(c, announceConfirmed(c, org(c), u))
+  }
   return bulkOk(out, c)
 })
 
@@ -406,6 +448,7 @@ orgUsers.post('/api/organizations/:orgId/users/:id/confirm', async (c) => {
   if ('error' in r) throw new ApiError(r.error === 'User not found.' ? 404 : 400, r.error)
   await batch(db, r.statements)
   notifyOrgKeys(c, r.userUuid)
+  later(c, announceConfirmed(c, org(c), r.userUuid))
   return c.body(null, 200)
 })
 

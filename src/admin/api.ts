@@ -5,6 +5,7 @@ import { authenticateAccessToken, requireAuth } from '../auth/middleware'
 import type { EmailTransport } from '../email'
 import type { Bindings, Env } from '../env'
 import { ApiError, errorBody } from '../errors'
+import { relayStatus } from '../notifications/relay'
 import { isAdminUser, isPlausibleEmail, normaliseEmail, rateLimit } from './security'
 import {
   type Audit,
@@ -100,6 +101,7 @@ export function createAdminApi(deps: AdminApiDeps = {}) {
         dbRoundTripMs: d.dbRoundTripMs,
       },
       server: serverConfig(c.env, emailTransportFor(c.env, deps.emailTransport)),
+      push: relayStatus(c.env),
       pendingInvitations: d.pendingInvitations,
     })
   })

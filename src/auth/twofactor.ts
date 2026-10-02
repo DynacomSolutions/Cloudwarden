@@ -2,6 +2,8 @@ import { and, eq, inArray, isNull, lt, sql } from 'drizzle-orm'
 import type { Context } from 'hono'
 import type { Db } from '../db'
 import { createDb, runBatch, schema } from '../db'
+import { recoveryCodeUsedEmail } from '../email'
+import { later, sendNotice } from '../email/send'
 import type { Bindings, Env, User } from '../env'
 import { ApiError, oauthError } from '../errors'
 import { overLimit, tooManyRequests } from '../ratelimit'
@@ -556,7 +558,10 @@ export const enforceTwoFactor: TwoFactorHook = async (c, user, form) => {
 
   // The recovery code is accepted as provider 8: it spends the code, then login continues.
   if (provider === TwoFactorType.RecoveryCode) {
-    if (await useRecoveryCode(db, user, token)) return null
+    if (await useRecoveryCode(db, user, token)) {
+      later(c, sendNotice(c.env, user.email, recoveryCodeUsedEmail()))
+      return null
+    }
     return oauthError(c, 'invalid_grant', 'Recovery code is incorrect. Try again.')
   }
 

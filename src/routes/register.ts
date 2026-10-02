@@ -7,7 +7,8 @@ import { signingSecret, signJwt, verifyJwt } from '../auth/jwt'
 import { hashMasterPassword } from '../auth/passwords'
 import { findUserByEmail, normalizeEmail } from '../auth/users'
 import { createDb, type Db, runBatch, schema } from '../db'
-import { createEmailTransport, genericEmail } from '../email'
+import { createEmailTransport, genericEmail, welcomeEmail } from '../email'
+import { later, sendNotice, vaultBase } from '../email/send'
 import type { Bindings, Env } from '../env'
 import { ApiError } from '../errors'
 import { rateLimit } from '../ratelimit'
@@ -147,6 +148,7 @@ async function createAccount(c: import('hono').Context<Env>) {
     // Lost a race with a concurrent registration of the same address.
     throw new ApiError(400, 'Email is already registered.')
   }
+  later(c, sendNotice(c.env, email, welcomeEmail(vaultBase(c.env))))
   return c.json({ object: 'register', captchaBypassToken: '' })
 }
 

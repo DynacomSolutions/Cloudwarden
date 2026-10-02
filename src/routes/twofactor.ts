@@ -37,7 +37,13 @@ import {
   WebAuthnError,
 } from '../auth/webauthn'
 import { createDb, runBatch, schema } from '../db'
-import { createEmailTransport, twoFactorCodeEmail } from '../email'
+import {
+  createEmailTransport,
+  recoveryCodeUsedEmail,
+  twoFactorChangedEmail,
+  twoFactorCodeEmail,
+} from '../email'
+import { later, sendNotice } from '../email/send'
 import type { Env, User } from '../env'
 import { ApiError } from '../errors'
 import { overLimit, rateLimit, tooManyRequests } from '../ratelimit'
@@ -84,6 +90,24 @@ twofactor.get('/api/two-factor', requireAuth, async (c) => {
   })
 })
 
+const PROVIDER_NAMES: Record<number, string> = {
+  [TwoFactorType.Authenticator]: 'an authenticator app',
+  [TwoFactorType.Email]: 'email',
+  [TwoFactorType.WebAuthn]: 'a security key',
+}
+
+/** Tells the account owner that two-step login changed (best effort, after the response). */
+function announceChange(c: Ctx, user: User, change: 'enabled' | 'disabled', type: number) {
+  later(
+    c,
+    sendNotice(
+      c.env,
+      user.email,
+      twoFactorChangedEmail(change, PROVIDER_NAMES[type] ?? 'another provider'),
+    ),
+  )
+}
+
 async function removeProvider(c: Ctx, user: User, type: number) {
   const db = createDb(c.env.DB)
   await runBatch(db, [
@@ -92,6 +116,7 @@ async function removeProvider(c: Ctx, user: User, type: number) {
       .where(and(eq(schema.twofactor.userUuid, user.uuid), eq(schema.twofactor.atype, type))),
     clearRememberStatement(db, user.uuid),
   ])
+  announceChange(c, user, 'disabled', type)
 }
 
 twofactor.post('/api/two-factor/disable', requireAuth, async (c) => {
@@ -132,6 +157,7 @@ const putAuthenticator = async (c: Ctx) => {
     db,
     enableProviderStatements(db, user, TwoFactorType.Authenticator, { key }, { lastUsed: step }),
   )
+  announceChange(c, user, 'enabled', TwoFactorType.Authenticator)
   return c.json({ authenticator: { enabled: true, key } })
 }
 twofactor.put('/api/two-factor/authenticator', requireAuth, putAuthenticator)
@@ -176,6 +202,7 @@ const recover = async (c: Ctx) => {
   if (!user || !spent || !user.enabled) {
     throw new ApiError(400, 'Recovery code is incorrect. Try again.')
   }
+  later(c, sendNotice(c.env, user.email, recoveryCodeUsedEmail()))
   return c.body(null, 200)
 }
 twofactor.post('/api/two-factor/recover', recover)
@@ -236,6 +263,7 @@ const putEmail = async (c: Ctx) => {
     db,
     enableProviderStatements(db, user, TwoFactorType.Email, { email, attempts: 0 }),
   )
+  announceChange(c, user, 'enabled', TwoFactorType.Email)
   return c.json({ email: { enabled: true, email } })
 }
 twofactor.put('/api/two-factor/email', requireAuth, putEmail)
@@ -367,6 +395,7 @@ const putWebAuthn = async (c: Ctx) => {
       },
     ),
   )
+  if (!row?.enabled) announceChange(c, user, 'enabled', TwoFactorType.WebAuthn)
   return c.json({ webAuthn: keysJson({ credentials }) })
 }
 twofactor.put('/api/two-factor/webauthn', requireAuth, putWebAuthn)

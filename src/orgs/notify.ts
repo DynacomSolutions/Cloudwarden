@@ -3,6 +3,7 @@ import type { Context, MiddlewareHandler } from 'hono'
 import { createDb, type Db, schema } from '../db'
 import type { Env } from '../env'
 import { PushType, pushUserUpdate } from '../notifications/publish'
+import { relayRefreshUser } from '../notifications/relay'
 import { loadUserAccess } from './access'
 import { itemAccess, linkedCollections } from './ciphers'
 import { Status } from './constants'
@@ -122,8 +123,11 @@ export const notifyVaultChanged = (c: Ctx, members: string[], revision = Date.no
   pushMany(c, members, PushType.SyncVault, revision)
 
 /** A member was confirmed and now holds the organisation key. */
-export const notifyOrgKeys = (c: Ctx, userUuid: string, revision = Date.now()) =>
+export const notifyOrgKeys = (c: Ctx, userUuid: string, revision = Date.now()) => {
   pushMany(c, [userUuid], PushType.SyncOrgKeys, revision)
+  // The relay targets organisation pushes by the organisation ids stored with each device.
+  defer(c, relayRefreshUser(c.env, userUuid))
+}
 
 /**
  * Announces any successful organisation write (collections, groups, policies, members, settings)
@@ -150,5 +154,11 @@ export const orgChangeNotifier: MiddlewareHandler<Env> = async (c, next) => {
   if (!write || !orgUuid || !c.req.header('Authorization')) return next()
   const members = await activeMemberIds(createDb(c.env.DB), orgUuid).catch(() => [])
   await next()
-  if (c.res.ok && members.length > 0) notifyVaultChanged(c, members)
+  if (c.res.ok && members.length > 0) {
+    notifyVaultChanged(c, members)
+    // Membership changes (remove, revoke, leave, delete) alter relay organisation targeting.
+    if (/\/(users|leave|delete)(\/|$)/.test(c.req.path) || c.req.method === 'DELETE') {
+      for (const uuid of members.slice(0, 200)) defer(c, relayRefreshUser(c.env, uuid))
+    }
+  }
 }

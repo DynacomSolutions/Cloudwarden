@@ -5,8 +5,10 @@ import { fromB64u } from '../auth/crypto'
 import { requireAuth } from '../auth/middleware'
 import { findUserByEmail } from '../auth/users'
 import { createDb, schema } from '../db'
+import { later } from '../email/send'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
+import { relayDeleteDevice, relayRegisterDevice } from '../notifications/relay'
 import { rateLimit } from '../ratelimit'
 import { parseBody } from '../validation'
 
@@ -72,6 +74,17 @@ const setToken = async (c: import('hono').Context<Env>) => {
     .update(schema.devices)
     .set({ pushToken: pushToken ?? null, updatedAt: Date.now() })
     .where(eq(schema.devices.uuid, row.uuid))
+  // Mobile devices tell the relay where to push; clearing the token removes the registration.
+  later(
+    c,
+    relayRegisterDevice(c.env, {
+      uuid: row.uuid,
+      identifier: row.identifier,
+      type: row.type,
+      pushToken: pushToken ?? null,
+      userUuid: row.userUuid,
+    }),
+  )
   return c.body(null, 204)
 }
 devices.put('/api/devices/identifier/:identifier/token', requireAuth, setToken)
@@ -80,6 +93,16 @@ devices.post('/api/devices/identifier/:identifier/token', requireAuth, setToken)
 const deactivate = async (c: import('hono').Context<Env>) => {
   const row = await ownDevice(c, eq(schema.devices.uuid, c.req.param('id') ?? ''))
   await createDb(c.env.DB).delete(schema.devices).where(eq(schema.devices.uuid, row.uuid))
+  later(
+    c,
+    relayDeleteDevice(c.env, {
+      uuid: row.uuid,
+      identifier: row.identifier,
+      type: row.type,
+      pushToken: row.pushToken,
+      userUuid: row.userUuid,
+    }),
+  )
   return c.body(null, 200)
 }
 devices.delete('/api/devices/:id', requireAuth, deactivate)

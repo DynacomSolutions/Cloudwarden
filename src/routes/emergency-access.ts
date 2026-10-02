@@ -7,7 +7,16 @@ import { signPurposeToken, verifyPurposeToken } from '../auth/purpose-token'
 import { stampRotationStatements } from '../auth/session'
 import { normalizeEmail } from '../auth/users'
 import { createDb, type Db, schema } from '../db'
-import { createEmailTransport, emergencyInviteEmail, genericEmail } from '../email'
+import {
+  createEmailTransport,
+  emergencyAcceptedEmail,
+  emergencyApprovedEmail,
+  emergencyConfirmedEmail,
+  emergencyInviteEmail,
+  emergencyRejectedEmail,
+  genericEmail,
+} from '../email'
+import { later, sendNotice } from '../email/send'
 import type { Env, User } from '../env'
 import { ApiError } from '../errors'
 import { PolicyType, Role } from '../orgs/constants'
@@ -74,6 +83,20 @@ async function asGrantee(c: Ctx): Promise<{ db: Db; row: Row }> {
   const row = await loadRow(db, idParam(c))
   if (row.granteeUuid !== c.var.user.uuid) throw new ApiError(404, 'Emergency access not found.')
   return { db, row }
+}
+
+const grantorLabel = (u: User) => u.name || u.email
+
+/** Mails one user a notice built on demand; never throws. */
+async function tellUser(
+  c: Ctx,
+  db: Db,
+  uuid: string | null,
+  template: () => { subject: string; text: string; html: string },
+) {
+  if (!uuid) return
+  const user = await userByUuid(db, uuid)
+  if (user) await sendNotice(c.env, user.email, template())
 }
 
 async function userByUuid(db: Db, uuid: string): Promise<User | undefined> {
@@ -219,6 +242,7 @@ emergencyAccess.post('/api/emergency-access/invite', async (c) => {
     status: EmergencyStatus.Invited,
     waitTimeDays: body.waitTimeDays,
     recoveryInitiatedAt: null,
+    recoveryNotifiedAt: null,
     createdAt: now,
     updatedAt: now,
   }
@@ -267,6 +291,10 @@ emergencyAccess.post('/api/emergency-access/:id/accept', async (c) => {
       .set({ granteeUuid: user.uuid, status: EmergencyStatus.Accepted, updatedAt: Date.now() })
       .where(eq(schema.emergencyAccess.uuid, row.uuid)),
   ])
+  later(
+    c,
+    tellUser(c, db, row.grantorUuid, () => emergencyAcceptedEmail(user.email)),
+  )
   return c.body(null, 200)
 })
 
@@ -282,6 +310,10 @@ emergencyAccess.post('/api/emergency-access/:id/confirm', async (c) => {
       .set({ status: EmergencyStatus.Confirmed, keyEncrypted: key, updatedAt: Date.now() })
       .where(eq(schema.emergencyAccess.uuid, row.uuid)),
   ])
+  later(
+    c,
+    tellUser(c, db, row.granteeUuid, () => emergencyConfirmedEmail(grantorLabel(c.var.user))),
+  )
   return c.body(null, 200)
 })
 
@@ -363,7 +395,12 @@ emergencyAccess.post('/api/emergency-access/:id/initiate', async (c) => {
   await batch(db, [
     db
       .update(schema.emergencyAccess)
-      .set({ status: EmergencyStatus.RecoveryInitiated, recoveryInitiatedAt: now, updatedAt: now })
+      .set({
+        status: EmergencyStatus.RecoveryInitiated,
+        recoveryInitiatedAt: now,
+        recoveryNotifiedAt: null,
+        updatedAt: now,
+      })
       .where(eq(schema.emergencyAccess.uuid, row.uuid)),
   ])
   const grantor = await userByUuid(db, row.grantorUuid)
@@ -394,6 +431,10 @@ emergencyAccess.post('/api/emergency-access/:id/approve', async (c) => {
       .set({ status: EmergencyStatus.RecoveryApproved, updatedAt: Date.now() })
       .where(eq(schema.emergencyAccess.uuid, row.uuid)),
   ])
+  later(
+    c,
+    tellUser(c, db, row.granteeUuid, () => emergencyApprovedEmail(grantorLabel(c.var.user), false)),
+  )
   return c.body(null, 200)
 })
 
@@ -409,6 +450,10 @@ emergencyAccess.post('/api/emergency-access/:id/reject', async (c) => {
       .set({ status: EmergencyStatus.Confirmed, recoveryInitiatedAt: null, updatedAt: Date.now() })
       .where(eq(schema.emergencyAccess.uuid, row.uuid)),
   ])
+  later(
+    c,
+    tellUser(c, db, row.granteeUuid, () => emergencyRejectedEmail(grantorLabel(c.var.user))),
+  )
   return c.body(null, 200)
 })
 

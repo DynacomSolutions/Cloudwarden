@@ -30,8 +30,8 @@ Directory Connector, SCIM, event integrations; G this audit.
 | | Rows |
 |---|---|
 | Distinct method and path pairs | 625 |
-| Implemented (including self-host answers) | 319 |
-| Owned by workstreams A to F, not yet implemented | 102 |
+| Implemented (including self-host answers) | 328 |
+| Owned by workstreams A to F, not yet implemented | 93 |
 | Remaining for G | 112 |
 | Not called by any client (SDK-generated only) | 92 |
 
@@ -429,9 +429,9 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/organizations/{id}/subscription` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/{id}/subscription` | sdk, web | missing | G |  |
 | GET | `/api/organizations/{orgId}/two-factor` | sdk, web | implemented |  |  |
-| DELETE | `/api/organizations/{orgId}/two-factor/duo` | sdk, web | missing | D |  |
-| PUT | `/api/organizations/{orgId}/two-factor/duo` | sdk, web | missing | D |  |
-| POST | `/api/organizations/{orgId}/two-factor/get-duo` | sdk, web | missing | D |  |
+| DELETE | `/api/organizations/{orgId}/two-factor/duo` | sdk, web | implemented | D |  |
+| PUT | `/api/organizations/{orgId}/two-factor/duo` | sdk, web | implemented | D |  |
+| POST | `/api/organizations/{orgId}/two-factor/get-duo` | sdk, web | implemented | D |  |
 | POST | `/api/organizations/{id}/upgrade` | sdk, web | missing | G |  |
 | DELETE | `/api/organizations/{orgId}/users` | sdk, web | implemented |  |  |
 | GET | `/api/organizations/{orgId}/users` | cli, sdk, web | implemented |  |  |
@@ -618,24 +618,24 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/two-factor` | sdk, web | implemented |  |  |
 | DELETE | `/api/two-factor/authenticator` | sdk, web | implemented |  |  |
 | PUT | `/api/two-factor/authenticator` | sdk, web | implemented |  |  |
-| DELETE | `/api/two-factor/duo` | sdk, web | missing | D |  |
-| PUT | `/api/two-factor/duo` | sdk, web | missing | D |  |
+| DELETE | `/api/two-factor/duo` | sdk, web | implemented | D |  |
+| PUT | `/api/two-factor/duo` | sdk, web | implemented | D |  |
 | DELETE | `/api/two-factor/email` | sdk, web | implemented |  |  |
 | PUT | `/api/two-factor/email` | sdk, web | implemented |  |  |
 | POST | `/api/two-factor/get-authenticator` | sdk, web | implemented |  |  |
-| POST | `/api/two-factor/get-duo` | sdk, web | missing | D |  |
+| POST | `/api/two-factor/get-duo` | sdk, web | implemented | D |  |
 | POST | `/api/two-factor/get-email` | sdk, web | implemented |  |  |
 | POST | `/api/two-factor/get-recover` | sdk, web | implemented |  |  |
 | POST | `/api/two-factor/get-webauthn` | sdk, web | implemented |  |  |
 | POST | `/api/two-factor/get-webauthn-challenge` | web | implemented |  |  |
-| POST | `/api/two-factor/get-yubikey` | sdk, web | missing | D |  |
+| POST | `/api/two-factor/get-yubikey` | sdk, web | implemented | D |  |
 | POST | `/api/two-factor/send-email` | sdk, web | implemented |  |  |
 | POST | `/api/two-factor/send-email-login` | android, cli, ios, sdk, web | implemented |  |  |
 | DELETE | `/api/two-factor/webauthn` | sdk, web | implemented |  |  |
 | PUT | `/api/two-factor/webauthn` | sdk, web | implemented |  |  |
 | DELETE | `/api/two-factor/webauthn/all` | sdk, web | implemented |  |  |
-| DELETE | `/api/two-factor/yubikey` | sdk, web | missing | D |  |
-| PUT | `/api/two-factor/yubikey` | sdk, web | missing | D |  |
+| DELETE | `/api/two-factor/yubikey` | sdk, web | implemented | D |  |
+| PUT | `/api/two-factor/yubikey` | sdk, web | implemented | D |  |
 | GET | `/api/users/{id}/keys` | sdk, web | implemented |  |  |
 | GET | `/api/users/{id}/public-key` | cli, sdk, web | implemented |  |  |
 | GET | `/api/webauthn` | sdk, web | implemented |  |  |

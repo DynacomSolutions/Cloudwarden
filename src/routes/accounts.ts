@@ -505,7 +505,7 @@ async function recoveryRotation(
 ) {
   const uo = schema.usersOrganizations
   const enrolled = await db
-    .select({ uuid: uo.uuid, org: uo.organizationUuid })
+    .select({ uuid: uo.uuid, orgUuid: uo.organizationUuid })
     .from(uo)
     .where(and(eq(uo.userUuid, userUuid), isNotNull(uo.resetPasswordKey)))
   const now = Date.now()
@@ -518,14 +518,14 @@ async function recoveryRotation(
   if (
     byOrg.size !== given.length ||
     byOrg.size !== enrolled.length ||
-    enrolled.some((m) => !byOrg.has(m.org))
+    enrolled.some((m) => !byOrg.has(m.orgUuid))
   ) {
     throw new ApiError(400, 'Rotation must include every account recovery enrolment exactly once.')
   }
   return enrolled.map((m) =>
     db
       .update(uo)
-      .set({ resetPasswordKey: byOrg.get(m.org) as string, updatedAt: now })
+      .set({ resetPasswordKey: byOrg.get(m.orgUuid) as string, updatedAt: now })
       .where(and(eq(uo.uuid, m.uuid), isNotNull(uo.resetPasswordKey))),
   )
 }

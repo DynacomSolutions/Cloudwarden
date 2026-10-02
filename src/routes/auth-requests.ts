@@ -330,7 +330,7 @@ authRequests.post('/api/auth-requests/admin-request', requireAuth, async (c) => 
       eventStatement(db, c, {
         type: EventType.UserRequestedDeviceApproval,
         userUuid: user.uuid,
-        organizationUuid: o.org,
+        organizationUuid: o.orgUuid,
         organizationUserUuid: o.member,
       }),
     ),
@@ -343,7 +343,7 @@ authRequests.post('/api/auth-requests/admin-request', requireAuth, async (c) => 
 async function approvalOrganizations(db: ReturnType<typeof createDb>, userUuid: string) {
   const uo = schema.usersOrganizations
   const rows = await db
-    .select({ org: uo.organizationUuid, member: uo.uuid, name: schema.organizations.name })
+    .select({ orgUuid: uo.organizationUuid, member: uo.uuid, name: schema.organizations.name })
     .from(uo)
     .innerJoin(schema.organizations, eq(schema.organizations.uuid, uo.organizationUuid))
     .innerJoin(
@@ -367,7 +367,7 @@ async function approvalOrganizations(db: ReturnType<typeof createDb>, userUuid: 
 /** Emails the members who can approve devices (owners, admins, custom with account recovery). */
 async function notifyApprovers(
   c: import('hono').Context<Env>,
-  orgs: { org: string; name: string }[],
+  orgs: { orgUuid: string; name: string }[],
   requester: string,
 ) {
   const transport = createEmailTransport(c.env)
@@ -379,7 +379,7 @@ async function notifyApprovers(
       .select({ m: schema.usersOrganizations, email: schema.users.email })
       .from(schema.usersOrganizations)
       .innerJoin(schema.users, eq(schema.users.uuid, schema.usersOrganizations.userUuid))
-      .where(eq(schema.usersOrganizations.organizationUuid, o.org))
+      .where(eq(schema.usersOrganizations.organizationUuid, o.orgUuid))
     for (const r of members.filter((x) => can(x.m, 'manageResetPassword'))) {
       const lines = [
         `${requester} asked to sign in on a new device and needs approval from an administrator of ${o.name}.`,

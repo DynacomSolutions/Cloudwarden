@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "6c9203cd-d2e3-4f6a-8585-09420d261669",
-  "prevId": "01b00af7-6cb0-4ca4-ae5a-c9317dd84fff",
+  "id": "a470f698-323a-4742-9e2d-bd3948f9e8b9",
+  "prevId": "89638427-5c7b-4fa7-8087-33e1ed567390",
   "tables": {
     "admin_rate_limits": {
       "name": "admin_rate_limits",
@@ -1460,6 +1460,51 @@
           "name": "groups_users_group_uuid_organization_user_uuid_pk"
         }
       },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "instance_settings": {
+      "name": "instance_settings",
+      "columns": {
+        "key": {
+          "name": "key",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "config": {
+          "name": "config",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "sealed_secrets": {
+          "name": "sealed_secrets",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
@@ -3225,6 +3270,107 @@
             "uuid"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "sm_secret_versions": {
+      "name": "sm_secret_versions",
+      "columns": {
+        "uuid": {
+          "name": "uuid",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "secret_uuid": {
+          "name": "secret_uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "version_date": {
+          "name": "version_date",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "editor_service_account_uuid": {
+          "name": "editor_service_account_uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "editor_organization_user_uuid": {
+          "name": "editor_organization_user_uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "sm_secret_versions_secret_idx": {
+          "name": "sm_secret_versions_secret_idx",
+          "columns": [
+            "secret_uuid",
+            "version_date"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "sm_secret_versions_secret_uuid_sm_secrets_uuid_fk": {
+          "name": "sm_secret_versions_secret_uuid_sm_secrets_uuid_fk",
+          "tableFrom": "sm_secret_versions",
+          "tableTo": "sm_secrets",
+          "columnsFrom": [
+            "secret_uuid"
+          ],
+          "columnsTo": [
+            "uuid"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "sm_secret_versions_editor_service_account_uuid_sm_service_accounts_uuid_fk": {
+          "name": "sm_secret_versions_editor_service_account_uuid_sm_service_accounts_uuid_fk",
+          "tableFrom": "sm_secret_versions",
+          "tableTo": "sm_service_accounts",
+          "columnsFrom": [
+            "editor_service_account_uuid"
+          ],
+          "columnsTo": [
+            "uuid"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "sm_secret_versions_editor_organization_user_uuid_users_organizations_uuid_fk": {
+          "name": "sm_secret_versions_editor_organization_user_uuid_users_organizations_uuid_fk",
+          "tableFrom": "sm_secret_versions",
+          "tableTo": "users_organizations",
+          "columnsFrom": [
+            "editor_organization_user_uuid"
+          ],
+          "columnsTo": [
+            "uuid"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },

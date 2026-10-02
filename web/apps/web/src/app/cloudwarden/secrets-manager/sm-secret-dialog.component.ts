@@ -14,8 +14,9 @@ import {
 
 import { SharedModule } from "../../shared";
 
-import { SmApiService, SmProject } from "./sm-api.service";
+import { SmApiService, SmProject, SmSecretAccess } from "./sm-api.service";
 import { toastError, toastSuccess } from "./sm-dialogs";
+import { SmSecretAccessComponent } from "./sm-secret-access.component";
 import { SmSecretVersionsDialogComponent } from "./sm-secret-versions-dialog.component";
 
 export interface SecretDialogData {
@@ -31,7 +32,7 @@ export interface SecretDialogData {
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SharedModule, CopyClickDirective],
+  imports: [SharedModule, CopyClickDirective, SmSecretAccessComponent],
   template: `
     <form [formGroup]="form" (ngSubmit)="save()">
       <bit-dialog [title]="title()" [loading]="loading()">
@@ -92,6 +93,15 @@ export interface SecretDialogData {
               }
             </bit-select>
           </bit-form-field>
+          @if (!loading()) {
+            <h3 bitTypography="h4" class="tw-mt-4">{{ "cwSmSecretAccess" | i18n }}</h3>
+            <cw-sm-secret-access
+              [organizationId]="data.organizationId"
+              [secretId]="data.secretId ?? null"
+              [canEdit]="canWrite()"
+              (accessChange)="access = $event"
+            ></cw-sm-secret-access>
+          }
           @if (!canWrite()) {
             <bit-callout type="info">{{ "cwSmReadOnly" | i18n }}</bit-callout>
           }
@@ -135,6 +145,8 @@ export class SmSecretDialogComponent implements OnInit {
   private readonly i18n = inject(I18nService);
   private readonly dialogs = inject(DialogService);
   protected changedByRestore = false;
+  /** Set once the user edits direct access; sent with the secret. */
+  protected access: SmSecretAccess | undefined;
 
   protected readonly loading = signal(!!this.data.secretId);
   protected readonly saving = signal(false);
@@ -219,9 +231,14 @@ export class SmSecretDialogComponent implements OnInit {
     this.saving.set(true);
     try {
       if (this.data.secretId) {
-        await this.api.updateSecret(this.data.organizationId, this.data.secretId, body);
+        await this.api.updateSecret(
+          this.data.organizationId,
+          this.data.secretId,
+          body,
+          this.access,
+        );
       } else {
-        await this.api.createSecret(this.data.organizationId, body);
+        await this.api.createSecret(this.data.organizationId, body, this.access);
       }
       toastSuccess(this.toast, this.i18n.t("cwSmSecretSaved"));
       this.ref.close(true);

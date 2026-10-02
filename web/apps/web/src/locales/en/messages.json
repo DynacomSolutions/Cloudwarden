@@ -18686,5 +18686,65 @@
         "content": "$1"
       }
     }
+  },
+  "cwSmSecretAccess": {
+    "message": "Access"
+  },
+  "cwSmSecretAccessDesc": {
+    "message": "Members, groups and machine accounts with access to this secret directly. Access through its project applies as well."
+  },
+  "cwSmNoSecretAccess": {
+    "message": "No direct access is set. Only owners, admins and people with access through the project can see this secret."
+  },
+  "cwSmNoEvents": {
+    "message": "No activity recorded for this machine account."
+  },
+  "cwSmEventTarget": {
+    "message": "Item"
+  },
+  "cwSmEventSecretRetrieved": {
+    "message": "Secret read"
+  },
+  "cwSmEventSecretCreated": {
+    "message": "Secret created"
+  },
+  "cwSmEventSecretEdited": {
+    "message": "Secret edited"
+  },
+  "cwSmEventSecretDeleted": {
+    "message": "Secret deleted"
+  },
+  "cwSmEventProjectCreated": {
+    "message": "Project created"
+  },
+  "cwSmEventProjectEdited": {
+    "message": "Project edited"
+  },
+  "cwSmEventProjectDeleted": {
+    "message": "Project deleted"
+  },
+  "cwSmEventUserAdded": {
+    "message": "Member added to the machine account"
+  },
+  "cwSmEventUserRemoved": {
+    "message": "Member removed from the machine account"
+  },
+  "cwSmEventGroupAdded": {
+    "message": "Group added to the machine account"
+  },
+  "cwSmEventGroupRemoved": {
+    "message": "Group removed from the machine account"
+  },
+  "cwSmEventMachineCreated": {
+    "message": "Machine account created"
+  },
+  "cwSmEventMachineDeleted": {
+    "message": "Machine account deleted"
+  },
+  "cwSmEventOther": {
+    "message": "Other activity"
+  },
+  "cwSmEvents": {
+    "message": "Events"
   }
 }

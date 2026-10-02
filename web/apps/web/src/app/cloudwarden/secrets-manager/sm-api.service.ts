@@ -84,6 +84,35 @@ export interface SmPeoplePolicy {
   write: boolean;
 }
 
+export interface SmMachinePolicy {
+  id: string;
+  name: string;
+  read: boolean;
+  write: boolean;
+}
+
+/** Direct access policies on one secret: members, groups and machine accounts. */
+export interface SmSecretAccess {
+  people: SmPeoplePolicy[];
+  machines: SmMachinePolicy[];
+}
+
+export interface SmEvent {
+  type: number;
+  date: string;
+  secretId: string | null;
+  projectId: string | null;
+  serviceAccountId: string | null;
+  grantedServiceAccountId: string | null;
+  actingUserId: string | null;
+  ipAddress: string | null;
+}
+
+export interface SmEventPage {
+  events: SmEvent[];
+  continuationToken: string | null;
+}
+
 export interface SmGrantee {
   kind: "user" | "group" | "serviceAccount" | "project";
   id: string;
@@ -270,22 +299,94 @@ export class SmApiService {
     };
   }
 
+  /** The request part that replaces a secret's direct policies; absent when unchanged. */
+  private accessBody(access: SmSecretAccess | undefined) {
+    if (!access) {
+      return {};
+    }
+    return {
+      accessPoliciesRequests: {
+        ...this.peopleBody(access.people),
+        serviceAccountAccessPolicyRequests: access.machines.map((m) => ({
+          granteeId: m.id,
+          read: m.read || m.write,
+          write: m.write,
+        })),
+      },
+    };
+  }
+
   async createSecret(
     orgId: string,
     s: { key: string; value: string; note: string; projectId: string | null },
+    access?: SmSecretAccess,
   ): Promise<{ id: string }> {
-    return this.send("POST", `/organizations/${orgId}/secrets`, await this.secretBody(orgId, s));
+    return this.send("POST", `/organizations/${orgId}/secrets`, {
+      ...(await this.secretBody(orgId, s)),
+      ...this.accessBody(access),
+    });
   }
 
   async updateSecret(
     orgId: string,
     id: string,
     s: { key: string; value: string; note: string; projectId: string | null },
+    access?: SmSecretAccess,
   ): Promise<{ id: string }> {
     return this.send("PUT", `/secrets/${id}`, {
       ...(await this.secretBody(orgId, s)),
+      ...this.accessBody(access),
       valueChanged: true,
     });
+  }
+
+  async getSecretAccess(orgId: string, secretId: string): Promise<SmSecretAccess> {
+    const r = await this.send("GET", `/secrets/${secretId}/access-policies`);
+    return {
+      people: this.peoplePolicies(r),
+      machines: await Promise.all(
+        ((r.serviceAccountAccessPolicies ?? []) as Raw[]).map(async (p) => ({
+          id: p.serviceAccountId as string,
+          name: await this.decrypt(orgId, p.serviceAccountName),
+          read: p.read as boolean,
+          write: p.write as boolean,
+        })),
+      ),
+    };
+  }
+
+  /** Machine accounts the caller can see, for the access picker. */
+  async machineGrantees(orgId: string): Promise<{ id: string; name: string }[]> {
+    const r = await this.send(
+      "GET",
+      `/organizations/${orgId}/access-policies/service-accounts/potential-grantees`,
+    );
+    return Promise.all(
+      (r.data as Raw[]).map(async (g) => ({
+        id: g.id as string,
+        name: await this.decrypt(orgId, g.name),
+      })),
+    );
+  }
+
+  // ----- events -----
+
+  async listMachineAccountEvents(saId: string, continuationToken?: string): Promise<SmEventPage> {
+    const q = continuationToken ? `?continuationToken=${encodeURIComponent(continuationToken)}` : "";
+    const r = await this.send("GET", `/sm/events/service-accounts/${saId}${q}`);
+    return {
+      events: (r.data as Raw[]).map((e) => ({
+        type: e.type,
+        date: e.date,
+        secretId: e.secretId ?? null,
+        projectId: e.projectId ?? null,
+        serviceAccountId: e.serviceAccountId ?? null,
+        grantedServiceAccountId: e.grantedServiceAccountId ?? null,
+        actingUserId: e.actingUserId ?? null,
+        ipAddress: e.ipAddress ?? null,
+      })),
+      continuationToken: r.continuationToken ?? null,
+    };
   }
 
   async deleteSecrets(ids: string[]): Promise<SmBulkResult[]> {

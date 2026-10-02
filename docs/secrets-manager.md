@@ -239,7 +239,11 @@ Shapes come from `apis/secret_versions_api.rs`, `apis/secrets_manager_porting_ap
   encrypted: store it safely), and Import, which reads such a file in the browser, validates it
   (ids, sizes, at most one project per secret, links inside the file, at most 5000 of each),
   shows a summary, encrypts with the organisation key and posts it. Loose secrets are blocked
-  for non-admins before sending. Specs: `sm-import.spec.ts`,
+  for non-admins before sending. The secret dialog also has an "Access" section: direct policies of
+  members, groups and machine accounts on that secret (read from `GET /secrets/{id}/access-policies`,
+  written with the secret through `accessPoliciesRequests`, as the contract does; there is no
+  separate write endpoint). A machine account page has an "Events" tab listing
+  `GET /sm/events/service-accounts/{id}` with paging. Specs: `sm-access-events.spec.ts`, `sm-import.spec.ts`,
   `sm-secret-versions-dialog.component.spec.ts`, `sm-secrets-page.spec.ts`.
 
 ## Not implemented (deferred)

@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "a470f698-323a-4742-9e2d-bd3948f9e8b9",
-  "prevId": "89638427-5c7b-4fa7-8087-33e1ed567390",
+  "id": "3df6ffa9-1a9d-4f8e-b62d-6a7fcf93988e",
+  "prevId": "f92e6b94-294e-408b-ac2e-22d59fe532f2",
   "tables": {
     "admin_rate_limits": {
       "name": "admin_rate_limits",
@@ -4823,6 +4823,764 @@
           "tableTo": "users",
           "columnsFrom": [
             "user_uuid"
+          ],
+          "columnsTo": [
+            "uuid"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "federation_identity": {
+      "name": "federation_identity",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "instance_id": {
+          "name": "instance_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "public_key": {
+          "name": "public_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "private_key_enc": {
+          "name": "private_key_enc",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "federation_invitations": {
+      "name": "federation_invitations",
+      "columns": {
+        "uuid": {
+          "name": "uuid",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "peer_uuid": {
+          "name": "peer_uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "remote_member_uuid": {
+          "name": "remote_member_uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "organization_uuid": {
+          "name": "organization_uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "organization_name": {
+          "name": "organization_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "inviter_email": {
+          "name": "inviter_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "user_uuid": {
+          "name": "user_uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "federation_invitations_remote_unique": {
+          "name": "federation_invitations_remote_unique",
+          "columns": [
+            "peer_uuid",
+            "remote_member_uuid"
+          ],
+          "isUnique": true
+        },
+        "federation_invitations_user_idx": {
+          "name": "federation_invitations_user_idx",
+          "columns": [
+            "user_uuid"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "federation_invitations_peer_uuid_federation_peers_uuid_fk": {
+          "name": "federation_invitations_peer_uuid_federation_peers_uuid_fk",
+          "tableFrom": "federation_invitations",
+          "tableTo": "federation_peers",
+          "columnsFrom": [
+            "peer_uuid"
+          ],
+          "columnsTo": [
+            "uuid"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "federation_invitations_user_uuid_users_uuid_fk": {
+          "name": "federation_invitations_user_uuid_users_uuid_fk",
+          "tableFrom": "federation_invitations",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_uuid"
+          ],
+          "columnsTo": [
+            "uuid"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "federation_item_folders": {
+      "name": "federation_item_folders",
+      "columns": {
+        "user_uuid": {
+          "name": "user_uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "cipher_uuid": {
+          "name": "cipher_uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "folder_uuid": {
+          "name": "folder_uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "federation_item_folders_user_uuid_users_uuid_fk": {
+          "name": "federation_item_folders_user_uuid_users_uuid_fk",
+          "tableFrom": "federation_item_folders",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_uuid"
+          ],
+          "columnsTo": [
+            "uuid"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "federation_item_folders_folder_uuid_folders_uuid_fk": {
+          "name": "federation_item_folders_folder_uuid_folders_uuid_fk",
+          "tableFrom": "federation_item_folders",
+          "tableTo": "folders",
+          "columnsFrom": [
+            "folder_uuid"
+          ],
+          "columnsTo": [
+            "uuid"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "federation_item_folders_user_uuid_cipher_uuid_pk": {
+          "columns": [
+            "user_uuid",
+            "cipher_uuid"
+          ],
+          "name": "federation_item_folders_user_uuid_cipher_uuid_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "federation_members": {
+      "name": "federation_members",
+      "columns": {
+        "organization_user_uuid": {
+          "name": "organization_user_uuid",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "peer_uuid": {
+          "name": "peer_uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "remote_email": {
+          "name": "remote_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "remote_user_uuid": {
+          "name": "remote_user_uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "federation_members_peer_idx": {
+          "name": "federation_members_peer_idx",
+          "columns": [
+            "peer_uuid"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "federation_members_organization_user_uuid_users_organizations_uuid_fk": {
+          "name": "federation_members_organization_user_uuid_users_organizations_uuid_fk",
+          "tableFrom": "federation_members",
+          "tableTo": "users_organizations",
+          "columnsFrom": [
+            "organization_user_uuid"
+          ],
+          "columnsTo": [
+            "uuid"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "federation_members_peer_uuid_federation_peers_uuid_fk": {
+          "name": "federation_members_peer_uuid_federation_peers_uuid_fk",
+          "tableFrom": "federation_members",
+          "tableTo": "federation_peers",
+          "columnsFrom": [
+            "peer_uuid"
+          ],
+          "columnsTo": [
+            "uuid"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "federation_nonces": {
+      "name": "federation_nonces",
+      "columns": {
+        "peer_uuid": {
+          "name": "peer_uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "nonce": {
+          "name": "nonce",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "federation_nonces_expires_idx": {
+          "name": "federation_nonces_expires_idx",
+          "columns": [
+            "expires_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "federation_nonces_peer_uuid_federation_peers_uuid_fk": {
+          "name": "federation_nonces_peer_uuid_federation_peers_uuid_fk",
+          "tableFrom": "federation_nonces",
+          "tableTo": "federation_peers",
+          "columnsFrom": [
+            "peer_uuid"
+          ],
+          "columnsTo": [
+            "uuid"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "federation_nonces_peer_uuid_nonce_pk": {
+          "columns": [
+            "peer_uuid",
+            "nonce"
+          ],
+          "name": "federation_nonces_peer_uuid_nonce_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "federation_peers": {
+      "name": "federation_peers",
+      "columns": {
+        "uuid": {
+          "name": "uuid",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "instance_id": {
+          "name": "instance_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "domain": {
+          "name": "domain",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "public_key": {
+          "name": "public_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "fingerprint": {
+          "name": "fingerprint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "protocol_version": {
+          "name": "protocol_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "local_approved": {
+          "name": "local_approved",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "remote_approved": {
+          "name": "remote_approved",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "last_seen_at": {
+          "name": "last_seen_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "last_error": {
+          "name": "last_error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "federation_peers_instance_unique": {
+          "name": "federation_peers_instance_unique",
+          "columns": [
+            "instance_id"
+          ],
+          "isUnique": true
+        },
+        "federation_peers_domain_unique": {
+          "name": "federation_peers_domain_unique",
+          "columns": [
+            "domain"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "federation_replica_ciphers": {
+      "name": "federation_replica_ciphers",
+      "columns": {
+        "user_uuid": {
+          "name": "user_uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "cipher_uuid": {
+          "name": "cipher_uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "organization_uuid": {
+          "name": "organization_uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "json": {
+          "name": "json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "digest": {
+          "name": "digest",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "federation_replica_ciphers_org_idx": {
+          "name": "federation_replica_ciphers_org_idx",
+          "columns": [
+            "user_uuid",
+            "organization_uuid"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "federation_replica_ciphers_user_uuid_users_uuid_fk": {
+          "name": "federation_replica_ciphers_user_uuid_users_uuid_fk",
+          "tableFrom": "federation_replica_ciphers",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_uuid"
+          ],
+          "columnsTo": [
+            "uuid"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "federation_replica_ciphers_user_uuid_cipher_uuid_pk": {
+          "columns": [
+            "user_uuid",
+            "cipher_uuid"
+          ],
+          "name": "federation_replica_ciphers_user_uuid_cipher_uuid_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "federation_replica_orgs": {
+      "name": "federation_replica_orgs",
+      "columns": {
+        "user_uuid": {
+          "name": "user_uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "organization_uuid": {
+          "name": "organization_uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "peer_uuid": {
+          "name": "peer_uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "profile_json": {
+          "name": "profile_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "collections_json": {
+          "name": "collections_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "policies_json": {
+          "name": "policies_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "revision_date": {
+          "name": "revision_date",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "synced_at": {
+          "name": "synced_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "federation_replica_orgs_peer_idx": {
+          "name": "federation_replica_orgs_peer_idx",
+          "columns": [
+            "peer_uuid"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "federation_replica_orgs_user_uuid_users_uuid_fk": {
+          "name": "federation_replica_orgs_user_uuid_users_uuid_fk",
+          "tableFrom": "federation_replica_orgs",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_uuid"
+          ],
+          "columnsTo": [
+            "uuid"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "federation_replica_orgs_peer_uuid_federation_peers_uuid_fk": {
+          "name": "federation_replica_orgs_peer_uuid_federation_peers_uuid_fk",
+          "tableFrom": "federation_replica_orgs",
+          "tableTo": "federation_peers",
+          "columnsFrom": [
+            "peer_uuid"
+          ],
+          "columnsTo": [
+            "uuid"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "federation_replica_orgs_user_uuid_organization_uuid_pk": {
+          "columns": [
+            "user_uuid",
+            "organization_uuid"
+          ],
+          "name": "federation_replica_orgs_user_uuid_organization_uuid_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "federation_shadow_users": {
+      "name": "federation_shadow_users",
+      "columns": {
+        "user_uuid": {
+          "name": "user_uuid",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "peer_uuid": {
+          "name": "peer_uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "remote_email": {
+          "name": "remote_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "federation_shadow_users_peer_idx": {
+          "name": "federation_shadow_users_peer_idx",
+          "columns": [
+            "peer_uuid"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "federation_shadow_users_user_uuid_users_uuid_fk": {
+          "name": "federation_shadow_users_user_uuid_users_uuid_fk",
+          "tableFrom": "federation_shadow_users",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_uuid"
+          ],
+          "columnsTo": [
+            "uuid"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "federation_shadow_users_peer_uuid_federation_peers_uuid_fk": {
+          "name": "federation_shadow_users_peer_uuid_federation_peers_uuid_fk",
+          "tableFrom": "federation_shadow_users",
+          "tableTo": "federation_peers",
+          "columnsFrom": [
+            "peer_uuid"
           ],
           "columnsTo": [
             "uuid"

@@ -136,17 +136,17 @@
       "breakpoints": true
     },
     {
-      "idx": 20,
-      "version": "6",
-      "when": 1790977427204,
-      "tag": "0020_account_recovery",
-      "breakpoints": true
-    },
-    {
       "idx": 19,
       "version": "6",
       "when": 1790977346285,
       "tag": "0019_federation",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1790977427204,
+      "tag": "0020_account_recovery",
       "breakpoints": true
     }
   ]

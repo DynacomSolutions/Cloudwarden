@@ -549,9 +549,7 @@ const cases: Case[] = [
  * They are listed as skipped below; a drift check fails when one starts being served so the list
  * gets updated and the operation can join the curated set above.
  */
-const UNIMPLEMENTED = [
-  'POST /api/devices/identifier/{deviceIdentifier}/web-push-auth',
-]
+const UNIMPLEMENTED = ['POST /api/devices/identifier/{deviceIdentifier}/web-push-auth']
 
 const specOperations = () =>
   Object.entries<Json>(spec.paths).flatMap(([path, item]) =>

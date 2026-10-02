@@ -380,7 +380,8 @@ module.exports.buildConfig = function buildConfig(params) {
 
   const webpackConfig = {
     mode: NODE_ENV,
-    devtool: "source-map",
+    // Cloudwarden: source maps are opt-in (CLOUDWARDEN_SOURCEMAPS=1) to keep builds small.
+    devtool: process.env.CLOUDWARDEN_SOURCEMAPS === "1" ? "source-map" : false,
     devServer: devServer,
     target: "web",
     entry: {

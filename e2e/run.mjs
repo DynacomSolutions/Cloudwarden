@@ -2,13 +2,15 @@
 // Usage: pnpm e2e
 import assert from 'node:assert/strict'
 import { spawn, spawnSync } from 'node:child_process'
+import { randomBytes } from 'node:crypto'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { migrateLocal } from '../scripts/local-migrate.mjs'
-import { buildAccount } from './crypto.mjs'
+import { buildAccount, encType2, encType4 } from './crypto.mjs'
+import { deriveAccessTokenKey } from './sm-client.mjs'
 import { makeCert } from './tls-proxy.mjs'
 
 const root = resolve(import.meta.dirname, '..')
@@ -338,6 +340,104 @@ async function main() {
     assert.equal(nestedFolder.name, 'nested')
     pass('register via nested register/finish shape, then bw login, sync and create')
     bw(['logout'])
+
+    // Secrets Manager (TASKS #220). Admin setup over HTTP with client-side encryption, then a
+    // machine client (e2e/sm-client.mjs, built from the GPL SDK contract) reads through TLS.
+    const owner = await passwordLogin(direct, EMAIL, acct.masterPasswordHash)
+    const api = async (path, method = 'GET', body) => {
+      const res = await fetchRetry(`${direct}/api${path}`, {
+        method,
+        headers: { Authorization: `Bearer ${owner}`, 'Content-Type': 'application/json' },
+        body: body === undefined ? undefined : JSON.stringify(body),
+      })
+      assert.ok(res.ok, `${method} ${path}: ${res.status} ${await res.clone().text()}`)
+      const text = await res.text()
+      return text ? JSON.parse(text) : null
+    }
+    const orgKey = randomBytes(64)
+    const encOrg = (text) => encType2(Buffer.from(text), orgKey)
+    const smOrg = await api('/organizations', 'POST', {
+      name: 'E2E SM Org',
+      billingEmail: 'billing@example.com',
+      key: await encType4(orgKey, acct.body.keys.publicKey),
+      keys: { publicKey: 'e2e-org-public', encryptedPrivateKey: await encOrg('org-private') },
+      planType: 0,
+    })
+    assert.equal(smOrg.useSecretsManager, true)
+    const project = await api(`/organizations/${smOrg.id}/projects`, 'POST', {
+      name: await encOrg('deploy'),
+    })
+    const secret = await api(`/organizations/${smOrg.id}/secrets`, 'POST', {
+      key: await encOrg('DATABASE_URL'),
+      value: await encOrg('postgres://db.example.com/app'),
+      note: await encOrg('rotated monthly'),
+      projectIds: [project.id],
+    })
+    const hidden = await api(`/organizations/${smOrg.id}/secrets`, 'POST', {
+      key: await encOrg('UNRELATED'),
+      value: await encOrg('not for the machine'),
+      note: '',
+    })
+    pass('Secrets Manager: organisation, project and secrets created via API')
+
+    const sa = await api(`/organizations/${smOrg.id}/service-accounts`, 'POST', {
+      name: await encOrg('ci machine'),
+    })
+    await api(`/projects/${project.id}/access-policies/service-accounts`, 'PUT', {
+      serviceAccountAccessPolicyRequests: [{ granteeId: sa.id, read: true, write: false }],
+    })
+    const seed = randomBytes(16)
+    const smToken = await api(`/service-accounts/${sa.id}/access-tokens`, 'POST', {
+      name: await encOrg('ci token'),
+      encryptedPayload: await encType2(
+        Buffer.from(JSON.stringify({ encryptionKey: orgKey.toString('base64') })),
+        deriveAccessTokenKey(seed),
+      ),
+      key: await encOrg(seed.toString('base64')),
+      expireAt: null,
+    })
+    const accessToken = `0.${smToken.id}.${smToken.clientSecret}:${seed.toString('base64')}`
+    pass('Secrets Manager: machine account, project grant and access token')
+
+    const sm = (args, opts) =>
+      run(process.execPath, [join(root, 'e2e', 'sm-client.mjs'), base, accessToken, ...args], {
+        env,
+        ...opts,
+      })
+    const listedSecrets = JSON.parse(sm(['list', smOrg.id]).stdout)
+    assert.deepEqual(listedSecrets, [
+      {
+        id: secret.id,
+        organizationId: smOrg.id,
+        projectId: project.id,
+        key: 'DATABASE_URL',
+        value: 'postgres://db.example.com/app',
+        note: 'rotated monthly',
+      },
+    ])
+    assert.equal(JSON.parse(sm(['get', secret.id]).stdout).value, 'postgres://db.example.com/app')
+    const denied = sm(['get', hidden.id], { allowFail: true })
+    assert.notEqual(denied.status, 0)
+    assert.match(denied.stderr, /404/)
+    pass(
+      'Secrets Manager: machine login over TLS, secret list and get decrypt; ungranted secret 404',
+    )
+
+    const synced = JSON.parse(sm(['sync', smOrg.id]).stdout)
+    assert.equal(synced.hasChanges, true)
+    assert.equal(synced.secrets.length, 1)
+    const later = new Date(Date.now() + 60_000).toISOString()
+    assert.deepEqual(JSON.parse(sm(['sync', smOrg.id, later]).stdout), {
+      hasChanges: false,
+      secrets: null,
+    })
+    pass('Secrets Manager: sync with and without lastSyncedDate')
+
+    await api(`/service-accounts/${sa.id}/access-tokens/revoke`, 'POST', { ids: [smToken.id] })
+    const revoked = sm(['list', smOrg.id], { allowFail: true })
+    assert.notEqual(revoked.status, 0)
+    assert.match(revoked.stderr, /login failed: 400/)
+    pass('Secrets Manager: revoked token can no longer log in')
     console.log(`\n${step} steps passed`)
   } catch (err) {
     console.error(`--- dev server output ---\n${serverLog.slice(-4000)}`)
@@ -346,6 +446,39 @@ async function main() {
     await stopGracefully()
     rmSync(work, { recursive: true, force: true })
   }
+}
+
+/**
+ * `fetch` that retries once when the dev server closed an idle keep-alive socket just as it was
+ * reused (undici reports `UND_ERR_SOCKET`).
+ */
+async function fetchRetry(url, init) {
+  try {
+    return await fetch(url, init)
+  } catch (err) {
+    if (err?.cause?.code !== 'UND_ERR_SOCKET') throw err
+    return fetch(url, init)
+  }
+}
+
+/** Password grant over HTTP; returns the access token. */
+async function passwordLogin(server, email, masterPasswordHash) {
+  const res = await fetchRetry(`${server}/identity/connect/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'password',
+      username: email,
+      password: masterPasswordHash,
+      scope: 'api offline_access',
+      client_id: 'cli',
+      deviceType: '8',
+      deviceName: 'e2e',
+      deviceIdentifier: crypto.randomUUID(),
+    }),
+  })
+  assert.equal(res.status, 200, await res.clone().text())
+  return (await res.json()).access_token
 }
 
 main().catch((err) => {

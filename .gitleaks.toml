@@ -9,6 +9,11 @@ paths = ['pnpm-lock\.yaml']
 description = "test fixtures"
 paths = ['test/fixtures/.*']
 
+# The public Secrets Manager access token test vector from the GPL bitwarden-core crate (TASKS #223).
+[[allowlists]]
+description = "Secrets Manager SDK test vector"
+paths = ['''^scripts/sm-client\.test\.mjs$''']
+
 
 # Vendored web client (TASKS #210): the individual upstream files whose unit test fixtures, spec
 # data or public sandbox configuration match generic rules. Listed one by one so that nothing

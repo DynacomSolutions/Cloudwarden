@@ -3,6 +3,8 @@ import { adminApi } from './admin/api'
 import { d1Sessions } from './db/sessions'
 import type { Env } from './env'
 import { ApiError, errorBody } from './errors'
+import { federationForwarder } from './federation/forward'
+import { federation } from './federation/routes'
 import { errorKind, log, requestLogger } from './log'
 import { securityHeaders } from './middleware'
 import { orgChangeNotifier, secretsRevisionOnMemberChange } from './orgs/notify'
@@ -72,6 +74,17 @@ app.route('/', sync)
 // Organisation-token APIs (TASKS #271, #273): their own authentication, before member routers.
 app.route('/', publicApi)
 app.route('/', scim)
+// Federated organisations (TASKS #300): signed peer API, then forwarding of client requests that
+// touch an organisation hosted on a peer. Inert unless FEDERATION_ENABLED is true.
+app.route('/', federation)
+for (const path of [
+  '/api/ciphers',
+  '/api/ciphers/*',
+  '/api/organizations/:orgId',
+  '/api/organizations/:orgId/*',
+]) {
+  app.use(path, federationForwarder)
+}
 // Secrets Manager accepts machine tokens, so it runs before the organisation routers whose
 // `authOnce` middleware would refuse them (TASKS #220).
 app.route('/', secretsManager)

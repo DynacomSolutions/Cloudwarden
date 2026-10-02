@@ -20,7 +20,11 @@ export default defineConfig(async () => {
             JWT_SECRET: 'test-secret-test-secret-test-secret-0123456789',
             TEST_MIGRATIONS: migrations,
           },
-          d1Databases: { DB: '00000000-0000-0000-0000-000000000000' },
+          // DB_PEER is the second instance of the federation tests (TASKS #308).
+          d1Databases: {
+            DB: '00000000-0000-0000-0000-000000000000',
+            DB_PEER: 'cloudwarden-peer',
+          },
           r2Buckets: ['ATTACHMENTS'],
           durableObjects: { NOTIFICATIONS: { className: 'NotificationHub', useSQLite: true } },
         },

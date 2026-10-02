@@ -40,6 +40,14 @@ export const scheduled = async (
       log('error', 'purge.failed', { errorKind: errorKind(err) }, env)
     }
     try {
+      if (env.FEDERATION_ENABLED === 'true') {
+        const { resyncAll } = await import('./federation/replica')
+        await resyncAll(env)
+      }
+    } catch (err) {
+      log('error', 'federation_resync.failed', { errorKind: errorKind(err) }, env)
+    }
+    try {
       await notifyElapsedRecoveries(env)
     } catch (err) {
       log('error', 'emergency_sweep.failed', { errorKind: errorKind(err) }, env)

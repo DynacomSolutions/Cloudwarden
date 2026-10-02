@@ -1041,3 +1041,6 @@ export const instanceSettings = sqliteTable('instance_settings', {
   updatedAt: updatedAt(),
   updatedBy: text('updated_by'),
 })
+
+// Federated organisations (TASKS #300); the tables live with the feature.
+export * from '../federation/schema'

@@ -64,5 +64,10 @@ Summary of changes made by Cloudwarden (see `git log -- web/` for the full histo
   options (master password, trusted devices, Key Connector) with a configuration test, and
   claimed domains with DNS TXT verification (`apps/web/src/app/cloudwarden/sso/`), routed at
   `settings/sso` and `settings/domain-verification`.
+- Federated organisations (`apps/web/src/app/cloudwarden/federation/`, docs/federation.md):
+  Instance admin, Federation (peers, fingerprint approval, health, suspend, remove, events);
+  Admin Console, Federated members (invite a user of a paired server, confirm with the standard
+  fingerprint dialog, remove); and Federated organisations under Settings for the invited user.
+  The user and organisation navigation entries appear only when the server has federation on.
 
 Files Cloudwarden adds live in directories named `cloudwarden/` where practical.

@@ -23,6 +23,7 @@ import { I18nPipe } from "@bitwarden/ui-common";
 import { VaultManageNavComponent, VaultNavSectionComponent } from "@bitwarden/vault";
 import { PremiumSubscriptionRoutingService } from "@bitwarden/web-vault/app/billing/individual/services/premium-subscription-routing.service";
 
+import { FederationApiService } from "../cloudwarden/federation/federation-api.service";
 import { InstanceAdminApiService } from "../cloudwarden/instance-admin/instance-admin-api.service";
 import { BillingFreeFamiliesNavItemComponent } from "../billing/shared/billing-free-families-nav-item.component";
 import { CoachmarkComponent, CoachmarkService } from "../vault/components/coachmark";
@@ -51,6 +52,10 @@ export class UserLayoutComponent implements OnInit {
   protected readonly logo = PasswordManagerLogo;
   // Cloudwarden: instance admin entry, shown only to instance admins (web/NOTICE.md).
   protected readonly isInstanceAdmin = toSignal(inject(InstanceAdminApiService).isAdmin$, {
+    initialValue: false,
+  });
+  // Cloudwarden: federated organisations entry, shown when the server has federation on.
+  protected readonly federationEnabled = toSignal(inject(FederationApiService).enabled$, {
     initialValue: false,
   });
   protected readonly showEmergencyAccess: Signal<boolean>;

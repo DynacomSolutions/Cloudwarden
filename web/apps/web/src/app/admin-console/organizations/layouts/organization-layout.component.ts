@@ -34,6 +34,7 @@ import { TaxIdWarningComponent } from "@bitwarden/web-vault/app/billing/warnings
 import { TaxIdWarningType } from "@bitwarden/web-vault/app/billing/warnings/types";
 
 import { FreeFamiliesPolicyService } from "../../../billing/services/free-families-policy.service";
+import { FederationApiService } from "../../../cloudwarden/federation/federation-api.service";
 import { OrgSwitcherComponent } from "../../../layouts/org-switcher/org-switcher.component";
 import { WebLayoutModule } from "../../../layouts/web-layout.module";
 import { PamOrgNavSlotComponent } from "../../../pam/org-nav-slot/pam-org-nav-slot.component";
@@ -119,6 +120,9 @@ export class OrganizationLayoutComponent {
         provider.providerStatus !== ProviderStatusType.Billable,
     ),
   );
+
+  // Cloudwarden: federated members entry, shown when the server has federation on.
+  protected readonly federationEnabled$ = inject(FederationApiService).enabled$;
 
   protected readonly integrationPageEnabled$: Observable<boolean> = this.organization$.pipe(
     // Cloudwarden: integrations hold outside credentials; only owners and admins manage them

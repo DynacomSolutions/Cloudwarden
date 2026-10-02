@@ -73,6 +73,16 @@ const routes: Routes = [
         data: { titleId: "integrations" },
       },
       {
+        // Cloudwarden: federated members (web/NOTICE.md, docs/federation.md).
+        path: "federation",
+        loadComponent: () =>
+          import("../../cloudwarden/federation/federated-members.component").then(
+            (m) => m.FederatedMembersComponent,
+          ),
+        canActivate: [organizationPermissionsGuard((o) => o.canManageUsers)],
+        data: { titleId: "cwFederatedMembers" },
+      },
+      {
         path: "billing",
         loadChildren: () =>
           import("../../billing/organizations/organization-billing.module").then(

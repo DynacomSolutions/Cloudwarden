@@ -39,6 +39,13 @@
       </ng-template>
     </ng-container>
 
+    <!-- Cloudwarden: federated members (web/NOTICE.md) -->
+    <bit-nav-item
+      icon="bwi-globe"
+      [text]="'cwFederatedMembers' | i18n"
+      route="federation"
+      *ngIf="organization.canManageUsers && (federationEnabled$ | async)"
+    ></bit-nav-item>
     <bit-nav-item
       icon="bwi-users"
       [text]="'groups' | i18n"

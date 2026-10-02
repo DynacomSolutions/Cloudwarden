@@ -44,6 +44,15 @@ export const instanceAdminRoutes: Routes = [
         data: { titleId: "cwMobilePush" } satisfies RouteDataProperties,
       },
       {
+        // Federated organisations (docs/federation.md).
+        path: "federation",
+        loadComponent: () =>
+          import("../federation/instance-admin-federation.component").then(
+            (m) => m.InstanceAdminFederationComponent,
+          ),
+        data: { titleId: "cwFederation" } satisfies RouteDataProperties,
+      },
+      {
         path: "diagnostics",
         component: InstanceAdminOverviewComponent,
         data: { titleId: "cwDiagnostics", mode: "diagnostics" } satisfies RouteDataProperties & {

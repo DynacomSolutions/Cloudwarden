@@ -18467,6 +18467,7 @@
       }
     }
   },
+<<<<<<< HEAD
   "cwMobilePush": {
     "message": "Mobile push"
   },
@@ -18746,5 +18747,213 @@
   },
   "cwSmEvents": {
     "message": "Events"
+  },
+  "cwFederation": {
+    "message": "Federation"
+  },
+  "cwFederatedMembers": {
+    "message": "Federated members"
+  },
+  "cwFederatedInvitations": {
+    "message": "Federated organisations"
+  },
+  "cwFedDisabled": {
+    "message": "Federation is not enabled on this server."
+  },
+  "cwFedAdminDesc": {
+    "message": "Pair this server with other Cloudwarden servers so their users can join organisations hosted here, and yours can join theirs. Compare fingerprints with the other administrator by a trusted channel before approving."
+  },
+  "cwFedThisInstance": {
+    "message": "This server"
+  },
+  "cwFedFingerprint": {
+    "message": "Fingerprint"
+  },
+  "cwFedPeerDomain": {
+    "message": "Peer domain"
+  },
+  "cwFedAddPeer": {
+    "message": "Add peer"
+  },
+  "cwFedPeer": {
+    "message": "Peer"
+  },
+  "cwFedLastSeen": {
+    "message": "Last seen"
+  },
+  "cwFedApprove": {
+    "message": "Approve"
+  },
+  "cwFedCheck": {
+    "message": "Check"
+  },
+  "cwFedSuspend": {
+    "message": "Suspend"
+  },
+  "cwFedResume": {
+    "message": "Resume"
+  },
+  "cwFedEvents": {
+    "message": "Federation events"
+  },
+  "cwFedActive": {
+    "message": "Active"
+  },
+  "cwFedSuspended": {
+    "message": "Suspended"
+  },
+  "cwFedWaitingForPeer": {
+    "message": "Waiting for the peer"
+  },
+  "cwFedPendingApproval": {
+    "message": "Needs your approval"
+  },
+  "cwFedEnterFingerprint": {
+    "message": "Fingerprint read out by the peer's administrator"
+  },
+  "cwFedFingerprintHint": {
+    "message": "Ask the administrator of $DOMAIN$ for the fingerprint shown on their Federation page and type it here.",
+    "placeholders": {
+      "domain": {
+        "content": "$1",
+        "example": "vault.example.com"
+      }
+    }
+  },
+  "cwFedFingerprintMismatch": {
+    "message": "The fingerprint does not match this peer. Do not approve it."
+  },
+  "cwFedPeerAdded": {
+    "message": "$DOMAIN$ added. Compare fingerprints, then approve.",
+    "placeholders": {
+      "domain": {
+        "content": "$1",
+        "example": "vault.example.com"
+      }
+    }
+  },
+  "cwFedPaired": {
+    "message": "Paired with $DOMAIN$.",
+    "placeholders": {
+      "domain": {
+        "content": "$1",
+        "example": "vault.example.com"
+      }
+    }
+  },
+  "cwFedApprovedWaiting": {
+    "message": "Approved. $DOMAIN$ must approve this server too.",
+    "placeholders": {
+      "domain": {
+        "content": "$1",
+        "example": "vault.example.com"
+      }
+    }
+  },
+  "cwFedHealthy": {
+    "message": "Reachable ($MS$ ms).",
+    "placeholders": {
+      "ms": {
+        "content": "$1",
+        "example": "120"
+      }
+    }
+  },
+  "cwFedSuspendDesc": {
+    "message": "Requests to and from $DOMAIN$ stop at once and its organisations disappear from your users' vaults until you resume it.",
+    "placeholders": {
+      "domain": {
+        "content": "$1",
+        "example": "vault.example.com"
+      }
+    }
+  },
+  "cwFedRemoveDesc": {
+    "message": "Unpair $DOMAIN$? Its users lose access to organisations hosted here and your users lose its organisations. This cannot be undone.",
+    "placeholders": {
+      "domain": {
+        "content": "$1",
+        "example": "vault.example.com"
+      }
+    }
+  },
+  "cwFedMembersDesc": {
+    "message": "Members whose account is on another Cloudwarden server. They use this organisation from their own server; permissions are enforced here."
+  },
+  "cwFedNoPeers": {
+    "message": "No paired server yet. An instance administrator pairs servers under Instance admin, Federation."
+  },
+  "cwFedInvite": {
+    "message": "Invite a member from another server"
+  },
+  "cwFedHomeInstance": {
+    "message": "Home server"
+  },
+  "cwFedAccessAll": {
+    "message": "Access all collections"
+  },
+  "cwFedInviteHint": {
+    "message": "Collections and groups can be assigned on the Members page once the invitation is sent. The member accepts on their own server, then you confirm them here."
+  },
+  "cwFedInvited": {
+    "message": "$EMAIL$ invited.",
+    "placeholders": {
+      "email": {
+        "content": "$1",
+        "example": "user@example.com"
+      }
+    }
+  },
+  "cwFedRemoveMemberDesc": {
+    "message": "Remove $EMAIL$ (from $DOMAIN$) from this organisation?",
+    "placeholders": {
+      "email": {
+        "content": "$1",
+        "example": "user@example.com"
+      },
+      "domain": {
+        "content": "$2",
+        "example": "vault.example.com"
+      }
+    }
+  },
+  "cwFedNotFederated": {
+    "message": "Not available to federated members: single sign-on, SCIM, account recovery, Require SSO, emergency access across servers and Secrets Manager."
+  },
+  "cwFedInvitationsDesc": {
+    "message": "Invitations to organisations hosted on other Cloudwarden servers. Your account stays here."
+  },
+  "cwFedInvitedBy": {
+    "message": "Invited by"
+  },
+  "cwFedMemberships": {
+    "message": "Your federated organisations"
+  },
+  "cwFedLastSynced": {
+    "message": "Last synced"
+  },
+  "cwFedAccepted": {
+    "message": "Joined $ORG$. It appears in your vault once an administrator confirms you.",
+    "placeholders": {
+      "org": {
+        "content": "$1",
+        "example": "Acme"
+      }
+    }
+  },
+  "cwFedDeclined": {
+    "message": "Declined the invitation to $ORG$.",
+    "placeholders": {
+      "org": {
+        "content": "$1",
+        "example": "Acme"
+      }
+    }
+  },
+  "accept": {
+    "message": "Accept"
+  },
+  "decline": {
+    "message": "Decline"
   }
 }

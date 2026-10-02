@@ -18,6 +18,7 @@ import { later, sendNotice } from '../email/send'
 import type { Env, User } from '../env'
 import { ApiError } from '../errors'
 import { pushLogOut } from '../notifications/publish'
+import { relayDeleteDevice } from '../notifications/relay'
 import { assertNotSoleOwner } from '../orgs/members'
 import { profileOrganizations } from '../orgs/views'
 import { type KdfParams, kdfProblem, parseBody } from '../validation'
@@ -656,7 +657,13 @@ export async function eraseAccount(c: Ctx, user: User) {
     ...(await userAttachmentKeys(db, user.uuid)),
     ...(await userSendKeys(db, user.uuid)),
   ]
+  const mobile = await db
+    .select()
+    .from(schema.devices)
+    .where(and(eq(schema.devices.userUuid, user.uuid), isNotNull(schema.devices.pushToken)))
   await runBatch(db, [db.delete(schema.users).where(eq(schema.users.uuid, user.uuid))])
+  // Best effort: stop the relay pushing to phones of a deleted account.
+  later(c, Promise.all(mobile.map((d) => relayDeleteDevice(c.env, { ...d, userUuid: user.uuid }))))
   deleteBlobs(c, keys)
 }
 

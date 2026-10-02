@@ -1,4 +1,5 @@
 import { and, eq, gt, isNotNull, lt, sql } from 'drizzle-orm'
+import { rateLimit as d1Window } from '../admin/security'
 import type { Db } from '../db'
 import { schema } from '../db'
 import { sha256B64u } from './crypto'
@@ -8,9 +9,34 @@ export type OtpPurpose = 'new-device' | 'user-verification'
 
 export const OTP_TTL_MS = 10 * 60 * 1000
 const MAX_ATTEMPTS = 5
+const MAX_ISSUES_PER_HOUR = 5
 
 /** Issues a six digit code for the user, replacing any pending one. The code is stored hashed. */
-export async function issueOtp(db: Db, userUuid: string, purpose: OtpPurpose): Promise<string> {
+export async function issueOtp(
+  db: Db,
+  userUuid: string,
+  purpose: OtpPurpose,
+): Promise<string | null> {
+  const [cur] = await db
+    .select({ at: schema.users.otpExpiresAt, n: schema.users.otpAttempts })
+    .from(schema.users)
+    .where(eq(schema.users.uuid, userUuid))
+    .limit(1)
+  const live = (cur?.at ?? 0) > Date.now()
+  // Guesses count across reissues inside the window, and a spent budget locks issuing out.
+  if (live && (cur?.n ?? 0) >= MAX_ATTEMPTS) return null
+  // Mail-bomb guard: a few codes per hour per account.
+  if (
+    !(await d1Window(
+      db.$client,
+      `otp-issue:${userUuid}`,
+      MAX_ISSUES_PER_HOUR,
+      3_600_000,
+      Date.now(),
+    ))
+  ) {
+    return null
+  }
   const code = String((crypto.getRandomValues(new Uint32Array(1))[0] ?? 0) % 1_000_000).padStart(
     6,
     '0',
@@ -21,7 +47,7 @@ export async function issueOtp(db: Db, userUuid: string, purpose: OtpPurpose): P
       otpHash: await sha256B64u(`${purpose}:${userUuid}:${code}`),
       otpPurpose: purpose,
       otpExpiresAt: Date.now() + OTP_TTL_MS,
-      otpAttempts: 0,
+      otpAttempts: live ? (cur?.n ?? 0) : 0,
     })
     .where(eq(schema.users.uuid, userUuid))
   return code

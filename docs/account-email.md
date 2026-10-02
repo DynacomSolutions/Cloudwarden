@@ -24,3 +24,12 @@ skips quietly, as noted below. Notices are best effort and never fail the reques
 or an emailed code. One time codes (`src/auth/otp.ts`) are six digits, stored hashed with their purpose,
 valid for 10 minutes, five wrong guesses burn them, and a match is consumed atomically. The setting and
 code columns come from migration `0011`.
+
+## Exemptions and limits
+
+New device verification does not apply to API key logins (`client_credentials`), passkey logins (the
+assertion already proves the person), logins approved from another device, accounts with two-step login, or
+an account's first device. Issuing codes is limited to five per hour per account. Wrong guesses are counted
+across reissues inside the 10 minute window, and once the five are spent no new code is issued until the
+window ends. The delete-by-email link is bound to the account's security stamp, so a password or email
+change invalidates it. Deleting an account also removes its mobile devices from the push relay.

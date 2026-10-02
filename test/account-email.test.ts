@@ -421,3 +421,85 @@ it('delete by email: link erases the account, unknown addresses look the same', 
       .status,
   ).toBe(400)
 })
+
+it('codes: five per hour per account, and spent guesses carry over a reissue', async () => {
+  const mb = mailbox()
+  const s = await createSession('otplim@example.com')
+  for (let i = 0; i < 5; i++) {
+    expect((await call(mb, '/api/accounts/request-otp', { token: s.access_token })).status).toBe(
+      200,
+    )
+  }
+  expect((await call(mb, '/api/accounts/request-otp', { token: s.access_token })).status).toBe(429)
+
+  const s2 = await createSession('otplock@example.com')
+  await call(mb, '/api/accounts/request-otp', { token: s2.access_token })
+  for (let i = 0; i < 5; i++) {
+    await call(null, '/api/accounts/verify-otp', {
+      token: s2.access_token,
+      body: { OTP: '000001' },
+    })
+  }
+  expect((await call(mb, '/api/accounts/request-otp', { token: s2.access_token })).status).toBe(429)
+})
+
+it('new device: a locked-out account gets a clear refusal, not another code', async () => {
+  const mb = mailbox()
+  await registerUser('ndlock@example.com')
+  await loginWith(null, 'ndlock@example.com', 'dev-a')
+  await loginWith(mb, 'ndlock@example.com', 'dev-b')
+  for (let i = 0; i < 5; i++)
+    await loginWith(mb, 'ndlock@example.com', 'dev-b', { newDeviceOtp: '000001' })
+  const res = await loginWith(mb, 'ndlock@example.com', 'dev-b')
+  expect(res.status).toBe(400)
+  expect(((await res.json()) as any).ErrorModel.Message).toContain('Too many')
+  expect(mb.sent).toHaveLength(1)
+})
+
+it('delete by email: a changed security stamp voids the link', async () => {
+  const mb = mailbox()
+  await registerUser('delstamp@example.com')
+  await call(mb, '/api/accounts/delete-recover', { body: { email: 'delstamp@example.com' } })
+  await settle(mb, 1)
+  const p = linkParams(mb.sent[0])
+  await env.DB.prepare("UPDATE users SET security_stamp = 'rotated' WHERE email = ?1")
+    .bind('delstamp@example.com')
+    .run()
+  const res = await call(null, '/api/accounts/delete-recover-token', {
+    body: { userId: p.get('userId'), token: p.get('token') },
+  })
+  expect(res.status).toBe(400)
+  expect(await row('delstamp@example.com')).not.toBeNull()
+})
+
+it('emergency sweep: a failed send is retried by the next sweep', async () => {
+  const grantor = await actor('swf-grantor@example.com', mailbox())
+  const grantee = await actor('swf-grantee@example.com', mailbox())
+  await env.DB.prepare(
+    'INSERT INTO emergency_access (uuid, grantor_uuid, grantee_uuid, email, atype, status, wait_time_days, recovery_initiated_at, created_at, updated_at) VALUES (?1,?2,?3,?4,0,3,1,?5,?5,?5)',
+  )
+    .bind(
+      crypto.randomUUID(),
+      grantor.uuid,
+      grantee.uuid,
+      grantee.email,
+      Date.now() - 3 * 24 * 3600 * 1000,
+    )
+    .run()
+  expect(await notifyElapsedRecoveries(env)).toBe(0)
+  const mb = mailbox()
+  const withMail = { ...env, EMAIL: mb.EMAIL, MAIL_FROM: mb.MAIL_FROM } as unknown as typeof env
+  expect(await notifyElapsedRecoveries(withMail)).toBe(1)
+})
+
+it('subjects cannot carry line breaks', async () => {
+  const { sendNotice } = await import('../src/email/send')
+  const mb = mailbox()
+  const withMail = { ...env, EMAIL: mb.EMAIL, MAIL_FROM: mb.MAIL_FROM } as unknown as typeof env
+  await sendNotice(withMail, 'x@example.com', {
+    subject: 'Hi\r\nBcc: evil@example.com',
+    text: 't',
+    html: 'h',
+  })
+  expect(mb.sent[0]?.subject).toBe('Hi Bcc: evil@example.com')
+})

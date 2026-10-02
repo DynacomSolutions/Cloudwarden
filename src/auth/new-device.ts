@@ -91,6 +91,14 @@ export async function requireNewDeviceCode(
     return oauthError(c, 'invalid_grant', 'invalid_new_device_otp', 'Invalid new device code.')
   }
   const issued = await issueOtp(db, user.uuid, 'new-device')
+  if (!issued) {
+    return oauthError(
+      c,
+      'invalid_grant',
+      'too_many_verification_requests',
+      'Too many verification attempts. Try again later.',
+    )
+  }
   const sent = await sendNotice(
     c.env,
     user.email,

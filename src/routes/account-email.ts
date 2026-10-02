@@ -98,6 +98,7 @@ accountEmail.post('/api/accounts/request-otp', requireAuth, async (c) => {
   if (!createEmailTransport(c.env).configured) throw noMail()
   if (await overLimit(c, 'request-otp', user.uuid)) return tooManyRequests(c)
   const code = await issueOtp(createDb(c.env.DB), user.uuid, 'user-verification')
+  if (!code) return tooManyRequests(c)
   const sent = await sendNotice(
     c.env,
     user.email,
@@ -157,7 +158,7 @@ accountEmail.post('/api/accounts/delete-recover', rateLimit('delete-recover', 5)
       const token = await signPurposeToken(
         c.env,
         DELETE_PURPOSE,
-        { sub: user.uuid, email: user.email },
+        { sub: user.uuid, email: user.email, ref: user.securityStamp },
         DELETE_TTL_SECONDS,
       )
       const url = `${vaultBase(c.env)}/#/verify-recover-delete?userId=${encodeURIComponent(user.uuid)}&token=${encodeURIComponent(token)}&email=${encodeURIComponent(user.email)}`
@@ -180,7 +181,12 @@ accountEmail.post(
     const [user] = claims
       ? await db.select().from(schema.users).where(eq(schema.users.uuid, claims.sub)).limit(1)
       : []
-    if (!user || claims?.sub !== body.userId || claims.email !== user.email) {
+    if (
+      !user ||
+      claims?.sub !== body.userId ||
+      claims.email !== user.email ||
+      claims.ref !== user.securityStamp
+    ) {
       throw new ApiError(400, 'Invalid token.')
     }
     await eraseAccount(c, user)

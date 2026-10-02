@@ -245,3 +245,29 @@ it('does not register non-mobile devices or call the relay when unconfigured', a
   expect(res.status).toBe(204)
   expect(seen).toHaveLength(0)
 })
+
+it('deleting an account deregisters its mobile devices from the relay', async () => {
+  const s = await createSession('push-del@example.com', {
+    deviceType: '0',
+    deviceIdentifier: 'and-del',
+  })
+  await putToken(s.access_token, 'and-del', 'tok')
+  await vi.waitFor(() => expect(seen.some((x) => x.url.endsWith('/push/register'))).toBe(true))
+  const deviceId = seen.find((x) => x.url.endsWith('/push/register'))?.body.deviceId
+  seen = []
+  const { default: app } = await import('../src/index')
+  const res = await app.fetch(
+    new Request(`${BASE}/api/accounts/delete`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${s.access_token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ masterPasswordHash: 'client-derived-hash' }),
+    }),
+    on,
+  )
+  expect(res.status).toBe(200)
+  await vi.waitFor(() =>
+    expect(seen.find((x) => x.method === 'DELETE')?.url).toBe(
+      `https://push.bitwarden.com/push/${deviceId}`,
+    ),
+  )
+})

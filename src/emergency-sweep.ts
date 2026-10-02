@@ -51,14 +51,18 @@ export async function notifyElapsedRecoveries(env: Bindings, now = Date.now()): 
       .where(eq(schema.users.uuid, row.grantorUuid))
       .limit(1)
     if (!grantee || !grantor) continue
-    if (
-      await sendNotice(
-        env,
-        grantee.email,
-        emergencyApprovedEmail(grantor.name || grantor.email, true),
-      )
-    ) {
-      told++
+    const sent = await sendNotice(
+      env,
+      grantee.email,
+      emergencyApprovedEmail(grantor.name || grantor.email, true),
+    )
+    if (sent) told++
+    else {
+      // Release the claim so the next sweep retries.
+      await db
+        .update(schema.emergencyAccess)
+        .set({ recoveryNotifiedAt: null })
+        .where(eq(schema.emergencyAccess.uuid, row.uuid))
     }
   }
   return told

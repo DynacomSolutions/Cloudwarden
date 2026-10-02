@@ -15,7 +15,7 @@ export async function sendNotice(
   const transport = createEmailTransport(env)
   if (!transport.configured) return false
   try {
-    await transport.send({ to, ...template })
+    await transport.send({ to, ...template, subject: template.subject.replace(/[\r\n]+/g, ' ') })
     return true
   } catch (err) {
     log('warn', 'email.send_failed', { errorKind: errorKind(err) }, env)

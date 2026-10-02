@@ -3,7 +3,7 @@
 // holds the `bwdc` binary and its native module, which must sit next to it.
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { extractEntry } from './bws.mjs'
 
@@ -12,37 +12,50 @@ const lock = JSON.parse(readFileSync(join(here, 'bwdc.lock.json'), 'utf8'))
 
 /**
  * The binary links against `libatomic.so.1`, which slim runner images lack. When the loader cannot
- * find it, the Debian or Ubuntu package is fetched without root (`apt-get download`) and unpacked
- * next to the binary; the returned environment points `LD_LIBRARY_PATH` at it.
+ * find it, the pinned Debian package (e2e/bwdc.lock.json, sha256 checked) is unpacked next to the
+ * binary without root, and the returned environment points `LD_LIBRARY_PATH` at it.
  */
-function libatomicEnv(dir) {
-  const has = spawnSync('sh', ['-c', 'ldconfig -p | grep -q libatomic.so.1'])
-  if (has.status === 0) return {}
+async function libatomicEnv(dir) {
+  if (spawnSync('sh', ['-c', 'ldconfig -p | grep -q libatomic.so.1']).status === 0) return {}
   const libs = join(dir, 'libatomic')
-  if (!existsSync(libs)) {
+  const so = join(libs, 'usr', 'lib', 'x86_64-linux-gnu')
+  if (!existsSync(join(so, 'libatomic.so.1'))) {
+    const res = await fetch(lock.libatomic.url)
+    if (!res.ok) throw new Error(`download ${lock.libatomic.url}: ${res.status}`)
+    const deb = Buffer.from(await res.arrayBuffer())
+    const digest = createHash('sha256').update(deb).digest('hex')
+    if (digest !== lock.libatomic.sha256) throw new Error(`libatomic1 sha256 ${digest} mismatch`)
+    // A .deb is an ar archive: 8 byte magic, then 60 byte member headers.
+    let p = 8
+    let data = null
+    let name = ''
+    while (p + 60 <= deb.length) {
+      name = deb
+        .toString('ascii', p, p + 16)
+        .trim()
+        .replace(/\/$/, '')
+      const size = Number.parseInt(deb.toString('ascii', p + 48, p + 58).trim(), 10)
+      if (name.startsWith('data.tar')) {
+        data = deb.subarray(p + 60, p + 60 + size)
+        break
+      }
+      p += 60 + size + (size % 2)
+    }
+    if (!data) throw new Error('libatomic1 package has no data archive')
     mkdirSync(libs, { recursive: true })
-    const dl = spawnSync('apt-get', ['download', 'libatomic1'], { cwd: libs, encoding: 'utf8' })
-    if (dl.status !== 0)
-      throw new Error(`libatomic.so.1 missing and apt-get download failed: ${dl.stderr}`)
-    const deb = readdirSync(libs).find((f) => f.endsWith('.deb'))
-    const x = spawnSync('dpkg-deb', ['-x', join(libs, deb), libs], { encoding: 'utf8' })
-    if (x.status !== 0) throw new Error(`dpkg-deb failed: ${x.stderr}`)
+    const tarball = join(libs, name)
+    writeFileSync(tarball, data)
+    const x = spawnSync('tar', ['-xf', tarball, '-C', libs], { encoding: 'utf8' })
+    if (x.status !== 0) throw new Error(`tar failed: ${x.stderr}`)
   }
-  const found = spawnSync(
-    'sh',
-    ['-c', `dirname "$(find "${libs}" -name 'libatomic.so.1*' | head -n 1)"`],
-    {
-      encoding: 'utf8',
-    },
-  ).stdout.trim()
-  return { LD_LIBRARY_PATH: [found, process.env.LD_LIBRARY_PATH].filter(Boolean).join(':') }
+  return { LD_LIBRARY_PATH: [so, process.env.LD_LIBRARY_PATH].filter(Boolean).join(':') }
 }
 
 /** The verified `bwdc` binary (downloaded on first use) and extra environment it needs. */
 export async function ensureBwdc() {
   const dir = join(here, '.cache', `bwdc-${lock.version}`)
   const bin = join(dir, 'bwdc')
-  if (existsSync(bin)) return { bin, env: libatomicEnv(dir) }
+  if (existsSync(bin)) return { bin, env: await libatomicEnv(dir) }
   if (process.platform !== 'linux' || process.arch !== 'x64') {
     throw new Error('the bwdc e2e steps need Linux x64')
   }
@@ -60,5 +73,5 @@ export async function ensureBwdc() {
   )
   writeFileSync(bin, extractEntry(zip, 'bwdc'))
   chmodSync(bin, 0o755)
-  return { bin, env: libatomicEnv(dir) }
+  return { bin, env: await libatomicEnv(dir) }
 }

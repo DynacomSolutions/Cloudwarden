@@ -3,6 +3,7 @@ import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { z } from 'zod'
 import { authenticationData, checkNested, unlockData } from '../auth/credentials'
+import { randomB64u } from '../auth/crypto'
 import { requireAuth } from '../auth/middleware'
 import { hashMasterPassword } from '../auth/passwords'
 import { signPurposeToken } from '../auth/purpose-token'
@@ -672,7 +673,8 @@ ssoAccounts.get('/api/accounts/sso/user-identifier', requireAuth, async (c) => {
   const token = await signPurposeToken(
     c.env,
     LINK_PURPOSE,
-    { sub: c.var.user.uuid, email: c.var.user.email },
+    // `ref` is a nonce: every token is distinct, so single use cannot block a fresh one.
+    { sub: c.var.user.uuid, email: c.var.user.email, ref: randomB64u(12) },
     LINK_TTL_SECONDS,
   )
   return c.text(token)

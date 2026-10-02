@@ -1,7 +1,13 @@
 // Cloudwarden: organisation single sign-on settings (OIDC and SAML 2.0), member decryption
 // options and a configuration test. Written for Cloudwarden (web/NOTICE.md); upstream's SSO
 // settings screen is not used.
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from "@angular/core";
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  inject,
+  signal,
+} from "@angular/core";
 import { FormBuilder, Validators } from "@angular/forms";
 import { ActivatedRoute } from "@angular/router";
 
@@ -39,19 +45,34 @@ const SIG = {
         <p bitTypography="body1">{{ "cwSsoIntro" | i18n }}</p>
 
         <bit-form-control>
-          <input type="checkbox" bitCheckbox formControlName="enabled" data-testid="cw-sso-enabled" />
+          <input
+            type="checkbox"
+            bitCheckbox
+            formControlName="enabled"
+            data-testid="cw-sso-enabled"
+          />
           <bit-label>{{ "allowSso" | i18n }}</bit-label>
           <bit-hint>{{ "allowSsoDesc" | i18n }}</bit-hint>
         </bit-form-control>
 
         <bit-form-field>
           <bit-label>{{ "ssoIdentifier" | i18n }}</bit-label>
-          <input bitInput type="text" formControlName="identifier" data-testid="cw-sso-identifier" />
+          <input
+            bitInput
+            type="text"
+            formControlName="identifier"
+            data-testid="cw-sso-identifier"
+          />
           <bit-hint>{{ "ssoIdentifierHint" | i18n }}</bit-hint>
         </bit-form-field>
 
-        <h2 bitTypography="h2" class="tw-mt-6">{{ "memberDecryptionOption" | i18n }}</h2>
-        <bit-radio-group formControlName="memberDecryptionType" data-testid="cw-sso-decryption">
+        <h2 bitTypography="h2" class="tw-mt-6">
+          {{ "memberDecryptionOption" | i18n }}
+        </h2>
+        <bit-radio-group
+          formControlName="memberDecryptionType"
+          data-testid="cw-sso-decryption"
+        >
           <bit-radio-button [value]="0">
             <bit-label>{{ "masterPass" | i18n }}</bit-label>
             <bit-hint>{{ "memberDecryptionPassDesc" | i18n }}</bit-hint>
@@ -66,13 +87,26 @@ const SIG = {
           </bit-radio-button>
         </bit-radio-group>
         @if (form.value.memberDecryptionType === 1) {
-          <bit-callout type="warning">{{ "keyConnectorWarning" | i18n }}</bit-callout>
+          <bit-callout type="warning">{{
+            "keyConnectorWarning" | i18n
+          }}</bit-callout>
           <div class="tw-flex tw-items-start tw-gap-2">
             <bit-form-field class="tw-grow">
               <bit-label>{{ "keyConnectorUrl" | i18n }}</bit-label>
-              <input bitInput type="url" formControlName="keyConnectorUrl" data-testid="cw-sso-kc-url" />
+              <input
+                bitInput
+                type="text"
+                formControlName="keyConnectorUrl"
+                data-testid="cw-sso-kc-url"
+              />
             </bit-form-field>
-            <button type="button" bitButton buttonType="secondary" class="tw-mt-6" (click)="testKeyConnector()">
+            <button
+              type="button"
+              bitButton
+              buttonType="secondary"
+              class="tw-mt-6"
+              (click)="testKeyConnector()"
+            >
               {{ "keyConnectorTest" | i18n }}
             </button>
           </div>
@@ -88,34 +122,74 @@ const SIG = {
         </bit-form-field>
 
         @if (form.value.configType === 1) {
-          <h3 bitTypography="h3" class="tw-mt-4">{{ "openIdConnectConfig" | i18n }}</h3>
+          <h3 bitTypography="h3" class="tw-mt-4">
+            {{ "openIdConnectConfig" | i18n }}
+          </h3>
           @if (urls(); as u) {
             <bit-form-field>
               <bit-label>{{ "callbackPath" | i18n }}</bit-label>
-              <input bitInput type="text" [value]="u.callbackPath" readonly data-testid="cw-sso-callback" />
-              <button type="button" bitSuffix bitIconButton="bwi-clone" [appCopyClick]="u.callbackPath" [label]="'copyValue' | i18n"></button>
+              <input
+                bitInput
+                type="text"
+                [value]="u.callbackPath"
+                readonly
+                data-testid="cw-sso-callback"
+              />
+              <button
+                type="button"
+                bitSuffix
+                bitIconButton="bwi-clone"
+                [appCopyClick]="u.callbackPath"
+                [label]="'copyValue' | i18n"
+              ></button>
             </bit-form-field>
             <bit-form-field>
               <bit-label>{{ "signedOutCallbackPath" | i18n }}</bit-label>
-              <input bitInput type="text" [value]="u.signedOutCallbackPath" readonly />
-              <button type="button" bitSuffix bitIconButton="bwi-clone" [appCopyClick]="u.signedOutCallbackPath" [label]="'copyValue' | i18n"></button>
+              <input
+                bitInput
+                type="text"
+                [value]="u.signedOutCallbackPath"
+                readonly
+              />
+              <button
+                type="button"
+                bitSuffix
+                bitIconButton="bwi-clone"
+                [appCopyClick]="u.signedOutCallbackPath"
+                [label]="'copyValue' | i18n"
+              ></button>
             </bit-form-field>
           }
           <bit-form-field>
             <bit-label>{{ "authority" | i18n }}</bit-label>
-            <input bitInput type="url" formControlName="authority" data-testid="cw-sso-authority" />
+            <input
+              bitInput
+              type="text"
+              formControlName="authority"
+              data-testid="cw-sso-authority"
+            />
           </bit-form-field>
           <bit-form-field>
             <bit-label>{{ "clientId" | i18n }}</bit-label>
-            <input bitInput type="text" formControlName="clientId" data-testid="cw-sso-client-id" />
+            <input
+              bitInput
+              type="text"
+              formControlName="clientId"
+              data-testid="cw-sso-client-id"
+            />
           </bit-form-field>
           <bit-form-field>
             <bit-label>{{ "clientSecret" | i18n }}</bit-label>
-            <input bitInput type="password" formControlName="clientSecret" data-testid="cw-sso-client-secret" />
+            <input
+              bitInput
+              type="password"
+              formControlName="clientSecret"
+              data-testid="cw-sso-client-secret"
+            />
           </bit-form-field>
           <bit-form-field>
             <bit-label>{{ "metadataAddress" | i18n }}</bit-label>
-            <input bitInput type="url" formControlName="metadataAddress" />
+            <input bitInput type="text" formControlName="metadataAddress" />
           </bit-form-field>
           <bit-form-field>
             <bit-label>{{ "oidcRedirectBehavior" | i18n }}</bit-label>
@@ -125,25 +199,43 @@ const SIG = {
             </bit-select>
           </bit-form-field>
           <bit-form-control>
-            <input type="checkbox" bitCheckbox formControlName="getClaimsFromUserInfoEndpoint" />
+            <input
+              type="checkbox"
+              bitCheckbox
+              formControlName="getClaimsFromUserInfoEndpoint"
+            />
             <bit-label>{{ "getClaimsFromUserInfoEndpoint" | i18n }}</bit-label>
           </bit-form-control>
-          <h4 bitTypography="h4" class="tw-mt-2">{{ "openIdOptionalCustomizations" | i18n }}</h4>
+          <h4 bitTypography="h4" class="tw-mt-2">
+            {{ "openIdOptionalCustomizations" | i18n }}
+          </h4>
           <bit-form-field>
             <bit-label>{{ "cwAdditionalScopes" | i18n }}</bit-label>
             <input bitInput type="text" formControlName="additionalScopes" />
           </bit-form-field>
           <bit-form-field>
             <bit-label>{{ "additionalUserIdClaimTypes" | i18n }}</bit-label>
-            <input bitInput type="text" formControlName="additionalUserIdClaimTypes" />
+            <input
+              bitInput
+              type="text"
+              formControlName="additionalUserIdClaimTypes"
+            />
           </bit-form-field>
           <bit-form-field>
             <bit-label>{{ "additionalEmailClaimTypes" | i18n }}</bit-label>
-            <input bitInput type="text" formControlName="additionalEmailClaimTypes" />
+            <input
+              bitInput
+              type="text"
+              formControlName="additionalEmailClaimTypes"
+            />
           </bit-form-field>
           <bit-form-field>
             <bit-label>{{ "additionalNameClaimTypes" | i18n }}</bit-label>
-            <input bitInput type="text" formControlName="additionalNameClaimTypes" />
+            <input
+              bitInput
+              type="text"
+              formControlName="additionalNameClaimTypes"
+            />
           </bit-form-field>
           <bit-form-field>
             <bit-label>{{ "acrValues" | i18n }}</bit-label>
@@ -151,32 +243,80 @@ const SIG = {
           </bit-form-field>
           <bit-form-field>
             <bit-label>{{ "expectedReturnAcrValue" | i18n }}</bit-label>
-            <input bitInput type="text" formControlName="expectedReturnAcrValue" />
+            <input
+              bitInput
+              type="text"
+              formControlName="expectedReturnAcrValue"
+            />
           </bit-form-field>
         }
 
         @if (form.value.configType === 2) {
-          <h3 bitTypography="h3" class="tw-mt-4">{{ "samlSpConfig" | i18n }}</h3>
+          <h3 bitTypography="h3" class="tw-mt-4">
+            {{ "samlSpConfig" | i18n }}
+          </h3>
           <bit-form-control>
-            <input type="checkbox" bitCheckbox formControlName="spUniqueEntityId" />
+            <input
+              type="checkbox"
+              bitCheckbox
+              formControlName="spUniqueEntityId"
+            />
             <bit-label>{{ "spUniqueEntityId" | i18n }}</bit-label>
             <bit-hint>{{ "spUniqueEntityIdDesc" | i18n }}</bit-hint>
           </bit-form-control>
           @if (urls(); as u) {
             <bit-form-field>
               <bit-label>{{ "spEntityId" | i18n }}</bit-label>
-              <input bitInput type="text" readonly data-testid="cw-sso-sp-entity" [value]="form.value.spUniqueEntityId ? u.spEntityId : u.spEntityIdStatic" />
-              <button type="button" bitSuffix bitIconButton="bwi-clone" [appCopyClick]="form.value.spUniqueEntityId ? u.spEntityId : u.spEntityIdStatic" [label]="'copyValue' | i18n"></button>
+              <input
+                bitInput
+                type="text"
+                readonly
+                data-testid="cw-sso-sp-entity"
+                [value]="
+                  form.value.spUniqueEntityId
+                    ? u.spEntityId
+                    : u.spEntityIdStatic
+                "
+              />
+              <button
+                type="button"
+                bitSuffix
+                bitIconButton="bwi-clone"
+                [appCopyClick]="
+                  form.value.spUniqueEntityId
+                    ? u.spEntityId
+                    : u.spEntityIdStatic
+                "
+                [label]="'copyValue' | i18n"
+              ></button>
             </bit-form-field>
             <bit-form-field>
               <bit-label>{{ "spMetadataUrl" | i18n }}</bit-label>
               <input bitInput type="text" [value]="u.spMetadataUrl" readonly />
-              <button type="button" bitSuffix bitIconButton="bwi-clone" [appCopyClick]="u.spMetadataUrl" [label]="'copyValue' | i18n"></button>
+              <button
+                type="button"
+                bitSuffix
+                bitIconButton="bwi-clone"
+                [appCopyClick]="u.spMetadataUrl"
+                [label]="'copyValue' | i18n"
+              ></button>
             </bit-form-field>
             <bit-form-field>
               <bit-label>{{ "spAcsUrl" | i18n }}</bit-label>
-              <input bitInput type="text" [value]="u.spAcsUrl" readonly data-testid="cw-sso-acs" />
-              <button type="button" bitSuffix bitIconButton="bwi-clone" [appCopyClick]="u.spAcsUrl" [label]="'copyValue' | i18n"></button>
+              <input
+                bitInput
+                type="text"
+                [value]="u.spAcsUrl"
+                readonly
+                data-testid="cw-sso-acs"
+              />
+              <button
+                type="button"
+                bitSuffix
+                bitIconButton="bwi-clone"
+                [appCopyClick]="u.spAcsUrl"
+                [label]="'copyValue' | i18n"
+              ></button>
             </bit-form-field>
           }
           <bit-form-field>
@@ -198,9 +338,18 @@ const SIG = {
           <bit-form-field>
             <bit-label>{{ "spSigningBehavior" | i18n }}</bit-label>
             <bit-select formControlName="spSigningBehavior">
-              <bit-option [value]="0" [label]="'cwSignIfIdpWants' | i18n"></bit-option>
-              <bit-option [value]="1" [label]="'cwSignAlways' | i18n"></bit-option>
-              <bit-option [value]="3" [label]="'cwSignNever' | i18n"></bit-option>
+              <bit-option
+                [value]="0"
+                [label]="'cwSignIfIdpWants' | i18n"
+              ></bit-option>
+              <bit-option
+                [value]="1"
+                [label]="'cwSignAlways' | i18n"
+              ></bit-option>
+              <bit-option
+                [value]="3"
+                [label]="'cwSignNever' | i18n"
+              ></bit-option>
             </bit-select>
           </bit-form-field>
           <bit-form-field>
@@ -212,19 +361,34 @@ const SIG = {
             </bit-select>
           </bit-form-field>
           <bit-form-control>
-            <input type="checkbox" bitCheckbox formControlName="spWantAssertionsSigned" />
+            <input
+              type="checkbox"
+              bitCheckbox
+              formControlName="spWantAssertionsSigned"
+            />
             <bit-label>{{ "spWantAssertionsSigned" | i18n }}</bit-label>
           </bit-form-control>
           <bit-form-control>
-            <input type="checkbox" bitCheckbox formControlName="spValidateCertificates" />
+            <input
+              type="checkbox"
+              bitCheckbox
+              formControlName="spValidateCertificates"
+            />
             <bit-label>{{ "spValidateCertificates" | i18n }}</bit-label>
             <bit-hint>{{ "cwValidateCertificatesHint" | i18n }}</bit-hint>
           </bit-form-control>
 
-          <h3 bitTypography="h3" class="tw-mt-4">{{ "samlIdpConfig" | i18n }}</h3>
+          <h3 bitTypography="h3" class="tw-mt-4">
+            {{ "samlIdpConfig" | i18n }}
+          </h3>
           <bit-form-field>
             <bit-label>{{ "idpEntityId" | i18n }}</bit-label>
-            <input bitInput type="text" formControlName="idpEntityId" data-testid="cw-sso-idp-entity" />
+            <input
+              bitInput
+              type="text"
+              formControlName="idpEntityId"
+              data-testid="cw-sso-idp-entity"
+            />
           </bit-form-field>
           <bit-form-field>
             <bit-label>{{ "idpBindingType" | i18n }}</bit-label>
@@ -235,15 +399,30 @@ const SIG = {
           </bit-form-field>
           <bit-form-field>
             <bit-label>{{ "idpSingleSignOnServiceUrl" | i18n }}</bit-label>
-            <input bitInput type="url" formControlName="idpSingleSignOnServiceUrl" data-testid="cw-sso-idp-sso-url" />
+            <input
+              bitInput
+              type="text"
+              formControlName="idpSingleSignOnServiceUrl"
+              data-testid="cw-sso-idp-sso-url"
+            />
           </bit-form-field>
           <bit-form-field>
             <bit-label>{{ "idpSingleLogoutServiceUrl" | i18n }}</bit-label>
-            <input bitInput type="url" formControlName="idpSingleLogoutServiceUrl" />
+            <input
+              bitInput
+              type="text"
+              formControlName="idpSingleLogoutServiceUrl"
+            />
           </bit-form-field>
           <bit-form-field>
             <bit-label>{{ "idpX509PublicCert" | i18n }}</bit-label>
-            <textarea bitInput rows="6" class="tw-font-mono" formControlName="idpX509PublicCert" data-testid="cw-sso-idp-cert"></textarea>
+            <textarea
+              bitInput
+              rows="6"
+              class="tw-font-mono"
+              formControlName="idpX509PublicCert"
+              data-testid="cw-sso-idp-cert"
+            ></textarea>
           </bit-form-field>
           <bit-form-field>
             <bit-label>{{ "idpOutboundSigningAlgorithm" | i18n }}</bit-label>
@@ -254,21 +433,38 @@ const SIG = {
             </bit-select>
           </bit-form-field>
           <bit-form-control>
-            <input type="checkbox" bitCheckbox formControlName="idpAllowUnsolicitedAuthnResponse" />
-            <bit-label>{{ "idpAllowUnsolicitedAuthnResponse" | i18n }}</bit-label>
+            <input
+              type="checkbox"
+              bitCheckbox
+              formControlName="idpAllowUnsolicitedAuthnResponse"
+            />
+            <bit-label>{{
+              "idpAllowUnsolicitedAuthnResponse" | i18n
+            }}</bit-label>
           </bit-form-control>
           <bit-form-control>
-            <input type="checkbox" bitCheckbox formControlName="idpAllowOutboundLogoutRequests" />
+            <input
+              type="checkbox"
+              bitCheckbox
+              formControlName="idpAllowOutboundLogoutRequests"
+            />
             <bit-label>{{ "idpAllowOutboundLogoutRequests" | i18n }}</bit-label>
           </bit-form-control>
           <bit-form-control>
-            <input type="checkbox" bitCheckbox formControlName="idpWantAuthnRequestsSigned" />
+            <input
+              type="checkbox"
+              bitCheckbox
+              formControlName="idpWantAuthnRequestsSigned"
+            />
             <bit-label>{{ "idpSignAuthenticationRequests" | i18n }}</bit-label>
           </bit-form-control>
         }
 
         @if (testResult(); as t) {
-          <bit-callout [type]="t.success ? 'success' : 'danger'" data-testid="cw-sso-test-result">
+          <bit-callout
+            [type]="t.success ? 'success' : 'danger'"
+            data-testid="cw-sso-test-result"
+          >
             @if (t.success) {
               {{ "cwSsoTestOk" | i18n: t.issuer ?? "" }}
             } @else {
@@ -282,10 +478,23 @@ const SIG = {
         }
 
         <div class="tw-flex tw-gap-2 tw-mt-4">
-          <button type="submit" bitButton bitFormButton buttonType="primary" data-testid="cw-sso-save">
+          <button
+            type="submit"
+            bitButton
+            bitFormButton
+            buttonType="primary"
+            data-testid="cw-sso-save"
+          >
             {{ "save" | i18n }}
           </button>
-          <button type="button" bitButton bitFormButton buttonType="secondary" [bitAction]="test" data-testid="cw-sso-test">
+          <button
+            type="button"
+            bitButton
+            bitFormButton
+            buttonType="secondary"
+            [bitAction]="test"
+            data-testid="cw-sso-test"
+          >
             {{ "cwSsoTest" | i18n }}
           </button>
         </div>
@@ -392,7 +601,8 @@ export class OrgSsoComponent implements OnInit {
         spNameIdFormat: d.spNameIdFormat ?? 0,
         spOutboundSigningAlgorithm: d.spOutboundSigningAlgorithm || SIG.sha256,
         spSigningBehavior: d.spSigningBehavior ?? 0,
-        spMinIncomingSigningAlgorithm: d.spMinIncomingSigningAlgorithm || SIG.sha256,
+        spMinIncomingSigningAlgorithm:
+          d.spMinIncomingSigningAlgorithm || SIG.sha256,
         spWantAssertionsSigned: d.spWantAssertionsSigned ?? true,
         spValidateCertificates: d.spValidateCertificates ?? false,
         idpEntityId: d.idpEntityId ?? "",
@@ -400,9 +610,13 @@ export class OrgSsoComponent implements OnInit {
         idpSingleSignOnServiceUrl: d.idpSingleSignOnServiceUrl ?? "",
         idpSingleLogoutServiceUrl: d.idpSingleLogoutServiceUrl ?? "",
         idpX509PublicCert: d.idpX509PublicCert ?? "",
-        idpOutboundSigningAlgorithm: d.idpOutboundSigningAlgorithm || SIG.sha256,
-        idpAllowUnsolicitedAuthnResponse: d.idpAllowUnsolicitedAuthnResponse ?? false,
-        idpAllowOutboundLogoutRequests: !(d.idpDisableOutboundLogoutRequests ?? false),
+        idpOutboundSigningAlgorithm:
+          d.idpOutboundSigningAlgorithm || SIG.sha256,
+        idpAllowUnsolicitedAuthnResponse:
+          d.idpAllowUnsolicitedAuthnResponse ?? false,
+        idpAllowOutboundLogoutRequests: !(
+          d.idpDisableOutboundLogoutRequests ?? false
+        ),
         idpWantAuthnRequestsSigned: d.idpWantAuthnRequestsSigned ?? false,
       });
     } catch (e) {
@@ -417,7 +631,8 @@ export class OrgSsoComponent implements OnInit {
     const common = {
       configType: v.configType,
       memberDecryptionType: v.memberDecryptionType,
-      keyConnectorUrl: v.memberDecryptionType === 1 ? text(v.keyConnectorUrl) : null,
+      keyConnectorUrl:
+        v.memberDecryptionType === 1 ? text(v.keyConnectorUrl) : null,
     };
     if (v.configType === 2) {
       return {
@@ -465,7 +680,10 @@ export class OrgSsoComponent implements OnInit {
         identifier: (v.identifier ?? "").trim() || null,
         data: this.data(),
       });
-      this.toast.showToast({ variant: "success", message: this.i18n.t("ssoSettingsSaved") });
+      this.toast.showToast({
+        variant: "success",
+        message: this.i18n.t("ssoSettingsSaved"),
+      });
     } catch (e) {
       this.toast.showToast({ variant: "error", message: errorText(e) });
     }
@@ -475,22 +693,33 @@ export class OrgSsoComponent implements OnInit {
     try {
       this.testResult.set(await this.api.testSso(this.orgId, this.data()));
     } catch (e) {
-      this.testResult.set({ success: false, problems: [errorText(e)], issuer: null });
+      this.testResult.set({
+        success: false,
+        problems: [errorText(e)],
+        issuer: null,
+      });
     }
   };
 
   protected async testKeyConnector() {
-    const ok = await this.api.keyConnectorAlive(this.form.value.keyConnectorUrl ?? "");
+    const ok = await this.api.keyConnectorAlive(
+      this.form.value.keyConnectorUrl ?? "",
+    );
     this.toast.showToast({
       variant: ok ? "success" : "error",
-      message: this.i18n.t(ok ? "keyConnectorTestSuccess" : "keyConnectorTestFail"),
+      message: this.i18n.t(
+        ok ? "keyConnectorTestSuccess" : "keyConnectorTestFail",
+      ),
     });
   }
 }
 
 /** The server's validation messages, flattened. */
 function errorText(e: unknown): string {
-  const err = e as { message?: string; validationErrors?: Record<string, string[]> };
+  const err = e as {
+    message?: string;
+    validationErrors?: Record<string, string[]>;
+  };
   const details = Object.values(err?.validationErrors ?? {}).flat();
   return [err?.message, ...details].filter(Boolean).join(" ");
 }

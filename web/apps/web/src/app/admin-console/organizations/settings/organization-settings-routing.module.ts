@@ -6,7 +6,10 @@ import { Organization } from "@bitwarden/common/admin-console/models/domain/orga
 
 import { organizationPermissionsGuard } from "../../organizations/guards/org-permissions.guard";
 import { organizationRedirectGuard } from "../../organizations/guards/org-redirect.guard";
-import { PoliciesComponent, PoliciesDeactivateGuard } from "../../organizations/policies";
+import {
+  PoliciesComponent,
+  PoliciesDeactivateGuard,
+} from "../../organizations/policies";
 
 import { AccountComponent } from "./account.component";
 import { TwoFactorSetupComponent } from "./two-factor-setup.component";
@@ -33,7 +36,9 @@ const routes: Routes = [
       {
         path: "two-factor",
         component: TwoFactorSetupComponent,
-        canActivate: [organizationPermissionsGuard((o) => o.use2fa && o.isOwner)],
+        canActivate: [
+          organizationPermissionsGuard((o) => o.use2fa && o.isOwner),
+        ],
         data: {
           titleId: "twoStepLogin",
         },
@@ -41,7 +46,9 @@ const routes: Routes = [
       {
         path: "policies",
         component: PoliciesComponent,
-        canActivate: [organizationPermissionsGuard((org) => org.canManagePolicies)],
+        canActivate: [
+          organizationPermissionsGuard((org) => org.canManagePolicies),
+        ],
         canDeactivate: [PoliciesDeactivateGuard],
         data: {
           titleId: "policies",
@@ -51,7 +58,9 @@ const routes: Routes = [
       {
         path: "sso",
         loadComponent: () =>
-          import("../../../cloudwarden/sso/org-sso.component").then((m) => m.OrgSsoComponent),
+          import("../../../cloudwarden/sso/org-sso.component").then(
+            (m) => m.OrgSsoComponent,
+          ),
         canActivate: [organizationPermissionsGuard((org) => org.canManageSso)],
         data: { titleId: "singleSignOn" },
       },
@@ -61,7 +70,11 @@ const routes: Routes = [
           import("../../../cloudwarden/sso/org-domains.component").then(
             (m) => m.OrgDomainsComponent,
           ),
-        canActivate: [organizationPermissionsGuard((org) => org.canManageDomainVerification)],
+        canActivate: [
+          organizationPermissionsGuard(
+            (org) => org.canManageDomainVerification,
+          ),
+        ],
         data: { titleId: "claimedDomains" },
       },
       {
@@ -83,7 +96,9 @@ const routes: Routes = [
               import("../../../tools/import/org-import.component").then(
                 (mod) => mod.OrgImportComponent,
               ),
-            canActivate: [organizationPermissionsGuard((org) => org.canAccessImport)],
+            canActivate: [
+              organizationPermissionsGuard((org) => org.canAccessImport),
+            ],
             data: {
               titleId: "importNoun",
             },
@@ -94,7 +109,9 @@ const routes: Routes = [
               import("../../../tools/vault-export/org-vault-export.component").then(
                 (mod) => mod.OrganizationVaultExportComponent,
               ),
-            canActivate: [organizationPermissionsGuard((org) => org.canAccessExport)],
+            canActivate: [
+              organizationPermissionsGuard((org) => org.canAccessExport),
+            ],
             data: {
               titleId: "exportNoun",
             },

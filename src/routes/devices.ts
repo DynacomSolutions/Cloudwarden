@@ -31,7 +31,6 @@ const deviceJson = (d: Device) => ({
   isTrusted: isTrustedDevice(d),
   encryptedUserKey: d.encryptedUserKey,
   encryptedPublicKey: d.encryptedPublicKey,
-  devicePendingAuthRequest: null,
   object: 'device',
 })
 

@@ -85,7 +85,13 @@ export class CloudwardenSsoApiService {
   private readonly apiService = inject(ApiService);
 
   async getSso(orgId: string): Promise<OrganizationSso> {
-    const r = (await this.apiService.send("GET", `/organizations/${orgId}/sso`, null, true, true)) as Record<string, unknown>;
+    const r = (await this.apiService.send(
+      "GET",
+      `/organizations/${orgId}/sso`,
+      null,
+      true,
+      true,
+    )) as Record<string, unknown>;
     return {
       enabled: prop<boolean>(r, "enabled") ?? false,
       identifier: prop<string | null>(r, "identifier") ?? null,
@@ -94,37 +100,82 @@ export class CloudwardenSsoApiService {
     };
   }
 
-  async saveSso(orgId: string, body: { enabled: boolean; identifier: string | null; data: SsoConfigData }) {
-    await this.apiService.send("POST", `/organizations/${orgId}/sso`, body, true, true);
+  async saveSso(
+    orgId: string,
+    body: { enabled: boolean; identifier: string | null; data: SsoConfigData },
+  ) {
+    await this.apiService.send(
+      "POST",
+      `/organizations/${orgId}/sso`,
+      body,
+      true,
+      true,
+    );
   }
 
   async testSso(orgId: string, data: SsoConfigData): Promise<SsoTestResult> {
-    return (await this.apiService.send("POST", `/organizations/${orgId}/sso/test`, { data }, true, true)) as SsoTestResult;
+    return (await this.apiService.send(
+      "POST",
+      `/organizations/${orgId}/sso/test`,
+      { data },
+      true,
+      true,
+    )) as SsoTestResult;
   }
 
   async listDomains(orgId: string): Promise<OrganizationDomain[]> {
-    const r = (await this.apiService.send("GET", `/organizations/${orgId}/domain`, null, true, true)) as {
+    const r = (await this.apiService.send(
+      "GET",
+      `/organizations/${orgId}/domain`,
+      null,
+      true,
+      true,
+    )) as {
       data: OrganizationDomain[];
     };
     return r.data ?? [];
   }
 
-  async addDomain(orgId: string, domainName: string): Promise<OrganizationDomain> {
-    return (await this.apiService.send("POST", `/organizations/${orgId}/domain`, { domainName }, true, true)) as OrganizationDomain;
+  async addDomain(
+    orgId: string,
+    domainName: string,
+  ): Promise<OrganizationDomain> {
+    return (await this.apiService.send(
+      "POST",
+      `/organizations/${orgId}/domain`,
+      { domainName },
+      true,
+      true,
+    )) as OrganizationDomain;
   }
 
   async verifyDomain(orgId: string, id: string): Promise<OrganizationDomain> {
-    return (await this.apiService.send("POST", `/organizations/${orgId}/domain/${id}/verify`, null, true, true)) as OrganizationDomain;
+    return (await this.apiService.send(
+      "POST",
+      `/organizations/${orgId}/domain/${id}/verify`,
+      null,
+      true,
+      true,
+    )) as OrganizationDomain;
   }
 
   async removeDomain(orgId: string, id: string): Promise<void> {
-    await this.apiService.send("DELETE", `/organizations/${orgId}/domain/${id}`, null, true, false);
+    await this.apiService.send(
+      "DELETE",
+      `/organizations/${orgId}/domain/${id}`,
+      null,
+      true,
+      false,
+    );
   }
 
   /** Checks a key connector answers (`GET {url}/alive`) from the administrator's browser. */
   async keyConnectorAlive(url: string): Promise<boolean> {
     try {
-      const res = await fetch(new URL("alive", url.endsWith("/") ? url : `${url}/`), { cache: "no-store" });
+      const res = await fetch(
+        new URL("alive", url.endsWith("/") ? url : `${url}/`),
+        { cache: "no-store" },
+      );
       return res.status === 200;
     } catch {
       return false;

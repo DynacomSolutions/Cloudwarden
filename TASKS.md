@@ -166,6 +166,18 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 | 261 | Account emails: password hint, verify email and token, request and verify OTP, delete by email, two-step login changed and recovery used notices, email change notices to both addresses, welcome, emergency access accepted, confirmed, approved, rejected and elapsed-wait sweep, organisation accepted and confirmed. See `docs/account-email.md` | done | agent | `test/account-email.test.ts`; contract list shrunk by 8 operations |
 | 262 | Push relay: installation credentials (`PUSH_INSTALLATION_ID`, `PUSH_INSTALLATION_KEY`, `PUSH_RELAY_URI`, `PUSH_IDENTITY_URI`), relay token, device register, update and delete, send for every hub event with user and organisation targeting and device exclusion, no-op when unconfigured, diagnostics `push` status. See `docs/push-notifications.md` | done | agent | `test/push-relay.test.ts` against a stand-in relay; not run against the live relay (needs credentials) |
 
+## Phase 13: Organisation API, directory sync, SCIM and integrations
+
+| # | Task | Status | Owner | Acceptance |
+|---|---|---|---|---|
+| 270 | Organisation API keys: `POST api-key`, `rotate-api-key`, `GET api-key-information[/{type}]` (Public API key owner only, SCIM key `manageScim`), sealed at rest under `DATA_ENCRYPTION_KEY` (fallback derived from `JWT_SECRET`); `client_credentials` grant for `organization.<id>` with `scope=api.organization`, tokens bound to the key revision; `useApi`, `useDirectory`, `useScim` on; events carry `systemUser`. Migration `0012_org_api_scim_integrations` | done | agent | `test/public-api.test.ts`: owner only, password check, stable key, sealed row, rotation revokes tokens, organisation tokens refused elsewhere |
+| 271 | Bitwarden Public API at `/api/public/*` and `/public/*`: members (CRUD, group ids, reinvite, revoke, restore), groups (CRUD, member ids), collections (get, update, delete), policies, events (filters, continuation); Public API error envelope; `PublicApi` tag in `docs/api/openapi.yaml` | done | agent | Contract cases validate every response against the spec |
+| 272 | Directory Connector: `POST /public/organization/import` (match by external id then email, invite, link, `deleted`, group upsert and membership, `overwriteExisting`, `inviteUsersAfterProvisioning`, owners kept); `pnpm e2e` runs the pinned official `bwdc` CLI (GPL-3.0) against an in-process LDAP server | done | agent | Import test; e2e `bwdc` login, test, sync, overwrite sync |
+| 273 | SCIM 2.0 at `/scim/v2/{orgId}` and `/v2/{orgId}`: Users and Groups (list with RFC 7644 filters, pagination and attribute selection, create, get, replace, PATCH, delete), ServiceProviderConfig, Schemas, ResourceTypes; SCIM key auth when enabled; revoke and restore on `active`; Entra ID and Okta request forms; SCIM settings API and page | done | agent | `test/scim.test.ts` (filter and PATCH conformance, Entra and Okta sequences) |
+| 274 | Event integrations: signed webhook (HMAC-SHA256 over timestamp and body), Splunk HEC, Datadog, Microsoft Sentinel (Logs Ingestion API); minute cron delivery in insertion order with lease, exponential back-off and status; test event; secrets sealed; integrations page | done | agent | `test/integrations.test.ts` |
+| 275 | Web client: SCIM settings (`settings/scim`) and integrations (`integrations`) pages under `web/apps/web/src/app/cloudwarden/org-integrations/`; event log CSV export (upstream) works against the event API | done | agent | Jest specs; `pnpm web:build` |
+| 276 | Docs: `docs/integrations.md` (setup for Entra ID, Okta, Directory Connector, webhook verification, `DATA_ENCRYPTION_KEY`) | done | agent | |
+
 ## Phase 10: Going public
 
 | # | Task | Status | Owner | Acceptance |

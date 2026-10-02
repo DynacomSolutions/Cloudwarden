@@ -235,3 +235,21 @@ describe('Secrets Manager access requests', () => {
     expect(res.status).toBe(404)
   })
 })
+
+describe('request-sm-access limit', () => {
+  it('limits requests per account', async () => {
+    const statuses: number[] = []
+    for (let i = 0; i < 22; i++) {
+      statuses.push(
+        (
+          await member.call('/api/request-access/request-sm-access', 'POST', {
+            organizationId: orgId,
+            emailContent: 'again',
+          })
+        ).status,
+      )
+    }
+    expect(statuses[21]).toBe(429)
+    expect(statuses[0]).toBe(200)
+  })
+})

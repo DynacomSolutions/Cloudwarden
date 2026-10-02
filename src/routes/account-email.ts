@@ -119,6 +119,30 @@ accountEmail.post('/api/accounts/verify-otp', requireAuth, async (c) => {
   return c.body(null, 200)
 })
 
+// Resends the new device login code. Anonymous, like the login it belongs to, so it proves the
+// master password first; the answer is 200 either way once the password is right.
+accountEmail.post(
+  '/api/accounts/resend-new-device-otp',
+  rateLimit('resend-new-device-otp', 5),
+  async (c) => {
+    const body = await parseBody(
+      c,
+      z.object({ email: z.string().min(3).max(256), masterPasswordHash: z.string().min(1) }),
+    )
+    const db = createDb(c.env.DB)
+    const user = await findUserByEmail(db, body.email.trim().toLowerCase())
+    // The same refusal for an unknown address and a wrong password.
+    if (!user || !(await verifyMasterPassword(user, body.masterPasswordHash))) {
+      throw new ApiError(400, 'Invalid email or password.')
+    }
+    if (!user.verifyDevices || !createEmailTransport(c.env).configured) return c.body(null, 200)
+    const code = await issueOtp(db, user.uuid, 'new-device')
+    if (!code) return tooManyRequests(c)
+    later(c, sendNotice(c.env, user.email, otpEmail('new-device', code, OTP_TTL_MS / 60_000)))
+    return c.body(null, 200)
+  },
+)
+
 // New device login verification. Turning it off needs proof: the master password or a code.
 const verifyDevicesSchema = z.object({
   masterPasswordHash: z.string().nullish(),

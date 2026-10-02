@@ -732,6 +732,17 @@ describe('security review fixes', () => {
   })
 })
 
+describe('trash and machine accounts', () => {
+  it('keeps the trash to members, not machine accounts', async () => {
+    const m = await newMachine('trash-bot')
+    const res = await machineLogin(m.tokenId, m.clientSecret)
+    const t = ((await res.json()) as { access_token: string }).access_token
+    expect((await authed(`/api/secrets/${orgId}/trash`, t)).status).toBe(403)
+    expect((await authed(`/api/secrets/${orgId}/trash/restore`, t, 'POST', [NIL])).status).toBe(403)
+    expect((await authed(`/api/secrets/${orgId}/trash/empty`, t, 'POST', [NIL])).status).toBe(403)
+  })
+})
+
 describe('trash (TASKS #231)', () => {
   it('moves deleted secrets to the trash, restores them and empties it', async () => {
     const p = await owner.json(`/api/organizations/${orgId}/projects`, 'POST', {

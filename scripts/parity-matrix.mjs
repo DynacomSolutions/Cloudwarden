@@ -122,9 +122,11 @@ for (const r of [...rows.values()].sort(
 const count = (f) => out.filter(f).length
 const summary = {
   total: out.length,
-  implemented: count((r) => r.status.startsWith('implemented')),
+  implemented: count((r) => r.status.startsWith('implemented') || r.status === 'self-host'),
   ownedAF: count((r) => /^[A-F]$/.test(r.owner) && !r.status.startsWith('implemented')),
-  remaining: count((r) => r.owner === 'G' && !r.status.startsWith('implemented')),
+  remaining: count(
+    (r) => r.owner === 'G' && !r.status.startsWith('implemented') && r.status !== 'self-host',
+  ),
   notCalled: count((r) => r.status === 'not called'),
 }
 

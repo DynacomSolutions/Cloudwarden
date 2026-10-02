@@ -1,2 +1,165 @@
 METHOD	PATH	STATUS	OWNER	NOTE
 POST	/api/cloudwarden/admin/users/{id}/{action}	implemented		One row per action: disable, enable, deauthorize, remove-2fa
+POST	/api/account/billing/subscriptions/organizations/invoice/preview	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/account/billing/subscriptions/premium/invoice/preview	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/account/billing/subscriptions/premium/upgrade/invoice/preview	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+GET	/api/account/billing/vnext/address	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+PUT	/api/account/billing/vnext/address	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+GET	/api/account/billing/vnext/credit	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/account/billing/vnext/credit/bitpay	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+GET	/api/account/billing/vnext/discounts	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+GET	/api/account/billing/vnext/license	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+GET	/api/account/billing/vnext/payment-method	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+PUT	/api/account/billing/vnext/payment-method	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/account/billing/vnext/payment-method/verify-bank-account	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/account/billing/vnext/portal-session	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/account/billing/vnext/premium/checkout	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+GET	/api/account/billing/vnext/subscription	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/account/billing/vnext/subscription	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/account/billing/vnext/subscription/reinstate	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/account/billing/vnext/subscription/restart	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+PUT	/api/account/billing/vnext/subscription/storage	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/account/billing/vnext/upgrade	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/billing/preview-invoice/organizations/{orgId}/subscription/plan-change	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/billing/preview-invoice/organizations/{orgId}/subscription/update	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/billing/preview-invoice/organizations/subscriptions/purchase	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/billing/preview-invoice/premium/subscriptions/purchase	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/billing/preview-invoice/premium/subscriptions/upgrade	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/bitpay-invoice	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+DELETE	/api/organization/sponsorship/{orgId}	self-host	G	No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation
+DELETE	/api/organization/sponsorship/{orgId}/{sponsoredFriendlyName}/revoke	self-host	G	No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation
+POST	/api/organization/sponsorship/{orgId}/families-for-enterprise	self-host	G	No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation
+POST	/api/organization/sponsorship/{orgId}/families-for-enterprise/resend	self-host	G	No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation
+GET	/api/organization/sponsorship/{orgId}/sponsored	self-host	G	No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation
+GET	/api/organization/sponsorship/{orgId}/sync-status	self-host	G	No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation
+POST	/api/organization/sponsorship/redeem	self-host	G	No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation
+DELETE	/api/organization/sponsorship/self-hosted/{orgId}	self-host	G	No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation
+DELETE	/api/organization/sponsorship/self-hosted/{orgId}/{sponsoredFriendlyName}/revoke	self-host	G	No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation
+POST	/api/organization/sponsorship/self-hosted/{orgId}/families-for-enterprise	self-host	G	No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation
+GET	/api/organization/sponsorship/self-hosted/{orgId}/sponsored	self-host	G	No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation
+DELETE	/api/organization/sponsorship/sponsored/{orgId}	self-host	G	No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation
+POST	/api/organization/sponsorship/validate-token	self-host	G	No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation
+POST	/api/organizations/{orgId}/billing/change-frequency	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+GET	/api/organizations/{id}/billing/invoices	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/organizations/{orgId}/billing/restart-subscription	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/organizations/{id}/billing/setup-business-unit	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/organizations/{orgId}/billing/subscription/plan-change/invoice/preview	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+GET	/api/organizations/{id}/billing/transactions	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+GET	/api/organizations/{orgId}/billing/vnext/address	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+PUT	/api/organizations/{orgId}/billing/vnext/address	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+GET	/api/organizations/{orgId}/billing/vnext/annual-upgrade-offer	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/organizations/{orgId}/billing/vnext/annual-upgrade-offer/redeem	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+GET	/api/organizations/{orgId}/billing/vnext/churn-mitigation-offer	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/organizations/{orgId}/billing/vnext/churn-mitigation-offer/redeem	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+GET	/api/organizations/{orgId}/billing/vnext/credit	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/organizations/{orgId}/billing/vnext/credit/bitpay	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+GET	/api/organizations/{orgId}/billing/vnext/payment-method	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+PUT	/api/organizations/{orgId}/billing/vnext/payment-method	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/organizations/{orgId}/billing/vnext/payment-method/verify-bank-account	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/organizations/{orgId}/billing/vnext/subscription/restart	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+GET	/api/organizations/{orgId}/billing/vnext/warnings	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/organizations/{orgId}/cancel	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/organizations/{id}/reinstate	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/organizations/{id}/seat	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/organizations/{id}/sm-subscription	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/organizations/{id}/storage	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/organizations/{id}/subscription	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/organizations/{id}/upgrade	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/organizations/licenses/self-hosted/{id}	self-host	G	Cloud licence files are not used: answers 400 with an explanation
+POST	/api/organizations/licenses/self-hosted/{id}/sync/	self-host	G	Cloud licence files are not used: answers 400 with an explanation
+DELETE	/api/providers/{id}	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+GET	/api/providers/{id}	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+PUT	/api/providers/{id}	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+GET	/api/providers/{providerId}/billing/invoices	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+GET	/api/providers/{providerId}/billing/invoices/{invoiceId}	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+GET	/api/providers/{providerId}/billing/subscription	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+GET	/api/providers/{providerId}/billing/vnext/address	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+PUT	/api/providers/{providerId}/billing/vnext/address	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+GET	/api/providers/{providerId}/billing/vnext/credit	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+POST	/api/providers/{providerId}/billing/vnext/credit/bitpay	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+GET	/api/providers/{providerId}/billing/vnext/payment-method	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+PUT	/api/providers/{providerId}/billing/vnext/payment-method	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+POST	/api/providers/{providerId}/billing/vnext/payment-method/verify-bank-account	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+POST	/api/providers/{providerId}/billing/vnext/subscription/restart	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+POST	/api/providers/{providerId}/clients	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+PUT	/api/providers/{providerId}/clients/{orgId}	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+GET	/api/providers/{providerId}/clients/addable	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+POST	/api/providers/{providerId}/clients/existing	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+GET	/api/providers/{providerId}/events	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+GET	/api/providers/{providerId}/organizations	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+POST	/api/providers/{providerId}/organizations	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+DELETE	/api/providers/{providerId}/organizations/{id}	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+POST	/api/providers/{providerId}/organizations/add	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+POST	/api/providers/{id}/setup	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+DELETE	/api/providers/{providerId}/users	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+GET	/api/providers/{providerId}/users	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+DELETE	/api/providers/{providerId}/users/{id}	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+GET	/api/providers/{providerId}/users/{id}	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+PUT	/api/providers/{providerId}/users/{id}	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+POST	/api/providers/{providerId}/users/{id}/accept	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+POST	/api/providers/{providerId}/users/{id}/confirm	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+GET	/api/providers/{providerId}/users/{id}/events	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+POST	/api/providers/{providerId}/users/{id}/reinvite	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+POST	/api/providers/{providerId}/users/confirm	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+POST	/api/providers/{providerId}/users/invite	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+POST	/api/providers/{providerId}/users/public-keys	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+POST	/api/providers/{providerId}/users/reinvite	self-host	G	No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty
+POST	/api/setup-intent/bank-account	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/setup-intent/card	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/setup-payment	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+---	---			Open: owned by workstream ---
+POST	/api/accounts/key-connector/enroll			Open: SSO federation, Key Connector and trusted device follow-ups (open PRs)
+PUT	/api/accounts/update-temp-password			Open: account recovery and device approvals (workstream C)
+POST	/api/auth-requests/admin-request			Open: account recovery and device approvals (workstream C)
+PUT	/api/devices/identifier/{id}/clear-token			Open: SSO federation, Key Connector and trusted device follow-ups (open PRs)
+POST	/api/devices/identifier/{getAppId}/web-push-auth			Open: push relay registration and web push settings (PR for push settings)
+PUT	/api/devices/identifier/{id}/web-push-auth			Open: push relay registration and web push settings (PR for push settings)
+POST	/api/installations			Open: push relay registration and web push settings (PR for push settings)
+GET	/api/installations/{id}			Open: push relay registration and web push settings (PR for push settings)
+GET	/api/organizations/{id}/auth-requests			Open: account recovery and device approvals (workstream C)
+POST	/api/organizations/{id}/auth-requests			Open: account recovery and device approvals (workstream C)
+POST	/api/organizations/{id}/auth-requests/{id}			Open: account recovery and device approvals (workstream C)
+POST	/api/organizations/{id}/auth-requests/deny			Open: account recovery and device approvals (workstream C)
+POST	/api/organizations/{orgId}/delete-recover-token			Open: account recovery and device approvals (workstream C)
+POST	/api/organizations/{orgId}/import			Open: Directory Connector style member and group import (workstream F)
+GET	/api/organizations/{id}/integrations			Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials
+POST	/api/organizations/{id}/integrations			Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials
+DELETE	/api/organizations/{id}/integrations/{id}			Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials
+PUT	/api/organizations/{id}/integrations/{id}			Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials
+GET	/api/organizations/{id}/integrations/{id}/configurations			Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials
+POST	/api/organizations/{id}/integrations/{id}/configurations			Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials
+DELETE	/api/organizations/{id}/integrations/{id}/configurations/{id}			Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials
+PUT	/api/organizations/{id}/integrations/{id}/configurations/{id}			Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials
+GET	/api/organizations/{id}/integrations/{id}/teams/channels			Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials
+GET	/api/organizations/{id}/integrations/slack/redirect			Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials
+GET	/api/organizations/{id}/integrations/teams/redirect			Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials
+GET	/api/organizations/(id)/public-key			Open: account recovery and device approvals (workstream C)
+PUT	/api/organizations/{orgId}/users/{id}/recover-account			Open: account recovery and device approvals (workstream C)
+GET	/api/organizations/{orgId}/users/{id}/reset-password-details			Open: account recovery and device approvals (workstream C)
+PUT	/api/organizations/{orgId}/users/{userId}/reset-password-enrollment			Open: account recovery and device approvals (workstream C)
+POST	/api/organizations/{orgId}/users/account-recovery-details			Open: account recovery and device approvals (workstream C)
+POST	/api/organizations/connections/			Owner decision needed: organisation connections link a self-hosted server to the cloud (billing sync, SCIM or Directory Connector keys); no cloud exists for this server
+DELETE	/api/organizations/connections/{id}			Owner decision needed: organisation connections link a self-hosted server to the cloud (billing sync, SCIM or Directory Connector keys); no cloud exists for this server
+PUT	/api/organizations/connections/{orgId}			Owner decision needed: organisation connections link a self-hosted server to the cloud (billing sync, SCIM or Directory Connector keys); no cloud exists for this server
+GET	/api/organizations/connections/{id}/{type}			Owner decision needed: organisation connections link a self-hosted server to the cloud (billing sync, SCIM or Directory Connector keys); no cloud exists for this server
+GET	/api/organizations/connections/enabled			Owner decision needed: organisation connections link a self-hosted server to the cloud (billing sync, SCIM or Directory Connector keys); no cloud exists for this server
+GET	/api/organizations/integrations/slack/create			Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials
+GET	/api/organizations/integrations/teams/create			Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials
+POST	/api/organizations/integrations/teams/incoming			Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials
+POST	/api/providers/{providerId}/delete-recover-token			Open: account recovery and device approvals (workstream C)
+PUT	/api/push/add-organization			Open: push relay registration and web push settings (PR for push settings)
+POST	/api/push/delete			Open: push relay registration and web push settings (PR for push settings)
+PUT	/api/push/delete-organization			Open: push relay registration and web push settings (PR for push settings)
+POST	/api/push/register			Open: push relay registration and web push settings (PR for push settings)
+POST	/api/push/send			Open: push relay registration and web push settings (PR for push settings)
+GET	/api/secret-versions/{id}			Open: Secrets Manager versions, import and export (workstream D, open PR)
+POST	/api/secret-versions/delete			Open: Secrets Manager versions, import and export (workstream D, open PR)
+POST	/api/secret-versions/get-by-ids			Open: Secrets Manager versions, import and export (workstream D, open PR)
+GET	/api/secrets/{id}/versions			Open: Secrets Manager versions, import and export (workstream D, open PR)
+PUT	/api/secrets/{id}/versions/restore			Open: Secrets Manager versions, import and export (workstream D, open PR)
+GET	/api/sm/{id}/export			Open: Secrets Manager versions, import and export (workstream D, open PR)
+POST	/api/sm/{id}/import			Open: Secrets Manager versions, import and export (workstream D, open PR)
+GET	/api/sso-cookie-vendor			Open: SSO federation, Key Connector and trusted device follow-ups (open PRs)
+GET	/identity/sso/ExternalCallback			Open: SSO federation, Key Connector and trusted device follow-ups (open PRs)
+GET	/identity/sso/ExternalChallenge			Open: SSO federation, Key Connector and trusted device follow-ups (open PRs)
+GET	/identity/sso/Login			Open: SSO federation, Key Connector and trusted device follow-ups (open PRs)

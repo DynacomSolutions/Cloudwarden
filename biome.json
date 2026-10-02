@@ -10,7 +10,9 @@
       "!**/dist",
       "!**/coverage",
       "!**/migrations/meta",
-      "!**/worker-configuration.d.ts"
+      "!**/worker-configuration.d.ts",
+      "!web",
+      "!web-vault"
     ]
   },
   "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2, "lineWidth": 100 },

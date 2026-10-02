@@ -120,6 +120,15 @@ const SKIP_BASENAMES = new Set([
 ])
 const SKIP_SEGMENTS = new Set(['.git', 'node_modules'])
 
+// Vendored upstream web client (TASKS #210, docs/web-client.md). Upstream code carries the
+// upstream project's own domains, emails, test UUIDs and IPs, so it is not scanned. Files that
+// Cloudwarden adds or owns there (any `cloudwarden/` directory, the NOTICE and build scripts) are.
+const VENDORED_PREFIX = 'web/'
+const VENDORED_SCANNED = [/(^|\/)cloudwarden(\/|$)/, /^web\/NOTICE\.md$/, /^web\/scripts\//]
+export const isVendoredUpstream = (filePath) =>
+  filePath.replaceAll('\\', '/').startsWith(VENDORED_PREFIX) &&
+  !VENDORED_SCANNED.some((re) => re.test(filePath.replaceAll('\\', '/')))
+
 export class IdentifierChecker {
   constructor(cwd = process.cwd()) {
     this.cwd = cwd
@@ -340,6 +349,7 @@ export class IdentifierChecker {
     const base = segments[segments.length - 1]
     if (SKIP_BASENAMES.has(base)) return true
     if (segments.some((seg) => SKIP_SEGMENTS.has(seg))) return true
+    if (isVendoredUpstream(filePath)) return true
     if (/\.test\.(?:mjs|ts)$/.test(base)) return true
     return this.isBinaryFile(filePath)
   }

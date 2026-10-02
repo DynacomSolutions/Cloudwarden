@@ -8,3 +8,21 @@ paths = ['pnpm-lock\.yaml']
 [[allowlists]]
 description = "test fixtures"
 paths = ['test/fixtures/.*']
+
+# Vendored upstream web client (TASKS #210). Upstream unit test fixtures and spec data hold
+# throwaway keys and tokens; the build configs hold upstream's public payment sandbox keys; the
+# remaining files match the generic rule on identifiers that are not secrets. Cloudwarden's own
+# files under web/ (cloudwarden/ directories) are still scanned.
+[[allowlists]]
+description = "vendored web client: upstream test fixtures and public config"
+paths = [
+  '''^web/.*\.spec\.ts$''',
+  '''^web/libs/importer/src/importers/spec-data/''',
+  '''^web/apps/web/config/[^/]+\.json$''',
+  '''^web/apps/web/src/app-id\.json$''',
+  '''^web/apps/web/src/app/billing/shared/offboarding-survey\.component\.ts$''',
+  '''^web/libs/common/src/enums/feature-flag\.enum\.ts$''',
+  '''^web/libs/legacy-crypto/src/models/symmetric-crypto-key\.ts$''',
+  '''^web/package-lock\.json$''',
+  '''(^|/)node_modules/''',
+]

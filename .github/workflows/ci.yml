@@ -99,6 +99,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: node scripts/check-identifiers.mjs
+      - run: node scripts/check-web-licence.mjs
       # Script tests need dev dependencies (happy-dom for the web vault admin link test).
       - run: pnpm install --frozen-lockfile
       - run: node --test scripts/*.test.mjs

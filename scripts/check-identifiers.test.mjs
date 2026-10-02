@@ -206,3 +206,11 @@ test('parseArgs', () => {
     files: ['a', 'b'],
   })
 })
+
+test('skips vendored upstream web client files but scans Cloudwarden files there', async () => {
+  const { isVendoredUpstream } = await import('./check-identifiers.mjs')
+  assert.equal(isVendoredUpstream('web/libs/common/src/a.ts'), true)
+  assert.equal(isVendoredUpstream('web/apps/web/src/app/cloudwarden/admin.component.ts'), false)
+  assert.equal(isVendoredUpstream('web/NOTICE.md'), false)
+  assert.equal(isVendoredUpstream('src/web/a.ts'), false)
+})

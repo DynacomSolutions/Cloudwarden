@@ -88,6 +88,8 @@ export interface InviteOptions {
   collections?: unknown[]
   groups?: string[]
   permissions?: Record<string, boolean>
+  /** Account recovery key sent while accepting (required under auto-enrolment, TASKS #240). */
+  resetPasswordKey?: string
 }
 
 /** Invites, accepts and confirms `member`; returns the organisation user id. */
@@ -112,6 +114,7 @@ export async function addMember(
   const id = params.get('organizationUserId') as string
   const acc = await member.call(`/api/organizations/${orgId}/users/${id}/accept`, 'POST', {
     token: params.get('token'),
+    ...(opts.resetPasswordKey ? { resetPasswordKey: opts.resetPasswordKey } : {}),
   })
   if (acc.status !== 200) throw new Error(`accept failed: ${acc.status}`)
   const conf = await owner.call(`/api/organizations/${orgId}/users/${id}/confirm`, 'POST', {
@@ -119,4 +122,18 @@ export async function addMember(
   })
   if (conf.status !== 200) throw new Error(`confirm failed: ${conf.status}`)
   return id
+}
+
+/** Turns on account recovery; it requires the single organisation policy (upstream rule). */
+export async function enableRecoveryPolicy(owner: Actor, orgId: string, autoEnroll = false) {
+  const single = await owner.call(`/api/organizations/${orgId}/policies/3`, 'PUT', {
+    enabled: true,
+    data: null,
+  })
+  if (single.status !== 200) throw new Error(`single org policy failed: ${single.status}`)
+  const res = await owner.call(`/api/organizations/${orgId}/policies/8`, 'PUT', {
+    policy: { enabled: true, data: { autoEnrollEnabled: autoEnroll } },
+    metadata: {},
+  })
+  if (res.status !== 200) throw new Error(`recovery policy failed: ${res.status}`)
 }

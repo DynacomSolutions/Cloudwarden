@@ -17,7 +17,7 @@ const MAX_PRECISE = 100
 const iso = (ms: number) => new Date(ms).toISOString()
 
 /** Runs a push after the response; detached when there is no execution context. */
-export function defer(c: Ctx, work: Promise<void>): void {
+export function defer(c: Ctx, work: Promise<unknown>): void {
   try {
     c.executionCtx.waitUntil(work)
   } catch {

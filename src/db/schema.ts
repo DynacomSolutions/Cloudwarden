@@ -57,6 +57,10 @@ export const users = sqliteTable(
     otpAttempts: integer('otp_attempts').notNull().default(0),
     // Profile avatar colour (TASKS #231).
     avatarColor: text('avatar_color'),
+    /** Set by an organisation account recovery: the next login must choose a new password. */
+    forcePasswordReset: integer('force_password_reset', { mode: 'boolean' })
+      .notNull()
+      .default(false),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -100,7 +104,7 @@ export const authRequests = sqliteTable(
     uuid: id(),
     // Null for decoy rows created for unknown emails, so those are indistinguishable.
     userUuid: text('user_uuid').references(() => users.uuid, { onDelete: 'cascade' }),
-    // 0 authenticate and unlock, 1 unlock.
+    // 0 authenticate and unlock, 1 unlock, 2 admin approval (answered by an organisation).
     type: integer('type').notNull(),
     requestDeviceIdentifier: text('request_device_identifier').notNull(),
     requestDeviceType: integer('request_device_type').notNull(),

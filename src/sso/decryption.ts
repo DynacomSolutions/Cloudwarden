@@ -3,7 +3,7 @@ import type { Db } from '../db'
 import { schema } from '../db'
 import type { User } from '../env'
 import { can } from '../orgs/access'
-import { Status } from '../orgs/constants'
+import { PolicyType, Status } from '../orgs/constants'
 import { MemberDecryptionType, parseConfigData } from './config'
 
 /**
@@ -135,8 +135,22 @@ export async function decryptionOptions(db: Db, user: User, ctx: DecryptionConte
         d.refreshToken !== '' &&
         !NON_APPROVING_TYPES.includes(d.type),
     )
+    // Admin approval needs an enrolment and the recovery policy still enabled for the organisation.
+    const [recovery] =
+      sso.member.resetPasswordKey !== null
+        ? await db
+            .select({ enabled: schema.policies.enabled })
+            .from(schema.policies)
+            .where(
+              and(
+                eq(schema.policies.organizationUuid, sso.member.organizationUuid),
+                eq(schema.policies.atype, PolicyType.ResetPassword),
+              ),
+            )
+            .limit(1)
+        : []
     out.TrustedDeviceOption = {
-      HasAdminApproval: sso.member.resetPasswordKey !== null,
+      HasAdminApproval: sso.member.resetPasswordKey !== null && recovery?.enabled === true,
       HasLoginApprovingDevice: approving,
       HasManageResetPasswordPermission: can(sso.member, 'manageResetPassword'),
       IsTdeOffboarding: offboarding,

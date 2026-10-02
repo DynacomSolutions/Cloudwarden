@@ -18,7 +18,9 @@ export function canAccessSettingsTab(org: Organization): boolean {
     org.canManageScim ||
     org.canAccessImport ||
     org.canAccessExport ||
-    org.canManageDeviceApprovals
+    org.canManageDeviceApprovals ||
+    // Cloudwarden: device approvals for every organisation using account recovery (TASKS #241).
+    (org.canManageUsersPassword && org.useResetPassword)
   );
 }
 

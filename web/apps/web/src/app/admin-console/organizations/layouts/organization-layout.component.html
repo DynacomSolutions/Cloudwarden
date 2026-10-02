@@ -132,10 +132,14 @@
         route="settings/sso"
         *ngIf="organization.canManageSso"
       ></bit-nav-item>
+      <!-- Cloudwarden: shown wherever account recovery is managed, not only with SSO trusted devices (TASKS #241) -->
       <bit-nav-item
         [text]="'deviceApprovals' | i18n"
         route="settings/device-approvals"
-        *ngIf="organization.canManageDeviceApprovals"
+        *ngIf="
+          organization.canManageDeviceApprovals ||
+          (organization.canManageUsersPassword && organization.useResetPassword)
+        "
       ></bit-nav-item>
       <bit-nav-item
         [text]="'scim' | i18n"

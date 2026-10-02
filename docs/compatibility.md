@@ -26,6 +26,9 @@ Secrets Manager is served as an API (machine accounts and the SDK wire contract,
 (Linux x64) in `pnpm e2e`: `project list`, `secret list`, `secret get`, `secret create`,
 `secret edit` and `secret delete` with `BWS_ACCESS_TOKEN` and `--server-url` (TASKS #225).
 
+Account recovery (admin password reset) and device approvals (admin approval auth requests) are
+served; see [account-recovery.md](account-recovery.md).
+
 Not supported by design: SSO, SCIM, directory connectors, key connector, and Bitwarden-hosted
 push relay. Clients treat the corresponding config fields as absent.
 

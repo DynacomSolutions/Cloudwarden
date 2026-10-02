@@ -20,6 +20,27 @@ export async function findPolicy(db: Db, orgUuid: string, type: number) {
   return row
 }
 
+/**
+ * Upstream rules between the account recovery and single organisation policies: recovery needs
+ * single organisation (otherwise an administrator could take over an account that also holds
+ * data in other organisations), and single organisation stays on while recovery is.
+ */
+async function assertRecoveryDependencies(db: Db, orgUuid: string, type: number, enabled: boolean) {
+  if (type === PolicyType.ResetPassword && enabled) {
+    if (!(await findPolicy(db, orgUuid, PolicyType.SingleOrg))?.enabled) {
+      throw new ApiError(
+        400,
+        'Turn on the single organization policy before turning on account recovery.',
+      )
+    }
+  }
+  if (type === PolicyType.SingleOrg && !enabled) {
+    if ((await findPolicy(db, orgUuid, PolicyType.ResetPassword))?.enabled) {
+      throw new ApiError(400, 'Turn off the account recovery policy first.')
+    }
+  }
+}
+
 /** Stores a policy, applies its side effects and records the event. Returns the saved row. */
 export async function savePolicy(
   c: Context<Env>,
@@ -29,6 +50,7 @@ export async function savePolicy(
   body: { enabled: boolean; data?: Record<string, unknown> | null },
   systemUser: number | null = null,
 ): Promise<PolicyRow> {
+  await assertRecoveryDependencies(db, orgUuid, type, body.enabled)
   const existing = await findPolicy(db, orgUuid, type)
   const uuid = existing?.uuid ?? crypto.randomUUID()
   const now = Date.now()

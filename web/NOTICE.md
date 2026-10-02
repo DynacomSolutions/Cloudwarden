@@ -18,7 +18,7 @@ path appears. Features that upstream ships only under the Bitwarden License, suc
 Manager, the Provider Portal, SSO and SCIM administration and other enterprise features, are
 therefore not part of this build. Cloudwarden's own single sign-on and claimed domain settings
 (`apps/web/src/app/cloudwarden/sso/`) are written from scratch against Cloudwarden's API contract
-(`docs/sso.md`); no code or structure was taken from Bitwarden's licensed SSO screens. Cloudwarden's own Secrets Manager pages
+(`docs/sso.md`); no code or structure was taken from Bitwarden's licensed SSO screens. The device approvals page is likewise Cloudwarden's own. Cloudwarden's own Secrets Manager pages
 (`apps/web/src/app/cloudwarden/secrets-manager/`) are written from scratch against Cloudwarden's
 API contract (`docs/secrets-manager.md`); no code, structure or assets were taken from
 Bitwarden's Secrets Manager web app. Likewise the SCIM settings and event integrations pages
@@ -69,5 +69,8 @@ Summary of changes made by Cloudwarden (see `git log -- web/` for the full histo
   Admin Console, Federated members (invite a user of a paired server, confirm with the standard
   fingerprint dialog, remove); and Federated organisations under Settings for the invited user.
   The user and organisation navigation entries appear only when the server has federation on.
+- Device approvals: an Admin Console page at `settings/device-approvals`
+  (`apps/web/src/app/cloudwarden/device-approvals/`), written from scratch against Cloudwarden's
+  API contract (`docs/account-recovery.md`), shown to members who manage account recovery.
 
 Files Cloudwarden adds live in directories named `cloudwarden/` where practical.

@@ -163,17 +163,19 @@ describe('trusted device encryption', () => {
   it('reports admin approval, approving devices and the manage permission', async () => {
     const { owner, org: o, identifier } = await org(2)
     const admin = await actor(`${unique('admin')}@example.com`)
-    await addMember(owner, o.id, admin, { type: 1 })
+    // Auto-enrolment is on for trusted device organisations, so joining carries the recovery key.
+    await addMember(owner, o.id, admin, { type: 1, resetPasswordKey: '4.recovery' })
     const db = createDb(env.DB)
     const { eq } = await import('drizzle-orm')
     await db
       .update(schema.usersOrganizations)
       .set({ resetPasswordKey: '4.recovery' })
       .where(eq(schema.usersOrganizations.userUuid, admin.uuid))
+    const sub = unique('sub')
     const r = await oidcLogin(
       idp,
       identifier,
-      { sub: unique('sub'), email: admin.email },
+      { sub, email: admin.email },
       { deviceIdentifier: 'new-device' },
     )
     expect(r.body.UserDecryptionOptions.TrustedDeviceOption).toMatchObject({
@@ -182,6 +184,20 @@ describe('trusted device encryption', () => {
       HasManageResetPasswordPermission: true,
     })
     expect(r.body.UserDecryptionOptions.HasMasterPassword).toBe(true)
+
+    // The enrolment only counts while the recovery policy is on for the organisation.
+    await env.DB.prepare(
+      'UPDATE policies SET enabled = 0 WHERE organization_uuid = ?1 AND atype = 8',
+    )
+      .bind(o.id)
+      .run()
+    const off = await oidcLogin(
+      idp,
+      identifier,
+      { sub, email: admin.email },
+      { deviceIdentifier: 'newer-device' },
+    )
+    expect(off.body.UserDecryptionOptions.TrustedDeviceOption.HasAdminApproval).toBe(false)
   })
 
   it('re-wraps trusted device keys after a rotation with update-trust, and lost-trust clears them', async () => {

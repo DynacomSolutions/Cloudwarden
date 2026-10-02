@@ -9,6 +9,7 @@ import { errorKind, log, requestLogger } from './log'
 import { securityHeaders } from './middleware'
 import { orgChangeNotifier, secretsRevisionOnMemberChange } from './orgs/notify'
 import { accountEmail } from './routes/account-email'
+import { accountRecovery } from './routes/account-recovery'
 import { accounts } from './routes/accounts'
 import { alive } from './routes/alive'
 import { appId } from './routes/app-id'
@@ -28,6 +29,7 @@ import { icons } from './routes/icons'
 import { notificationCenter } from './routes/notification-center'
 import { notifications } from './routes/notifications'
 import { orgApiKeys } from './routes/org-api-keys'
+import { orgAuthRequests } from './routes/org-auth-requests'
 import { orgCiphers } from './routes/org-ciphers'
 import { orgIntegrations } from './routes/org-integrations'
 import { orgSettings } from './routes/org-settings'
@@ -114,6 +116,9 @@ app.route('/', orgIntegrations)
 app.route('/', selfHostBilling)
 app.route('/', providers)
 app.route('/', organizations)
+// Before orgUsers: `users/account-recovery-details` must not be read as a member id.
+app.route('/', accountRecovery)
+app.route('/', orgAuthRequests)
 app.route('/', orgUsers)
 app.route('/', collectionsRouter)
 app.route('/', groupsRouter)

@@ -77,6 +77,194 @@ interface Case {
   run: () => Promise<Response>
 }
 
+/** Secrets Manager fixtures (TASKS #220), created in `beforeAll`. */
+const sm = {} as {
+  orgId: string
+  projectId: string
+  secretId: string
+  saId: string
+  tokenId: string
+  clientSecret: string
+  machine: string
+}
+const machine = (path: string, method = 'GET', body?: unknown) =>
+  authed(path, sm.machine, method, body)
+
+const smCases: Case[] = [
+  {
+    op: 'POST /identity/connect/token',
+    status: 200,
+    run: () =>
+      form('/identity/connect/token', {
+        grant_type: 'client_credentials',
+        scope: 'api.secrets',
+        client_id: sm.tokenId,
+        client_secret: sm.clientSecret,
+      }),
+  },
+  {
+    op: 'POST /api/organizations/{organizationId}/projects',
+    status: 200,
+    run: () => call(`/api/organizations/${sm.orgId}/projects`, 'POST', { name: enc('p2') }),
+  },
+  {
+    op: 'GET /api/organizations/{organizationId}/projects',
+    status: 200,
+    run: () => machine(`/api/organizations/${sm.orgId}/projects`),
+  },
+  { op: 'GET /api/projects/{id}', status: 200, run: () => call(`/api/projects/${sm.projectId}`) },
+  {
+    op: 'PUT /api/projects/{id}',
+    status: 200,
+    run: () => call(`/api/projects/${sm.projectId}`, 'PUT', { name: enc('p') }),
+  },
+  {
+    op: 'GET /api/projects/{id}',
+    status: 404,
+    run: () => call('/api/projects/00000000-0000-4000-8000-000000000000'),
+  },
+  {
+    op: 'POST /api/organizations/{organizationId}/secrets',
+    status: 200,
+    run: () =>
+      call(`/api/organizations/${sm.orgId}/secrets`, 'POST', {
+        key: enc('k2'),
+        value: enc('v2'),
+        note: '',
+        projectIds: [sm.projectId],
+      }),
+  },
+  {
+    op: 'GET /api/organizations/{organizationId}/secrets',
+    status: 200,
+    run: () => machine(`/api/organizations/${sm.orgId}/secrets`),
+  },
+  {
+    op: 'GET /api/organizations/{organizationId}/secrets/sync',
+    status: 200,
+    run: () => machine(`/api/organizations/${sm.orgId}/secrets/sync`),
+  },
+  {
+    op: 'GET /api/organizations/{organizationId}/secrets/sync',
+    status: 200,
+    run: () =>
+      machine(`/api/organizations/${sm.orgId}/secrets/sync?lastSyncedDate=2999-01-01T00:00:00Z`),
+  },
+  {
+    op: 'GET /api/projects/{projectId}/secrets',
+    status: 200,
+    run: () => call(`/api/projects/${sm.projectId}/secrets`),
+  },
+  { op: 'GET /api/secrets/{id}', status: 200, run: () => machine(`/api/secrets/${sm.secretId}`) },
+  {
+    op: 'PUT /api/secrets/{id}',
+    status: 200,
+    run: () =>
+      call(`/api/secrets/${sm.secretId}`, 'PUT', { key: enc('k'), value: enc('v'), note: '' }),
+  },
+  {
+    op: 'POST /api/secrets/get-by-ids',
+    status: 200,
+    run: () => machine('/api/secrets/get-by-ids', 'POST', { ids: [sm.secretId] }),
+  },
+  {
+    op: 'POST /api/secrets/delete',
+    status: 200,
+    run: () => call('/api/secrets/delete', 'POST', ['00000000-0000-4000-8000-000000000000']),
+  },
+  {
+    op: 'POST /api/projects/delete',
+    status: 200,
+    run: () => call('/api/projects/delete', 'POST', ['00000000-0000-4000-8000-000000000000']),
+  },
+  {
+    op: 'GET /api/organizations/{organizationId}/service-accounts',
+    status: 200,
+    run: () => call(`/api/organizations/${sm.orgId}/service-accounts?includeAccessToSecrets=true`),
+  },
+  {
+    op: 'GET /api/service-accounts/{id}',
+    status: 200,
+    run: () => call(`/api/service-accounts/${sm.saId}`),
+  },
+  {
+    op: 'PUT /api/service-accounts/{id}',
+    status: 200,
+    run: () => call(`/api/service-accounts/${sm.saId}`, 'PUT', { name: enc('sa') }),
+  },
+  {
+    op: 'GET /api/service-accounts/{id}/access-tokens',
+    status: 200,
+    run: () => call(`/api/service-accounts/${sm.saId}/access-tokens`),
+  },
+  {
+    op: 'POST /api/service-accounts/{id}/access-tokens',
+    status: 200,
+    run: () =>
+      call(`/api/service-accounts/${sm.saId}/access-tokens`, 'POST', {
+        name: enc('t2'),
+        encryptedPayload: enc('payload'),
+        key: enc('key'),
+        expireAt: null,
+      }),
+  },
+  {
+    op: 'GET /api/projects/{id}/access-policies/people',
+    status: 200,
+    run: () => call(`/api/projects/${sm.projectId}/access-policies/people`),
+  },
+  {
+    op: 'GET /api/projects/{id}/access-policies/service-accounts',
+    status: 200,
+    run: () => call(`/api/projects/${sm.projectId}/access-policies/service-accounts`),
+  },
+  {
+    op: 'GET /api/secrets/{secretId}/access-policies',
+    status: 200,
+    run: () => call(`/api/secrets/${sm.secretId}/access-policies`),
+  },
+  {
+    op: 'GET /api/service-accounts/{id}/access-policies/people',
+    status: 200,
+    run: () => call(`/api/service-accounts/${sm.saId}/access-policies/people`),
+  },
+  {
+    op: 'GET /api/service-accounts/{id}/granted-policies',
+    status: 200,
+    run: () => call(`/api/service-accounts/${sm.saId}/granted-policies`),
+  },
+  {
+    op: 'GET /api/organizations/{id}/access-policies/people/potential-grantees',
+    status: 200,
+    run: () => call(`/api/organizations/${sm.orgId}/access-policies/people/potential-grantees`),
+  },
+  {
+    op: 'GET /api/organizations/{id}/access-policies/projects/potential-grantees',
+    status: 200,
+    run: () => call(`/api/organizations/${sm.orgId}/access-policies/projects/potential-grantees`),
+  },
+  {
+    op: 'GET /api/organizations/{organizationId}/sm-counts',
+    status: 200,
+    run: () => call(`/api/organizations/${sm.orgId}/sm-counts`),
+  },
+  {
+    op: 'GET /api/projects/{projectId}/sm-counts',
+    status: 200,
+    run: () => call(`/api/projects/${sm.projectId}/sm-counts`),
+  },
+  {
+    op: 'GET /api/service-accounts/{serviceAccountId}/sm-counts',
+    status: 200,
+    run: () => call(`/api/service-accounts/${sm.saId}/sm-counts`),
+  },
+  {
+    op: 'GET /api/sm/events/service-accounts/{serviceAccountId}',
+    status: 200,
+    run: () => call(`/api/sm/events/service-accounts/${sm.saId}`),
+  },
+]
+
 const cases: Case[] = [
   { op: 'GET /api/config', status: 200, run: () => call('/api/config') },
   {
@@ -335,9 +523,63 @@ describe('API contract (docs/api/openapi.yaml)', () => {
     state.passwordHash = 'client-derived-hash'
     const session = await createSession(state.email)
     state.token = session.access_token
+
+    const org = (await (
+      await call('/api/organizations', 'POST', {
+        name: 'Contract Org',
+        billingEmail: 'billing@example.com',
+        key: '4.orgKey',
+        keys: { publicKey: 'pub', encryptedPrivateKey: '2.priv' },
+        planType: 0,
+      })
+    ).json()) as Json
+    sm.orgId = org.id
+    sm.projectId = (
+      (await (
+        await call(`/api/organizations/${sm.orgId}/projects`, 'POST', { name: enc('p') })
+      ).json()) as Json
+    ).id
+    sm.secretId = (
+      (await (
+        await call(`/api/organizations/${sm.orgId}/secrets`, 'POST', {
+          key: enc('k'),
+          value: enc('v'),
+          note: '',
+          projectIds: [sm.projectId],
+        })
+      ).json()) as Json
+    ).id
+    sm.saId = (
+      (await (
+        await call(`/api/organizations/${sm.orgId}/service-accounts`, 'POST', { name: enc('sa') })
+      ).json()) as Json
+    ).id
+    await call(`/api/projects/${sm.projectId}/access-policies/service-accounts`, 'PUT', {
+      serviceAccountAccessPolicyRequests: [{ granteeId: sm.saId, read: true, write: false }],
+    })
+    const token = (await (
+      await call(`/api/service-accounts/${sm.saId}/access-tokens`, 'POST', {
+        name: enc('t'),
+        encryptedPayload: enc('payload'),
+        key: enc('key'),
+        expireAt: null,
+      })
+    ).json()) as Json
+    sm.tokenId = token.id
+    sm.clientSecret = token.clientSecret
+    sm.machine = (
+      (await (
+        await form('/identity/connect/token', {
+          grant_type: 'client_credentials',
+          scope: 'api.secrets',
+          client_id: sm.tokenId,
+          client_secret: sm.clientSecret,
+        })
+      ).json()) as Json
+    ).access_token
   })
 
-  for (const c of cases) {
+  for (const c of [...cases, ...smCases]) {
     it(`${c.op} -> ${c.status}`, async () => {
       const res = await c.run()
       expect(res.status).toBe(c.status)
@@ -350,7 +592,7 @@ describe('API contract (docs/api/openapi.yaml)', () => {
 
   it('lists only operations that exist in the spec', () => {
     const all = new Set(specOperations())
-    for (const op of [...cases.map((c) => c.op), ...UNIMPLEMENTED])
+    for (const op of [...cases, ...smCases].map((c) => c.op).concat(UNIMPLEMENTED))
       expect(all.has(op), op).toBe(true)
   })
 

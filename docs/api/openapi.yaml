@@ -69,6 +69,8 @@ tags:
   description: Real-time push over a SignalR WebSocket hub. Served under `/notifications`.
 - name: Icons
   description: Website favicon service. Served under `/icons`.
+- name: secrets-manager
+  description: 'Secrets Manager: projects, secrets, machine accounts (`service-accounts` on the wire), access tokens, access policies and counts. Read from the GPL-3.0 generated API client in github.com/bitwarden/sdk-internal (`crates/bitwarden-api-api`), see docs/secrets-manager.md. Members need `accessSecretsManager`; machine account tokens are accepted only where stated.'
 - name: x-cloudwarden
   description: 'Cloudwarden extensions, not part of the Bitwarden API: the admin JSON API under `/api/cloudwarden`. Admin routes need a vault access token whose account address is listed in `ADMIN_EMAILS` with `ADMIN_ENABLED` true, otherwise 403. Responses are `no-store`, camelCase, and rate limited per admin (120 per minute).'
 paths:
@@ -5514,6 +5516,7 @@ paths:
                 anyOf:
                 - $ref: '#/components/schemas/IdentityTokenResponse'
                 - $ref: '#/components/schemas/RefreshTokenResponse'
+                - $ref: '#/components/schemas/MachineTokenResponse'
         '400':
           description: Authentication failed or additional step required. Body is one of the listed shapes; see
             the 2FA, device verification and SSO variants.
@@ -5996,6 +5999,1171 @@ paths:
           $ref: '#/components/responses/NotFound'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+  /api/organizations/{organizationId}/projects:
+    post:
+      tags:
+        - secrets-manager
+      operationId: smCreateProject
+      summary: Create a project
+      description: A non-admin creator (member or machine account) is granted read and write on the new project.
+        Accepts a member access token or a machine account access token (scope `api.secrets`).
+      parameters:
+        - &a1
+          name: organizationId
+          in: path
+          required: true
+          schema: &a2
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SmProjectRequest"
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmProject"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/projects_api.rs
+    get:
+      tags:
+        - secrets-manager
+      operationId: smListProjects
+      summary: List the projects the caller can read
+      description: Accepts a member access token or a machine account access token (scope `api.secrets`).
+      parameters:
+        - *a1
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmProjectList"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/projects_api.rs
+  /api/projects/{id}:
+    get:
+      tags:
+        - secrets-manager
+      operationId: smGetProject
+      summary: Get a project
+      description: Accepts a member access token or a machine account access token (scope `api.secrets`).
+      parameters:
+        - &a3
+          name: id
+          in: path
+          required: true
+          schema: *a2
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmProject"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/projects_api.rs
+    put:
+      tags:
+        - secrets-manager
+      operationId: smUpdateProject
+      summary: Rename a project
+      description: Needs write access; read-only callers get 403. Accepts a member access token or a machine account
+        access token (scope `api.secrets`).
+      parameters:
+        - *a3
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SmProjectRequest"
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmProject"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/projects_api.rs
+  /api/projects/delete:
+    post:
+      tags:
+        - secrets-manager
+      operationId: smDeleteProjects
+      summary: Delete projects in bulk
+      description: Body is a JSON array of ids. Each id gets a row; `error` is `access denied` when it does not
+        exist or the caller cannot write it. Secrets of a deleted project are kept. Accepts a member access
+        token or a machine account access token (scope `api.secrets`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: &a4
+              type: array
+              items: *a2
+              minItems: 1
+              maxItems: 500
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmBulkDeleteList"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/projects_api.rs
+  /api/organizations/{organizationId}/secrets:
+    post:
+      tags:
+        - secrets-manager
+      operationId: smCreateSecret
+      summary: Create a secret
+      description: Needs write on the target project. Only owners and admins may create a secret outside any
+        project. `accessPoliciesRequests` is for members only. Accepts a member access token or a machine
+        account access token (scope `api.secrets`).
+      parameters:
+        - *a1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SmSecretRequest"
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmSecret"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/secrets_api.rs
+    get:
+      tags:
+        - secrets-manager
+      operationId: smListSecrets
+      summary: List readable secrets (without values) and projects
+      description: Accepts a member access token or a machine account access token (scope `api.secrets`).
+      parameters:
+        - *a1
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmSecretsWithProjectsList"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/secrets_api.rs
+  /api/organizations/{organizationId}/secrets/sync:
+    get:
+      tags:
+        - secrets-manager
+      operationId: smSyncSecrets
+      summary: Secrets changed since the last sync
+      description: "`hasChanges` is false (and `secrets` null) when no Secrets Manager data of the organisation
+        changed after `lastSyncedDate`; otherwise every readable secret is returned with its value. Accepts a
+        member access token or a machine account access token (scope `api.secrets`)."
+      parameters:
+        - *a1
+        - name: lastSyncedDate
+          in: query
+          required: false
+          schema: &a6
+            type: string
+            format: date-time
+          description: "Time of the previous sync. Omitted: always returns every readable secret."
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmSecretsSync"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/secrets_api.rs
+  /api/projects/{projectId}/secrets:
+    get:
+      tags:
+        - secrets-manager
+      operationId: smListProjectSecrets
+      summary: List readable secrets of a project
+      description: Accepts a member access token or a machine account access token (scope `api.secrets`).
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema: *a2
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmSecretsWithProjectsList"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/secrets_api.rs
+  /api/secrets/{id}:
+    get:
+      tags:
+        - secrets-manager
+      operationId: smGetSecret
+      summary: Get a secret with its value
+      description: No read access is a 404. Reads by machine accounts are recorded as event 2100. Accepts a member
+        access token or a machine account access token (scope `api.secrets`).
+      parameters:
+        - *a3
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmSecret"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/secrets_api.rs
+    put:
+      tags:
+        - secrets-manager
+      operationId: smUpdateSecret
+      summary: Update a secret
+      description: Needs write access. `projectIds` replaces the project when present; `valueChanged` is accepted
+        and ignored (no secret versions). Accepts a member access token or a machine account access token (scope
+        `api.secrets`).
+      parameters:
+        - *a3
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SmSecretRequest"
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmSecret"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/secrets_api.rs
+  /api/secrets/get-by-ids:
+    post:
+      tags:
+        - secrets-manager
+      operationId: smGetSecretsByIds
+      summary: Get several secrets with values
+      description: All ids must exist in one organisation and be readable, otherwise 404. Accepts a member access
+        token or a machine account access token (scope `api.secrets`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids: *a4
+              required:
+                - ids
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmBaseSecretList"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/secrets_api.rs
+  /api/secrets/delete:
+    post:
+      tags:
+        - secrets-manager
+      operationId: smDeleteSecrets
+      summary: Delete secrets in bulk
+      description: Body is a JSON array of ids; per-id results as for projects. Accepts a member access token or a
+        machine account access token (scope `api.secrets`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: *a4
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmBulkDeleteList"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/secrets_api.rs
+  /api/organizations/{organizationId}/service-accounts:
+    post:
+      tags:
+        - secrets-manager
+      operationId: smCreateServiceAccount
+      summary: Create a machine account
+      description: A non-admin creator gets read and write on it. Member access token only; machine account tokens get 404.
+      parameters:
+        - *a1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SmServiceAccountRequest"
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmServiceAccount"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/service_accounts_api.rs
+    get:
+      tags:
+        - secrets-manager
+      operationId: smListServiceAccounts
+      summary: List machine accounts
+      description: Member access token only; machine account tokens get 404.
+      parameters:
+        - *a1
+        - name: includeAccessToSecrets
+          in: query
+          required: false
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmServiceAccountDetailsList"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/service_accounts_api.rs
+  /api/service-accounts/{id}:
+    get:
+      tags:
+        - secrets-manager
+      operationId: smGetServiceAccount
+      summary: Get a machine account
+      description: Member access token only; machine account tokens get 404.
+      parameters:
+        - *a3
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmServiceAccount"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/service_accounts_api.rs
+    put:
+      tags:
+        - secrets-manager
+      operationId: smUpdateServiceAccount
+      summary: Rename a machine account
+      description: Member access token only; machine account tokens get 404.
+      parameters:
+        - *a3
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SmServiceAccountRequest"
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmServiceAccount"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/service_accounts_api.rs
+  /api/service-accounts/delete:
+    post:
+      tags:
+        - secrets-manager
+      operationId: smDeleteServiceAccounts
+      summary: Delete machine accounts in bulk
+      description: Their access tokens stop working immediately. Member access token only; machine account tokens get 404.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: *a4
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmBulkDeleteList"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/service_accounts_api.rs
+  /api/service-accounts/{id}/access-tokens:
+    get:
+      tags:
+        - secrets-manager
+      operationId: smListAccessTokens
+      summary: List access tokens
+      description: Needs write on the machine account. Client secrets are never returned. Member access token only;
+        machine account tokens get 404.
+      parameters:
+        - *a3
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmAccessTokenList"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/service_accounts_api.rs
+    post:
+      tags:
+        - secrets-manager
+      operationId: smCreateAccessToken
+      summary: Create an access token
+      description: The server generates `clientSecret` and returns it once; it stores only a hash. The client
+        assembles `0.<id>.<clientSecret>:<seed>`. Member access token only; machine account tokens get 404.
+      parameters:
+        - *a3
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SmAccessTokenCreateRequest"
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmAccessTokenCreation"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/service_accounts_api.rs
+  /api/service-accounts/{id}/access-tokens/revoke:
+    post:
+      tags:
+        - secrets-manager
+      operationId: smRevokeAccessTokens
+      summary: Revoke access tokens
+      description: Revocation is immediate, including for access tokens already issued. Member access token only;
+        machine account tokens get 404.
+      parameters:
+        - *a3
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids: *a4
+              required:
+                - ids
+      responses:
+        "200":
+          description: Success.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/service_accounts_api.rs
+  /api/projects/{id}/access-policies/people:
+    get:
+      tags:
+        - secrets-manager
+      operationId: smGetProjectPeoplePolicies
+      summary: Member and group policies of a project
+      description: Member access token only; machine account tokens get 404.
+      parameters:
+        - *a3
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmPeopleAccessPolicies"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/access_policies_api.rs
+    put:
+      tags:
+        - secrets-manager
+      operationId: smPutProjectPeoplePolicies
+      summary: Replace member and group policies of a project
+      description: Needs write on the project. Members must have Secrets Manager access. Member access token only;
+        machine account tokens get 404.
+      parameters:
+        - *a3
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: &a5
+              $ref: "#/components/schemas/SmPeopleAccessPoliciesRequest"
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmPeopleAccessPolicies"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/access_policies_api.rs
+  /api/projects/{id}/access-policies/service-accounts:
+    get:
+      tags:
+        - secrets-manager
+      operationId: smGetProjectServiceAccountPolicies
+      summary: Machine account policies of a project
+      description: Member access token only; machine account tokens get 404.
+      parameters:
+        - *a3
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmProjectServiceAccountsAccessPolicies"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/access_policies_api.rs
+    put:
+      tags:
+        - secrets-manager
+      operationId: smPutProjectServiceAccountPolicies
+      summary: Replace machine account policies of a project
+      description: Needs write on the project and access to each machine account. Member access token only; machine
+        account tokens get 404.
+      parameters:
+        - *a3
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                serviceAccountAccessPolicyRequests:
+                  type:
+                    - array
+                    - "null"
+                  items:
+                    $ref: "#/components/schemas/SmAccessPolicyRequest"
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmProjectServiceAccountsAccessPolicies"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/access_policies_api.rs
+  /api/secrets/{secretId}/access-policies:
+    get:
+      tags:
+        - secrets-manager
+      operationId: smGetSecretPolicies
+      summary: Direct policies of a secret
+      description: Member access token only; machine account tokens get 404.
+      parameters:
+        - name: secretId
+          in: path
+          required: true
+          schema: *a2
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmSecretAccessPolicies"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/access_policies_api.rs
+  /api/service-accounts/{id}/access-policies/people:
+    get:
+      tags:
+        - secrets-manager
+      operationId: smGetServiceAccountPeoplePolicies
+      summary: Who can manage a machine account
+      description: Member access token only; machine account tokens get 404.
+      parameters:
+        - *a3
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmPeopleAccessPolicies"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/access_policies_api.rs
+    put:
+      tags:
+        - secrets-manager
+      operationId: smPutServiceAccountPeoplePolicies
+      summary: Replace who can manage a machine account
+      description: Records events 2300 to 2303 for added and removed members and groups. Member access token only;
+        machine account tokens get 404.
+      parameters:
+        - *a3
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: *a5
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmPeopleAccessPolicies"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/access_policies_api.rs
+  /api/service-accounts/{id}/granted-policies:
+    get:
+      tags:
+        - secrets-manager
+      operationId: smGetServiceAccountGrantedPolicies
+      summary: Projects granted to a machine account
+      description: Member access token only; machine account tokens get 404.
+      parameters:
+        - *a3
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmServiceAccountGrantedPolicies"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/access_policies_api.rs
+    put:
+      tags:
+        - secrets-manager
+      operationId: smPutServiceAccountGrantedPolicies
+      summary: Replace projects granted to a machine account
+      description: Only grants on projects the caller can write are replaced; others are kept. Member access token
+        only; machine account tokens get 404.
+      parameters:
+        - *a3
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                projectGrantedPolicyRequests:
+                  type:
+                    - array
+                    - "null"
+                  items:
+                    $ref: "#/components/schemas/SmGrantedAccessPolicyRequest"
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmServiceAccountGrantedPolicies"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/access_policies_api.rs
+  /api/organizations/{id}/access-policies/people/potential-grantees:
+    get:
+      tags:
+        - secrets-manager
+      operationId: smPeoplePotentialGrantees
+      summary: Potential grantees (people)
+      description: Member access token only; machine account tokens get 404.
+      parameters:
+        - *a3
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmPotentialGranteeList"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/access_policies_api.rs
+  /api/organizations/{id}/access-policies/service-accounts/potential-grantees:
+    get:
+      tags:
+        - secrets-manager
+      operationId: smServiceAccountPotentialGrantees
+      summary: Potential grantees (service-accounts)
+      description: Member access token only; machine account tokens get 404.
+      parameters:
+        - *a3
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmPotentialGranteeList"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/access_policies_api.rs
+  /api/organizations/{id}/access-policies/projects/potential-grantees:
+    get:
+      tags:
+        - secrets-manager
+      operationId: smProjectPotentialGrantees
+      summary: Potential grantees (projects)
+      description: Member access token only; machine account tokens get 404.
+      parameters:
+        - *a3
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmPotentialGranteeList"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/access_policies_api.rs
+  /api/organizations/{organizationId}/sm-counts:
+    get:
+      tags:
+        - secrets-manager
+      operationId: smOrganizationCounts
+      summary: Counts for the organisation
+      description: Member access token only; machine account tokens get 404.
+      parameters:
+        - *a1
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmOrganizationCounts"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/counts_api.rs
+  /api/projects/{projectId}/sm-counts:
+    get:
+      tags:
+        - secrets-manager
+      operationId: smProjectCounts
+      summary: Counts for a project
+      description: Member access token only; machine account tokens get 404.
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema: *a2
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmProjectCounts"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/counts_api.rs
+  /api/service-accounts/{serviceAccountId}/sm-counts:
+    get:
+      tags:
+        - secrets-manager
+      operationId: smServiceAccountCounts
+      summary: Counts for a machine account
+      description: Member access token only; machine account tokens get 404.
+      parameters:
+        - name: serviceAccountId
+          in: path
+          required: true
+          schema: *a2
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmServiceAccountCounts"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/counts_api.rs
+  /api/sm/events/service-accounts/{serviceAccountId}:
+    get:
+      tags:
+        - secrets-manager
+      operationId: smServiceAccountEvents
+      summary: Events of a machine account
+      description: Member access token only; machine account tokens get 404.
+      parameters:
+        - name: serviceAccountId
+          in: path
+          required: true
+          schema: *a2
+        - name: start
+          in: query
+          schema: *a6
+        - name: end
+          in: query
+          schema: *a6
+        - name: continuationToken
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventResponseList"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/secrets_manager_events_api.rs
+  /api/organizations/{orgId}/users/enable-secrets-manager:
+    put:
+      tags:
+        - OrganizationUsers
+      operationId: orgUsersEnableSecretsManager
+      summary: Grant Secrets Manager access to members
+      description: Sets `accessSecretsManager` on each member. Needs the manage users permission.
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema: *a2
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids:
+                  type: array
+                  items: *a2
+              required:
+                - ids
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationUserBulkResponseList"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+      x-source-version: web-v2026.9.1
+      x-source-file: libs/admin-console/src/common/organization-user/services/default-organization-user-api.service.ts
 components:
   securitySchemes:
     bearerAuth:
@@ -10184,11 +11352,13 @@ components:
       properties:
         scope:
           type: string
-          description: '`api offline_access` for user grants; `api` or `api.organization` for client_credentials.'
+          description: '`api offline_access` for user grants; `api`, `api.organization` or `api.secrets` (machine
+            account) for client_credentials.'
         client_id:
           type: string
           description: 'Client type: `web`, `browser`, `desktop`, `mobile`, `cli`. For client_credentials this is
-            `user.<uuid>` or `organization.<uuid>`.'
+            `user.<uuid>` or `organization.<uuid>`; with `scope=api.secrets` it is the bare
+            Secrets Manager access token id (a UUID) and `client_secret` its client secret.'
         deviceType:
           $ref: '#/components/schemas/DeviceType'
         deviceIdentifier:
@@ -11430,3 +12600,640 @@ components:
       required:
       - object
       - data
+    SmProjectRequest:
+      type: object
+      properties:
+        name: &a2
+          $ref: "#/components/schemas/EncString"
+      required:
+        - name
+    SmProject:
+      type: object
+      description: ProjectResponseModel. `read` and `write` are the caller's access.
+      properties:
+        object:
+          type: string
+        id: &a1
+          type: string
+          format: uuid
+        organizationId: *a1
+        name: *a2
+        creationDate: &a3
+          type: string
+          format: date-time
+        revisionDate: *a3
+        read: &a5
+          type: boolean
+        write: &a6
+          type: boolean
+      required:
+        - id
+        - organizationId
+        - name
+        - read
+        - write
+    SmProjectList:
+      type: object
+      properties:
+        object:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SmProject"
+        continuationToken: &a4
+          type:
+            - string
+            - "null"
+      required:
+        - data
+    SmProjectRef:
+      type: object
+      properties:
+        id: *a1
+        name: *a2
+      required:
+        - id
+        - name
+    SmBulkDelete:
+      type: object
+      properties:
+        object:
+          type: string
+        id:
+          type: string
+        error: *a4
+      required:
+        - id
+        - error
+    SmBulkDeleteList:
+      type: object
+      properties:
+        object:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SmBulkDelete"
+        continuationToken: *a4
+      required:
+        - data
+    SmAccessPolicyRequest:
+      type: object
+      properties:
+        granteeId: *a1
+        read: *a5
+        write: *a6
+      required:
+        - granteeId
+        - read
+        - write
+    SmSecretAccessPoliciesRequests:
+      type:
+        - object
+        - "null"
+      properties:
+        userAccessPolicyRequests:
+          type:
+            - array
+            - "null"
+          items:
+            $ref: "#/components/schemas/SmAccessPolicyRequest"
+        groupAccessPolicyRequests:
+          type:
+            - array
+            - "null"
+          items:
+            $ref: "#/components/schemas/SmAccessPolicyRequest"
+        serviceAccountAccessPolicyRequests:
+          type:
+            - array
+            - "null"
+          items:
+            $ref: "#/components/schemas/SmAccessPolicyRequest"
+    SmSecretRequest:
+      type: object
+      description: SecretCreateRequestModel and SecretUpdateRequestModel.
+      properties:
+        key: *a2
+        value: *a2
+        note:
+          type:
+            - string
+            - "null"
+        projectIds:
+          type:
+            - array
+            - "null"
+          items: *a1
+          maxItems: 1
+        accessPoliciesRequests:
+          $ref: "#/components/schemas/SmSecretAccessPoliciesRequests"
+        valueChanged:
+          type:
+            - boolean
+            - "null"
+      required:
+        - key
+        - value
+    SmBaseSecret:
+      type: object
+      description: BaseSecretResponseModel.
+      properties:
+        object: &a7
+          type: string
+        id: *a1
+        organizationId: *a1
+        key: *a2
+        value: *a2
+        note: &a8
+          type: string
+          description: EncString, or empty.
+        creationDate: *a3
+        revisionDate: *a3
+        projects: &a9
+          type: array
+          items:
+            $ref: "#/components/schemas/SmProjectRef"
+      required:
+        - id
+        - organizationId
+        - key
+        - value
+        - note
+        - projects
+    SmSecret:
+      type: object
+      description: SecretResponseModel.
+      properties:
+        object: *a7
+        id: *a1
+        organizationId: *a1
+        key: *a2
+        value: *a2
+        note: *a8
+        creationDate: *a3
+        revisionDate: *a3
+        projects: *a9
+        read: *a5
+        write: *a6
+      required:
+        - id
+        - organizationId
+        - key
+        - value
+        - note
+        - projects
+        - read
+        - write
+    SmBaseSecretList:
+      type: object
+      properties:
+        object:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SmBaseSecret"
+        continuationToken: *a4
+      required:
+        - data
+    SmSecretListItem:
+      type: object
+      description: SecretsWithProjectsInnerSecret (no value or note).
+      properties:
+        id: *a1
+        organizationId: *a1
+        key: *a2
+        creationDate: *a3
+        revisionDate: *a3
+        projects:
+          type: array
+          items:
+            $ref: "#/components/schemas/SmProjectRef"
+        read: *a5
+        write: *a6
+      required:
+        - id
+        - organizationId
+        - key
+        - projects
+        - read
+        - write
+    SmSecretsWithProjectsList:
+      type: object
+      properties:
+        object:
+          type: string
+        secrets:
+          type: array
+          items:
+            $ref: "#/components/schemas/SmSecretListItem"
+        projects:
+          type: array
+          items:
+            $ref: "#/components/schemas/SmProjectRef"
+      required:
+        - secrets
+        - projects
+    SmSecretsSync:
+      type: object
+      properties:
+        object:
+          type: string
+        hasChanges:
+          type: boolean
+        secrets:
+          oneOf:
+            - $ref: "#/components/schemas/SmBaseSecretList"
+            - type: "null"
+      required:
+        - hasChanges
+        - secrets
+    SmServiceAccountRequest:
+      type: object
+      properties:
+        name: *a2
+      required:
+        - name
+    SmServiceAccount:
+      type: object
+      properties:
+        object:
+          type: string
+        id: *a1
+        organizationId: *a1
+        name: *a2
+        creationDate: *a3
+        revisionDate: *a3
+      required:
+        - id
+        - organizationId
+        - name
+    SmServiceAccountDetails:
+      type: object
+      description: ServiceAccountSecretsDetailsResponseModel.
+      properties:
+        object:
+          type: string
+        id: *a1
+        organizationId: *a1
+        name: *a2
+        creationDate: *a3
+        revisionDate: *a3
+        accessToSecrets:
+          type: integer
+          description: Secrets the machine account can read; 0 unless `includeAccessToSecrets=true`.
+      required:
+        - id
+        - organizationId
+        - name
+        - accessToSecrets
+    SmServiceAccountDetailsList:
+      type: object
+      properties:
+        object:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SmServiceAccountDetails"
+        continuationToken: *a4
+      required:
+        - data
+    SmAccessTokenCreateRequest:
+      type: object
+      properties:
+        name: *a2
+        encryptedPayload:
+          $ref: "#/components/schemas/EncString"
+          description: EncString of `{"encryptionKey":"<org key b64>"}` under the key derived from the token seed.
+            Returned as `encrypted_payload` at machine login.
+        key:
+          $ref: "#/components/schemas/EncString"
+          description: Opaque client data (the token seed under the organisation key).
+        expireAt:
+          type:
+            - string
+            - "null"
+          format: date-time
+      required:
+        - name
+        - encryptedPayload
+        - key
+    SmAccessTokenCreation:
+      type: object
+      properties:
+        object:
+          type: string
+        id: *a1
+        name: *a2
+        clientSecret:
+          type: string
+          pattern: ^[A-Za-z0-9]{30}$
+        expireAt:
+          type:
+            - string
+            - "null"
+          format: date-time
+        creationDate: *a3
+        revisionDate: *a3
+      required:
+        - id
+        - name
+        - clientSecret
+    SmAccessToken:
+      type: object
+      properties:
+        object:
+          type: string
+        id: *a1
+        name: *a2
+        scopes:
+          type: array
+          items:
+            type: string
+        expireAt:
+          type:
+            - string
+            - "null"
+          format: date-time
+        creationDate: *a3
+        revisionDate: *a3
+      required:
+        - id
+        - name
+        - scopes
+    SmAccessTokenList:
+      type: object
+      properties:
+        object:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SmAccessToken"
+        continuationToken: *a4
+      required:
+        - data
+    SmUserAccessPolicy:
+      type: object
+      properties:
+        object:
+          type: string
+        read: *a5
+        write: *a6
+        organizationUserId: *a1
+        organizationUserName: *a4
+        currentUser:
+          type: boolean
+      required:
+        - read
+        - write
+        - organizationUserId
+    SmGroupAccessPolicy:
+      type: object
+      properties:
+        object:
+          type: string
+        read: *a5
+        write: *a6
+        groupId: *a1
+        groupName: *a4
+        currentUserInGroup:
+          type: boolean
+      required:
+        - read
+        - write
+        - groupId
+    SmServiceAccountAccessPolicy:
+      type: object
+      properties:
+        object:
+          type: string
+        read: *a5
+        write: *a6
+        serviceAccountId: *a1
+        serviceAccountName:
+          oneOf:
+            - *a2
+            - type: "null"
+      required:
+        - read
+        - write
+        - serviceAccountId
+    SmPeopleAccessPoliciesRequest:
+      type: object
+      properties:
+        userAccessPolicyRequests:
+          type:
+            - array
+            - "null"
+          items:
+            $ref: "#/components/schemas/SmAccessPolicyRequest"
+        groupAccessPolicyRequests:
+          type:
+            - array
+            - "null"
+          items:
+            $ref: "#/components/schemas/SmAccessPolicyRequest"
+    SmPeopleAccessPolicies:
+      type: object
+      properties:
+        object:
+          type: string
+        userAccessPolicies:
+          type: array
+          items:
+            $ref: "#/components/schemas/SmUserAccessPolicy"
+        groupAccessPolicies:
+          type: array
+          items:
+            $ref: "#/components/schemas/SmGroupAccessPolicy"
+      required:
+        - userAccessPolicies
+        - groupAccessPolicies
+    SmProjectServiceAccountsAccessPolicies:
+      type: object
+      properties:
+        object:
+          type: string
+        serviceAccountAccessPolicies:
+          type: array
+          items:
+            $ref: "#/components/schemas/SmServiceAccountAccessPolicy"
+      required:
+        - serviceAccountAccessPolicies
+    SmSecretAccessPolicies:
+      type: object
+      properties:
+        object:
+          type: string
+        userAccessPolicies:
+          type: array
+          items:
+            $ref: "#/components/schemas/SmUserAccessPolicy"
+        groupAccessPolicies:
+          type: array
+          items:
+            $ref: "#/components/schemas/SmGroupAccessPolicy"
+        serviceAccountAccessPolicies:
+          type: array
+          items:
+            $ref: "#/components/schemas/SmServiceAccountAccessPolicy"
+      required:
+        - userAccessPolicies
+        - groupAccessPolicies
+        - serviceAccountAccessPolicies
+    SmGrantedAccessPolicyRequest:
+      type: object
+      properties:
+        grantedId: *a1
+        read: *a5
+        write: *a6
+      required:
+        - grantedId
+        - read
+        - write
+    SmServiceAccountGrantedPolicies:
+      type: object
+      properties:
+        object:
+          type: string
+        grantedProjectPolicies:
+          type: array
+          items:
+            type: object
+            properties:
+              object:
+                type: string
+              accessPolicy:
+                type: object
+                properties:
+                  object:
+                    type: string
+                  read: *a5
+                  write: *a6
+                  grantedProjectId: *a1
+                  grantedProjectName: *a2
+                required:
+                  - read
+                  - write
+                  - grantedProjectId
+              hasPermission:
+                type: boolean
+            required:
+              - accessPolicy
+              - hasPermission
+      required:
+        - grantedProjectPolicies
+    SmPotentialGrantee:
+      type: object
+      properties:
+        object:
+          type: string
+        id: *a1
+        name: *a4
+        type:
+          type: string
+          enum:
+            - user
+            - group
+            - serviceAccount
+            - project
+        email: *a4
+        currentUserInGroup:
+          type:
+            - boolean
+            - "null"
+        currentUser:
+          type:
+            - boolean
+            - "null"
+      required:
+        - id
+        - type
+    SmPotentialGranteeList:
+      type: object
+      properties:
+        object:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SmPotentialGrantee"
+        continuationToken: *a4
+      required:
+        - data
+    SmOrganizationCounts:
+      type: object
+      properties:
+        object:
+          type: string
+        projects:
+          type: integer
+        secrets:
+          type: integer
+        serviceAccounts:
+          type: integer
+      required:
+        - projects
+        - secrets
+        - serviceAccounts
+    SmProjectCounts:
+      type: object
+      properties:
+        object:
+          type: string
+        secrets:
+          type: integer
+        people:
+          type: integer
+        serviceAccounts:
+          type: integer
+      required:
+        - secrets
+        - people
+        - serviceAccounts
+    SmServiceAccountCounts:
+      type: object
+      properties:
+        object:
+          type: string
+        projects:
+          type: integer
+        people:
+          type: integer
+        accessTokens:
+          type: integer
+      required:
+        - projects
+        - people
+        - accessTokens
+    MachineTokenResponse:
+      type: object
+      description: "Machine account login (`client_credentials` with `scope=api.secrets`). Has no `Kdf` or `Key`
+        members: the SDK tries the user login shape first and would otherwise misread it. The JWT carries `sub`
+        (machine account id), `organization`, `client_id` (access token id) and `scope` as an array."
+      properties:
+        access_token:
+          type: string
+        expires_in:
+          type: integer
+        token_type:
+          type: string
+          enum:
+            - Bearer
+        scope:
+          type: string
+          enum:
+            - api.secrets
+        encrypted_payload:
+          $ref: "#/components/schemas/EncString"
+          description: The `encryptedPayload` stored when the token was created.
+      required:
+        - access_token
+        - expires_in
+        - token_type
+        - scope
+        - encrypted_payload

@@ -1,6 +1,7 @@
 import { and, eq, isNull } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { randomB64u, safeEqualStrings, sha256B64u } from '../auth/crypto'
+import { announceNewDevice, newDeviceState, requireNewDeviceCode } from '../auth/new-device'
 import {
   assertionCredentialId,
   PASSKEY_LOGIN,
@@ -131,6 +132,11 @@ async function passwordGrant(c: Ctx, form: Form) {
     )
   }
 
+  // A device approved from another device needs no emailed code.
+  const state = await newDeviceState(db, user.uuid, device.identifier)
+  const verify = authRequest ? null : await requireNewDeviceCode(c, db, user, state, form)
+  if (verify) return verify
+
   const challenge = await enforceTwoFactor(c, user, form)
   if (challenge) return challenge
 
@@ -138,6 +144,7 @@ async function passwordGrant(c: Ctx, form: Form) {
   if (authRequest && !(await consumeAuthRequest(db, authRequest.uuid))) return BAD_LOGIN(c)
 
   const refreshToken = await registerDevice(db, user.uuid, device)
+  if (state.isNew && state.hasOthers && !form.newDeviceOtp) announceNewDevice(c, user, device)
   const body = await tokenResponse(c.env, user, {
     deviceIdentifier: device.identifier,
     scope: ['api', 'offline_access'],

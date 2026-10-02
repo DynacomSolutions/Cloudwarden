@@ -6,6 +6,7 @@ import { ApiError, errorBody } from './errors'
 import { errorKind, log, requestLogger } from './log'
 import { securityHeaders } from './middleware'
 import { orgChangeNotifier, secretsRevisionOnMemberChange } from './orgs/notify'
+import { accountEmail } from './routes/account-email'
 import { accounts } from './routes/accounts'
 import { alive } from './routes/alive'
 import { appId } from './routes/app-id'
@@ -51,6 +52,7 @@ app.route('/', register)
 app.route('/', token)
 app.route('/', devices)
 app.route('/', accounts)
+app.route('/', accountEmail)
 app.route('/', sync)
 // Secrets Manager accepts machine tokens, so it runs before the organisation routers whose
 // `authOnce` middleware would refuse them (TASKS #220).

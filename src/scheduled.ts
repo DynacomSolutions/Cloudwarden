@@ -1,4 +1,5 @@
 import { BACKUP_CRON, runBackup } from './backup'
+import { notifyElapsedRecoveries } from './emergency-sweep'
 import type { Bindings } from './env'
 import { errorKind, log } from './log'
 import { purgeExpired } from './vault/purge'
@@ -33,6 +34,11 @@ export const scheduled = async (
       await purgeExpired(env)
     } catch (err) {
       log('error', 'purge.failed', { errorKind: errorKind(err) }, env)
+    }
+    try {
+      await notifyElapsedRecoveries(env)
+    } catch (err) {
+      log('error', 'emergency_sweep.failed', { errorKind: errorKind(err) }, env)
     }
   }
   if (backupFailed) throw backupError

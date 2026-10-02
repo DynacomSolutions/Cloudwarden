@@ -43,6 +43,13 @@ export const users = sqliteTable(
     lastVerifyingAt: integer('last_verifying_at'),
     loginVerifyCount: integer('login_verify_count').notNull().default(0),
     enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
+    /** New-device login verification by emailed code (TASKS #260). Applies only when mail works. */
+    verifyDevices: integer('verify_devices', { mode: 'boolean' }).notNull().default(true),
+    /** Pending emailed one-time code: SHA-256 of `purpose:code`, its purpose, expiry, bad guesses. */
+    otpHash: text('otp_hash'),
+    otpPurpose: text('otp_purpose'),
+    otpExpiresAt: integer('otp_expires_at'),
+    otpAttempts: integer('otp_attempts').notNull().default(0),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -466,6 +473,8 @@ export const emergencyAccess = sqliteTable(
     status: integer('status').notNull(),
     waitTimeDays: integer('wait_time_days').notNull(),
     recoveryInitiatedAt: integer('recovery_initiated_at'),
+    /** Set when the grantee was told that the wait time elapsed (scheduled sweep). */
+    recoveryNotifiedAt: integer('recovery_notified_at'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

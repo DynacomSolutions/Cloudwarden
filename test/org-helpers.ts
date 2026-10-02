@@ -3,6 +3,7 @@ import { BASE, createSession } from './helpers'
 
 export interface Mail {
   to: string
+  subject: string
   text: string
 }
 

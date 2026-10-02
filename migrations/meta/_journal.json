@@ -78,6 +78,13 @@
       "when": 1790927013705,
       "tag": "0010_remove_html_admin",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1790934277816,
+      "tag": "0011_parity_account_email",
+      "breakpoints": true
     }
   ]
 }

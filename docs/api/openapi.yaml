@@ -12466,12 +12466,56 @@ components:
           $ref: '#/components/schemas/AdminStorage'
         server:
           $ref: '#/components/schemas/AdminServerConfig'
+        push:
+          $ref: '#/components/schemas/AdminPushStatus'
         pendingInvitations:
           type: integer
       required:
       - storage
       - server
+      - push
       - pendingInvitations
+    AdminPushStatus:
+      type: object
+      description: Mobile push relay status (TASKS #262). Never includes the installation key.
+      properties:
+        configured:
+          type: boolean
+        state:
+          type: string
+          enum:
+          - configured
+          - not configured
+          - incomplete
+        relayHost:
+          type:
+          - string
+          - 'null'
+        identityHost:
+          type:
+          - string
+          - 'null'
+        lastResult:
+          description: Outcome of the last relay call seen by this Worker instance.
+          type:
+          - object
+          - 'null'
+          properties:
+            at:
+              type: string
+              format: date-time
+            ok:
+              type: boolean
+            status:
+              type:
+              - integer
+              - 'null'
+      required:
+      - configured
+      - state
+      - relayHost
+      - identityHost
+      - lastResult
     AdminTwoFactorProvider:
       type: object
       description: An enabled second factor.

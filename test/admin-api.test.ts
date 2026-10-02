@@ -330,6 +330,7 @@ describe('admin API reads', () => {
     expect(row).toMatchObject({ name: 'Counted', memberCount: 1, itemCount: 0 })
     const diag = (await (await a.call(`${P}/diagnostics`)).json()) as any
     matchesSpec('get', `${P}/diagnostics`, 200, diag)
+    expect(diag.push).toMatchObject({ configured: false, state: 'not configured' })
     matchesSpec('get', `${P}/organizations`, 200, list)
     expect(diag.storage).toMatchObject({ attachments: expect.any(Number), r2Bound: true })
     expect(diag.server.version).toEqual(expect.any(String))

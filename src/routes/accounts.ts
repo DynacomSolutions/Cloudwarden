@@ -8,7 +8,13 @@ import { hashMasterPassword, verifyMasterPassword } from '../auth/passwords'
 import { accountKeysJson, stampRotationStatements } from '../auth/session'
 import { findUserByEmail, normalizeEmail } from '../auth/users'
 import { createDb, runBatch, schema } from '../db'
-import { createEmailTransport, genericEmail } from '../email'
+import {
+  createEmailTransport,
+  emailChangedNewEmail,
+  emailChangedOldEmail,
+  genericEmail,
+} from '../email'
+import { later, sendNotice } from '../email/send'
 import type { Env, User } from '../env'
 import { ApiError } from '../errors'
 import { pushLogOut } from '../notifications/publish'
@@ -48,6 +54,7 @@ export async function profileJson(c: Ctx, user: User) {
     securityStamp: user.securityStamp,
     forcePasswordReset: false,
     usesKeyConnector: false,
+    verifyDevices: user.verifyDevices,
     avatarColor: null,
     creationDate: new Date(user.createdAt).toISOString(),
     organizations: await profileOrganizations(createDb(c.env.DB), user.uuid),
@@ -342,6 +349,13 @@ accounts.post('/api/accounts/email', requireAuth, async (c) => {
   } catch {
     throw new ApiError(400, 'Email is already in use.')
   }
+  later(
+    c,
+    Promise.all([
+      sendNotice(c.env, user.email, emailChangedOldEmail(newEmail)),
+      sendNotice(c.env, newEmail, emailChangedNewEmail()),
+    ]),
+  )
   return c.body(null, 200)
 })
 
@@ -633,10 +647,8 @@ accounts.post('/api/accounts/key-management/rotate-user-account-keys', requireAu
   return c.body(null, 200)
 })
 
-const deleteAccount = async (c: Ctx) => {
-  const { masterPasswordHash } = await parseBody(c, passwordOnly)
-  const user = c.var.user
-  await requirePassword(user, masterPasswordHash)
+/** Deletes the account and everything it owns; blobs are removed after the response. */
+export async function eraseAccount(c: Ctx, user: User) {
   const db = createDb(c.env.DB)
   await assertNotSoleOwner(db, user.uuid)
   // Child rows (devices, folders, ciphers, sends, 2FA) cascade from the user row.
@@ -646,6 +658,12 @@ const deleteAccount = async (c: Ctx) => {
   ]
   await runBatch(db, [db.delete(schema.users).where(eq(schema.users.uuid, user.uuid))])
   deleteBlobs(c, keys)
+}
+
+const deleteAccount = async (c: Ctx) => {
+  const { masterPasswordHash } = await parseBody(c, passwordOnly)
+  await requirePassword(c.var.user, masterPasswordHash)
+  await eraseAccount(c, c.var.user)
   return c.body(null, 200)
 }
 accounts.delete('/api/accounts', requireAuth, deleteAccount)

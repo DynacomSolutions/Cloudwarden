@@ -1004,3 +1004,15 @@ export const organizationDomains = sqliteTable(
     index('organization_domains_next_run_idx').on(t.nextRunAt),
   ],
 )
+
+/**
+ * Instance wide settings managed by an instance admin (TASKS #277). One row per setting `key`;
+ * `config` is non secret JSON and `sealed_secrets` holds secrets sealed under DATA_ENCRYPTION_KEY.
+ */
+export const instanceSettings = sqliteTable('instance_settings', {
+  key: text('key').primaryKey(),
+  config: text('config').notNull(),
+  sealedSecrets: text('sealed_secrets'),
+  updatedAt: updatedAt(),
+  updatedBy: text('updated_by'),
+})

@@ -120,6 +120,13 @@
       "when": 1790954081625,
       "tag": "0016_parity_g",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1790955887085,
+      "tag": "0017_instance_settings",
+      "breakpoints": true
     }
   ]
 }

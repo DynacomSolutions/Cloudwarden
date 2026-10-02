@@ -5833,6 +5833,88 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+  /api/cloudwarden/admin/push-settings:
+    get:
+      tags:
+      - x-cloudwarden
+      operationId: adminGetPushSettings
+      summary: Mobile push relay settings (the key is never returned)
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminPushSettings'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    put:
+      tags:
+      - x-cloudwarden
+      operationId: adminPutPushSettings
+      summary: Save the mobile push relay settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminPushSettingsInput'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminPushSettings'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    delete:
+      tags:
+      - x-cloudwarden
+      operationId: adminDeletePushSettings
+      summary: Remove the stored mobile push relay settings
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminPushSettings'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/cloudwarden/admin/push-settings/test:
+    post:
+      tags:
+      - x-cloudwarden
+      operationId: adminTestPushSettings
+      summary: Request a relay token with the effective settings (rate limited)
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminPushTestResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
   /api/cloudwarden/admin/users:
     get:
       tags:
@@ -20903,6 +20985,88 @@ components:
       - server
       - push
       - pendingInvitations
+    AdminPushSettings:
+      type: object
+      description: Stored mobile push relay settings. The installation key is write only.
+      properties:
+        installationId:
+          type: string
+        keySet:
+          type: boolean
+        keyUnreadable:
+          description: A key is stored but cannot be opened, so it must be entered again.
+          type: boolean
+        region:
+          type: string
+          enum:
+          - us
+          - eu
+          - custom
+        relayUri:
+          type:
+          - string
+          - 'null'
+        identityUri:
+          type:
+          - string
+          - 'null'
+        updatedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        status:
+          $ref: '#/components/schemas/AdminPushStatus'
+      required:
+      - installationId
+      - keySet
+      - keyUnreadable
+      - region
+      - relayUri
+      - identityUri
+      - updatedAt
+      - status
+    AdminPushSettingsInput:
+      type: object
+      properties:
+        installationId:
+          type: string
+        installationKey:
+          description: Leave out or blank to keep the stored key.
+          type: string
+        region:
+          type: string
+          enum:
+          - us
+          - eu
+          - custom
+        relayUri:
+          description: Custom region only. An https URL.
+          type: string
+        identityUri:
+          description: Custom region only. An https URL.
+          type: string
+      required:
+      - installationId
+      - region
+    AdminPushTestResult:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        error:
+          type:
+          - string
+          - 'null'
+          enum:
+          - not_configured
+          - rejected
+          - unreachable
+          - bad_response
+          - null
+      required:
+      - ok
+      - error
     AdminPushStatus:
       type: object
       description: Mobile push relay status (TASKS #262). Never includes the installation key.
@@ -20915,6 +21079,7 @@ components:
           - configured
           - not configured
           - incomplete
+          - key unreadable
         relayHost:
           type:
           - string
@@ -20923,6 +21088,18 @@ components:
           type:
           - string
           - 'null'
+        source:
+          description: Where the effective settings come from.
+          type:
+          - string
+          - 'null'
+          enum:
+          - env
+          - settings
+          - null
+        envOverride:
+          description: Worker secrets are set, so they override the stored settings.
+          type: boolean
         lastResult:
           description: Outcome of the last relay call seen by this Worker instance.
           type:
@@ -20943,6 +21120,8 @@ components:
       - state
       - relayHost
       - identityHost
+      - source
+      - envOverride
       - lastResult
     AdminTwoFactorProvider:
       type: object

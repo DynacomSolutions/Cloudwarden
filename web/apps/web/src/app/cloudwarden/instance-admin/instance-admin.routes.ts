@@ -6,6 +6,7 @@ import { RouteDataProperties } from "../../core/router.service";
 import { InstanceAdminInvitationsComponent } from "./instance-admin-invitations.component";
 import { InstanceAdminOrganizationsComponent } from "./instance-admin-organizations.component";
 import { InstanceAdminOverviewComponent } from "./instance-admin-overview.component";
+import { InstanceAdminPushComponent } from "./instance-admin-push.component";
 import { InstanceAdminUsersComponent } from "./instance-admin-users.component";
 import { instanceAdminGuard } from "./instance-admin.guard";
 
@@ -36,6 +37,11 @@ export const instanceAdminRoutes: Routes = [
         path: "organizations",
         component: InstanceAdminOrganizationsComponent,
         data: { titleId: "organizations" } satisfies RouteDataProperties,
+      },
+      {
+        path: "push",
+        component: InstanceAdminPushComponent,
+        data: { titleId: "cwMobilePush" } satisfies RouteDataProperties,
       },
       {
         path: "diagnostics",

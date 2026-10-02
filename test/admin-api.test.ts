@@ -224,7 +224,7 @@ describe('admin API hardening', () => {
     expect(res.status).toBe(200)
     const body = (await res.json()) as { data: { type: number }[] }
     expect(body.data.map((e) => e.type)).toContain(1000)
-    expect(body.data.every((e) => e.type < 9001 || e.type > 9008)).toBe(true)
+    expect(body.data.every((e) => e.type < 9001 || e.type > 9011)).toBe(true)
     const rows = await events(AdminEventType.UserDeauthorized)
     expect(rows.some((e) => e.user_uuid === t.id)).toBe(true)
   })

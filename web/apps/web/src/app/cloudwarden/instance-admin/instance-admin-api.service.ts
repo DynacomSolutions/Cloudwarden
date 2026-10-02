@@ -49,6 +49,38 @@ export interface AdminOrganization {
   itemCount: number;
 }
 
+export type PushRegion = "us" | "eu" | "custom";
+
+export interface PushStatus {
+  configured: boolean;
+  state: string;
+  source: "env" | "settings" | null;
+  envOverride: boolean;
+  relayHost: string | null;
+  identityHost: string | null;
+  lastResult: { at: string; ok: boolean; status: number | null } | null;
+}
+
+export interface PushSettings {
+  installationId: string;
+  keySet: boolean;
+  keyUnreadable: boolean;
+  region: PushRegion;
+  relayUri: string | null;
+  identityUri: string | null;
+  updatedAt: string | null;
+  status: PushStatus;
+}
+
+export interface PushSettingsInput {
+  installationId: string;
+  /** Blank or missing keeps the stored key. */
+  installationKey?: string;
+  region: PushRegion;
+  relayUri?: string;
+  identityUri?: string;
+}
+
 export type AdminUserAction = "disable" | "enable" | "deauthorize" | "remove-2fa";
 
 const ADMIN = "/cloudwarden/admin";
@@ -144,5 +176,21 @@ export class InstanceAdminApiService {
       true,
       false,
     );
+  }
+
+  pushSettings(): Promise<PushSettings> {
+    return this.apiService.send("GET", `${ADMIN}/push-settings`, null, true, true);
+  }
+
+  savePushSettings(input: PushSettingsInput): Promise<PushSettings> {
+    return this.apiService.send("PUT", `${ADMIN}/push-settings`, input, true, true);
+  }
+
+  removePushSettings(): Promise<PushSettings> {
+    return this.apiService.send("DELETE", `${ADMIN}/push-settings`, null, true, true);
+  }
+
+  testPushSettings(): Promise<{ ok: boolean; error: string | null }> {
+    return this.apiService.send("POST", `${ADMIN}/push-settings/test`, null, true, true);
   }
 }

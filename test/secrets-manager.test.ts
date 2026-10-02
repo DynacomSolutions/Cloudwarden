@@ -621,3 +621,113 @@ describe('counts', () => {
     expect(counts.serviceAccounts).toBeGreaterThan(0)
   })
 })
+
+describe('security review fixes', () => {
+  it('only lets a member mint a token for a machine account they cannot out-reach', async () => {
+    const m = await newMachine('reach')
+    const p = await owner.json(`/api/organizations/${orgId}/projects`, 'POST', { name: enc('r') })
+    await owner.json(`/api/service-accounts/${m.saId}/granted-policies`, 'PUT', {
+      projectGrantedPolicyRequests: [{ grantedId: p.id, read: true, write: false }],
+    })
+    await owner.json(`/api/service-accounts/${m.saId}/access-policies/people`, 'PUT', {
+      userAccessPolicyRequests: [{ granteeId: memberOrgUserId, read: true, write: true }],
+      groupAccessPolicyRequests: [],
+    })
+    const mint = () =>
+      member.call(`/api/service-accounts/${m.saId}/access-tokens`, 'POST', {
+        name: enc('t'),
+        encryptedPayload: enc('p'),
+        key: enc('k'),
+      })
+    expect((await mint()).status).toBe(403)
+    await owner.json(`/api/projects/${p.id}/access-policies/people`, 'PUT', {
+      userAccessPolicyRequests: [{ granteeId: memberOrgUserId, read: true, write: false }],
+      groupAccessPolicyRequests: [],
+    })
+    expect((await mint()).status).toBe(200)
+  })
+
+  it('treats only confirmed members as grantees', async () => {
+    const pending = await actor('sm-pending@example.com')
+    await owner.call(`/api/organizations/${orgId}/users/invite`, 'POST', {
+      emails: [pending.email],
+      type: 2,
+      accessSecretsManager: true,
+      collections: [],
+      groups: [],
+      permissions: null,
+    })
+    const users = await owner.json(`/api/organizations/${orgId}/users`)
+    const invited = users.data.find((u: any) => u.email === pending.email)
+    const people = await owner.json(
+      `/api/organizations/${orgId}/access-policies/people/potential-grantees`,
+    )
+    expect(people.data.map((g: any) => g.id)).not.toContain(invited.id)
+    const p = await owner.json(`/api/organizations/${orgId}/projects`, 'POST', { name: enc('c') })
+    const put = await owner.call(`/api/projects/${p.id}/access-policies/people`, 'PUT', {
+      userAccessPolicyRequests: [{ granteeId: invited.id, read: true, write: false }],
+      groupAccessPolicyRequests: [],
+    })
+    expect(put.status).toBe(400)
+  })
+
+  it('restricts who may change Secrets Manager access', async () => {
+    const custom = await actor('sm-custom@example.com')
+    const target = await actor('sm-target@example.com')
+    const customId = await addMember(owner, orgId, custom, {
+      type: 4,
+      permissions: { manageUsers: true },
+    })
+    const targetId = await addMember(owner, orgId, target)
+    const bulk = await custom.json(
+      `/api/organizations/${orgId}/users/enable-secrets-manager`,
+      'PUT',
+      { ids: [targetId, customId] },
+    )
+    expect(bulk.data.every((r: any) => r.error !== null)).toBe(true)
+    const upd = await custom.call(`/api/organizations/${orgId}/users/${targetId}`, 'PUT', {
+      type: 2,
+      accessSecretsManager: true,
+      collections: [],
+      groups: [],
+      permissions: null,
+    })
+    expect(upd.status).toBe(403)
+    const inv = await custom.call(`/api/organizations/${orgId}/users/invite`, 'POST', {
+      emails: ['sm-new@example.com'],
+      type: 2,
+      accessSecretsManager: true,
+      collections: [],
+      groups: [],
+      permissions: null,
+    })
+    expect(inv.status).toBe(403)
+    // Once the custom member has access they may grant it, but never to themselves.
+    await owner.json(`/api/organizations/${orgId}/users/enable-secrets-manager`, 'PUT', {
+      ids: [customId],
+    })
+    const again = await custom.json(
+      `/api/organizations/${orgId}/users/enable-secrets-manager`,
+      'PUT',
+      { ids: [targetId, customId] },
+    )
+    expect(again.data.find((r: any) => r.id === targetId).error).toBe(null)
+    expect(again.data.find((r: any) => r.id === customId).error).not.toBe(null)
+  })
+
+  it('marks secrets changed when membership or groups change', async () => {
+    const m = await newMachine('rev')
+    const t = await machineToken(m)
+    const now = new Date(Date.now() + 1).toISOString()
+    await new Promise((r) => setTimeout(r, 5))
+    const q = `/api/organizations/${orgId}/secrets/sync?lastSyncedDate=${now}`
+    expect(((await (await authed(q, t)).json()) as any).hasChanges).toBe(false)
+    await owner.json(`/api/organizations/${orgId}/groups`, 'POST', {
+      name: 'rev-group',
+      accessAll: false,
+      collections: [],
+      users: [],
+    })
+    expect(((await (await authed(q, t)).json()) as any).hasChanges).toBe(true)
+  })
+})

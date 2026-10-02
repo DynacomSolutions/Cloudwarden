@@ -74,14 +74,18 @@ their member-only middleware never sees machine requests.
 Members:
 
 - Need a confirmed membership with `accessSecretsManager`; otherwise the organisation is a 404.
-  Owners get it when they create an organisation; the migration grants it to existing owners and
-  admins. Admins toggle it per member (invite and update bodies) or in bulk
+  Owners get it when they create an organisation; the migration grants it to existing confirmed
+  owners and admins. Admins toggle it per member (invite and update bodies) or in bulk
   (`PUT /api/organizations/{orgId}/users/enable-secrets-manager`).
 - Owners and admins with access read and write everything.
 - Other members reach a project through a member or group policy, a secret through a direct policy
   or any policy on its project, a machine account through a member or group policy on it. `write`
   implies `read`; policies from several sources combine to the most permissive.
 - A member who creates a project or a machine account is granted read and write on it.
+- Creating an access token needs write on the machine account and, for non-admins, read on every
+  project and secret granted to it, so a token never reaches further than its creator.
+- Only confirmed members can be grantees. `accessSecretsManager` is changed only by owners, admins
+  or custom members who already have it, and never on oneself. Access decisions read the primary.
 - Only owners and admins may keep a secret outside every project; at most one project per secret.
 
 Machine accounts:
@@ -101,7 +105,7 @@ not exist or cannot be deleted. `get-by-ids` is all or nothing (404).
 
 `GET /api/organizations/{id}/secrets/sync?lastSyncedDate=` compares against a per-organisation
 `secrets_revision_date`, bumped by every Secrets Manager write in the organisation (secrets,
-projects, relations, policies). When nothing changed after `lastSyncedDate` the answer is
+projects, relations, policies) and by membership, group and access-flag changes. When nothing changed after `lastSyncedDate` the answer is
 `hasChanges: false` with `secrets: null`; otherwise every secret the caller can read, with values.
 This over-reports (a change a machine cannot see still sets `hasChanges`), never under-reports.
 

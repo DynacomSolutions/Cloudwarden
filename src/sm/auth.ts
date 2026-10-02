@@ -18,6 +18,9 @@ import { oauthError } from '../errors'
 export const MACHINE_SCOPE = 'api.secrets'
 export const MACHINE_TOKEN_TTL_SECONDS = 3600
 
+/** SHA-256 (base64url) of nothing a client can send: the comparison target for unknown token ids. */
+const DUMMY_HASH = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 export const isUuid = (s: string) => UUID.test(s)
 
@@ -56,7 +59,8 @@ export async function machineLoginGrant(c: Context<Env>, form: Record<string, st
     .where(eq(schema.smAccessTokens.uuid, clientId.toLowerCase()))
     .limit(1)
   const hash = await sha256B64u(form.client_secret)
-  const matches = safeEqualStrings(row?.t.clientSecretHash ?? '\0', hash)
+  // Unknown ids compare against a fixed hash of the same length, so timing does not reveal them.
+  const matches = safeEqualStrings(row?.t.clientSecretHash ?? DUMMY_HASH, hash)
   if (!row || !matches) return bad()
   if (row.t.expiresAt !== null && row.t.expiresAt <= Date.now()) return bad()
 

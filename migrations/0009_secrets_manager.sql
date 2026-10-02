@@ -86,5 +86,5 @@ ALTER TABLE `events` ADD `service_account_uuid` text;--> statement-breakpoint
 ALTER TABLE `events` ADD `granted_service_account_uuid` text;--> statement-breakpoint
 ALTER TABLE `organizations` ADD `secrets_revision_date` integer;--> statement-breakpoint
 ALTER TABLE `users_organizations` ADD `access_secrets_manager` integer DEFAULT false NOT NULL;--> statement-breakpoint
--- Existing owners and admins get Secrets Manager access (TASKS #220); others are enabled by an admin.
-UPDATE `users_organizations` SET `access_secrets_manager` = 1 WHERE `atype` IN (0, 1);
+-- Existing confirmed owners and admins get Secrets Manager access (TASKS #220); others are enabled by an admin.
+UPDATE `users_organizations` SET `access_secrets_manager` = 1 WHERE `atype` IN (0, 1) AND `status` = 2;

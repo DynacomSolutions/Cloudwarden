@@ -9,7 +9,7 @@ import { sha256B64u } from '../auth/crypto'
 import { createDb, type Db, schema } from '../db'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
-import { EventType } from '../orgs/constants'
+import { EventType, Status } from '../orgs/constants'
 import { eventStatement, listEvents } from '../orgs/events'
 import { batch } from '../orgs/util'
 import {
@@ -78,7 +78,10 @@ const param = (c: Ctx, name: string) => {
   if (!isUuid(v)) throw notFound()
   return v.toLowerCase()
 }
-const ctxFor = (c: Ctx, db: Db, orgUuid: string) => loadContext(db, actorOf(c), orgUuid)
+// Membership, SM access and policies decide access, so they are always read from the primary
+// (docs/d1-sessions.md), whatever handle the route uses for its own reads.
+const ctxFor = (c: Ctx, _db: Db, orgUuid: string) =>
+  loadContext(createDb(c.env.DB_PRIMARY ?? c.env.DB), actorOf(c), orgUuid)
 
 /** Read access or 404; write access or 403 (the caller can see it but not change it). */
 function check(rw: Rw, need: 'read' | 'write', what: string) {
@@ -288,6 +291,7 @@ async function validateGrantees(db: Db, ctx: SmContext, kind: Grantee, ids: stri
           inArray(uo.uuid, uuids),
           eq(uo.organizationUuid, ctx.orgUuid),
           eq(uo.accessSecretsManager, true),
+          eq(uo.status, Status.Confirmed),
         ),
       )
   } else if (kind === 'group') {
@@ -803,6 +807,32 @@ secretsManager.get('/api/service-accounts/:id/access-tokens', async (c) => {
   return c.json(list(rows.map(accessTokenJson)))
 })
 
+/**
+ * A token hands out everything the machine account can reach, so a non-admin may mint one only
+ * when they can already read every project and secret granted to it (TASKS #220 review).
+ */
+async function assertCanReachEverything(db: Db, ctx: SmContext, saUuid: string) {
+  if (ctx.admin) return
+  const policies = await db
+    .select()
+    .from(schema.smAccessPolicies)
+    .where(eq(schema.smAccessPolicies.serviceAccountUuid, saUuid))
+  const secretIds = policies.flatMap((p) => (p.grantedSecretUuid ? [p.grantedSecretUuid] : []))
+  const projectsOf = await projectsOfSecrets(db, secretIds)
+  for (const p of policies) {
+    const ok = p.grantedProjectUuid
+      ? projectAccess(ctx, p.grantedProjectUuid).read
+      : p.grantedSecretUuid
+        ? secretAccess(
+            ctx,
+            p.grantedSecretUuid,
+            (projectsOf.get(p.grantedSecretUuid) ?? []).map((x) => x.id),
+          ).read
+        : true
+    if (!ok) throw forbidden()
+  }
+}
+
 const tokenSchema = z.object({
   name: enc(1000),
   encryptedPayload: enc(10_000),
@@ -813,7 +843,8 @@ const tokenSchema = z.object({
 secretsManager.post('/api/service-accounts/:id/access-tokens', async (c) => {
   const body = await parseBody(c, tokenSchema)
   const db = db_(c)
-  const { sa } = await serviceAccountFor(c, db, 'write')
+  const { sa, ctx } = await serviceAccountFor(c, db, 'write')
+  await assertCanReachEverything(db, ctx, sa.uuid)
   let expiresAt: number | null = null
   if (body.expireAt) {
     expiresAt = Date.parse(body.expireAt)
@@ -1208,7 +1239,7 @@ secretsManager.get(
     const ctx = await ctxFor(c, db, param(c, 'orgId'))
     requireUser(ctx)
     const members = [...(await memberNames(db, ctx.orgUuid)).values()].filter(
-      (r) => r.m.accessSecretsManager && r.m.status >= 1,
+      (r) => r.m.accessSecretsManager && r.m.status === Status.Confirmed,
     )
     const groups = await groupNames(db, ctx.orgUuid)
     return c.json(

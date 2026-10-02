@@ -5,7 +5,7 @@ import type { Env } from './env'
 import { ApiError, errorBody } from './errors'
 import { errorKind, log, requestLogger } from './log'
 import { securityHeaders } from './middleware'
-import { orgChangeNotifier } from './orgs/notify'
+import { orgChangeNotifier, secretsRevisionOnMemberChange } from './orgs/notify'
 import { accounts } from './routes/accounts'
 import { admin } from './routes/admin'
 import { alive } from './routes/alive'
@@ -58,6 +58,15 @@ app.route('/', sync)
 app.route('/', secretsManager)
 // Public and organisation routes come first: org-ciphers hands personal items on to `ciphers`.
 app.use('/api/organizations/:orgId/*', orgChangeNotifier)
+for (const path of [
+  '/api/organizations/:orgId/users',
+  '/api/organizations/:orgId/users/*',
+  '/api/organizations/:orgId/groups',
+  '/api/organizations/:orgId/groups/*',
+  '/api/organizations/:id/leave',
+]) {
+  app.use(path, secretsRevisionOnMemberChange)
+}
 app.route('/', publicPolicies)
 app.route('/', organizations)
 app.route('/', orgUsers)

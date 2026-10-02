@@ -3,6 +3,7 @@ import { randomB64u, safeEqualStrings, sha256B64u } from '../auth/crypto'
 import { normalizeEmail } from '../auth/users'
 import { type Db, runBatch, schema } from '../db'
 import type { Bindings, User } from '../env'
+import { isStandInUser } from '../federation/standin'
 import { Role, Status } from '../orgs/constants'
 import { orgClaimsEmail } from '../orgs/domains'
 import { SsoError } from './errors'
@@ -165,6 +166,11 @@ export interface SsoIdentity {
   externalId: string
   email: string | null
   name: string | null
+  /**
+   * The provider vouches for the address: OIDC `email_verified === true` (or the administrator's
+   * opt-out); SAML assertions are signed statements of the provider and count as verified.
+   */
+  emailVerified?: boolean
 }
 
 type Member = typeof schema.usersOrganizations.$inferSelect
@@ -216,6 +222,10 @@ export async function provisionSsoUser(
   } else {
     const email = identity.email ? normalizeEmail(identity.email) : null
     if (!email) throw new SsoError('The identity provider did not return an email address.')
+    // Linking or provisioning by email needs an address the provider has verified.
+    if (identity.emailVerified === false) {
+      throw new SsoError('The identity provider has not verified this email address.')
+    }
     if (linkUserUuid) {
       ;[user] = await db
         .select()
@@ -247,6 +257,12 @@ export async function provisionSsoUser(
     }
 
     if (user) {
+      // Stand-in accounts of federated members never link to or sign in through SSO here.
+      if (isStandInUser(user)) {
+        throw new SsoError(
+          'This account belongs to another server and cannot use single sign-on here.',
+        )
+      }
       const [existing] = await db
         .select()
         .from(schema.ssoUsers)

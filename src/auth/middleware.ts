@@ -3,8 +3,8 @@ import type { MiddlewareHandler } from 'hono'
 import { createDb, schema } from '../db'
 import type { AccessTokenClaims, Env, User } from '../env'
 import { FEDERATION_CLIENT_ID, isStandInUser } from '../federation/standin'
+import { verifyAccessJwt } from './access-keys'
 import { safeEqualStrings } from './crypto'
-import { verificationSecrets, verifyJwt } from './jwt'
 
 export const issuerFor = (domain: string): string => domain.replace(/\/+$/, '')
 
@@ -21,7 +21,7 @@ export async function authenticateAccessToken(
   env: Env['Bindings'],
   token: string,
 ): Promise<{ user: User; claims: AccessTokenClaims } | null> {
-  const claims = await verifyJwt<AccessTokenClaims>(token, verificationSecrets(env))
+  const claims = await verifyAccessJwt<AccessTokenClaims>(env, token)
   if (
     !claims ||
     claims.iss !== issuerFor(env.DOMAIN) ||

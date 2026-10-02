@@ -39,6 +39,7 @@ import {
   openConfig,
   orgByIdentifier,
   parseConfigData,
+  providerChanged,
   REDACTED_SECRET,
   redactConfig,
   type SsoConfigData,
@@ -50,7 +51,7 @@ import {
 import { hasMasterPassword } from '../sso/decryption'
 import { SsoError } from '../sso/errors'
 import { LINK_PURPOSE, LINK_TTL_SECONDS } from '../sso/flow'
-import { testOidc } from '../sso/oidc'
+import { insecureLoopback, testOidc } from '../sso/oidc'
 import { testSaml } from '../sso/saml'
 import { ensureSpKeys, SsoEventType } from '../sso/sp-keys'
 import { kdfProblem, parseBody } from '../validation'
@@ -171,13 +172,16 @@ const httpsUrl = (v: string | null | undefined) => {
 }
 
 /** Field problems of a configuration about to be enabled. */
-function configProblems(data: SsoConfigData): Record<string, string[]> {
+function configProblems(data: SsoConfigData, env: Env['Bindings']): Record<string, string[]> {
   const errors: Record<string, string[]> = {}
   const add = (k: string, m: string) => {
     errors[k] = [...(errors[k] ?? []), m]
   }
   if (data.configType === SsoType.OpenIdConnect) {
-    if (!httpsUrl(data.authority)) add('authority', 'An https authority URL is required.')
+    const loopbackOk =
+      insecureLoopback(env) && /^http:\/\/(127\.0\.0\.1|localhost)[:/]/.test(data.authority ?? '')
+    if (!httpsUrl(data.authority) && !loopbackOk)
+      add('authority', 'An https authority URL is required.')
     if (!data.clientId?.trim()) add('clientId', 'The client ID is required.')
     if (data.metadataAddress && !httpsUrl(data.metadataAddress))
       add('metadataAddress', 'The metadata address must use https.')
@@ -261,7 +265,7 @@ ssoAdmin.post('/api/organizations/:orgId/sso', async (c) => {
       throw new ApiError(400, 'The request is invalid.', {
         identifier: ['An SSO identifier is required.'],
       })
-    const problems = configProblems(data)
+    const problems = configProblems(data, c.env)
     if (Object.keys(problems).length > 0)
       throw new ApiError(400, 'The request is invalid.', problems)
   }
@@ -309,6 +313,13 @@ ssoAdmin.post('/api/organizations/:orgId/sso', async (c) => {
 
   const now = Date.now()
   // The placeholder shown to administrators keeps the stored (encrypted) secret.
+  // A kept secret belongs to the provider it was entered for: changing the authority, metadata
+  // address or client ID requires entering the secret again.
+  if (data.clientSecret === REDACTED_SECRET && providerChanged(before, data)) {
+    throw new ApiError(400, 'The request is invalid.', {
+      clientSecret: ['Enter the client secret again after changing the provider settings.'],
+    })
+  }
   const toStore =
     data.clientSecret === REDACTED_SECRET
       ? { ...data, clientSecret: before?.clientSecret ?? null }
@@ -392,11 +403,19 @@ ssoAdmin.post('/api/organizations/:orgId/sso/test', rateLimit('sso-test'), async
   if (data.clientSecret === REDACTED_SECRET) {
     const row = await loadSsoConfig(createDb(c.env.DB), orgParam(c))
     const stored = row ? await openConfig(c.env, orgParam(c), parseConfigData(row)) : null
+    if (providerChanged(stored, data)) {
+      return c.json({
+        object: 'ssoTest',
+        success: false,
+        problems: ['Enter the client secret again after changing the provider settings.'],
+        issuer: null,
+      })
+    }
     data = { ...data, clientSecret: stored?.clientSecret ?? null }
   }
   try {
     if (data.configType === SsoType.OpenIdConnect) {
-      const r = await testOidc(data)
+      const r = await testOidc(data, c.env)
       return c.json({
         object: 'ssoTest',
         success: r.problems.length === 0,
@@ -670,6 +689,11 @@ export const ssoAccounts = new Hono<Env>()
 
 /** A short-lived token that lets a signed-in user link their account to an organisation's SSO. */
 ssoAccounts.get('/api/accounts/sso/user-identifier', requireAuth, async (c) => {
+  // Linking proves account ownership through the master password session; accounts without one
+  // (created by SSO) have nothing to link.
+  if (!hasMasterPassword(c.var.user)) {
+    throw new ApiError(400, 'Set a master password before linking single sign-on.')
+  }
   const token = await signPurposeToken(
     c.env,
     LINK_PURPOSE,

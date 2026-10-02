@@ -11,6 +11,8 @@ import {
   PoliciesDeactivateGuard,
 } from "../../organizations/policies";
 
+import { cwCanManageDeviceApprovals } from "../../../cloudwarden/device-approvals/device-approvals.guard";
+
 import { AccountComponent } from "./account.component";
 import { TwoFactorSetupComponent } from "./two-factor-setup.component";
 
@@ -87,6 +89,18 @@ const routes: Routes = [
         canActivate: [organizationPermissionsGuard((o) => o.canManageScim)],
         data: { titleId: "scim" },
       },
+      // Cloudwarden: device approvals page written for Cloudwarden (TASKS #241, web/NOTICE.md).
+      {
+        path: "device-approvals",
+        loadComponent: () =>
+          import("../../../cloudwarden/device-approvals/device-approvals.component").then(
+            (mod) => mod.DeviceApprovalsComponent,
+          ),
+        canActivate: [organizationPermissionsGuard(cwCanManageDeviceApprovals)],
+        data: {
+          titleId: "deviceApprovals",
+        },
+      },
       {
         path: "tools",
         children: [
@@ -138,7 +152,7 @@ function getSettingsRoute(organization: Organization) {
   if (organization.canManageScim) {
     return "scim";
   }
-  if (organization.canManageDeviceApprovals) {
+  if (cwCanManageDeviceApprovals(organization)) {
     return "device-approvals";
   }
 

@@ -30,9 +30,9 @@ Directory Connector, SCIM, event integrations; G this audit.
 | | Rows |
 |---|---|
 | Distinct method and path pairs | 625 |
-| Implemented (including self-host answers) | 328 |
-| Owned by workstreams A to F, not yet implemented | 93 |
-| Remaining for G | 112 |
+| Implemented (including self-host answers) | 338 |
+| Owned by workstreams A to F, not yet implemented | 88 |
+| Remaining for G | 107 |
 | Not called by any client (SDK-generated only) | 92 |
 
 ## Matrix
@@ -148,15 +148,15 @@ Directory Connector, SCIM, event integrations; G this audit.
 | DELETE | `/api/ciphers/{id}/admin` | sdk, web | implemented |  |  |
 | GET | `/api/ciphers/{id}/admin` | sdk, web | implemented |  |  |
 | PUT | `/api/ciphers/{id}/admin` | sdk, web | implemented |  |  |
-| PUT | `/api/ciphers/{id}/archive` | android, ios, sdk | missing | B |  |
+| PUT | `/api/ciphers/{id}/archive` | android, ios, sdk | implemented | B |  |
 | POST | `/api/ciphers/{id}/attachment-admin` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | DELETE | `/api/ciphers/{id}/attachment/{attachmentId}` | android, ios, sdk, web | implemented |  |  |
 | GET | `/api/ciphers/{id}/attachment/{attachmentId}` | android, cli, ios, sdk, web | implemented |  |  |
 | POST | `/api/ciphers/{id}/attachment/{attachmentId}` | android, ios, sdk, web | implemented |  |  |
-| DELETE | `/api/ciphers/{id}/attachment/{attachmentId}/admin` | sdk, web | missing | G |  |
-| GET | `/api/ciphers/{id}/attachment/{attachmentId}/admin` | sdk, web | missing | G |  |
+| DELETE | `/api/ciphers/{id}/attachment/{attachmentId}/admin` | sdk, web | implemented |  |  |
+| GET | `/api/ciphers/{id}/attachment/{attachmentId}/admin` | sdk, web | implemented |  |  |
 | GET | `/api/ciphers/{id}/attachment/{attachmentId}/renew` | sdk, web | implemented |  |  |
-| POST | `/api/ciphers/{id}/attachment/{attachmentId}/share` | android, sdk, web | missing | G |  |
+| POST | `/api/ciphers/{id}/attachment/{attachmentId}/share` | android, sdk, web | implemented |  |  |
 | POST | `/api/ciphers/{id}/attachment/v2` | android, ios, sdk, web | implemented |  |  |
 | PUT | `/api/ciphers/{id}/collections` | sdk | implemented |  |  |
 | PUT | `/api/ciphers/{id}/collections_v2` | android, ios, sdk, web | implemented |  |  |
@@ -169,10 +169,10 @@ Directory Connector, SCIM, event integrations; G this audit.
 | PUT | `/api/ciphers/{id}/restore` | android, ios, sdk, web | implemented |  |  |
 | PUT | `/api/ciphers/{id}/restore-admin` | sdk, web | implemented |  |  |
 | PUT | `/api/ciphers/{id}/share` | android, ios, sdk, web | implemented |  |  |
-| PUT | `/api/ciphers/{id}/unarchive` | android, ios, sdk | missing | B |  |
+| PUT | `/api/ciphers/{id}/unarchive` | android, ios, sdk | implemented | B |  |
 | DELETE | `/api/ciphers/admin` | sdk, web | implemented |  |  |
 | POST | `/api/ciphers/admin` | sdk, web | implemented |  |  |
-| PUT | `/api/ciphers/archive` | sdk, web | missing | B |  |
+| PUT | `/api/ciphers/archive` | sdk, web | implemented | B |  |
 | GET | `/api/ciphers/attachment/download` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | POST | `/api/ciphers/attachment/validate/azure` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | POST | `/api/ciphers/bulk-collections` | sdk, web | implemented |  |  |
@@ -190,7 +190,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | PUT | `/api/ciphers/restore` | sdk, web | implemented |  |  |
 | PUT | `/api/ciphers/restore-admin` | sdk, web | implemented |  |  |
 | PUT | `/api/ciphers/share` | android, ios, sdk, web | implemented |  |  |
-| PUT | `/api/ciphers/unarchive` | sdk, web | missing | B |  |
+| PUT | `/api/ciphers/unarchive` | sdk, web | implemented | B |  |
 | GET | `/api/cloudwarden/admin/diagnostics` | web | implemented |  |  |
 | GET | `/api/cloudwarden/admin/invitations` | web | implemented |  |  |
 | POST | `/api/cloudwarden/admin/invitations` | web | implemented |  |  |
@@ -239,13 +239,13 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/api/emergency-access/invite` | sdk, web | implemented |  |  |
 | GET | `/api/emergency-access/trusted` | sdk, web | implemented |  |  |
 | GET | `/api/events` | sdk, web | implemented |  |  |
-| DELETE | `/api/folders` | sdk, web | missing | G |  |
+| DELETE | `/api/folders` | sdk, web | implemented |  |  |
 | GET | `/api/folders` | sdk | implemented |  |  |
 | POST | `/api/folders` | android, cli, ios, sdk, web | implemented |  |  |
 | DELETE | `/api/folders/{id}` | android, cli, ios, sdk, web | implemented |  |  |
 | GET | `/api/folders/{id}` | android, ios, sdk, web | implemented |  |  |
 | PUT | `/api/folders/{id}` | android, cli, ios, sdk, web | implemented |  |  |
-| DELETE | `/api/folders/all` | sdk, web | missing | G |  |
+| DELETE | `/api/folders/all` | sdk, web | implemented |  |  |
 | GET | `/api/hibp/breach` | sdk, web | implemented |  |  |
 | POST | `/api/installations` | sdk | missing | A |  |
 | GET | `/api/installations/{id}` | sdk | missing | A |  |
@@ -581,7 +581,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | PUT | `/api/sends/{id}` | android, cli, ios, sdk, web | implemented | B |  |
 | GET | `/api/sends/{sendId}/file/{fileId}` | sdk, web | implemented | B |  |
 | POST | `/api/sends/{sendId}/file/{fileId}` | android, ios, sdk, web | implemented | B |  |
-| PUT | `/api/sends/{id}/remove-auth` | sdk | missing | B |  |
+| PUT | `/api/sends/{id}/remove-auth` | sdk | implemented | B |  |
 | PUT | `/api/sends/{id}/remove-password` | android, cli, desktop, ios, sdk, web | implemented | B |  |
 | POST | `/api/sends/access` | sdk, web | implemented | B |  |
 | POST | `/api/sends/access/{id}` | cli | implemented | B |  |

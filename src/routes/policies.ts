@@ -11,6 +11,7 @@ import { PolicyType } from '../orgs/constants'
 import { emptyPolicyJson, type PolicyRow, policyJson } from '../orgs/policies'
 import { savePolicy } from '../orgs/policy-save'
 import { authOnce } from '../orgs/util'
+import { assertSsoPolicyDependencies } from '../sso/policy'
 import { parseBody } from '../validation'
 import { INVITE_PURPOSE } from './org-users'
 
@@ -94,6 +95,7 @@ const saveHandler = async (c: Ctx) => {
   const body = await parseBody(c, saveSchema)
   const db = createDb(c.env.DB)
   await requirePermission(db, c.var.user.uuid, org(c), 'managePolicies')
+  await assertSsoPolicyDependencies(db, org(c), type, body.enabled, body.data ?? null)
   return c.json(policyJson(await savePolicy(c, db, org(c), type, body)))
 }
 policies.put('/api/organizations/:orgId/policies/:type', saveHandler)

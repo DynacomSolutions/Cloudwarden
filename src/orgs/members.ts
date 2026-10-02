@@ -5,6 +5,7 @@ import { ApiError } from '../errors'
 import { chunk } from '../vault/ciphers'
 import { type Access, can, isAdminRole, type Member, storedPermissions } from './access'
 import { PERMISSION_KEYS, Role, Status } from './constants'
+import { emailDomain, verifiedDomains } from './domains'
 
 export const VALID_ROLES = [
   Role.Owner,
@@ -146,6 +147,10 @@ export interface MemberLists {
   collections: Map<string, Selection[]>
   groups: Map<string, string[]>
   twoFactor: Set<string>
+  /** Verified (claimed) domains of the organisation (TASKS #286). */
+  claimedDomains: Set<string>
+  /** SSO external IDs by user (TASKS #280). */
+  ssoExternalIds: Map<string, string>
 }
 
 /** Collection grants, group ids and two-step status for every member of an organisation. */
@@ -187,14 +192,30 @@ export async function loadMemberLists(
     .from(schema.twofactor)
     .innerJoin(uo, eq(uo.userUuid, schema.twofactor.userUuid))
     .where(and(eq(uo.organizationUuid, orgUuid), eq(schema.twofactor.enabled, true)))
-  return { collections, groups, twoFactor: new Set(tf.map((r) => r.u)) }
+  const [domains, links] = await Promise.all([
+    verifiedDomains(db, [orgUuid]),
+    db
+      .select({ u: schema.ssoUsers.userUuid, x: schema.ssoUsers.externalId })
+      .from(schema.ssoUsers)
+      .where(eq(schema.ssoUsers.organizationUuid, orgUuid)),
+  ])
+  return {
+    collections,
+    groups,
+    twoFactor: new Set(tf.map((r) => r.u)),
+    claimedDomains: domains.get(orgUuid) ?? new Set(),
+    ssoExternalIds: new Map(links.map((l) => [l.u, l.x])),
+  }
 }
 
 type UserRow = typeof schema.users.$inferSelect
 
 export function memberJson(
   m: Member,
-  user: Pick<UserRow, 'name' | 'email'> | null,
+  user:
+    | (Pick<UserRow, 'name' | 'email'> &
+        Partial<Pick<UserRow, 'passwordHash' | 'usesKeyConnector'>>)
+    | null,
   lists: MemberLists | null,
   detailed = false,
 ) {
@@ -210,12 +231,15 @@ export function memberJson(
     accessAll: m.accessAll,
     permissions: storedPermissions(m),
     externalId: m.externalId,
-    ssoExternalId: null,
+    ssoExternalId: m.userUuid ? (lists?.ssoExternalIds.get(m.userUuid) ?? null) : null,
     resetPasswordEnrolled: m.resetPasswordKey !== null,
-    usesKeyConnector: false,
-    hasMasterPassword: true,
+    usesKeyConnector: user?.usesKeyConnector ?? false,
+    hasMasterPassword: user?.passwordHash === undefined ? true : user.passwordHash !== '',
     twoFactorEnabled: m.userUuid ? (lists?.twoFactor.has(m.userUuid) ?? false) : false,
-    claimedByOrganization: false,
+    claimedByOrganization:
+      m.userUuid !== null &&
+      m.status >= Status.Accepted &&
+      (lists?.claimedDomains.has(emailDomain(user?.email ?? '')) ?? false),
     accessSecretsManager: m.accessSecretsManager,
     accessPam: false,
     revocationReason: null,

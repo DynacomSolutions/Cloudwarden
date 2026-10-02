@@ -1,8 +1,10 @@
-import { eq } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import type { Db } from '../db'
 import { schema } from '../db'
+import { MemberDecryptionType, parseConfigData } from '../sso/config'
 import { type Access, type Member, storedPermissions } from './access'
 import { Status } from './constants'
+import { emailDomain, verifiedDomains } from './domains'
 
 export type OrgRow = typeof schema.organizations.$inferSelect
 
@@ -24,6 +26,10 @@ const FEATURES = {
   usePhishingBlocker: false,
   useMyItems: false,
   useInviteLinks: false,
+  // Single sign-on, key connector and claimed domains (TASKS #280 to #286).
+  useSso: true,
+  useKeyConnector: true,
+  useOrganizationDomains: true,
 }
 
 export const orgJson = (o: OrgRow) => ({
@@ -48,18 +54,33 @@ export const orgJson = (o: OrgRow) => ({
   limitCollectionDeletion: true,
   limitItemDeletion: false,
   allowAdminAccessToAllCollectionItems: true,
+  identifier: o.identifier,
 })
 
+/** SSO facts about one membership, for the profile (TASKS #280 to #286). */
+export interface ProfileSso {
+  ssoEnabled: boolean
+  memberDecryptionType: number | null
+  keyConnectorUrl: string | null
+  ssoBound: boolean
+  claimed: boolean
+}
+
+const NO_SSO: ProfileSso = {
+  ssoEnabled: false,
+  memberDecryptionType: null,
+  keyConnectorUrl: null,
+  ssoBound: false,
+  claimed: false,
+}
+
 /** One entry of the profile `organizations` array. */
-export const profileOrgJson = (o: OrgRow, m: Member) => ({
+export const profileOrgJson = (o: OrgRow, m: Member, sso: ProfileSso = NO_SSO) => ({
   object: 'profileOrganization',
   id: o.uuid,
   name: o.name,
   usePolicies: true,
   ...FEATURES,
-  useSso: false,
-  useOrganizationDomains: false,
-  useKeyConnector: false,
   useScim: true,
   useCustomPermissions: true,
   useActivateAutofillPolicy: true,
@@ -76,10 +97,10 @@ export const profileOrgJson = (o: OrgRow, m: Member) => ({
   status: m.status,
   type: m.atype,
   enabled: true,
-  ssoBound: false,
-  ssoEnabled: false,
-  ssoMemberDecryptionType: null,
-  identifier: null,
+  ssoBound: sso.ssoBound,
+  ssoEnabled: sso.ssoEnabled,
+  ssoMemberDecryptionType: sso.memberDecryptionType,
+  identifier: o.identifier,
   permissions: storedPermissions(m),
   resetPasswordEnrolled: m.resetPasswordKey !== null,
   userId: m.userUuid,
@@ -90,8 +111,8 @@ export const profileOrgJson = (o: OrgRow, m: Member) => ({
   familySponsorshipFriendlyName: null,
   familySponsorshipAvailable: false,
   productTierType: 3,
-  keyConnectorEnabled: false,
-  keyConnectorUrl: null,
+  keyConnectorEnabled: sso.keyConnectorUrl !== null,
+  keyConnectorUrl: sso.keyConnectorUrl,
   familySponsorshipLastSyncDate: null,
   familySponsorshipValidUntil: null,
   familySponsorshipToDelete: null,
@@ -100,7 +121,7 @@ export const profileOrgJson = (o: OrgRow, m: Member) => ({
   limitCollectionDeletion: true,
   limitItemDeletion: false,
   allowAdminAccessToAllCollectionItems: true,
-  userIsClaimedByOrganization: false,
+  userIsClaimedByOrganization: sso.claimed,
   isAdminInitiated: false,
 })
 
@@ -114,7 +135,37 @@ export async function profileOrganizations(db: Db, userUuid: string) {
       eq(schema.organizations.uuid, schema.usersOrganizations.organizationUuid),
     )
     .where(eq(schema.usersOrganizations.userUuid, userUuid))
-  return rows.filter((r) => r.m.status !== Status.Invited).map((r) => profileOrgJson(r.o, r.m))
+  const visible = rows.filter((r) => r.m.status !== Status.Invited)
+  if (visible.length === 0) return []
+  const orgIds = visible.map((r) => r.o.uuid)
+  const [configs, links, user] = await Promise.all([
+    db.select().from(schema.ssoConfigs).where(inArray(schema.ssoConfigs.organizationUuid, orgIds)),
+    db
+      .select({ org: schema.ssoUsers.organizationUuid })
+      .from(schema.ssoUsers)
+      .where(eq(schema.ssoUsers.userUuid, userUuid)),
+    db
+      .select({ email: schema.users.email })
+      .from(schema.users)
+      .where(eq(schema.users.uuid, userUuid))
+      .limit(1),
+  ])
+  const domains = await verifiedDomains(db, orgIds)
+  const userDomain = emailDomain(user[0]?.email ?? '')
+  const linked = new Set(links.map((l) => l.org))
+  return visible.map((r) => {
+    const cfg = configs.find((x) => x.organizationUuid === r.o.uuid)
+    const data = cfg ? parseConfigData(cfg) : null
+    const enabled = cfg?.enabled === true
+    const kc = enabled && data?.memberDecryptionType === MemberDecryptionType.KeyConnector
+    return profileOrgJson(r.o, r.m, {
+      ssoEnabled: enabled,
+      memberDecryptionType: enabled ? (data?.memberDecryptionType ?? 0) : null,
+      keyConnectorUrl: kc ? (data?.keyConnectorUrl ?? null) : null,
+      ssoBound: linked.has(r.o.uuid),
+      claimed: r.m.status !== Status.Revoked && (domains.get(r.o.uuid)?.has(userDomain) ?? false),
+    })
+  })
 }
 
 export const selectionJson = (id: string, a: Access) => ({

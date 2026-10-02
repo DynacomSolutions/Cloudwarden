@@ -15,6 +15,7 @@ import {
 } from '../orgs/access'
 import { dropMemberStateFor } from '../orgs/ciphers'
 import { EventType, Role, Status } from '../orgs/constants'
+import { assertNotClaimed } from '../orgs/domains'
 import { eventStatement } from '../orgs/events'
 import { assertNotLastOwner } from '../orgs/members'
 import { authOnce } from '../orgs/util'
@@ -203,6 +204,12 @@ organizations.post('/api/organizations/:id/leave', async (c) => {
   const db = createDb(c.env.DB)
   const m = await requireMember(db, c.var.user.uuid, id)
   await assertNotLastOwner(db, id, m)
+  await assertNotClaimed(
+    db,
+    c.var.user,
+    'Your account is claimed by this organization; you cannot leave it.',
+    id,
+  )
   await runBatch(db, [
     ...dropMemberStateFor(db, c.var.user.uuid, id),
     db

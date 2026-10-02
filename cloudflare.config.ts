@@ -23,6 +23,8 @@ export default defineConfig({
       runWorkerFirst: [
         '/api/*',
         '/identity/*',
+        // SSO service provider endpoints (TASKS #280).
+        '/sso/*',
         '/admin*',
         '/notifications/*',
         '/icons/*',

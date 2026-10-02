@@ -47,6 +47,23 @@ const routes: Routes = [
           titleId: "policies",
         },
       },
+      // Cloudwarden: our own single sign-on and claimed domain settings (web/NOTICE.md).
+      {
+        path: "sso",
+        loadComponent: () =>
+          import("../../../cloudwarden/sso/org-sso.component").then((m) => m.OrgSsoComponent),
+        canActivate: [organizationPermissionsGuard((org) => org.canManageSso)],
+        data: { titleId: "singleSignOn" },
+      },
+      {
+        path: "domain-verification",
+        loadComponent: () =>
+          import("../../../cloudwarden/sso/org-domains.component").then(
+            (m) => m.OrgDomainsComponent,
+          ),
+        canActivate: [organizationPermissionsGuard((org) => org.canManageDomainVerification)],
+        data: { titleId: "claimedDomains" },
+      },
       {
         // Cloudwarden: native SCIM settings page (web/NOTICE.md, docs/integrations.md).
         path: "scim",

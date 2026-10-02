@@ -23,7 +23,7 @@ config.get('/api/config', (c) => {
       api: `${base}/api`,
       identity: `${base}/identity`,
       notifications: `${base}/notifications`,
-      sso: '',
+      sso: `${base}/sso`,
     },
     featureStates: {},
     push: { pushTechnology: 0 },

@@ -25,6 +25,8 @@ import { oauthError, sendAccessError } from '../errors'
 import { organizationLoginGrant } from '../orgs/api-keys'
 import { rateLimit, tooManyRequests } from '../ratelimit'
 import { MACHINE_SCOPE, machineLoginGrant } from '../sm/auth'
+import { consumeCode, findRedeemableCode } from '../sso/flow'
+import { requiredSsoIdentifier } from '../sso/policy'
 import {
   checkSendPassword,
   requestSendCode,
@@ -111,6 +113,18 @@ async function consumeAuthRequest(db: ReturnType<typeof createDb>, uuid: string)
   return result.meta.changes > 0
 }
 
+/** 400 the clients turn into a redirect to SSO with the organisation identifier. */
+const ssoRequired = (c: Ctx, identifier: string) =>
+  c.json(
+    {
+      error: 'invalid_grant',
+      error_description: 'sso_required',
+      ErrorModel: { Message: 'SSO authentication is required.', Object: 'error' },
+      SsoOrganizationIdentifier: identifier,
+    },
+    400,
+  )
+
 async function passwordGrant(c: Ctx, form: Form) {
   const db = createDb(c.env.DB)
   if (!form.username || !form.password) {
@@ -142,6 +156,12 @@ async function passwordGrant(c: Ctx, form: Form) {
     )
   }
 
+  // "Require single sign-on" policy (TASKS #283): members must sign in through their identity
+  // provider. Login with a device approval is not a master password login and stays allowed.
+  if (!authRequest) {
+    const identifier = await requiredSsoIdentifier(db, user.uuid)
+    if (identifier) return ssoRequired(c, identifier)
+  }
   // A device approved from another device needs no emailed code.
   const state = await newDeviceState(db, user.uuid, device.identifier)
   const verify = authRequest ? null : await requireNewDeviceCode(c, db, user, state, form)
@@ -217,6 +237,8 @@ async function webauthnGrant(c: Ctx, form: Form) {
       'This account has been disabled.',
     )
   }
+  const identifier = await requiredSsoIdentifier(db, user.uuid)
+  if (identifier) return ssoRequired(c, identifier)
   // Spend the challenge only now: a replayed response finds it used and fails here.
   if (!(await spendAssertion(db, verified))) return bad()
 
@@ -230,6 +252,52 @@ async function webauthnGrant(c: Ctx, form: Form) {
       webAuthnPrf: prfOptionJson(credential),
     }),
   )
+}
+
+/**
+ * `authorization_code` grant: the end of an SSO login (TASKS #280). The code is bound to the client,
+ * its redirect URI and its PKCE challenge, and is spent only once every check (including two-step
+ * login) has passed.
+ */
+async function authorizationCodeGrant(c: Ctx, form: Form) {
+  const db = createDb(c.env.DB)
+  const bad = () =>
+    oauthError(c, 'invalid_grant', 'invalid_grant', 'The sign-in code is invalid or has expired.')
+  const device = deviceFrom(form)
+  if (!device) return oauthError(c, 'invalid_request', 'Device information is required.')
+  const code = await findRedeemableCode(db, form)
+  if (!code) return bad()
+  const [user] = await db
+    .select()
+    .from(schema.users)
+    .where(eq(schema.users.uuid, code.userUuid))
+    .limit(1)
+  if (!user) return bad()
+  if (!user.enabled) {
+    return oauthError(
+      c,
+      'invalid_grant',
+      'this account has been disabled',
+      'This account has been disabled.',
+    )
+  }
+  const challenge = await enforceTwoFactor(c, user, form)
+  if (challenge) return challenge
+  if (!(await consumeCode(db, code.codeHash))) return bad()
+
+  const refreshToken = await registerDevice(db, user.uuid, device)
+  const body = await tokenResponse(c.env, user, {
+    deviceIdentifier: device.identifier,
+    scope: ['api', 'offline_access'],
+    refreshToken,
+    clientId: form.client_id,
+    ssoOrgUuid: code.organizationUuid,
+  })
+  if (c.var.twoFactorVerified && form.twoFactorRemember === '1') {
+    const TwoFactorToken = await issueRememberToken(db, user.uuid, device.identifier)
+    return c.json({ ...body, TwoFactorToken })
+  }
+  return c.json(body)
 }
 
 async function refreshGrant(c: Ctx, form: Form) {
@@ -376,6 +444,8 @@ token.post('/identity/connect/token', rateLimit('token'), async (c) => {
       return passwordGrant(c, form)
     case 'webauthn':
       return webauthnGrant(c, form)
+    case 'authorization_code':
+      return authorizationCodeGrant(c, form)
     case 'refresh_token':
       return refreshGrant(c, form)
     case 'client_credentials':

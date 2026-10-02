@@ -3,6 +3,7 @@ import type { Db } from '../db'
 import { createDb, schema } from '../db'
 import type { AccessTokenClaims, Bindings, User } from '../env'
 import { masterPasswordPolicyFor } from '../orgs/policies'
+import { decryptionOptions, hasMasterPassword } from '../sso/decryption'
 import { randomB64u, sha256B64u } from './crypto'
 import { signingSecret, signJwt } from './jwt'
 import { issuerFor } from './middleware'
@@ -76,8 +77,12 @@ export async function signAccessToken(
   return signJwt(claims, signingSecret(env))
 }
 
-/** Master password unlock data: KDF settings, salt and the wrapped user key (token and sync). */
+/**
+ * Master password unlock data: KDF settings, salt and the wrapped user key (token and sync).
+ * Null for accounts without a master password (SSO with trusted devices or key connector).
+ */
 export function masterPasswordUnlockJson(user: User) {
+  if (!hasMasterPassword(user) || !user.akey) return null
   return {
     kdf: {
       kdfType: user.kdfType,
@@ -115,8 +120,15 @@ export async function tokenResponse(
     clientId?: string
     /** Passkey login: the PRF keyset of the credential used, so the client can unlock. */
     webAuthnPrf?: ReturnType<typeof prfOptionJson>
+    /** SSO login: the organisation whose identity provider authenticated the user (TASKS #280). */
+    ssoOrgUuid?: string
   },
 ) {
+  const mp = hasMasterPassword(user)
+  const extraOptions = await decryptionOptions(createDb(env.DB), user, {
+    deviceIdentifier: opts.deviceIdentifier,
+    ...(opts.ssoOrgUuid ? { ssoOrgUuid: opts.ssoOrgUuid } : {}),
+  })
   return {
     access_token: await signAccessToken(
       env,
@@ -129,7 +141,7 @@ export async function tokenResponse(
     token_type: 'Bearer',
     ...(opts.refreshToken ? { refresh_token: opts.refreshToken } : {}),
     scope: opts.scope.join(' '),
-    Key: user.akey,
+    Key: user.akey || null,
     PrivateKey: user.privateKey,
     AccountKeys: accountKeysJson(user),
     Kdf: user.kdfType,
@@ -139,10 +151,12 @@ export async function tokenResponse(
     ResetMasterPassword: false,
     ForcePasswordReset: false,
     MasterPasswordPolicy: await masterPasswordPolicyJson(env, user.uuid),
+    ...(user.usesKeyConnector ? { ApiUseKeyConnector: true } : {}),
     UserDecryptionOptions: {
-      HasMasterPassword: true,
-      MasterPasswordUnlock: masterPasswordUnlockJson(user),
+      HasMasterPassword: mp,
+      ...(mp ? { MasterPasswordUnlock: masterPasswordUnlockJson(user) } : {}),
       ...(opts.webAuthnPrf ? { WebAuthnPrfOption: opts.webAuthnPrf } : {}),
+      ...extraOptions,
       Object: 'userDecryptionOptions',
     },
     UnofficialServer: true,

@@ -1,15 +1,17 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { z } from 'zod'
 import { fromB64u } from '../auth/crypto'
 import { requireAuth } from '../auth/middleware'
+import { verifyMasterPassword } from '../auth/passwords'
 import { findUserByEmail } from '../auth/users'
-import { createDb, schema } from '../db'
+import { createDb, runBatch, schema } from '../db'
 import { later } from '../email/send'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
 import { relayDeleteDevice, relayRegisterDevice } from '../notifications/relay'
 import { rateLimit } from '../ratelimit'
+import { hasMasterPassword, isTrustedDevice } from '../sso/decryption'
 import { parseBody } from '../validation'
 
 export const devices = new Hono<Env>()
@@ -18,12 +20,31 @@ type Device = typeof schema.devices.$inferSelect
 
 const deviceJson = (d: Device) => ({
   id: d.uuid,
+  userId: d.userUuid,
   name: d.name,
   type: d.type,
   identifier: d.identifier,
   creationDate: new Date(d.createdAt).toISOString(),
-  isTrusted: false,
+  revisionDate: new Date(d.updatedAt).toISOString(),
+  lastActivityDate: new Date(d.updatedAt).toISOString(),
+  // Trusted device encryption (TASKS #284): trusted when all three keys are stored.
+  isTrusted: isTrustedDevice(d),
+  encryptedUserKey: d.encryptedUserKey,
+  encryptedPublicKey: d.encryptedPublicKey,
+  devicePendingAuthRequest: null,
   object: 'device',
+})
+
+/** The keys the client may read back for a trusted device (never the device private key). */
+const protectedDeviceJson = (d: Device) => ({
+  id: d.uuid,
+  name: d.name,
+  identifier: d.identifier,
+  type: d.type,
+  creationDate: new Date(d.createdAt).toISOString(),
+  encryptedUserKey: d.encryptedUserKey,
+  encryptedPublicKey: d.encryptedPublicKey,
+  object: 'protectedDevice',
 })
 
 devices.get('/api/devices', requireAuth, async (c) => {
@@ -107,3 +128,120 @@ const deactivate = async (c: import('hono').Context<Env>) => {
 }
 devices.delete('/api/devices/:id', requireAuth, deactivate)
 devices.post('/api/devices/:id/deactivate', requireAuth, deactivate)
+
+// ----- Trusted device encryption (TASKS #284) -----
+
+const keysSchema = z.object({
+  encryptedUserKey: z.string().min(1).max(10_000),
+  encryptedPublicKey: z.string().min(1).max(10_000),
+  encryptedPrivateKey: z.string().min(1).max(10_000),
+})
+
+/** `PUT devices/{identifier}/keys`: trust this device by storing its key set. */
+devices.put('/api/devices/:identifier/keys', requireAuth, async (c) => {
+  const body = await parseBody(c, keysSchema)
+  const row = await ownDevice(c, eq(schema.devices.identifier, c.req.param('identifier')))
+  await createDb(c.env.DB)
+    .update(schema.devices)
+    .set({ ...body, updatedAt: Date.now() })
+    .where(eq(schema.devices.uuid, row.uuid))
+  return c.json(deviceJson({ ...row, ...body }))
+})
+
+/** `POST devices/{identifier}/retrieve-keys`: the stored key set of a trusted device. */
+devices.post('/api/devices/:identifier/retrieve-keys', requireAuth, async (c) => {
+  const row = await ownDevice(c, eq(schema.devices.identifier, c.req.param('identifier')))
+  if (!isTrustedDevice(row)) throw new ApiError(400, 'Device is not trusted.')
+  return c.json(protectedDeviceJson(row))
+})
+
+const clearKeys = { encryptedUserKey: null, encryptedPublicKey: null, encryptedPrivateKey: null }
+
+/** `POST devices/lost-trust`: the client lost its device key; forget the stored set. */
+devices.post('/api/devices/lost-trust', requireAuth, async (c) => {
+  const identifier = c.req.header('Device-Identifier') ?? c.var.auth.deviceIdentifier
+  const row = await ownDevice(c, eq(schema.devices.identifier, identifier))
+  await createDb(c.env.DB)
+    .update(schema.devices)
+    .set({ ...clearKeys, updatedAt: Date.now() })
+    .where(eq(schema.devices.uuid, row.uuid))
+  return c.body(null, 200)
+})
+
+/** `POST devices/untrust`: remove trust from the listed devices of the user. */
+devices.post('/api/devices/untrust', requireAuth, async (c) => {
+  const { devices: ids } = await parseBody(c, z.object({ devices: z.array(z.string()).max(500) }))
+  if (ids.length > 0) {
+    await createDb(c.env.DB)
+      .update(schema.devices)
+      .set({ ...clearKeys, updatedAt: Date.now() })
+      .where(and(eq(schema.devices.userUuid, c.var.user.uuid), inArray(schema.devices.uuid, ids)))
+  }
+  return c.body(null, 200)
+})
+
+const rewrapSchema = z.object({
+  encryptedPublicKey: z.string().min(1),
+  encryptedUserKey: z.string().min(1),
+})
+const updateTrustSchema = z.object({
+  masterPasswordHash: z.string().nullish(),
+  otp: z.string().nullish(),
+  authRequestAccessCode: z.string().nullish(),
+  currentDevice: rewrapSchema.nullish(),
+  otherDevices: z
+    .array(rewrapSchema.extend({ deviceId: z.string().min(1) }))
+    .max(500)
+    .nullish(),
+})
+
+/**
+ * `POST devices/update-trust`: after a user key rotation the client re-wraps the user key for
+ * each trusted device. Needs the master password when the account has one. Devices must already
+ * be trusted; the device private key is unchanged.
+ */
+devices.post('/api/devices/update-trust', requireAuth, async (c) => {
+  const body = await parseBody(c, updateTrustSchema)
+  const user = c.var.user
+  if (
+    hasMasterPassword(user) &&
+    !(await verifyMasterPassword(user, body.masterPasswordHash ?? ''))
+  ) {
+    throw new ApiError(400, 'Invalid password.', { masterPasswordHash: ['Invalid password.'] })
+  }
+  const db = createDb(c.env.DB)
+  const rows = await db.select().from(schema.devices).where(eq(schema.devices.userUuid, user.uuid))
+  const identifier = c.req.header('Device-Identifier') ?? c.var.auth.deviceIdentifier
+  const now = Date.now()
+  const updates: { uuid: string; keys: z.infer<typeof rewrapSchema> }[] = []
+  if (body.currentDevice) {
+    const current = rows.find((d) => d.identifier === identifier)
+    if (!current || !isTrustedDevice(current))
+      throw new ApiError(400, 'The current device is not trusted.')
+    updates.push({ uuid: current.uuid, keys: body.currentDevice })
+  }
+  for (const other of body.otherDevices ?? []) {
+    const row = rows.find((d) => d.uuid === other.deviceId)
+    if (!row || !isTrustedDevice(row))
+      throw new ApiError(400, 'A device in the request is not trusted.')
+    updates.push({
+      uuid: row.uuid,
+      keys: {
+        encryptedPublicKey: other.encryptedPublicKey,
+        encryptedUserKey: other.encryptedUserKey,
+      },
+    })
+  }
+  if (updates.length > 0) {
+    await runBatch(
+      db,
+      updates.map((u) =>
+        db
+          .update(schema.devices)
+          .set({ ...u.keys, updatedAt: now })
+          .where(and(eq(schema.devices.uuid, u.uuid), eq(schema.devices.userUuid, user.uuid))),
+      ) as never,
+    )
+  }
+  return c.body(null, 200)
+})

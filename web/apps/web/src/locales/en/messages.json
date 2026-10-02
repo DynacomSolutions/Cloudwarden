@@ -18412,5 +18412,59 @@
   },
   "cwIntRetargetHint": {
     "message": "If you change where events go, enter the tokens again: stored tokens are never sent to a new destination."
+  },
+  "cwSsoIntro": {
+    "message": "Let members log in with your identity provider over OpenID Connect or SAML 2.0. Members type the SSO identifier, or skip it when their email domain is a claimed domain."
+  },
+  "cwTdeDesc": {
+    "message": "Members sign in with SSO and unlock on devices they trust, approved from another device or by an administrator. Turning this on also turns on the single organization, require single sign-on and account recovery (automatic enrollment) policies."
+  },
+  "cwKeyConnectorDesc": {
+    "message": "Members unlock with keys held by your own Key Connector instead of a master password. Requires the single organization and require single sign-on policies."
+  },
+  "cwAdditionalScopes": {
+    "message": "Additional scopes"
+  },
+  "cwSignIfIdpWants": {
+    "message": "If the identity provider wants signed requests"
+  },
+  "cwSignAlways": {
+    "message": "Always"
+  },
+  "cwSignNever": {
+    "message": "Never"
+  },
+  "cwValidateCertificatesHint": {
+    "message": "Refuse responses signed with a certificate outside its validity period."
+  },
+  "cwSsoTest": {
+    "message": "Test configuration"
+  },
+  "cwSsoTestOk": {
+    "message": "The configuration looks good. Identity provider: $ISSUER$",
+    "placeholders": {
+      "issuer": {
+        "content": "$1",
+        "example": "https://idp.example.com"
+      }
+    }
+  },
+  "cwDomainsIntro": {
+    "message": "Claim the email domains your organization owns. Members with a claimed domain can log in with SSO without typing the identifier, and their accounts are managed by the organization."
+  },
+  "cwDomainsTxtHelp": {
+    "message": "Add the DNS TXT record to the domain at your DNS provider, then select Verify. Unverified domains are checked again every 12 hours for 3 days."
+  },
+  "cwVerify": {
+    "message": "Verify"
+  },
+  "cwDomainNotYetVerified": {
+    "message": "The TXT record for $DOMAIN$ was not found yet.",
+    "placeholders": {
+      "domain": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
   }
 }

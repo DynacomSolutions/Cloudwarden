@@ -178,6 +178,22 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 | 275 | Web client: SCIM settings (`settings/scim`) and integrations (`integrations`) pages under `web/apps/web/src/app/cloudwarden/org-integrations/`; event log CSV export (upstream) works against the event API | done | agent | Jest specs; `pnpm web:build` |
 | 276 | Docs: `docs/integrations.md` (setup for Entra ID, Okta, Directory Connector, webhook verification, `DATA_ENCRYPTION_KEY`) | done | agent | |
 
+## Phase 14: Single sign-on, trusted devices, Key Connector, claimed domains
+
+See `docs/sso.md`. Bitwarden's SSO server and SSO settings screens are Bitwarden-licensed and were not read.
+
+| # | Task | Status | Owner | Acceptance |
+|---|---|---|---|---|
+| 280 | SSO login flow: `/identity/sso/prevalidate`, `/identity/connect/authorize` (allow-listed redirect URIs, PKCE S256, browser-bound flow cookie), one-time codes, `authorization_code` grant with two-step login, organisation `identifier`, profile SSO fields, `/api/config` `sso` URL. Migration `0015_sso_tde_domains` | done | agent | `test/sso-oidc.test.ts` |
+| 281 | OIDC relying party (`oauth4webapi`): discovery, code flow with state, nonce, PKCE, ID token claims and signature (JWKS or client secret), UserInfo, claim mappings, acr | done | agent | Mock provider in vitest (`test/oidc-idp.ts`); negative cases for aud, iss, nonce, expiry, key, `none` |
+| 282 | SAML 2.0 service provider (`xmldsigjs`): metadata, signed AuthnRequest (redirect and POST), Response validation (signature, wrapping, issuer, destination, audience, times, InResponseTo, replay), encrypted assertions | done | agent | `test/sso-saml.test.ts` with generated certificates |
+| 283 | JIT provisioning and linking rules, `set-password`, Require SSO policy (with single organisation dependency), account link and unlink | done | agent | `test/sso-oidc.test.ts` |
+| 284 | Trusted device encryption: device key endpoints, `TrustedDeviceOption`, offboarding password, policies auto-enabled, key rotation re-wraps devices | done | agent | `test/sso-tde.test.ts` |
+| 285 | Key Connector: organisation option, `set-key-connector-key`, `convert-to-key-connector`, confirmation details, `KeyConnectorOption`. Bitwarden's Key Connector is Bitwarden-licensed: not tested against; HS256 tokens without JWKS are a known gap | doing | agent | `test/sso-tde.test.ts`; interoperability with a third-party Key Connector open |
+| 286 | Claimed domains: CRUD, DNS TXT verification over DoH, hourly cron, SSO discovery by email, claimed account rules and admin account deletion | done | agent | `test/sso-tde.test.ts` |
+| 287 | Web UI: Settings, Single sign-on (OIDC, SAML, member decryption, test) and Settings, Claimed domains, written from scratch | done | agent | `pnpm web:build`; `pnpm check:web-licence` |
+| 288 | E2E SSO with the official CLI and a mock OIDC provider | todo | | `pnpm e2e` step |
+
 ## Phase 10: Going public
 
 | # | Task | Status | Owner | Acceptance |

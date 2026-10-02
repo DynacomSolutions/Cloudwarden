@@ -3,12 +3,13 @@ import { notifyElapsedRecoveries } from './emergency-sweep'
 import type { Bindings } from './env'
 import { DELIVERY_CRON, deliverIntegrations } from './integrations/deliver'
 import { errorKind, log } from './log'
+import { verifyPendingDomains } from './orgs/domains'
 import { purgeExpired } from './vault/purge'
 
 /**
  * Cron entry point. The daily trigger exports D1 to R2 (TASKS #162); the hourly trigger purges
- * expired Sends and orphaned blobs (TASKS #84); the minute trigger delivers events to integrations
- * (TASKS #274). An invocation without a cron string (manual or
+ * expired Sends and orphaned blobs (TASKS #84) and checks claimed domains (TASKS #286); the minute
+ * trigger delivers events to integrations (TASKS #274). An invocation without a cron string (manual or
  * test) runs both. Each job is isolated in try/catch and awaited; a backup failure is rethrown so
  * the invocation is marked failed, a purge failure is logged and left for the next hour.
  */
@@ -42,6 +43,12 @@ export const scheduled = async (
       await notifyElapsedRecoveries(env)
     } catch (err) {
       log('error', 'emergency_sweep.failed', { errorKind: errorKind(err) }, env)
+    }
+    // Claimed domains waiting for their DNS record (TASKS #286).
+    try {
+      await verifyPendingDomains(env)
+    } catch (err) {
+      log('error', 'domains.failed', { errorKind: errorKind(err) }, env)
     }
   }
   if (doDeliver) {

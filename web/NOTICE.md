@@ -16,7 +16,9 @@ under the Bitwarden License v1.0) is included, the web vault is built with the o
 (`oss`) variant that does not import it, and `scripts/check-web-licence.mjs` fails CI if any such
 path appears. Features that upstream ships only under the Bitwarden License, such as Secrets
 Manager, the Provider Portal, SSO and SCIM administration and other enterprise features, are
-therefore not part of this build. Cloudwarden's own Secrets Manager pages
+therefore not part of this build. Cloudwarden's own single sign-on and claimed domain settings
+(`apps/web/src/app/cloudwarden/sso/`) are written from scratch against Cloudwarden's API contract
+(`docs/sso.md`); no code or structure was taken from Bitwarden's licensed SSO screens. Cloudwarden's own Secrets Manager pages
 (`apps/web/src/app/cloudwarden/secrets-manager/`) are written from scratch against Cloudwarden's
 API contract (`docs/secrets-manager.md`); no code, structure or assets were taken from
 Bitwarden's Secrets Manager web app. Likewise the SCIM settings and event integrations pages
@@ -58,5 +60,9 @@ Summary of changes made by Cloudwarden (see `git log -- web/` for the full histo
 - Organisation integrations: SCIM provisioning settings (`settings/scim`) and event integrations
   (`integrations`: signed webhooks, Splunk, Datadog, Microsoft Sentinel) routed to Cloudwarden's
   own pages (`apps/web/src/app/cloudwarden/org-integrations/`).
+- Single sign-on: organisation settings for OpenID Connect and SAML 2.0, member decryption
+  options (master password, trusted devices, Key Connector) with a configuration test, and
+  claimed domains with DNS TXT verification (`apps/web/src/app/cloudwarden/sso/`), routed at
+  `settings/sso` and `settings/domain-verification`.
 
 Files Cloudwarden adds live in directories named `cloudwarden/` where practical.

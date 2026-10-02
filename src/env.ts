@@ -44,6 +44,11 @@ export interface Bindings {
   PUSH_IDENTITY_URI?: string
   /** Comma-separated addresses that are instance admins (the account must also be email verified). */
   ADMIN_EMAILS?: string
+  /** Yubico API client id and base64 secret key for YubiKey OTP two-factor (key portal). */
+  YUBICO_CLIENT_ID?: string
+  YUBICO_SECRET_KEY?: string
+  /** Optional validation endpoint (https URL) replacing YubiCloud, such as a self-hosted server. */
+  YUBICO_SERVER?: string
 }
 
 export type User = typeof users.$inferSelect

@@ -35,21 +35,51 @@ const HEAP_MB = 6144
  * WebAssembly SDK and inline styles for Angular. Everything else is same-origin, including the
  * API, identity, notification and icon routes served by the Worker.
  */
-const CSP = [
-  "default-src 'self'",
-  "script-src 'self' 'wasm-unsafe-eval'",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
-  "font-src 'self' data:",
-  // 'self' also covers same-origin ws: and wss: (the notifications hub) in current browsers.
-  "connect-src 'self' https://api.pwnedpasswords.com",
-  "frame-src 'self' https://*.duosecurity.com https://*.duofederatedsecurity.com",
-  "worker-src 'self' blob:",
-  "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "frame-ancestors 'self'",
-].join('; ')
+/**
+ * Email alias forwarders of the generator call their provider APIs from the browser, so those
+ * hosts are allowed. Self-hosted SimpleLogin, addy.io or Fastmail instances can be added with
+ * `CLOUDWARDEN_CONNECT_SRC` (space separated `https://host` origins) at build time.
+ */
+export const FORWARDER_HOSTS = [
+  'https://app.simplelogin.io',
+  'https://app.addy.io',
+  'https://relay.firefox.com',
+  'https://api.fastmail.com',
+  'https://quack.duckduckgo.com',
+  'https://api.forwardemail.net',
+]
+
+export function extraConnectSources(value = '') {
+  return value
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((origin) => {
+      const url = new URL(origin)
+      if (url.protocol !== 'https:' || url.origin !== origin.replace(/\/$/, '')) {
+        throw new Error(`CLOUDWARDEN_CONNECT_SRC entries must be https origins, got ${origin}`)
+      }
+      return url.origin
+    })
+}
+
+export const cspFor = (extra = []) =>
+  [
+    "default-src 'self'",
+    "script-src 'self' 'wasm-unsafe-eval'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob:",
+    "font-src 'self' data:",
+    // 'self' also covers same-origin ws: and wss: (the notifications hub) in current browsers.
+    `connect-src 'self' https://api.pwnedpasswords.com ${[...FORWARDER_HOSTS, ...extra].join(' ')}`,
+    "frame-src 'self' https://*.duosecurity.com https://*.duofederatedsecurity.com https://*.duofederal.com",
+    "worker-src 'self' blob:",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'self'",
+  ].join('; ')
+
+const CSP = cspFor(extraConnectSources(process.env.CLOUDWARDEN_CONNECT_SRC))
 
 export const HEADERS = `/*
   Content-Security-Policy: ${CSP}

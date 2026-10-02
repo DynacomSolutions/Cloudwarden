@@ -6,8 +6,10 @@ import { recoveryCodeUsedEmail } from '../email'
 import { later, sendNotice } from '../email/send'
 import type { Bindings, Env, User } from '../env'
 import { ApiError, oauthError } from '../errors'
+import { Status } from '../orgs/constants'
 import { overLimit, tooManyRequests } from '../ratelimit'
 import { randomB64u, safeEqualStrings, sha256B64u } from './crypto'
+import { type DuoConfig, duoAuthUrl, duoVerifyCode } from './duo'
 import { signingSecret, signJwt, verificationSecrets, verifyJwt } from './jwt'
 import { verifyMasterPassword } from './passwords'
 import { base32Encode, generateTotpKey, verifyTotp } from './totp'
@@ -20,6 +22,7 @@ import {
   verifyAssertion,
   WebAuthnError,
 } from './webauthn'
+import { isOtp, publicIdOf, verifyOtp, type YubicoConfig } from './yubico'
 
 /** Provider type numbers used on the wire. */
 export const TwoFactorType = {
@@ -33,10 +36,12 @@ export const TwoFactorType = {
   RecoveryCode: 8,
 } as const
 
-/** Providers this server can verify. Duo and YubiKey OTP are not supported (TASKS #124). */
+/** Providers this server can verify. */
 export const SUPPORTED_TYPES: number[] = [
   TwoFactorType.Authenticator,
   TwoFactorType.Email,
+  TwoFactorType.Duo,
+  TwoFactorType.YubiKey,
   TwoFactorType.WebAuthn,
 ]
 
@@ -407,6 +412,117 @@ async function verifyWebAuthnLogin(
 }
 
 // ---------------------------------------------------------------------------
+// Duo (user type 2, organisation type 6)
+// ---------------------------------------------------------------------------
+
+export type DuoData = DuoConfig
+
+export const CHALLENGE_DUO = 'duo-login'
+
+/** Connector page client names the web vault understands. */
+const DUO_CLIENTS = new Set(['web', 'browser', 'desktop', 'mobile'])
+
+/** Redirect target registered with Duo: the vault's connector page, told which client to hand off to. */
+export function duoRedirectUri(c: Context<Env>): string {
+  const name = (c.req.header('bitwarden-client-name') ?? '').toLowerCase()
+  return `${originFor(c.env)}/duo-redirect-connector.html?client=${DUO_CLIENTS.has(name) ? name : 'web'}`
+}
+
+async function duoParams(c: Context<Env>, user: User, cfg: DuoData | null) {
+  if (!cfg) return { Host: null, AuthUrl: null }
+  const state = await createChallenge(c.env, CHALLENGE_DUO, user.uuid, clock.now())
+  return {
+    Host: cfg.host,
+    AuthUrl: await duoAuthUrl(
+      cfg,
+      user.email,
+      state,
+      duoRedirectUri(c),
+      Math.floor(clock.now() / 1000),
+    ),
+  }
+}
+
+async function verifyDuoLogin(
+  c: Context<Env>,
+  user: User,
+  cfg: DuoData | null,
+  token: string,
+): Promise<boolean> {
+  if (!cfg) return false
+  const sep = token.lastIndexOf('|')
+  if (sep < 1) return false
+  const code = token.slice(0, sep)
+  const state = token.slice(sep + 1)
+  if ((await checkChallenge(c.env, CHALLENGE_DUO, user.uuid, state, clock.now())) === null) {
+    return false
+  }
+  return duoVerifyCode(cfg, code, user.email, duoRedirectUri(c), Math.floor(clock.now() / 1000))
+}
+
+/** Duo configuration of the first organisation the user belongs to that enforces Duo. */
+export async function organizationDuoRow(db: Db, user: User): Promise<TwoFactorRow | undefined> {
+  const [row] = await db
+    .select({
+      orgUuid: schema.organizationTwofactor.organizationUuid,
+      data: schema.organizationTwofactor.data,
+    })
+    .from(schema.organizationTwofactor)
+    .innerJoin(
+      schema.usersOrganizations,
+      eq(schema.usersOrganizations.organizationUuid, schema.organizationTwofactor.organizationUuid),
+    )
+    .where(
+      and(
+        eq(schema.usersOrganizations.userUuid, user.uuid),
+        eq(schema.usersOrganizations.status, Status.Confirmed),
+        eq(schema.organizationTwofactor.atype, TwoFactorType.OrganizationDuo),
+        eq(schema.organizationTwofactor.enabled, true),
+      ),
+    )
+    .orderBy(schema.organizationTwofactor.organizationUuid)
+    .limit(1)
+  if (!row) return undefined
+  return {
+    uuid: row.orgUuid,
+    userUuid: user.uuid,
+    atype: TwoFactorType.OrganizationDuo,
+    enabled: true,
+    data: row.data,
+    lastUsed: 0,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// YubiKey OTP (type 3)
+// ---------------------------------------------------------------------------
+
+export interface YubiKeyData {
+  /** Twelve character public ids of the registered keys (at most five). */
+  keys: string[]
+  nfc: boolean
+}
+
+export const MAX_YUBIKEYS = 5
+
+export function yubicoConfig(env: Bindings): YubicoConfig | null {
+  if (!env.YUBICO_CLIENT_ID || !env.YUBICO_SECRET_KEY) return null
+  return {
+    clientId: env.YUBICO_CLIENT_ID,
+    secretKey: env.YUBICO_SECRET_KEY,
+    server: env.YUBICO_SERVER?.startsWith('https://') ? env.YUBICO_SERVER : undefined,
+  }
+}
+
+async function verifyYubiKeyLogin(env: Bindings, row: TwoFactorRow, token: string) {
+  const data = parseData<YubiKeyData>(row)
+  const cfg = yubicoConfig(env)
+  const otp = token.trim().toLowerCase()
+  if (!data || !cfg || !isOtp(otp) || !data.keys.includes(publicIdOf(otp))) return false
+  return verifyOtp(cfg, otp)
+}
+
+// ---------------------------------------------------------------------------
 // Remember-me tokens (provider 5)
 // ---------------------------------------------------------------------------
 
@@ -511,6 +627,10 @@ async function challengeBody(c: Context<Env>, user: User, rows: TwoFactorRow[], 
     } else if (row.atype === TwoFactorType.WebAuthn) {
       const data = parseData<WebAuthnData>(row) ?? { credentials: [] }
       params[String(row.atype)] = await assertionOptions(c.env, user, data)
+    } else if (row.atype === TwoFactorType.Duo || row.atype === TwoFactorType.OrganizationDuo) {
+      params[String(row.atype)] = await duoParams(c, user, parseData<DuoData>(row))
+    } else if (row.atype === TwoFactorType.YubiKey) {
+      params[String(row.atype)] = { Nfc: parseData<YubiKeyData>(row)?.nfc ?? false }
     } else {
       params[String(row.atype)] = null
     }
@@ -537,9 +657,11 @@ export const enforceTwoFactor: TwoFactorHook = async (c, user, form) => {
     .select()
     .from(schema.twofactor)
     .where(and(eq(schema.twofactor.userUuid, user.uuid), eq(schema.twofactor.enabled, true)))
-  if (all.length === 0) return null
+  const orgDuo = await organizationDuoRow(db, user)
+  if (all.length === 0 && !orgDuo) return null
   const rows = all.filter((r) => SUPPORTED_TYPES.includes(r.atype))
   const unsupported = all.length > rows.length
+  if (orgDuo) rows.push(orgDuo)
 
   const provider = Number.parseInt(form.twoFactorProvider ?? '', 10)
   const token = form.twoFactorToken
@@ -595,6 +717,10 @@ export const enforceTwoFactor: TwoFactorHook = async (c, user, form) => {
     ok = await consumeEmailCode(db, user, row, token)
   } else if (row?.atype === TwoFactorType.WebAuthn) {
     ok = await verifyWebAuthnLogin(c, db, user, row, token)
+  } else if (row?.atype === TwoFactorType.Duo || row?.atype === TwoFactorType.OrganizationDuo) {
+    ok = await verifyDuoLogin(c, user, parseData<DuoData>(row), token)
+  } else if (row?.atype === TwoFactorType.YubiKey) {
+    ok = await verifyYubiKeyLogin(c.env, row, token)
   }
 
   if (!ok) {

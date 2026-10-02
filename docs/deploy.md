@@ -44,6 +44,10 @@ pnpm exec cf workers secrets update ADMIN_EMAILS      # comma-separated admin ad
 # pnpm exec cf workers secrets update PUSH_INSTALLATION_KEY
 ```
 
+Optional, for YubiKey OTP two-factor (see `docs/two-factor.md`): `YUBICO_CLIENT_ID` and
+`YUBICO_SECRET_KEY` (base64) from the Yubico key portal. Duo is configured per account or
+organisation in the web vault and needs no server settings.
+
 Each command prompts for the value (see `--help` for non-interactive input).
 
 ## 5. Custom domain

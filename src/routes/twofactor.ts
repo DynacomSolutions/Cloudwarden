@@ -2,6 +2,14 @@ import { and, eq } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { z } from 'zod'
 import { toB64u, utf8 } from '../auth/crypto'
+import {
+  DUO_CLIENT_ID_RE,
+  DUO_CLIENT_SECRET_RE,
+  duoHealthCheck,
+  isDuoHost,
+  isMasked,
+  maskSecret,
+} from '../auth/duo'
 import { requireAuth } from '../auth/middleware'
 import { verifyMasterPassword } from '../auth/passwords'
 import { base32Decode, generateTotpKey, verifyTotp } from '../auth/totp'
@@ -10,6 +18,7 @@ import {
   clearRememberStatement,
   clock,
   consumeEmailCode,
+  type DuoData,
   dig,
   type EmailData,
   enabledProviders,
@@ -17,6 +26,7 @@ import {
   generateRecoveryCode,
   issueVerificationToken,
   lowerKeys,
+  MAX_YUBIKEYS,
   parseData,
   providerRow,
   storeEmailCode,
@@ -24,6 +34,8 @@ import {
   useRecoveryCode,
   verifyIdentity,
   type WebAuthnData,
+  type YubiKeyData,
+  yubicoConfig,
 } from '../auth/twofactor'
 import { findUserByEmail, normalizeEmail } from '../auth/users'
 import {
@@ -36,6 +48,7 @@ import {
   verifyRegistration,
   WebAuthnError,
 } from '../auth/webauthn'
+import { isOtp, isPublicId, publicIdOf, verifyOtp } from '../auth/yubico'
 import { createDb, runBatch, schema } from '../db'
 import {
   createEmailTransport,
@@ -46,6 +59,7 @@ import {
 import { later, sendNotice } from '../email/send'
 import type { Env, User } from '../env'
 import { ApiError } from '../errors'
+import { requirePermission } from '../orgs/access'
 import { overLimit, rateLimit, tooManyRequests } from '../ratelimit'
 import { parseBody } from '../validation'
 
@@ -430,18 +444,229 @@ twofactor.delete('/api/two-factor/webauthn/all', requireAuth, async (c) => {
 })
 
 // ---------------------------------------------------------------------------
-// YubiKey OTP and Duo are not supported, TASKS #124
+// Duo, TASKS #124
 // ---------------------------------------------------------------------------
 
-const unsupported = (name: string) => () => {
-  throw new ApiError(400, `${name} two-factor authentication is not supported by this server.`)
+const duoJson = (data: DuoData | null) => ({
+  enabled: data !== null,
+  host: data?.host ?? null,
+  clientId: data?.clientId ?? null,
+  clientSecret: data ? maskSecret(data.clientSecret) : null,
+})
+
+const duoSchema = proofOnly.extend({
+  host: z.string().trim().min(1).max(100),
+  clientId: z.string().trim().min(1).max(100),
+  clientSecret: z.string().trim().min(1).max(200),
+})
+
+/** Validates a Duo configuration the caller submitted, keeping a stored secret when masked. */
+async function checkDuoInput(
+  body: z.infer<typeof duoSchema>,
+  existing: DuoData | null,
+): Promise<DuoData> {
+  const host = body.host.toLowerCase()
+  const secret = isMasked(body.clientSecret) ? existing?.clientSecret : body.clientSecret
+  if (!isDuoHost(host)) {
+    throw new ApiError(400, 'Invalid Duo API hostname.', { host: ['Invalid Duo API hostname.'] })
+  }
+  if (!DUO_CLIENT_ID_RE.test(body.clientId)) throw new ApiError(400, 'Invalid Duo client id.')
+  if (!secret || !DUO_CLIENT_SECRET_RE.test(secret)) {
+    throw new ApiError(400, 'Invalid Duo client secret.')
+  }
+  const cfg: DuoData = { host, clientId: body.clientId, clientSecret: secret }
+  if (!(await duoHealthCheck(cfg))) {
+    throw new ApiError(
+      400,
+      'Duo configuration could not be verified. Check host, client id and secret.',
+    )
+  }
+  return cfg
 }
-for (const [slug, name] of [
-  ['duo', 'Duo'],
-  ['yubikey', 'YubiKey'],
-] as const) {
-  twofactor.post(`/api/two-factor/get-${slug}`, requireAuth, unsupported(name))
-  twofactor.put(`/api/two-factor/${slug}`, requireAuth, unsupported(name))
-  twofactor.post(`/api/two-factor/${slug}`, requireAuth, unsupported(name))
-  twofactor.delete(`/api/two-factor/${slug}`, requireAuth, unsupported(name))
+
+twofactor.post('/api/two-factor/get-duo', requireAuth, async (c) => {
+  const user = await authorise(c, await parseBody(c, proofOnly))
+  const row = await providerRow(createDb(c.env.DB), user.uuid, TwoFactorType.Duo)
+  return c.json({
+    duo: duoJson(row?.enabled ? parseData<DuoData>(row) : null),
+    userVerificationToken: await issueVerificationToken(c.env, user),
+  })
+})
+
+const putDuo = async (c: Ctx) => {
+  const body = await parseBody(c, duoSchema)
+  const user = await authorise(c, body)
+  const db = createDb(c.env.DB)
+  const existing = parseData<DuoData>(await providerRow(db, user.uuid, TwoFactorType.Duo))
+  const cfg = await checkDuoInput(body, existing)
+  await runBatch(db, enableProviderStatements(db, user, TwoFactorType.Duo, cfg))
+  return c.json({ duo: duoJson(cfg) })
 }
+twofactor.put('/api/two-factor/duo', requireAuth, putDuo)
+twofactor.post('/api/two-factor/duo', requireAuth, putDuo)
+twofactor.delete('/api/two-factor/duo', requireAuth, async (c) => {
+  const user = await authorise(c, await parseBody(c, proofOnly))
+  await removeProvider(c, user, TwoFactorType.Duo)
+  return c.body(null, 200)
+})
+
+// Organisation Duo (provider 6): every confirmed member must complete it at login.
+const orgParam = (c: Ctx) => c.req.param('id') as string
+
+async function orgDuoRow(c: Ctx) {
+  const db = createDb(c.env.DB)
+  await requirePermission(db, c.var.user.uuid, orgParam(c), 'managePolicies')
+  const [row] = await db
+    .select()
+    .from(schema.organizationTwofactor)
+    .where(
+      and(
+        eq(schema.organizationTwofactor.organizationUuid, orgParam(c)),
+        eq(schema.organizationTwofactor.atype, TwoFactorType.OrganizationDuo),
+      ),
+    )
+    .limit(1)
+  return { db, row }
+}
+
+twofactor.get('/api/organizations/:id/two-factor', requireAuth, async (c) => {
+  const { row } = await orgDuoRow(c)
+  return c.json({
+    data: row?.enabled ? [providerJson(TwoFactorType.OrganizationDuo, true)] : [],
+    continuationToken: null,
+    object: 'list',
+  })
+})
+
+twofactor.post('/api/organizations/:id/two-factor/get-duo', requireAuth, async (c) => {
+  const user = await authorise(c, await parseBody(c, proofOnly))
+  const { row } = await orgDuoRow(c)
+  let data: DuoData | null = null
+  if (row?.enabled) {
+    try {
+      data = JSON.parse(row.data) as DuoData
+    } catch {
+      data = null
+    }
+  }
+  return c.json({
+    duo: duoJson(data),
+    userVerificationToken: await issueVerificationToken(c.env, user),
+  })
+})
+
+const putOrgDuo = async (c: Ctx) => {
+  const body = await parseBody(c, duoSchema)
+  await authorise(c, body)
+  const { db, row } = await orgDuoRow(c)
+  let existing: DuoData | null = null
+  try {
+    existing = row ? (JSON.parse(row.data) as DuoData) : null
+  } catch {
+    existing = null
+  }
+  const cfg = await checkDuoInput(body, existing)
+  await db
+    .insert(schema.organizationTwofactor)
+    .values({
+      uuid: crypto.randomUUID(),
+      organizationUuid: orgParam(c),
+      atype: TwoFactorType.OrganizationDuo,
+      enabled: true,
+      data: JSON.stringify(cfg),
+    })
+    .onConflictDoUpdate({
+      target: [schema.organizationTwofactor.organizationUuid, schema.organizationTwofactor.atype],
+      set: { enabled: true, data: JSON.stringify(cfg) },
+    })
+  return c.json({ duo: duoJson(cfg) })
+}
+twofactor.put('/api/organizations/:id/two-factor/duo', requireAuth, putOrgDuo)
+twofactor.post('/api/organizations/:id/two-factor/duo', requireAuth, putOrgDuo)
+twofactor.delete('/api/organizations/:id/two-factor/duo', requireAuth, async (c) => {
+  await authorise(c, await parseBody(c, proofOnly))
+  const { db } = await orgDuoRow(c)
+  await db
+    .delete(schema.organizationTwofactor)
+    .where(
+      and(
+        eq(schema.organizationTwofactor.organizationUuid, orgParam(c)),
+        eq(schema.organizationTwofactor.atype, TwoFactorType.OrganizationDuo),
+      ),
+    )
+  return c.body(null, 200)
+})
+
+// ---------------------------------------------------------------------------
+// YubiKey OTP, TASKS #124
+// ---------------------------------------------------------------------------
+
+const yubiJson = (data: YubiKeyData | null) => ({
+  enabled: data !== null && data.keys.length > 0,
+  key1: data?.keys[0] ?? null,
+  key2: data?.keys[1] ?? null,
+  key3: data?.keys[2] ?? null,
+  key4: data?.keys[3] ?? null,
+  key5: data?.keys[4] ?? null,
+  nfc: data?.nfc ?? false,
+})
+
+twofactor.post('/api/two-factor/get-yubikey', requireAuth, async (c) => {
+  const user = await authorise(c, await parseBody(c, proofOnly))
+  const row = await providerRow(createDb(c.env.DB), user.uuid, TwoFactorType.YubiKey)
+  return c.json({
+    yubiKey: yubiJson(row?.enabled ? parseData<YubiKeyData>(row) : null),
+    userVerificationToken: await issueVerificationToken(c.env, user),
+  })
+})
+
+const yubiKeySchema = proofOnly.extend({
+  key1: z.string().nullish(),
+  key2: z.string().nullish(),
+  key3: z.string().nullish(),
+  key4: z.string().nullish(),
+  key5: z.string().nullish(),
+  nfc: z.boolean().nullish(),
+})
+const putYubiKey = async (c: Ctx) => {
+  const body = await parseBody(c, yubiKeySchema)
+  const user = await authorise(c, body)
+  const db = createDb(c.env.DB)
+  const existing = parseData<YubiKeyData>(await providerRow(db, user.uuid, TwoFactorType.YubiKey))
+  const cfg = yubicoConfig(c.env)
+  const keys: string[] = []
+  for (const raw of [body.key1, body.key2, body.key3, body.key4, body.key5]) {
+    const value = (raw ?? '').trim().toLowerCase()
+    if (!value) continue
+    let id: string
+    if (isPublicId(value) && existing?.keys.includes(value)) {
+      id = value // A key that is already registered, as shown by the get call.
+    } else if (isOtp(value)) {
+      if (!cfg) {
+        throw new ApiError(
+          400,
+          'YubiKey validation is not configured on this server. The administrator must set YUBICO_CLIENT_ID and YUBICO_SECRET_KEY.',
+        )
+      }
+      if (!(await verifyOtp(cfg, value))) {
+        throw new ApiError(400, 'A YubiKey OTP could not be verified. Touch the key again.')
+      }
+      id = publicIdOf(value)
+    } else {
+      throw new ApiError(400, 'Invalid YubiKey OTP.')
+    }
+    if (!keys.includes(id)) keys.push(id)
+  }
+  if (keys.length === 0) throw new ApiError(400, 'Enter at least one YubiKey.')
+  if (keys.length > MAX_YUBIKEYS) throw new ApiError(400, 'Too many YubiKeys.')
+  const data: YubiKeyData = { keys, nfc: body.nfc === true }
+  await runBatch(db, enableProviderStatements(db, user, TwoFactorType.YubiKey, data))
+  return c.json({ yubiKey: yubiJson(data) })
+}
+twofactor.put('/api/two-factor/yubikey', requireAuth, putYubiKey)
+twofactor.post('/api/two-factor/yubikey', requireAuth, putYubiKey)
+twofactor.delete('/api/two-factor/yubikey', requireAuth, async (c) => {
+  const user = await authorise(c, await parseBody(c, proofOnly))
+  await removeProvider(c, user, TwoFactorType.YubiKey)
+  return c.body(null, 200)
+})

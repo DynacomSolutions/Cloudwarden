@@ -330,6 +330,24 @@ export const twofactor = sqliteTable(
 )
 
 /**
+ * Organisation level second factor providers (Duo, type 6). `data` is JSON. Members of an
+ * organisation with an enabled provider must complete it at login (TASKS #124).
+ */
+export const organizationTwofactor = sqliteTable(
+  'organization_twofactor',
+  {
+    uuid: id(),
+    organizationUuid: text('organization_uuid')
+      .notNull()
+      .references(() => organizations.uuid, { onDelete: 'cascade' }),
+    atype: integer('atype').notNull(),
+    enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
+    data: text('data').notNull(),
+  },
+  (t) => [uniqueIndex('organization_twofactor_org_type_unique').on(t.organizationUuid, t.atype)],
+)
+
+/**
  * Passkeys used to log in without a password (TASKS #125). `encrypted*` hold the PRF wrapped
  * keyset (the user key sealed to a key pair whose private half is wrapped by the PRF output);
  * all three are null while the credential has no keyset.

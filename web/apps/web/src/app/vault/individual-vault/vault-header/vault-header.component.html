@@ -1,0 +1,97 @@
+<app-header [title]="title" [icon]="icon | vfo1Icon">
+  @if (showBreadcrumbs) {
+    <bit-breadcrumbs slot="breadcrumbs" showTrailingArrow>
+      @if (activeOrganizationId) {
+        <bit-breadcrumb
+          [route]="[]"
+          [queryParams]="organizationBreadcrumbQueryParams"
+          queryParamsHandling="merge"
+        >
+          {{ activeOrganizationId | orgNameFromId: organizations }} {{ "vault" | i18n | lowercase }}
+        </bit-breadcrumb>
+      }
+      <ng-container>
+        @for (collection of collections; track collection.id) {
+          <bit-breadcrumb
+            [icon]="'bwi-collection-shared' | vfo1Icon"
+            [route]="[]"
+            [queryParams]="{ collectionId: collection.id }"
+            queryParamsHandling="merge"
+          >
+            {{ collection.name }}
+          </bit-breadcrumb>
+        }
+      </ng-container>
+    </bit-breadcrumbs>
+  }
+
+  <ng-container slot="title-suffix">
+    @if (collection != null && (canEditCollection || canDeleteCollection)) {
+      <ng-container>
+        <button
+          bitIconButton="bwi-angle-down"
+          [bitMenuTriggerFor]="editCollectionMenu"
+          size="small"
+          type="button"
+          [label]="'editCollection' | vfo1I18n: 'editSharedFolder'"
+        ></button>
+        <bit-menu #editCollectionMenu>
+          @if (canEditCollection) {
+            <button
+              type="button"
+              bitMenuItem
+              (click)="editCollection(CollectionDialogTabType.Info)"
+            >
+              <i class="bwi bwi-fw bwi-pencil-square" aria-hidden="true"></i>
+              {{ "editInfo" | i18n }}
+            </button>
+            <button
+              type="button"
+              bitMenuItem
+              (click)="editCollection(CollectionDialogTabType.Access)"
+            >
+              <i class="bwi bwi-fw bwi-users" aria-hidden="true"></i>
+              {{ "access" | i18n }}
+            </button>
+          }
+          @if (canDeleteCollection) {
+            <button type="button" bitMenuItem variant="danger" (click)="deleteCollection()">
+              <bit-icon fixedWidth name="bwi-trash" slot="start" />
+              {{ "delete" | i18n }}
+            </button>
+          }
+        </bit-menu>
+      </ng-container>
+    }
+    @if (loading) {
+      <small>
+        <i
+          class="bwi bwi-spinner bwi-spin tw-text-muted"
+          title="{{ 'loading' | i18n }}"
+          aria-hidden="true"
+        ></i>
+        <span class="tw-sr-only">{{ "loading" | i18n }}</span>
+      </small>
+    }
+  </ng-container>
+
+  @if (filter.type !== "trash") {
+    <div class="tw-shrink-0">
+      <vault-new-cipher-menu
+        [canCreateCipher]="canCreateCipher"
+        [canCreateFolder]="true"
+        [canCreateSshKey]="true"
+        [canCreateCollection]="canCreateCollections"
+        [disabled]="isOrganizationSuspended"
+        [coachmarkPopover]="addItemCoachmark.popover()"
+        [coachmarkPopoverOpen]="addItemCoachmarkOpen()"
+        [coachmarkPosition]="coachmarkService.getStepPosition('addItem')"
+        (cipherAdded)="addCipher($event)"
+        (folderAdded)="addFolder()"
+        (collectionAdded)="addCollection()"
+        (onAddItemDialog)="openAddItemDialog()"
+      />
+      <app-coachmark #addItemCoachmark stepId="addItem" />
+    </div>
+  }
+</app-header>

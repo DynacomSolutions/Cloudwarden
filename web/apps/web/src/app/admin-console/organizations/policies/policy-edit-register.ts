@@ -1,0 +1,44 @@
+import { BasePolicyEditDefinition } from "./base-policy-edit.component";
+import {
+  AutoConfirmPolicy,
+  DesktopAutotypeDefaultSettingPolicy,
+  DisableSendPolicy,
+  FillAssistPolicy,
+  MasterPasswordPolicy,
+  OrganizationDataOwnershipPolicy,
+  OrganizationUserNotificationPolicy,
+  PasswordGeneratorPolicy,
+  RemoveUnlockWithPinPolicy,
+  RequireSsoPolicy,
+  ResetPasswordPolicy,
+  RestrictedItemTypesPolicy,
+  SendControlsPolicy,
+  SendOptionsPolicy,
+  SingleOrgPolicy,
+  TwoFactorAuthenticationPolicy,
+  UriMatchDefaultPolicy,
+} from "./policy-edit-definitions";
+
+/**
+ * The policy register for OSS policies.
+ * Add your policy definition here if it is under the OSS license.
+ */
+export const ossPolicyEditRegister: BasePolicyEditDefinition[] = [
+  new TwoFactorAuthenticationPolicy(),
+  new MasterPasswordPolicy(),
+  new RemoveUnlockWithPinPolicy(),
+  new ResetPasswordPolicy(),
+  new PasswordGeneratorPolicy(),
+  new SingleOrgPolicy(),
+  new RequireSsoPolicy(),
+  new OrganizationDataOwnershipPolicy(),
+  new DisableSendPolicy(),
+  new SendOptionsPolicy(),
+  new SendControlsPolicy(),
+  new RestrictedItemTypesPolicy(),
+  new DesktopAutotypeDefaultSettingPolicy(),
+  new UriMatchDefaultPolicy(),
+  new FillAssistPolicy(),
+  new AutoConfirmPolicy(),
+  new OrganizationUserNotificationPolicy(),
+];

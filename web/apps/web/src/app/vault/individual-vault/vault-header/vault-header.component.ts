@@ -1,0 +1,370 @@
+import { CommonModule } from "@angular/common";
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  EventEmitter,
+  inject,
+  Input,
+  Output,
+  output,
+} from "@angular/core";
+import { Router } from "@angular/router";
+import { firstValueFrom, switchMap } from "rxjs";
+
+import { CollectionAdminService } from "@bitwarden/admin-console/common";
+import { JslibModule } from "@bitwarden/angular/jslib.module";
+import {
+  Unassigned,
+  CollectionView,
+  CollectionTypes,
+} from "@bitwarden/common/admin-console/models/collections";
+import { Organization } from "@bitwarden/common/admin-console/models/domain/organization";
+import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
+import { getUserId } from "@bitwarden/common/auth/services/account.service";
+import { ProductTierType } from "@bitwarden/common/billing/enums";
+import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
+import { CipherType } from "@bitwarden/common/vault/enums";
+import { TreeNode } from "@bitwarden/common/vault/models/domain/tree-node";
+import {
+  BreadcrumbsModule,
+  DialogService,
+  MenuModule,
+  SimpleDialogOptions,
+  IconModule,
+  BitwardenIcon,
+} from "@bitwarden/components";
+import {
+  NewCipherMenuComponent,
+  All,
+  RoutedVaultFilterModel,
+  Vfo1I18nPipe,
+  Vfo1TerminologyService,
+  Vfo1IconPipe,
+} from "@bitwarden/vault";
+
+import { CollectionDialogTabType } from "../../../admin-console/organizations/shared/components/collection-dialog";
+import { HeaderModule } from "../../../layouts/header/header.module";
+import { SharedModule } from "../../../shared";
+import { CoachmarkComponent, CoachmarkService } from "../../components/coachmark";
+import { PipesModule } from "../pipes/pipes.module";
+
+@Component({
+  selector: "app-vault-header",
+  templateUrl: "./vault-header.component.html",
+  imports: [
+    CommonModule,
+    MenuModule,
+    SharedModule,
+    BreadcrumbsModule,
+    HeaderModule,
+    PipesModule,
+    JslibModule,
+    NewCipherMenuComponent,
+    CoachmarkComponent,
+    IconModule,
+    Vfo1I18nPipe,
+    Vfo1IconPipe,
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class VaultHeaderComponent {
+  private readonly vfo1TerminologyService = inject(Vfo1TerminologyService);
+
+  protected readonly Unassigned = Unassigned;
+  protected readonly All = All;
+  protected readonly CollectionDialogTabType = CollectionDialogTabType;
+  protected readonly CipherType = CipherType;
+
+  protected readonly coachmarkService = inject(CoachmarkService);
+
+  /** Computed signal for add item coachmark open state */
+  protected readonly addItemCoachmarkOpen = computed(
+    () => this.coachmarkService.activeStepId() === "addItem",
+  );
+
+  /**
+   * Boolean to determine the loading state of the header.
+   * Shows a loading spinner if set to true
+   */
+  // FIXME(https://bitwarden.atlassian.net/browse/CL-903): Migrate to Signals
+  // eslint-disable-next-line @angular-eslint/prefer-signals
+  @Input() loading: boolean = true;
+
+  /** Current active filter */
+  // FIXME(https://bitwarden.atlassian.net/browse/CL-903): Migrate to Signals
+  // eslint-disable-next-line @angular-eslint/prefer-signals
+  @Input() filter: RoutedVaultFilterModel | undefined;
+
+  /** All organizations that can be shown */
+  // FIXME(https://bitwarden.atlassian.net/browse/CL-903): Migrate to Signals
+  // eslint-disable-next-line @angular-eslint/prefer-signals
+  @Input() organizations: Organization[] = [];
+
+  /** Currently selected collection */
+  // FIXME(https://bitwarden.atlassian.net/browse/CL-903): Migrate to Signals
+  // eslint-disable-next-line @angular-eslint/prefer-signals
+  @Input() collection?: TreeNode<CollectionView>;
+
+  /** Whether 'Collection' option is shown in the 'New' dropdown */
+  // FIXME(https://bitwarden.atlassian.net/browse/CL-903): Migrate to Signals
+  // eslint-disable-next-line @angular-eslint/prefer-signals
+  @Input() canCreateCollections: boolean = false;
+
+  /** Emits an event when the new item button is clicked in the header */
+  // FIXME(https://bitwarden.atlassian.net/browse/CL-903): Migrate to Signals
+  // eslint-disable-next-line @angular-eslint/prefer-output-emitter-ref
+  @Output() onAddCipher = new EventEmitter<CipherType | undefined>();
+
+  /** Emits an event when the new collection button is clicked in the 'New' dropdown menu */
+  // FIXME(https://bitwarden.atlassian.net/browse/CL-903): Migrate to Signals
+  // eslint-disable-next-line @angular-eslint/prefer-output-emitter-ref
+  @Output() onAddCollection = new EventEmitter<null>();
+
+  /** Emits an event when the new folder button is clicked in the 'New' dropdown menu */
+  // FIXME(https://bitwarden.atlassian.net/browse/CL-903): Migrate to Signals
+  // eslint-disable-next-line @angular-eslint/prefer-output-emitter-ref
+  @Output() onAddFolder = new EventEmitter<null>();
+
+  /** Emits an event when the edit collection button is clicked in the header */
+  // FIXME(https://bitwarden.atlassian.net/browse/CL-903): Migrate to Signals
+  // eslint-disable-next-line @angular-eslint/prefer-output-emitter-ref
+  @Output() onEditCollection = new EventEmitter<{ tab: CollectionDialogTabType }>();
+
+  /** Emits an event when the delete collection button is clicked in the header */
+  // FIXME(https://bitwarden.atlassian.net/browse/CL-903): Migrate to Signals
+  // eslint-disable-next-line @angular-eslint/prefer-output-emitter-ref
+  @Output() onDeleteCollection = new EventEmitter<void>();
+
+  /** Emits an event when the add item dialog should be opened */
+  readonly onOpenAddItemDialog = output<void>();
+
+  constructor(
+    private readonly i18nService: I18nService,
+    private readonly collectionAdminService: CollectionAdminService,
+    private readonly dialogService: DialogService,
+    private readonly router: Router,
+    private readonly accountService: AccountService,
+  ) {}
+
+  /**
+   * The id of the organization that is currently being filtered on.
+   * This can come from a collection filter or organization filter, if applied.
+   */
+  protected get activeOrganizationId() {
+    if (this.collection != undefined) {
+      return this.collection.node.organizationId;
+    }
+
+    if (this.filter?.organizationId !== undefined) {
+      return this.filter.organizationId;
+    }
+
+    return undefined;
+  }
+
+  protected get activeOrganization() {
+    const organizationId = this.activeOrganizationId;
+    return this.organizations?.find((org) => org.id === organizationId);
+  }
+
+  /**
+   * Query params for the organization breadcrumb. Mirrors the param-swap logic
+   * in {@link RoutedVaultFilterService.createRoute}: with the VFO1 flag enabled
+   * the organization is stored as `vaultId`, otherwise as `organizationId`. The
+   * opposite key is nulled so `queryParamsHandling="merge"` cannot leave a stale
+   * param behind.
+   */
+  protected get organizationBreadcrumbQueryParams() {
+    const organizationId = this.activeOrganizationId ?? null;
+    return {
+      ...(this.vfo1TerminologyService.enabled()
+        ? { vaultId: organizationId, organizationId: null }
+        : { organizationId, vaultId: null }),
+      collectionId: this.All,
+    };
+  }
+
+  protected get showBreadcrumbs() {
+    return this.filter?.collectionId !== undefined && this.filter.collectionId !== All;
+  }
+
+  protected get title() {
+    if (this.filter === undefined) {
+      return "";
+    }
+
+    if (this.filter.collectionId === Unassigned) {
+      return this.i18nService.t("unassigned");
+    }
+
+    if (this.collection) {
+      return this.collection.node.name;
+    }
+
+    if (this.filter.organizationId === Unassigned) {
+      return this.i18nService.t("myVault");
+    }
+
+    if (this.filter.type === "archive") {
+      return this.i18nService.t("archiveNoun");
+    }
+
+    const activeOrganization = this.activeOrganization;
+    if (activeOrganization) {
+      return `${activeOrganization.name} ${this.i18nService.t("vault").toLowerCase()}`;
+    }
+
+    return this.i18nService.t("allVaults");
+  }
+
+  protected get icon() {
+    if (!this.filter?.collectionId || this.filter.collectionId === All) {
+      return "" as BitwardenIcon;
+    }
+    return this.collection?.node.type === CollectionTypes.DefaultUserCollection
+      ? "bwi-user"
+      : "bwi-collection-shared";
+  }
+
+  /**
+   * A list of collection filters that form a chain from the organization root to currently selected collection.
+   * Begins from the organization root and excludes the currently selected collection.
+   */
+  protected get collections() {
+    if (this.collection == undefined) {
+      return [];
+    }
+
+    const collections = [this.collection];
+    while (collections[collections.length - 1].parent != undefined) {
+      collections.push(collections[collections.length - 1].parent);
+    }
+
+    return collections
+      .slice(1)
+      .reverse()
+      .map((treeNode) => treeNode.node);
+  }
+
+  get canEditCollection(): boolean {
+    // Only edit collections if not editing "Unassigned"
+    if (this.collection == null) {
+      return false;
+    }
+
+    // Otherwise, check if we can edit the specified collection
+    const organization = this.organizations.find(
+      (o) => o.id === this.collection?.node.organizationId,
+    );
+    return this.collection.node.canEdit(organization);
+  }
+
+  async editCollection(tab: CollectionDialogTabType): Promise<void> {
+    this.onEditCollection.emit({ tab });
+  }
+
+  get canDeleteCollection(): boolean {
+    // Only delete collections if not deleting "Unassigned"
+    if (this.collection === undefined) {
+      return false;
+    }
+
+    // Otherwise, check if we can delete the specified collection
+    const organization = this.organizations.find(
+      (o) => o.id === this.collection?.node.organizationId,
+    );
+
+    return this.collection.node.canDelete(organization);
+  }
+
+  get canCreateCipher(): boolean {
+    const activeOrganization = this.activeOrganization;
+    if (activeOrganization && !activeOrganization.enabled) {
+      return false;
+    }
+    return !activeOrganization?.isProviderUser || activeOrganization?.isMember;
+  }
+
+  /** Whether the "New" button should be disabled because the active organization is suspended. */
+  get isOrganizationSuspended(): boolean {
+    const activeOrganization = this.activeOrganization;
+    return !!activeOrganization && !activeOrganization.enabled;
+  }
+
+  deleteCollection() {
+    this.onDeleteCollection.emit();
+  }
+
+  protected addCipher(cipherType?: CipherType) {
+    this.onAddCipher.emit(cipherType);
+  }
+
+  protected openAddItemDialog(): void {
+    this.onOpenAddItemDialog.emit();
+  }
+
+  async addFolder(): Promise<void> {
+    this.onAddFolder.emit();
+  }
+
+  async addCollection(): Promise<void> {
+    const organization = this.organizations?.find(
+      (org) => org.productTierType === ProductTierType.Free,
+    );
+
+    if (this.organizations?.length == 1 && !!organization) {
+      const collections = await firstValueFrom(
+        this.accountService.activeAccount$.pipe(
+          getUserId,
+          switchMap((userId) =>
+            this.collectionAdminService.collectionAdminViews$(organization.id, userId),
+          ),
+        ),
+      );
+      if (collections.length === organization.maxCollections) {
+        await this.showFreeOrgUpgradeDialog(organization);
+        return;
+      }
+    }
+
+    this.onAddCollection.emit();
+  }
+
+  private async showFreeOrgUpgradeDialog(organization: Organization): Promise<void> {
+    const orgUpgradeSimpleDialogOpts: SimpleDialogOptions = {
+      title: this.i18nService.t("upgradeOrganization"),
+      content: this.i18nService.t(
+        this.vfo1TerminologyService.enabled()
+          ? organization.canEditSubscription
+            ? "freeOrgMaxSharedFolderReachedManageBilling"
+            : "freeOrgMaxSharedFolderReachedNoManageBilling"
+          : organization.canEditSubscription
+            ? "freeOrgMaxCollectionReachedManageBilling"
+            : "freeOrgMaxCollectionReachedNoManageBilling",
+        organization.maxCollections,
+      ),
+      type: "primary",
+    };
+
+    if (organization.canEditSubscription) {
+      orgUpgradeSimpleDialogOpts.acceptButtonText = this.i18nService.t("upgrade");
+    } else {
+      orgUpgradeSimpleDialogOpts.acceptButtonText = this.i18nService.t("ok");
+      orgUpgradeSimpleDialogOpts.cancelButtonText = null; // hide secondary btn
+    }
+
+    const simpleDialog = this.dialogService.openSimpleDialogRef(orgUpgradeSimpleDialogOpts);
+    const result: boolean | undefined = await firstValueFrom(simpleDialog.closed);
+
+    if (!result) {
+      return;
+    }
+
+    if (organization.canEditSubscription) {
+      await this.router.navigate(["/organizations", organization.id, "billing", "subscription"], {
+        queryParams: { upgrade: true },
+      });
+    }
+  }
+}

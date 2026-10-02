@@ -1,0 +1,29 @@
+<form [formGroup]="updateLicenseForm" [bitSubmit]="submit">
+  <bit-file-upload formControlName="file">
+    <bit-label [class.tw-sr-only]="!showAutomaticSyncAndManualUpload">{{
+      "licenseFile" | i18n
+    }}</bit-label>
+    <bit-hint>{{
+      "licenseFileDesc"
+        | i18n
+          : (!organizationId
+              ? "bitwarden_premium_license.json"
+              : "bitwarden_organization_license.json")
+    }}</bit-hint>
+  </bit-file-upload>
+  <div class="tw-flex tw-gap-2 tw-mt-4">
+    <button type="submit" buttonType="primary" bitButton bitFormButton>
+      {{ "submit" | i18n }}
+    </button>
+    <button
+      bitButton
+      *ngIf="showCancel"
+      bitFormButton
+      buttonType="secondary"
+      type="button"
+      [bitAction]="cancel"
+    >
+      {{ "cancel" | i18n }}
+    </button>
+  </div>
+</form>

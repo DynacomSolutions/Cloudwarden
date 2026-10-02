@@ -1,0 +1,9 @@
+<button
+  type="button"
+  bitIconButton="bwi-grid"
+  [bitMenuTriggerFor]="content?.menu"
+  [buttonType]="buttonType"
+  [label]="'switchProducts' | i18n"
+  *ngIf="products$ | async"
+></button>
+<product-switcher-content #content></product-switcher-content>

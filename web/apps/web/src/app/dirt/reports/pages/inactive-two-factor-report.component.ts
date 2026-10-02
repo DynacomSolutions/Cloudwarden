@@ -1,0 +1,269 @@
+// FIXME(https://bitwarden.atlassian.net/browse/CL-1062): `OnPush` components should not use mutable properties
+/* eslint-disable @bitwarden/components/enforce-readonly-angular-properties */
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  OnInit,
+  inject,
+} from "@angular/core";
+import { toSignal } from "@angular/core/rxjs-interop";
+
+import { OrganizationService } from "@bitwarden/common/admin-console/abstractions/organization/organization.service.abstraction";
+import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
+import { FeatureFlag } from "@bitwarden/common/enums/feature-flag.enum";
+import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
+import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
+import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
+import { Utils } from "@bitwarden/common/platform/misc/utils";
+import { CipherService } from "@bitwarden/common/vault/abstractions/cipher.service";
+import { SyncService } from "@bitwarden/common/vault/abstractions/sync/sync.service.abstraction";
+import { CipherType } from "@bitwarden/common/vault/enums";
+import { CipherView } from "@bitwarden/common/vault/models/view/cipher.view";
+import { DialogService } from "@bitwarden/components";
+import {
+  CipherFormConfigService,
+  PasswordRepromptService,
+  VaultItemDialogResult,
+} from "@bitwarden/vault";
+
+import { AdminConsoleCipherFormConfigService } from "../../../vault/org-vault/services/admin-console-cipher-form-config.service";
+
+import { CipherReportComponent } from "./cipher-report.component";
+
+@Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  selector: "app-inactive-two-factor-report",
+  templateUrl: "inactive-two-factor-report.component.html",
+  standalone: false,
+})
+export class InactiveTwoFactorReportComponent extends CipherReportComponent implements OnInit {
+  private readonly configService = inject(ConfigService);
+
+  protected readonly vfo1Enabled = toSignal(
+    this.configService.getFeatureFlag$(FeatureFlag.VFO1Foundation),
+    {
+      initialValue: false,
+    },
+  );
+  protected readonly reportTitleKey = "inactive2faReport";
+
+  services = new Map<string, string>();
+  cipherDocs = new Map<string, string>();
+  disabled = true;
+
+  constructor(
+    protected cipherService: CipherService,
+    protected organizationService: OrganizationService,
+    dialogService: DialogService,
+    accountService: AccountService,
+    protected logService: LogService,
+    passwordRepromptService: PasswordRepromptService,
+    i18nService: I18nService,
+    syncService: SyncService,
+    cipherFormConfigService: CipherFormConfigService,
+    adminConsoleCipherFormConfigService: AdminConsoleCipherFormConfigService,
+    protected changeDetectorRef: ChangeDetectorRef,
+  ) {
+    super(
+      cipherService,
+      dialogService,
+      passwordRepromptService,
+      organizationService,
+      accountService,
+      i18nService,
+      syncService,
+      cipherFormConfigService,
+      adminConsoleCipherFormConfigService,
+      logService,
+    );
+  }
+
+  async ngOnInit() {
+    this.logService.info("[InactiveTwoFactorReport] load start");
+    try {
+      await super.load();
+      this.logService.info("[InactiveTwoFactorReport] load success");
+    } catch (e) {
+      this.logService.error("[InactiveTwoFactorReport] load failure", e);
+      throw e;
+    }
+  }
+
+  async setCiphers() {
+    this.logService.info("[InactiveTwoFactorReport] analysis start");
+    try {
+      await this.load2fa();
+    } catch (e) {
+      this.logService.error("[InactiveTwoFactorReport] 2fa directory load failure", e);
+      throw e;
+    }
+
+    if (this.services.size > 0) {
+      const allCiphers = await this.getAllCiphers();
+      const inactive2faCiphers: CipherView[] = [];
+      const docs = new Map<string, string>();
+      let eligibleCipherCount = 0;
+      this.filterStatus = [0];
+
+      allCiphers.forEach((ciph) => {
+        const { type, login, isDeleted, edit, viewPassword } = ciph;
+        if (
+          type === CipherType.Login &&
+          (login.totp == null || login.totp === "") &&
+          login.hasUris &&
+          !isDeleted &&
+          (this.organization || edit) &&
+          viewPassword
+        ) {
+          eligibleCipherCount++;
+        }
+
+        const [docFor2fa, isInactive2faCipher] = this.isInactive2faCipher(ciph);
+
+        if (isInactive2faCipher) {
+          inactive2faCiphers.push(ciph);
+          if (docFor2fa !== "") {
+            docs.set(ciph.id, docFor2fa);
+          }
+        }
+      });
+
+      this.logService.info(
+        `[InactiveTwoFactorReport] analysis candidates total=${allCiphers.length} eligible=${eligibleCipherCount}`,
+      );
+      this.logService.info(
+        `[InactiveTwoFactorReport] analysis complete inactive2fa=${inactive2faCiphers.length} docs=${docs.size}`,
+      );
+
+      this.filterCiphersByOrg(inactive2faCiphers);
+      this.logService.info(
+        `[InactiveTwoFactorReport] filter complete displayed=${this.ciphers.length}`,
+      );
+      this.cipherDocs = docs;
+      this.changeDetectorRef.markForCheck();
+      return;
+    }
+
+    this.logService.info("[InactiveTwoFactorReport] analysis skipped reason=no services loaded");
+  }
+
+  private isInactive2faCipher(cipher: CipherView): [string, boolean] {
+    let docFor2fa: string = "";
+    let isInactive2faCipher: boolean = false;
+
+    const { type, login, isDeleted, edit, viewPassword } = cipher;
+    if (
+      type !== CipherType.Login ||
+      (login.totp != null && login.totp !== "") ||
+      !login.hasUris ||
+      isDeleted ||
+      (!this.organization && !edit) ||
+      !viewPassword
+    ) {
+      return [docFor2fa, isInactive2faCipher];
+    }
+
+    for (let i = 0; i < login.uris.length; i++) {
+      const u = login.uris[i];
+      if (u.uri != null && u.uri !== "") {
+        const uri = u.uri.replace("www.", "");
+        const host = Utils.getHost(uri);
+        const domain = Utils.getDomain(uri);
+        // check host first
+        if (host != null && this.services.has(host)) {
+          if (this.services.get(host) != null) {
+            docFor2fa = this.services.get(host) || "";
+          }
+          isInactive2faCipher = true;
+          break;
+        }
+
+        // then check domain
+        if (domain != null && this.services.has(domain)) {
+          if (this.services.get(domain) != null) {
+            docFor2fa = this.services.get(domain) || "";
+          }
+          isInactive2faCipher = true;
+          break;
+        }
+      }
+    }
+    return [docFor2fa, isInactive2faCipher];
+  }
+
+  private async load2fa() {
+    if (this.services.size > 0) {
+      this.logService.info(
+        `[InactiveTwoFactorReport] 2fa directory load skipped cached=${this.services.size}`,
+      );
+      return;
+    }
+
+    this.logService.info("[InactiveTwoFactorReport] 2fa directory fetch start");
+    const response = await fetch(new Request("https://api.2fa.directory/v3/totp.json"));
+    if (response.status !== 200) {
+      throw new Error();
+    }
+
+    const responseJson = await response.json();
+    let servicesLoaded = 0;
+    for (const service of responseJson) {
+      const serviceData = service[1];
+      if (serviceData.domain == null) {
+        continue;
+      }
+      if (serviceData.documentation == null) {
+        continue;
+      }
+      if (serviceData["additional-domains"] != null) {
+        for (const additionalDomain of serviceData["additional-domains"]) {
+          this.services.set(additionalDomain, serviceData.documentation);
+          servicesLoaded++;
+        }
+      }
+      this.services.set(serviceData.domain, serviceData.documentation);
+      servicesLoaded++;
+    }
+
+    this.logService.info(
+      `[InactiveTwoFactorReport] 2fa directory fetch complete services=${servicesLoaded}`,
+    );
+    this.changeDetectorRef.markForCheck();
+  }
+
+  /**
+   * Provides a way to determine if someone with permissions to run an organizational report is also able to view/edit ciphers within the results
+   * Default to true for indivduals running reports on their own vault.
+   * @param c CipherView
+   * @returns boolean
+   */
+  protected canManageCipher(c: CipherView): boolean {
+    // this will only ever be false from the org view;
+    return true;
+  }
+
+  async determinedUpdatedCipherReportStatus(
+    result: VaultItemDialogResult,
+    updatedCipherView: CipherView,
+  ): Promise<CipherView | null> {
+    this.logService.info(`[InactiveTwoFactorReport] update check start result=${result}`);
+
+    if (result === VaultItemDialogResult.Deleted) {
+      this.logService.info("[InactiveTwoFactorReport] update check complete action=deleted");
+      return null;
+    }
+
+    const [docFor2fa, isInactive2faCipher] = this.isInactive2faCipher(updatedCipherView);
+
+    if (isInactive2faCipher) {
+      this.cipherDocs.set(updatedCipherView.id, docFor2fa);
+      this.logService.info("[InactiveTwoFactorReport] update check complete action=retain");
+      return updatedCipherView;
+    }
+
+    this.logService.info("[InactiveTwoFactorReport] update check complete action=remove");
+
+    return null;
+  }
+}

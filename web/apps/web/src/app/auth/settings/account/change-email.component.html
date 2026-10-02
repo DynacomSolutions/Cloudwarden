@@ -1,0 +1,63 @@
+<form [formGroup]="formGroup" [bitSubmit]="submit">
+  @if (showTwoFactorEmailWarning()) {
+    <bit-callout type="warning">
+      {{ "changeEmailTwoFactorWarning" | i18n }}
+    </bit-callout>
+  }
+
+  <div class="@3xl:tw-w-1/2 tw-pr-2" formGroupName="userVerificationAndNewEmail">
+    <bit-form-field>
+      <bit-label>{{ "masterPass" | i18n }}</bit-label>
+      <input
+        id="change-email_input_masterPassword"
+        bitInput
+        type="password"
+        formControlName="masterPassword"
+      />
+      <button type="button" bitIconButton bitSuffix bitPasswordInputToggle></button>
+    </bit-form-field>
+    <bit-form-field>
+      <bit-label>{{ "newEmail" | i18n }}</bit-label>
+      <input
+        id="change-email_input_newEmail"
+        bitInput
+        type="email"
+        formControlName="newEmail"
+        inputmode="email"
+      />
+    </bit-form-field>
+  </div>
+
+  @if (userVerificationSuccessful()) {
+    <hr />
+    <p>
+      {{ "changeEmailDesc" | i18n: formGroup.controls.userVerificationAndNewEmail.value.newEmail }}
+    </p>
+    @if (!selfServiceChangeEmailEnabled()) {
+      <bit-callout type="warning">{{ "loggedOutWarning" | i18n }}</bit-callout>
+    }
+
+    <div class="tw-w-1/2 tw-pr-2">
+      <bit-form-field>
+        <bit-label>{{ "code" | i18n }}</bit-label>
+        <input
+          id="change-email_input_token"
+          bitInput
+          type="text"
+          formControlName="emailOwnershipVerification"
+        />
+      </bit-form-field>
+    </div>
+  }
+
+  <div class="tw-flex tw-gap-2">
+    <button type="submit" bitButton buttonType="primary" bitFormButton>
+      {{ (userVerificationSuccessful() ? "changeEmail" : "continue") | i18n }}
+    </button>
+    @if (userVerificationSuccessful()) {
+      <button type="button" bitButton (click)="resetFormsToInitialState()">
+        {{ "cancel" | i18n }}
+      </button>
+    }
+  </div>
+</form>

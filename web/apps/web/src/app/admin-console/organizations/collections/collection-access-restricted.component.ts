@@ -1,0 +1,60 @@
+import { Component, EventEmitter, Input, Output } from "@angular/core";
+
+import { RestrictedView } from "@bitwarden/assets/svg";
+import { ButtonModule, StatusLockupComponent } from "@bitwarden/components";
+import { Vfo1I18nPipe } from "@bitwarden/vault";
+
+import { SharedModule } from "../../../shared";
+import { CollectionDialogTabType } from "../shared/components/collection-dialog";
+
+// FIXME(https://bitwarden.atlassian.net/browse/CL-764): Migrate to OnPush
+// eslint-disable-next-line @angular-eslint/prefer-on-push-component-change-detection
+@Component({
+  selector: "collection-access-restricted",
+  imports: [SharedModule, ButtonModule, StatusLockupComponent, Vfo1I18nPipe],
+  template: `<bit-status-lockup class="tw-mt-2 tw-block">
+    <bit-svg slot="graphic" [content]="icon"></bit-svg>
+    <span slot="title" class="tw-block">{{
+      "youDoNotHavePermissions" | vfo1I18n: "youDoNotHavePermissionsSharedFolder"
+    }}</span>
+    <button
+      *ngIf="canEditCollection"
+      slot="button"
+      bitButton
+      (click)="viewCollectionClicked.emit({ readonly: false, tab: collectionDialogTabType.Info })"
+      buttonType="secondary"
+      type="button"
+    >
+      <i aria-hidden="true" class="bwi bwi-pencil-square"></i>
+      {{ "editCollection" | vfo1I18n: "editSharedFolder" }}
+    </button>
+    <button
+      *ngIf="!canEditCollection && canViewCollectionInfo"
+      slot="button"
+      bitButton
+      (click)="viewCollectionClicked.emit({ readonly: true, tab: collectionDialogTabType.Access })"
+      buttonType="secondary"
+      type="button"
+    >
+      <i aria-hidden="true" class="bwi bwi-users"></i> {{ "viewAccess" | i18n }}
+    </button>
+  </bit-status-lockup>`,
+})
+export class CollectionAccessRestrictedComponent {
+  protected icon = RestrictedView;
+  protected collectionDialogTabType = CollectionDialogTabType;
+
+  // FIXME(https://bitwarden.atlassian.net/browse/CL-903): Migrate to Signals
+  // eslint-disable-next-line @angular-eslint/prefer-signals
+  @Input() canEditCollection = false;
+  // FIXME(https://bitwarden.atlassian.net/browse/CL-903): Migrate to Signals
+  // eslint-disable-next-line @angular-eslint/prefer-signals
+  @Input() canViewCollectionInfo = false;
+
+  // FIXME(https://bitwarden.atlassian.net/browse/CL-903): Migrate to Signals
+  // eslint-disable-next-line @angular-eslint/prefer-output-emitter-ref
+  @Output() viewCollectionClicked = new EventEmitter<{
+    readonly: boolean;
+    tab: CollectionDialogTabType;
+  }>();
+}

@@ -1,0 +1,24 @@
+<div class="tw-grid tw-gap-16 tw-mt-6">
+  @if (showChangeKdf$ | async) {
+    <app-change-kdf></app-change-kdf>
+  }
+
+  @if (showKeyRotation$ | async) {
+    <app-user-key-rotation></app-user-key-rotation>
+  }
+
+  <div>
+    <h2 bitTypography="h2">{{ "apiKey" | i18n }}</h2>
+    <p bitTypography="body1">
+      {{ "userApiKeyDesc" | i18n }}
+    </p>
+    <div class="tw-flex tw-gap-2">
+      <button type="button" bitButton buttonType="secondary" (click)="viewUserApiKey()">
+        {{ "viewApiKey" | i18n }}
+      </button>
+      <button type="button" bitButton buttonType="secondary" (click)="rotateUserApiKey()">
+        {{ "rotateApiKey" | i18n }}
+      </button>
+    </div>
+  </div>
+</div>

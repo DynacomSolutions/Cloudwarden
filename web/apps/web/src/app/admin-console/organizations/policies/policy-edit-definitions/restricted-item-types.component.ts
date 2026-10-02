@@ -1,0 +1,17 @@
+import { PolicyType } from "@bitwarden/common/admin-console/enums";
+
+import { BasePolicyEditDefinition } from "../base-policy-edit.component";
+import { PolicyCategory } from "../pipes/policy-category";
+
+import { SimpleTogglePolicyComponent } from "./simple-toggle-policy.component";
+
+export class RestrictedItemTypesPolicy extends BasePolicyEditDefinition {
+  name = "restrictedItemTypePolicy";
+  description = "restrictedItemTypePolicyDescV2";
+  descriptionVfo1 = "restrictedItemTypePolicyDescListVfo1";
+  drawerDescriptionVfo1 = "restrictedItemTypePolicyDescVfo1";
+  type = PolicyType.RestrictedItemTypes;
+  category = PolicyCategory.VaultManagement;
+  priority = 50;
+  component = SimpleTogglePolicyComponent;
+}

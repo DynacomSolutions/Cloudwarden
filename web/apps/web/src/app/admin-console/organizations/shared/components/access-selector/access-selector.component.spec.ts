@@ -1,0 +1,313 @@
+// FIXME: Update this file to be type safe and remove this and next line
+// @ts-strict-ignore
+import { ComponentFixture, TestBed } from "@angular/core/testing";
+
+import {
+  OrganizationUserStatusType,
+  OrganizationUserType,
+} from "@bitwarden/common/admin-console/enums";
+// FIXME: remove `src` and fix import
+// eslint-disable-next-line no-restricted-imports
+import { SelectItemView } from "@bitwarden/components/src/multi-select/models/select-item-view";
+import { Vfo1TerminologyService } from "@bitwarden/vault";
+
+import { PreloadedEnglishI18nModule } from "../../../../../core/tests";
+
+import { AccessSelectorComponent, PermissionMode } from "./access-selector.component";
+import { AccessItemType, CollectionPermission } from "./access-selector.models";
+
+/**
+ * Helper class that makes it easier to test the AccessSelectorComponent by
+ * exposing some protected methods/properties
+ */
+function buildVfo1TerminologyService(enabled = false) {
+  return {
+    iconClass: (icon: string) => icon,
+    enabled: () => enabled,
+  };
+}
+
+class TestableAccessSelectorComponent extends AccessSelectorComponent {
+  selectItems(items: SelectItemView[]) {
+    super.selectItems(items);
+  }
+  deselectItem(id: string) {
+    super.deselectItem(id);
+  }
+
+  /**
+   * Helper used to simulate a user selecting a new permission for a table row
+   * @param index - "Row" index
+   * @param perm - The new permission value
+   */
+  changeSelectedItemPerm(index: number, perm: CollectionPermission) {
+    this.selectionList.formArray.at(index).patchValue({
+      permission: perm,
+    });
+  }
+}
+
+describe("AccessSelectorComponent", () => {
+  let component: TestableAccessSelectorComponent;
+  let fixture: ComponentFixture<TestableAccessSelectorComponent>;
+
+  beforeEach(() => {
+    // FIXME: Verify that this floating promise is intentional. If it is, add an explanatory comment and ensure there is proper error handling.
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    TestBed.configureTestingModule({
+      imports: [PreloadedEnglishI18nModule, TestableAccessSelectorComponent],
+      providers: [
+        { provide: Vfo1TerminologyService, useValue: buildVfo1TerminologyService(false) },
+      ],
+    }).compileComponents();
+  });
+
+  beforeEach(() => {
+    fixture = TestBed.createComponent(TestableAccessSelectorComponent);
+    component = fixture.componentInstance;
+
+    fixture.componentRef.setInput("emptySelectionText", "Nothing selected");
+
+    fixture.detectChanges();
+  });
+
+  it("should create", () => {
+    expect(component).toBeTruthy();
+  });
+
+  describe("item selection", () => {
+    beforeEach(() => {
+      fixture.componentRef.setInput("items", [
+        {
+          id: "123",
+          type: AccessItemType.Group,
+          labelName: "Group 1",
+          listName: "Group 1",
+        },
+      ]);
+      fixture.detectChanges();
+    });
+
+    it("should show the empty row when nothing is selected", () => {
+      const emptyTableCell = fixture.nativeElement.querySelector("tbody tr td");
+      expect(emptyTableCell?.textContent).toEqual("Nothing selected");
+    });
+
+    it("should show one row when one value is selected", () => {
+      component.selectItems([{ id: "123" } as any]);
+      fixture.detectChanges();
+      const firstColSpan = fixture.nativeElement.querySelector("tbody tr td span");
+      expect(firstColSpan.textContent).toEqual("Group 1");
+    });
+
+    it("should emit value change when a value is selected", () => {
+      // Arrange
+      const mockChange = jest.fn();
+      component.registerOnChange(mockChange);
+      fixture.componentRef.setInput("permissionMode", PermissionMode.Edit);
+
+      // Act
+      component.selectItems([{ id: "123" } as any]);
+
+      // Assert
+      expect(mockChange.mock.calls.length).toEqual(1);
+      expect(mockChange.mock.lastCall[0]).toHaveProperty("[0].id", "123");
+    });
+
+    it("should emit value change when a row is modified", () => {
+      // Arrange
+      const mockChange = jest.fn();
+      fixture.componentRef.setInput("permissionMode", PermissionMode.Edit);
+      component.selectItems([{ id: "123" } as any]);
+      component.registerOnChange(mockChange); // Register change listener after setup
+
+      // Act
+      component.changeSelectedItemPerm(0, CollectionPermission.Edit);
+
+      // Assert
+      expect(mockChange.mock.calls.length).toEqual(1);
+      expect(mockChange.mock.lastCall[0]).toHaveProperty("[0].id", "123");
+      expect(mockChange.mock.lastCall[0]).toHaveProperty(
+        "[0].permission",
+        CollectionPermission.Edit,
+      );
+    });
+
+    it("should preserve permission changes when items input re-emits", () => {
+      // Arrange — set up item with an initial writeValue, then change permission in the table
+      const collectionItem = {
+        id: "123",
+        type: AccessItemType.Group,
+        labelName: "Group 1",
+        listName: "Group 1",
+      };
+      component.writeValue([
+        { id: "123", type: AccessItemType.Group, permission: CollectionPermission.View },
+      ]);
+      fixture.componentRef.setInput("permissionMode", PermissionMode.Edit);
+      fixture.detectChanges();
+
+      component.changeSelectedItemPerm(0, CollectionPermission.Edit);
+
+      const mockChange = jest.fn();
+      component.registerOnChange(mockChange);
+
+      // Act — items input re-emits (simulating async stream re-emission)
+      fixture.componentRef.setInput("items", [collectionItem]);
+      fixture.detectChanges();
+
+      // Assert — re-emission must not revert the user's permission change
+      expect(mockChange.mock.lastCall?.[0]).toHaveProperty(
+        "[0].permission",
+        CollectionPermission.Edit,
+      );
+    });
+
+    it("should preserve table permission changes when writeValue is called again before items re-emit", () => {
+      // Arrange — simulate: permission dropdown changes → writeValue called → items re-emit
+      const collectionItem = {
+        id: "123",
+        type: AccessItemType.Group,
+        labelName: "Group 1",
+        listName: "Group 1",
+      };
+      fixture.componentRef.setInput("permissionMode", PermissionMode.Edit);
+      fixture.detectChanges();
+
+      // First writeValue (initial load)
+      component.writeValue([
+        { id: "123", type: AccessItemType.Group, permission: CollectionPermission.View },
+      ]);
+      fixture.detectChanges();
+
+      // User changes permission in the table
+      component.changeSelectedItemPerm(0, CollectionPermission.Manage);
+
+      // writeValue called again (simulating form patchValue from parent re-emission)
+      component.writeValue([
+        { id: "123", type: AccessItemType.Group, permission: CollectionPermission.Edit },
+      ]);
+      fixture.detectChanges();
+
+      const mockChange = jest.fn();
+      component.registerOnChange(mockChange);
+
+      // Act — items re-emit after the second writeValue
+      fixture.componentRef.setInput("items", [collectionItem]);
+      fixture.detectChanges();
+
+      // Assert — second writeValue value applies (Edit), not the stale first one (View)
+      expect(mockChange.mock.lastCall?.[0]).toHaveProperty(
+        "[0].permission",
+        CollectionPermission.Edit,
+      );
+    });
+
+    it("should emit value change when a row is removed", () => {
+      // Arrange
+      const mockChange = jest.fn();
+      fixture.componentRef.setInput("permissionMode", PermissionMode.Edit);
+      component.selectItems([{ id: "123" } as any]);
+      component.registerOnChange(mockChange); // Register change listener after setup
+
+      // Act
+      component.deselectItem("123");
+
+      // Assert
+      expect(mockChange.mock.calls.length).toEqual(1);
+      expect(mockChange.mock.lastCall[0].length).toEqual(0);
+    });
+
+    it("should emit permission values when in edit mode", () => {
+      // Arrange
+      const mockChange = jest.fn();
+      component.registerOnChange(mockChange);
+      fixture.componentRef.setInput("permissionMode", PermissionMode.Edit);
+
+      // Act
+      component.selectItems([{ id: "123" } as any]);
+
+      // Assert
+      expect(mockChange.mock.calls.length).toEqual(1);
+      expect(mockChange.mock.lastCall[0]).toHaveProperty("[0].id", "123");
+      expect(mockChange.mock.lastCall[0]).toHaveProperty("[0].permission");
+    });
+
+    it("should not emit permission values when not in edit mode", () => {
+      // Arrange
+      const mockChange = jest.fn();
+      component.registerOnChange(mockChange);
+      fixture.componentRef.setInput("permissionMode", PermissionMode.Hidden);
+
+      // Act
+      component.selectItems([{ id: "123" } as any]);
+
+      // Assert
+      expect(mockChange.mock.calls.length).toEqual(1);
+      expect(mockChange.mock.lastCall[0]).toHaveProperty("[0].id", "123");
+      expect(mockChange.mock.lastCall[0]).not.toHaveProperty("[0].permission");
+    });
+  });
+
+  describe("column rendering", () => {
+    beforeEach(() => {
+      fixture.componentRef.setInput("items", [
+        {
+          id: "g1",
+          type: AccessItemType.Group,
+          labelName: "Group 1",
+          listName: "Group 1",
+        },
+        {
+          id: "m1",
+          type: AccessItemType.Member,
+          labelName: "Member 1",
+          listName: "Member 1 (member1@email.com)",
+          email: "member1@email.com",
+          role: OrganizationUserType.User,
+          status: OrganizationUserStatusType.Confirmed,
+        },
+      ]);
+      fixture.detectChanges();
+    });
+
+    test.each([true, false])("should show the role column when enabled", (columnEnabled) => {
+      // Act
+      fixture.componentRef.setInput("showMemberRoles", columnEnabled);
+      fixture.detectChanges();
+
+      // Assert
+      const colHeading = fixture.nativeElement.querySelector("#roleColHeading");
+      expect(!!colHeading).toEqual(columnEnabled);
+    });
+
+    test.each([true, false])("should show the group column when enabled", (columnEnabled) => {
+      // Act
+      fixture.componentRef.setInput("showGroupColumn", columnEnabled);
+      fixture.detectChanges();
+
+      // Assert
+      const colHeading = fixture.nativeElement.querySelector("#groupColHeading");
+      expect(!!colHeading).toEqual(columnEnabled);
+    });
+
+    const permissionColumnCases = [
+      [PermissionMode.Hidden, false],
+      [PermissionMode.Edit, true],
+      [PermissionMode.Readonly, true],
+    ];
+
+    test.each(permissionColumnCases)(
+      "should show the permission column when enabled",
+      (mode: PermissionMode, shouldShowColumn) => {
+        // Act
+        fixture.componentRef.setInput("permissionMode", mode);
+        fixture.detectChanges();
+
+        // Assert
+        const colHeading = fixture.nativeElement.querySelector("#permissionColHeading");
+        expect(!!colHeading).toEqual(shouldShowColumn);
+      },
+    );
+  });
+});

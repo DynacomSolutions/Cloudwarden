@@ -1,0 +1,305 @@
+import { Component, computed, OnDestroy, OnInit } from "@angular/core";
+import { toSignal } from "@angular/core/rxjs-interop";
+import { FormBuilder, Validators } from "@angular/forms";
+import { ActivatedRoute, Router } from "@angular/router";
+import {
+  combineLatest,
+  firstValueFrom,
+  from,
+  lastValueFrom,
+  map,
+  of,
+  Subject,
+  switchMap,
+  takeUntil,
+} from "rxjs";
+
+import { OrganizationApiServiceAbstraction } from "@bitwarden/common/admin-console/abstractions/organization/organization-api.service.abstraction";
+import {
+  getOrganizationById,
+  OrganizationService,
+} from "@bitwarden/common/admin-console/abstractions/organization/organization.service.abstraction";
+import { OrganizationApiKeyRequest } from "@bitwarden/common/admin-console/models/request/organization-api-key.request";
+import { OrganizationCollectionManagementUpdateRequest } from "@bitwarden/common/admin-console/models/request/organization-collection-management-update.request";
+import { OrganizationKeysRequest } from "@bitwarden/common/admin-console/models/request/organization-keys.request";
+import { OrganizationUpdateRequest } from "@bitwarden/common/admin-console/models/request/organization-update.request";
+import { OrganizationResponse } from "@bitwarden/common/admin-console/models/response/organization.response";
+import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
+import { SecretVerificationRequest } from "@bitwarden/common/auth/models/request/secret-verification.request";
+import { getUserId } from "@bitwarden/common/auth/services/account.service";
+import { FeatureFlag } from "@bitwarden/common/enums/feature-flag.enum";
+import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
+import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
+import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
+import { Utils } from "@bitwarden/common/platform/misc/utils";
+import { OrganizationId } from "@bitwarden/common/types/guid";
+import { DialogService, ToastService } from "@bitwarden/components";
+import { KeyService } from "@bitwarden/key-management";
+// eslint-disable-next-line no-restricted-imports
+import { LegacyCompatKeyService } from "@bitwarden/legacy-crypto";
+import { Vfo1TerminologyService } from "@bitwarden/vault";
+
+import { ApiKeyComponent } from "../../../auth/settings/security/api-key.component";
+import { PurgeVaultComponent } from "../../../vault/settings/purge-vault.component";
+
+import { DeleteOrganizationDialogResult, openDeleteOrganizationDialog } from "./components";
+
+// FIXME(https://bitwarden.atlassian.net/browse/CL-764): Migrate to OnPush
+// eslint-disable-next-line @angular-eslint/prefer-on-push-component-change-detection
+@Component({
+  selector: "app-org-account",
+  templateUrl: "account.component.html",
+  standalone: false,
+})
+export class AccountComponent implements OnInit, OnDestroy {
+  selfHosted = false;
+  canEditSubscription = true;
+  loading = true;
+  canUseApi = false;
+  org!: OrganizationResponse;
+
+  // FormGroup validators taken from server Organization domain object
+  protected formGroup = this.formBuilder.group({
+    orgName: this.formBuilder.control(
+      { value: "", disabled: true },
+      {
+        validators: [Validators.required, Validators.maxLength(50)],
+        updateOn: "change",
+      },
+    ),
+    billingEmail: this.formBuilder.control(
+      { value: "", disabled: true },
+      { validators: [Validators.required, Validators.email, Validators.maxLength(256)] },
+    ),
+  });
+
+  protected collectionManagementFormGroup = this.formBuilder.group({
+    limitCollectionCreation: this.formBuilder.control({ value: false, disabled: false }),
+    limitCollectionDeletion: this.formBuilder.control({ value: false, disabled: false }),
+    limitItemDeletion: this.formBuilder.control({ value: false, disabled: false }),
+    allowAdminAccessToAllCollectionItems: this.formBuilder.control({
+      value: false,
+      disabled: false,
+    }),
+  });
+
+  protected organizationId!: string;
+  protected publicKeyBuffer!: Uint8Array;
+
+  protected readonly showBreadcrumbs = toSignal(
+    this.configService.getFeatureFlag$(FeatureFlag.VFO1Foundation),
+    { initialValue: false },
+  );
+
+  private readonly _orgIdFromRoute = toSignal(
+    this.route.params.pipe(map((p) => p["organizationId"] as OrganizationId)),
+    { initialValue: "" as OrganizationId },
+  );
+
+  protected readonly orgSettingsRoute = computed(() => [
+    "/organizations",
+    this._orgIdFromRoute(),
+    "settings",
+  ]);
+
+  private destroy$ = new Subject<void>();
+
+  constructor(
+    private i18nService: I18nService,
+    private route: ActivatedRoute,
+    private platformUtilsService: PlatformUtilsService,
+    private keyService: KeyService,
+    private legacyCompatKeyService: LegacyCompatKeyService,
+    private router: Router,
+    private accountService: AccountService,
+    private organizationService: OrganizationService,
+    private organizationApiService: OrganizationApiServiceAbstraction,
+    private dialogService: DialogService,
+    private formBuilder: FormBuilder,
+    private toastService: ToastService,
+    private vfo1TerminologyService: Vfo1TerminologyService,
+    private configService: ConfigService,
+  ) {}
+
+  async ngOnInit() {
+    this.selfHosted = this.platformUtilsService.isSelfHost();
+
+    const userId = await firstValueFrom(getUserId(this.accountService.activeAccount$));
+    this.route.params
+      .pipe(
+        switchMap((params) =>
+          this.organizationService
+            .organizations$(userId)
+            .pipe(getOrganizationById(params.organizationId)),
+        ),
+        switchMap((organization) => {
+          return combineLatest([
+            of(organization),
+            // OrganizationResponse for form population
+            from(this.organizationApiService.get(organization!.id)),
+            // Organization Public Key
+            from(this.organizationApiService.getKeys(organization!.id)),
+          ]);
+        }),
+        takeUntil(this.destroy$),
+      )
+      .subscribe(([organization, orgResponse, orgKeys]) => {
+        // Set domain level organization variables
+        this.organizationId = organization!.id;
+        this.canEditSubscription = organization!.canEditSubscription;
+        this.canUseApi = organization!.useApi;
+
+        // Update disabled states - reactive forms prefers not using disabled attribute
+        if (!this.selfHosted) {
+          this.formGroup.get("orgName")!.enable();
+          if (this.canEditSubscription) {
+            this.formGroup.get("billingEmail")!.enable();
+          }
+        }
+
+        // Org Response
+        this.org = orgResponse;
+
+        // Public Key Buffer for Org Fingerprint Generation
+        this.publicKeyBuffer = Utils.fromB64ToArray(orgKeys?.publicKey);
+
+        // Patch existing values
+        this.formGroup.patchValue({
+          orgName: this.org.name,
+          billingEmail: this.org.billingEmail,
+        });
+
+        this.collectionManagementFormGroup.patchValue({
+          limitCollectionCreation: this.org.limitCollectionCreation,
+          limitCollectionDeletion: this.org.limitCollectionDeletion,
+          limitItemDeletion: this.org.limitItemDeletion,
+          allowAdminAccessToAllCollectionItems: this.org.allowAdminAccessToAllCollectionItems,
+        });
+
+        this.loading = false;
+      });
+  }
+
+  ngOnDestroy(): void {
+    // You must first call .next() in order for the notifier to properly close subscriptions using takeUntil
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  submit = async () => {
+    this.formGroup.markAllAsTouched();
+    if (this.formGroup.invalid) {
+      return;
+    }
+
+    // The server ignores any undefined values, so it's ok to reference disabled form fields here
+    const request: OrganizationUpdateRequest = {
+      name: this.formGroup.value.orgName ?? undefined,
+      billingEmail: this.formGroup.value.billingEmail ?? undefined,
+    };
+
+    // Backfill pub/priv key if necessary
+    if (!this.org.hasPublicAndPrivateKeys) {
+      const orgShareKey = await firstValueFrom(
+        this.accountService.activeAccount$.pipe(
+          getUserId,
+          switchMap((userId) => this.keyService.orgKeys$(userId)),
+          map((orgKeys) => orgKeys?.[this.organizationId as OrganizationId] ?? null),
+        ),
+      );
+      const orgKeys = await this.legacyCompatKeyService.makeKeyPair(orgShareKey!);
+      request.keys = new OrganizationKeysRequest(orgKeys[0], orgKeys[1].encryptedString!);
+    }
+
+    await this.organizationApiService.save(this.organizationId, request);
+
+    this.toastService.showToast({
+      variant: "success",
+      title: undefined,
+      message: this.i18nService.t("organizationUpdated"),
+    });
+  };
+
+  submitCollectionManagement = async () => {
+    const request = new OrganizationCollectionManagementUpdateRequest({
+      limitCollectionCreation:
+        this.collectionManagementFormGroup.value.limitCollectionCreation ?? false,
+      limitCollectionDeletion:
+        this.collectionManagementFormGroup.value.limitCollectionDeletion ?? false,
+      allowAdminAccessToAllCollectionItems:
+        this.collectionManagementFormGroup.value.allowAdminAccessToAllCollectionItems ?? false,
+      limitItemDeletion: this.collectionManagementFormGroup.value.limitItemDeletion ?? false,
+    });
+
+    await this.organizationApiService.updateCollectionManagement(this.organizationId, request);
+
+    this.toastService.showToast({
+      variant: "success",
+      title: undefined,
+      message: this.i18nService.t(
+        this.vfo1TerminologyService.enabled()
+          ? "updatedSharedFolderManagement"
+          : "updatedCollectionManagement",
+      ),
+    });
+  };
+
+  async deleteOrganization() {
+    const dialog = openDeleteOrganizationDialog(this.dialogService, {
+      data: {
+        organizationId: this.organizationId,
+        requestType: "RegularDelete",
+      },
+    });
+
+    const result = await lastValueFrom(dialog.closed);
+
+    if (result === DeleteOrganizationDialogResult.Deleted) {
+      // FIXME: Verify that this floating promise is intentional. If it is, add an explanatory comment and ensure there is proper error handling.
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      this.router.navigate(["/"]);
+    }
+  }
+
+  purgeVault = async () => {
+    const dialogRef = PurgeVaultComponent.open(this.dialogService, {
+      data: {
+        organizationId: this.organizationId,
+      },
+    });
+    await lastValueFrom(dialogRef.closed);
+  };
+
+  async viewApiKey() {
+    await ApiKeyComponent.open(this.dialogService, {
+      data: {
+        keyType: "organization",
+        entityId: this.organizationId,
+        postKey: (id: string, request: SecretVerificationRequest) =>
+          this.organizationApiService.getOrCreateApiKey(id, request as OrganizationApiKeyRequest),
+        scope: "api.organization",
+        grantType: "client_credentials",
+        apiKeyTitle: "apiKey",
+        apiKeyWarning: "apiKeyWarning",
+        apiKeyDescription: "apiKeyDesc",
+      },
+    });
+  }
+
+  async rotateApiKey() {
+    await ApiKeyComponent.open(this.dialogService, {
+      data: {
+        keyType: "organization",
+        isRotation: true,
+        entityId: this.organizationId,
+        postKey: (id: string, request: SecretVerificationRequest) =>
+          this.organizationApiService.rotateApiKey(id, request as OrganizationApiKeyRequest),
+        scope: "api.organization",
+        grantType: "client_credentials",
+        apiKeyTitle: "apiKey",
+        apiKeyWarning: "apiKeyWarning",
+        apiKeyDescription: "apiKeyRotateDesc",
+      },
+    });
+  }
+}

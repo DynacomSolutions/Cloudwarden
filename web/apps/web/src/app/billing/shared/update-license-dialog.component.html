@@ -1,0 +1,39 @@
+<form
+  [formGroup]="updateLicenseForm"
+  [bitSubmit]="submitLicenseDialog"
+  bit-dialog
+  dialogSize="default"
+  [title]="(fromUserSubscriptionPage ? 'uploadLicense' : 'uploadLicenseFile') | i18n"
+>
+  <ng-container bitDialogContent>
+    <p class="tw-mb-4">{{ "uploadLicenseFileDesc" | i18n: "bitwarden_license.json" }}</p>
+    <bit-file-upload formControlName="file" accept=".json">
+      <bit-label>{{
+        (fromUserSubscriptionPage ? "uploadYourPremiumLicenseFile" : "uploadYourLicenseFile") | i18n
+      }}</bit-label>
+      <bit-hint>{{ "maxFileSizeSansPunctuation" | i18n }}</bit-hint>
+    </bit-file-upload>
+  </ng-container>
+  <ng-container bitDialogFooter>
+    <button
+      type="submit"
+      buttonType="primary"
+      bitButton
+      bitFormButton
+      [disabled]="!updateLicenseForm.value.file"
+    >
+      {{ "upload" | i18n }}
+    </button>
+    <button
+      bitButton
+      *ngIf="showCancel"
+      bitFormButton
+      buttonType="secondary"
+      type="button"
+      bitDialogClose
+      [bitAction]="cancel"
+    >
+      {{ "cancel" | i18n }}
+    </button>
+  </ng-container>
+</form>

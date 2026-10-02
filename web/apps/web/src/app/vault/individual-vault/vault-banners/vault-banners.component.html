@@ -1,0 +1,49 @@
+@for (organization of organizations; track organization.id) {
+  <app-organization-free-trial-warning
+    [organization]="organization"
+    [includeOrganizationNameInMessaging]="true"
+    (clicked)="navigateToPaymentMethod(organization.id)"
+  >
+  </app-organization-free-trial-warning>
+}
+
+@if (visibleBanners.includes(VisibleVaultBanner.OutdatedBrowser)) {
+  <bit-banner
+    id="update-browser-banner"
+    variant="warning"
+    (dismiss)="dismissBanner(VisibleVaultBanner.OutdatedBrowser)"
+  >
+    {{ "updateBrowserDesc" | i18n }}
+    <a
+      bitLink
+      linkType="secondary"
+      target="_blank"
+      href="https://browser-update.org/update-browser.html"
+      rel="noreferrer noopener"
+    >
+      {{ "updateBrowser" | i18n }}
+    </a>
+  </bit-banner>
+}
+
+@if (visibleBanners.includes(VisibleVaultBanner.PendingAuthRequest)) {
+  <bit-banner
+    id="pending-auth-request-banner"
+    variant="primary"
+    icon="bwi-info-circle"
+    (dismiss)="dismissBanner(VisibleVaultBanner.PendingAuthRequest)"
+  >
+    {{ "youHaveAPendingLoginRequest" | i18n }}
+    <a bitLink linkType="secondary" routerLink="/settings/security/device-management">
+      {{ "reviewLoginRequest" | i18n }}
+    </a>
+  </bit-banner>
+}
+
+@if (visibleBanners.includes(VisibleVaultBanner.VerifyEmail)) {
+  <app-verify-email
+    id="verify-email-banner"
+    (onDismiss)="dismissBanner(VisibleVaultBanner.VerifyEmail)"
+    (onVerified)="dismissBanner(VisibleVaultBanner.VerifyEmail)"
+  ></app-verify-email>
+}

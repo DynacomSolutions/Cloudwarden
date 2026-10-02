@@ -15,7 +15,7 @@ import { ConfigService } from "@bitwarden/common/platform/abstractions/config/co
 import { BreadcrumbsModule } from "@bitwarden/components";
 import { Vfo1I18nPipe } from "@bitwarden/vault";
 
-import { OrganizationPlansComponent } from "../../billing";
+import { CloudwardenCreateOrganizationFormComponent } from "../../cloudwarden/organizations/create-organization-form.component";
 import { HeaderModule } from "../../layouts/header/header.module";
 import { SharedModule } from "../../shared";
 
@@ -25,7 +25,7 @@ import { SharedModule } from "../../shared";
   templateUrl: "create-organization.component.html",
   imports: [
     SharedModule,
-    OrganizationPlansComponent,
+    CloudwardenCreateOrganizationFormComponent,
     HeaderModule,
     BreadcrumbsModule,
     Vfo1I18nPipe,

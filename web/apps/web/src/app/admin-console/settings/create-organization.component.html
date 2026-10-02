@@ -13,11 +13,6 @@
 
 <bit-container>
   <p>{{ "newOrganizationDesc" | vfo1I18n: "addPlanDesc" }}</p>
-  <app-organization-plans
-    [enableSecretsManagerByDefault]="secretsManager"
-    [initialPlan]="plan"
-    [initialProductTier]="productTier"
-    [trialLength]="trialLength"
-    [initiationPath]="initiationPath"
-  ></app-organization-plans>
+  <!-- Cloudwarden: plain create form, never the licence upload (web/NOTICE.md) -->
+  <cw-create-organization-form></cw-create-organization-form>
 </bit-container>

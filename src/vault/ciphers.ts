@@ -157,8 +157,9 @@ export async function requireFolder(db: Db, userUuid: string, folderId: string):
 }
 
 export function rejectUnsupported(body: { organizationId?: string | null }) {
-  // TODO(TASKS #63): organisation ciphers arrive with Phase 3.
-  if (body.organizationId) throw new ApiError(400, 'Organizations are not supported yet.')
+  // Organisation items are handled by `orgCiphers`, which runs first; anything that still reaches the
+  // personal handlers with an organisation set was not accepted there.
+  if (body.organizationId) throw new ApiError(400, 'Invalid organization item.')
 }
 
 /** The archive date a new item arrives with (imports of archived items); updates never carry one. */

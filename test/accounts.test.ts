@@ -358,10 +358,17 @@ it('supports POST /api/accounts/delete', async () => {
   expect((await login('del2@example.com')).status).toBe(400)
 })
 
-it('accepts the SDK user key id report', async () => {
+it('stores the SDK user key id report and returns it in sync', async () => {
   const s = await createSession('keyid@example.com')
+  const before = (await (await authed('/api/sync', s.access_token)).json()) as any
+  expect(before.userDecryption.userKeyId).toBeNull()
   const res = await authed('/api/accounts/key-management/user-key-id', s.access_token, 'POST', {
     userKeyId: '00000000-0000-4000-8000-000000000000',
   })
   expect(res.status).toBe(200)
+  const after = (await (await authed('/api/sync', s.access_token)).json()) as any
+  expect(after.userDecryption.userKeyId).toBe('00000000-0000-4000-8000-000000000000')
+  expect(
+    (await authed('/api/accounts/key-management/user-key-id', s.access_token, 'POST', {})).status,
+  ).toBe(400)
 })

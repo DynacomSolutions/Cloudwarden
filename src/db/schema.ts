@@ -18,6 +18,8 @@ export const users = sqliteTable(
     salt: text('salt').notNull(),
     passwordIterations: integer('password_iterations').notNull(),
     passwordHint: text('password_hint'),
+    /** Identifier of the current user key, reported by clients after unlock; cleared on key rotation. */
+    userKeyId: text('user_key_id'),
     akey: text('akey').notNull(),
     privateKey: text('private_key'),
     publicKey: text('public_key'),

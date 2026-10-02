@@ -113,9 +113,18 @@ accounts.post('/api/accounts/profile', requireAuth, updateProfile)
 // Vault writes bump `users.updatedAt` (TASKS #43), so it is the account revision date.
 accounts.get('/api/accounts/revision-date', requireAuth, (c) => c.json(c.var.user.updatedAt))
 
-// The SDK (2026.x) reports the identifier of the user key after unlock so the server can track key
-// rotation. Nothing here depends on it, so accept the call and store nothing.
-accounts.post('/api/accounts/key-management/user-key-id', requireAuth, (c) => c.body(null, 200))
+// The SDK (2026.x) reports the identifier of the user key after unlock (`SetUserKeyIdRequestModel`).
+// It is returned as `userDecryption.userKeyId` in sync, which stops clients from backfilling it on
+// every sync; key rotation clears it because the new user key has a new id.
+const userKeyIdSchema = z.object({ userKeyId: z.string().min(1).max(200) })
+accounts.post('/api/accounts/key-management/user-key-id', requireAuth, async (c) => {
+  const { userKeyId } = await parseBody(c, userKeyIdSchema)
+  const db = createDb(c.env.DB)
+  await runBatch(db, [
+    db.update(schema.users).set({ userKeyId }).where(eq(schema.users.uuid, c.var.user.uuid)),
+  ])
+  return c.body(null, 200)
+})
 
 accounts.post('/api/accounts/verify-password', requireAuth, async (c) => {
   const { masterPasswordHash } = await parseBody(c, passwordOnly)
@@ -538,6 +547,7 @@ async function applyRotation(c: Ctx, user: User, body: RotationInput) {
       .update(schema.users)
       .set({
         akey: body.key,
+        userKeyId: null,
         privateKey: body.privateKey,
         ...(body.publicKey ? { publicKey: body.publicKey } : {}),
         ...(body.credentials

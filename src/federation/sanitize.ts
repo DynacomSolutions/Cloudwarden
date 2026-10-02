@@ -174,18 +174,76 @@ export function sanitizeCollections(raw: unknown, orgUuid: string) {
   return out
 }
 
-/** A cipher view: its id, organisation and collections must be the bound ones. */
+/** Top-level fields of a cipher view the serving side keeps; anything else is dropped. */
+const CIPHER_FIELDS = [
+  'type',
+  'name',
+  'notes',
+  'fields',
+  'login',
+  'card',
+  'identity',
+  'secureNote',
+  'sshKey',
+  'data',
+  'favorite',
+  'reprompt',
+  'key',
+  'revisionDate',
+  'creationDate',
+  'deletedDate',
+  'archivedDate',
+  'passwordHistory',
+  'organizationUseTotp',
+  'edit',
+  'viewPassword',
+  'permissions',
+] as const
+
+/**
+ * A cipher view: its id, organisation and collections must be the bound ones, only known fields
+ * are kept, and attachment links must point at the hosting peer's download route (they are then
+ * rewritten to this server's relay); any other link is dropped.
+ */
 export function sanitizeCipher(
   raw: unknown,
   orgUuid: string,
   collectionIds: Set<string>,
+  peerDomain: string,
 ): Record<string, unknown> | null {
   if (!raw || typeof raw !== 'object') return null
   const c = raw as Record<string, unknown>
   if (!isUuid(c.id) || c.organizationId !== orgUuid) return null
-  const cols = Array.isArray(c.collectionIds)
-    ? c.collectionIds.filter((x): x is string => isUuid(x) && collectionIds.has(x))
-    : []
-  const out = { ...c, organizationId: orgUuid, collectionIds: cols, folderId: null }
+  const out: Record<string, unknown> = {
+    object:
+      typeof c.object === 'string' && c.object.startsWith('cipher') ? c.object : 'cipherDetails',
+    id: c.id,
+    organizationId: orgUuid,
+    folderId: null,
+    collectionIds: Array.isArray(c.collectionIds)
+      ? c.collectionIds.filter((x): x is string => isUuid(x) && collectionIds.has(x))
+      : [],
+  }
+  for (const k of CIPHER_FIELDS) if (k in c) out[k] = c[k]
+  const prefix = `https://${peerDomain}/attachments/${c.id}/`
+  out.attachments = Array.isArray(c.attachments)
+    ? c.attachments.slice(0, 100).flatMap((a) => {
+        const at = (a ?? {}) as Record<string, unknown>
+        if (typeof at.id !== 'string' || !/^[A-Za-z0-9_-]{1,64}$/.test(at.id)) return []
+        const url =
+          typeof at.url === 'string' && at.url.startsWith(`${prefix}${at.id}?`) ? at.url : null
+        return [
+          {
+            object: 'attachment',
+            id: at.id,
+            url,
+            fileName: str(at.fileName),
+            key: str(at.key),
+            size: str(at.size, 32),
+            sizeName: str(at.sizeName, 32),
+          },
+        ]
+      })
+    : null
   return JSON.stringify(out).length <= CAPS.cipherBytes ? out : null
 }

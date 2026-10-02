@@ -237,6 +237,25 @@ interface OrgIndex {
   ciphers: { id: string; digest: string; revisionDate: number }[]
 }
 
+/** Drops records whose id is a local cipher or collection: a peer can never shadow local data. */
+async function withoutLocal<T extends Record<string, unknown> | { id: string }>(
+  db: Db,
+  table: 'ciphers' | 'collections',
+  rows: T[],
+): Promise<T[]> {
+  const t = table === 'ciphers' ? schema.ciphers : schema.collections
+  const local = new Set<string>()
+  const ids = rows.map((r) => (r as { id: string }).id)
+  for (let i = 0; i < ids.length; i += 80) {
+    const found = await db
+      .select({ id: t.uuid })
+      .from(t)
+      .where(inArray(t.uuid, ids.slice(i, i + 80)))
+    for (const f of found) local.add(f.id)
+  }
+  return rows.filter((r) => !local.has((r as { id: string }).id))
+}
+
 /**
  * Organisations the user may hold from `peer`: those of invitations the user accepted from that
  * peer, never a local organisation and never one already replicated from another peer.
@@ -321,13 +340,21 @@ export async function syncUserFromPeer(
       env,
       peer,
     )
-    const collections = sanitizeCollections(index?.collections, org.id)
+    const collections = await withoutLocal(
+      db,
+      'collections',
+      sanitizeCollections(index?.collections, org.id),
+    )
     const collectionIds = new Set(collections.map((c) => c.id as string))
     const collectionsJson = JSON.stringify(collections)
     const policiesJson = JSON.stringify(sanitizePolicies(index?.policies, org.id))
-    const indexed = (Array.isArray(index?.ciphers) ? index.ciphers : [])
-      .filter((c) => isUuid(c?.id) && typeof c.digest === 'string' && c.digest.length <= 128)
-      .slice(0, CAPS.ciphersPerOrg)
+    const indexed = await withoutLocal(
+      db,
+      'ciphers',
+      (Array.isArray(index?.ciphers) ? index.ciphers : [])
+        .filter((c) => isUuid(c?.id) && typeof c.digest === 'string' && c.digest.length <= 128)
+        .slice(0, CAPS.ciphersPerOrg),
+    )
     const listedIds = new Set(indexed.map((c) => c.id))
     // Ids already held for this user under another organisation are never taken over.
     const owned = new Map<string, string>()
@@ -378,7 +405,7 @@ export async function syncUserFromPeer(
         if (!isUuid(c?.id) || !requested.has(c.id) || c.json?.id !== c.id) continue
         if (typeof c.digest !== 'string' || c.digest.length > 128) continue
         requested.delete(c.id)
-        const clean = sanitizeCipher(c.json, org.id, collectionIds)
+        const clean = sanitizeCipher(c.json, org.id, collectionIds, peer.domain)
         if (!clean) continue
         const json = rewriteLinks(JSON.stringify(clean), env, peer)
         statements.push(
@@ -601,14 +628,24 @@ export async function handlePeerEvent(
   }
   const user = await loadUser(env, body.userId)
   if (!user) throw new ApiError(404, 'Unknown federated user.')
-  await syncUserFromPeer(env, user, peer)
   const push = federatedPush(body, user.uuid)
+  const db = createDb(env.DB)
+  const heldIn = async (id: unknown) =>
+    typeof id === 'string' ? (await federatedCipherOrgs(db, user.uuid, [id])).get(id) : undefined
+  // A cipher push must name an item of that organisation: deletes before the refresh removes
+  // it, creates and updates after the refresh brings it in.
+  const isDelete =
+    push?.type === PushType.SyncLoginDelete || push?.type === PushType.SyncCipherDelete
+  const before = isDelete ? await heldIn(push?.payload.Id) : undefined
+  await syncUserFromPeer(env, user, peer)
   if (!push) return
   // Only for organisations this peer actually serves to the user.
   const org = push.payload.OrganizationId
   if (typeof org === 'string') {
-    const row = await replicaOrg(createDb(env.DB), user.uuid, org)
+    const row = await replicaOrg(db, user.uuid, org)
     if (row?.o.peerUuid !== peer.uuid) return
+    const holder = isDelete ? before : await heldIn(push.payload.Id)
+    if (holder !== org) return
   }
   const contextId =
     typeof body.contextId === 'string' && /^[\w.:-]{1,128}$/.test(body.contextId)

@@ -217,6 +217,7 @@ describe('federation between two instances', { timeout: 120_000 }, () => {
       body: fd,
     })
     expect(up.status).toBe(200)
+    expect(up.headers.get('content-security-policy')).toBe("sandbox; default-src 'none'")
     const meta = await alice.json(`/api/ciphers/${id}/attachment/${slot.attachmentId}`)
     expect(meta.url.startsWith(`${net.B.base}/federation/attachments/`)).toBe(true)
     const dl = await net.B.fetch(new URL(meta.url).pathname + new URL(meta.url).search)
@@ -311,6 +312,35 @@ describe('federation between two instances', { timeout: 120_000 }, () => {
     expect((await syncOf(alice)).profile.organizations).toHaveLength(1)
   })
 
+  it('blocks federated members while the organisation uses single sign-on', async () => {
+    const db = net.A.env.DB as D1Database
+    const item = (await syncOf(alice)).ciphers.find(
+      (c: { organizationId: string }) => c.organizationId === orgId,
+    )
+    await db
+      .prepare(
+        "INSERT INTO sso_configs (organization_uuid, enabled, data, created_at, updated_at) VALUES (?1, 1, '{}', 0, 0)",
+      )
+      .bind(orgId)
+      .run()
+    // Forwarded requests are refused at once, and the next pull drops the organisation.
+    const denied = await alice.call(`/api/ciphers/${item.id}`)
+    expect(denied.status).toBe(400)
+    await owner.json('/api/ciphers/create', 'POST', {
+      cipher: cipherBody(orgId, '2.whileSso'),
+      collectionIds: [collectionId],
+    })
+    await net.flush()
+    expect((await syncOf(alice)).profile.organizations).toHaveLength(0)
+    await db.prepare('DELETE FROM sso_configs WHERE organization_uuid = ?1').bind(orgId).run()
+    await owner.json('/api/ciphers/create', 'POST', {
+      cipher: cipherBody(orgId, '2.afterSso'),
+      collectionIds: [collectionId],
+    })
+    await net.flush()
+    expect((await syncOf(alice)).profile.organizations).toHaveLength(1)
+  })
+
   it('purges the replica when the member is removed on the hosting side', async () => {
     const del = await owner.call(`/api/organizations/${orgId}/users/${memberId}`, 'DELETE')
     expect(del.status).toBe(200)
@@ -340,6 +370,19 @@ describe('federation between two instances', { timeout: 120_000 }, () => {
       }).toString(),
     })
     expect(pw.status).toBe(400)
+    // Refused before a device is registered for it.
+    const dev = await (net.A.env.DB as D1Database)
+      .prepare('SELECT count(*) AS n FROM devices WHERE user_uuid = ?1')
+      .bind(alice.uuid)
+      .first<{ n: number }>()
+    expect(dev?.n).toBe(0)
+    // Federated members cannot be owners.
+    const asOwner = await owner.call(`${fed}/organizations/${orgId}/members`, 'POST', {
+      email: 'owner-to-be@example.org',
+      peerId: peerOnA,
+      type: 0,
+    })
+    expect(asOwner.status).toBe(400)
     // Even a validly signed access token is refused unless minted for a peer request.
     const { signAccessToken } = await import('../src/auth/session')
     const row = await (net.A.env.DB as D1Database)

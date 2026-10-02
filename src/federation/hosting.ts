@@ -18,7 +18,7 @@ import {
   requirePermission,
 } from '../orgs/access'
 import { listOrgCipherRows, orgCipherJson } from '../orgs/ciphers'
-import { EventType, PolicyType, Status } from '../orgs/constants'
+import { EventType, PolicyType, Role, Status } from '../orgs/constants'
 import { eventStatement } from '../orgs/events'
 import {
   accessOf,
@@ -59,7 +59,8 @@ export const federatedInviteSchema = z.object({
   type: z
     .number()
     .int()
-    .refine((t) => VALID_ROLES.includes(t), 'Invalid role.'),
+    .refine((t) => VALID_ROLES.includes(t), 'Invalid role.')
+    .refine((t) => t !== Role.Owner, 'Members of another server cannot be owners.'),
   accessAll: z.boolean().nullish(),
   collections: z
     .array(
@@ -89,6 +90,16 @@ export const federatedInviteSchema = z.object({
  * required two-step login, single sign-on (and with it trusted devices and Key Connector), and
  * the Require SSO policy.
  */
+/** True when the organisation may serve federated members right now (see assertFederatable). */
+export async function federatableOrg(db: Db, orgUuid: string): Promise<boolean> {
+  try {
+    await assertFederatable(db, orgUuid)
+    return true
+  } catch {
+    return false
+  }
+}
+
 async function assertFederatable(db: Db, orgUuid: string) {
   if (await twoFactorRequired(db, orgUuid)) throw new ApiError(400, NOT_FEDERATED_2FA)
   const [sso] = await db
@@ -535,7 +546,11 @@ export async function memberOrganizations(
         inArray(schema.usersOrganizations.status, LISTED),
       ),
     )
-  return rows.map((r) => ({
+  // Organisations that turned on SSO, Require SSO or required two-step login stop serving
+  // federated members at once: the serving side purges them on its next pull.
+  const open: typeof rows = []
+  for (const r of rows) if (await federatableOrg(db, r.o.uuid)) open.push(r)
+  return open.map((r) => ({
     id: r.o.uuid,
     status: r.m.status,
     revisionDate: Math.max(r.o.updatedAt, r.m.updatedAt),
@@ -556,7 +571,9 @@ export async function cipherDigest(json: Record<string, unknown>): Promise<strin
 export async function orgView(env: Bindings, user: User, orgUuid: string) {
   const db = createDb(env.DB)
   const profile = (await profileOrganizations(db, user.uuid)).find((o) => o.id === orgUuid)
-  if (!profile) throw new ApiError(404, 'Organization not found.')
+  if (!profile || !(await federatableOrg(db, orgUuid))) {
+    throw new ApiError(404, 'Organization not found.')
+  }
   const ua = await loadUserAccess(db, user.uuid)
   const [collections, cipherRows, policies] = await Promise.all([
     listAccessibleCollections(db, user.uuid, ua),
@@ -642,6 +659,53 @@ export function assertForwardable(
   }
 }
 
+/** The organisations a forwarded request touches: by path, query, body or cipher ids. */
+async function touchedOrgs(db: Db, path: string, query: URLSearchParams, body: Uint8Array) {
+  const orgs = new Set<string>()
+  const org = ORG_PATH.exec(path)?.[1]
+  if (org) orgs.add(org)
+  const q = query.get('organizationId')
+  if (q) orgs.add(q)
+  const b = bodyOrgId(body)
+  if (b) orgs.add(b)
+  const ids: string[] = []
+  const one = /^\/api\/ciphers\/([0-9a-f-]{36})(\/|$)/.exec(path)?.[1]
+  if (one) ids.push(one)
+  const att = /^\/attachments\/([0-9a-f-]{36})\//.exec(path)?.[1]
+  if (att) ids.push(att)
+  try {
+    const parsed = JSON.parse(new TextDecoder().decode(body)) as { ids?: unknown }
+    if (Array.isArray(parsed?.ids))
+      ids.push(...parsed.ids.filter((x): x is string => typeof x === 'string'))
+  } catch {
+    // Not JSON (attachment uploads): the path names the item.
+  }
+  for (const part of chunkIds([...new Set(ids)].slice(0, 500))) {
+    const rows = await db
+      .select({ org: schema.ciphers.organizationUuid })
+      .from(schema.ciphers)
+      .where(inArray(schema.ciphers.uuid, part))
+    for (const r of rows) if (r.org) orgs.add(r.org)
+  }
+  return orgs
+}
+
+async function assertTouchesFederatableOrgs(
+  db: Db,
+  path: string,
+  query: URLSearchParams,
+  body: Uint8Array,
+) {
+  for (const org of await touchedOrgs(db, path, query, body)) {
+    if (!(await federatableOrg(db, org))) {
+      throw new ApiError(
+        400,
+        'This organisation now uses single sign-on or required two-step login, which members of another server cannot use.',
+      )
+    }
+  }
+}
+
 /** Runs a forwarded client request as the stand-in account, through the normal routes. */
 export async function executeForwarded(c: Ctx, user: User, device: string | null, rest: string) {
   const url = new URL(c.req.url)
@@ -652,6 +716,7 @@ export async function executeForwarded(c: Ctx, user: User, device: string | null
   }
   const body = c.var.federation.body
   assertForwardable(c.req.method, path, url.searchParams, body)
+  await assertTouchesFederatableOrgs(createDb(c.env.DB), path, url.searchParams, body)
   const token = await signAccessToken(
     c.env,
     user,

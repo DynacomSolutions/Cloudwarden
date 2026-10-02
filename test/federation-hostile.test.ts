@@ -2,6 +2,8 @@
 // organisations the user accepted from it, rebuilt from allowlists.
 import { env } from 'cloudflare:workers'
 import { beforeAll, describe, expect, it } from 'vitest'
+import { createDb } from '../src/db'
+import { sanitizeResponse } from '../src/federation/forward'
 import { acceptFederatedInvite } from '../src/federation/hosting'
 import {
   federatedProfileOrgs,
@@ -23,6 +25,8 @@ const Z = id()
 const P1 = id()
 const P2 = id()
 const P3 = id()
+const LOCAL_CIPHER = id()
+const LOCAL_COL = id()
 let LOCAL: string
 const requested: string[] = []
 
@@ -61,7 +65,10 @@ const evil = {
           resetPasswordEnrolled: true,
           permissions: { manageResetPassword: true, accessEventLogs: true },
         },
-        collections: [{ id: C1, organizationId: LOCAL, name: '2.c', readOnly: false }],
+        collections: [
+          { id: C1, organizationId: LOCAL, name: '2.c', readOnly: false },
+          { id: LOCAL_COL, organizationId: X, name: '2.local' },
+        ],
         policies: [
           { id: P1, organizationId: X, type: 4, enabled: true },
           { id: P2, organizationId: LOCAL, type: 1, enabled: true },
@@ -71,13 +78,29 @@ const evil = {
           { id: K1, digest: 'a' },
           { id: K2, digest: 'b' },
           { id: Z, digest: 'c' },
+          { id: LOCAL_CIPHER, digest: 'e' },
         ],
       })
     }
     if (p.endsWith(`/organizations/${X}/ciphers`)) {
       return json({
         ciphers: [
-          { id: K1, digest: 'a', json: { id: K1, organizationId: X, collectionIds: [C1, id()] } },
+          {
+            id: K1,
+            digest: 'a',
+            json: {
+              id: K1,
+              organizationId: X,
+              collectionIds: [C1, id()],
+              name: '2.n',
+              evilField: 'x',
+              attachments: [
+                { id: 'a1', url: `https://${EVIL}/attachments/${K1}/a1?token=t`, fileName: '2.f' },
+                { id: 'a2', url: 'https://elsewhere.example.net/x', fileName: '2.f' },
+              ],
+            },
+          },
+          { id: LOCAL_CIPHER, digest: 'e', json: { id: LOCAL_CIPHER, organizationId: X } },
           { id: K2, digest: 'b', json: { id: id(), organizationId: X } },
           { id: K3, digest: 'd', json: { id: K3, organizationId: X } },
           { id: Z, digest: 'c', json: { id: Z, organizationId: X } },
@@ -95,6 +118,7 @@ const benv = {
   FEDERATION_TRANSPORT: evil,
 } as never
 const db = env.DB
+const dbx = () => createDb(env.DB)
 let user: any
 let peerUuid: string
 
@@ -125,6 +149,18 @@ beforeAll(async () => {
       "INSERT INTO organizations (uuid, name, billing_email, created_at, updated_at) VALUES (?1, 'Local', 'b@example.com', 0, 0)",
     )
     .bind(LOCAL)
+    .run()
+  await db
+    .prepare(
+      "INSERT INTO ciphers (uuid, user_uuid, atype, name, data, created_at, updated_at) VALUES (?1, ?2, 1, 'mine', '{}', 0, 0)",
+    )
+    .bind(LOCAL_CIPHER, user.uuid)
+    .run()
+  await db
+    .prepare(
+      "INSERT INTO collections (uuid, organization_uuid, name, created_at, updated_at) VALUES (?1, ?2, 'local', 0, 0)",
+    )
+    .bind(LOCAL_COL, LOCAL)
     .run()
   const peer = (uuid: string, domain: string) =>
     db
@@ -202,6 +238,43 @@ describe('hostile hosting peer', () => {
     expect(data.collections).toEqual([expect.objectContaining({ id: C1, organizationId: X })])
     const k1 = data.ciphers.find((c: any) => c.id === K1)
     expect(k1.collectionIds).toEqual([C1])
+    expect(k1).not.toHaveProperty('evilField')
+    expect(k1.name).toBe('2.n')
+    expect(k1.attachments[0].url).toContain('/federation/attachments/')
+    expect(k1.attachments[1].url).toBeNull()
+    // Ids of local items and collections are never taken by a peer.
+    expect(data.ciphers.find((c: any) => c.id === LOCAL_CIPHER)).toBeUndefined()
+    expect(data.collections.find((c: any) => c.id === LOCAL_COL)).toBeUndefined()
+
+    // Forwarded answers go through the same allowlist.
+    const p2 = { ...peer, uuid: peer.uuid, domain: peer.domain }
+    await expect(
+      sanitizeResponse(
+        dbx(),
+        user,
+        p2,
+        { object: 'cipherDetails', id: K1, organizationId: LOCAL },
+        undefined,
+      ),
+    ).rejects.toThrow(/invalid item/)
+    await expect(
+      sanitizeResponse(dbx(), user, p2, { object: 'cipherDetails', id: K2, organizationId: X }, K1),
+    ).rejects.toThrow(/invalid item/)
+    const list = (await sanitizeResponse(
+      dbx(),
+      user,
+      p2,
+      {
+        object: 'list',
+        data: [
+          { object: 'cipherDetails', id: K1, organizationId: X, evilField: 1 },
+          { object: 'cipherDetails', id: K2, organizationId: Y },
+        ],
+      },
+      undefined,
+    )) as any
+    expect(list.data.map((d: any) => d.id)).toEqual([K1])
+    expect(list.data[0]).not.toHaveProperty('evilField')
     // Mismatched, unrequested and foreign ids were dropped; Y's item is untouched.
     expect(data.ciphers.find((c: any) => c.id === K2)).toBeUndefined()
     expect(data.ciphers.find((c: any) => c.id === K3)).toBeUndefined()

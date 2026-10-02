@@ -22,6 +22,7 @@ import {
   rewriteLinks,
   syncUserFromPeer,
 } from './replica'
+import { sanitizeCipher } from './sanitize'
 
 type Ctx = Context<Env>
 
@@ -163,6 +164,59 @@ interface ForwardOptions {
   after?: (json: unknown) => Promise<void>
 }
 
+/**
+ * Cipher views in a forwarded answer go through the same allowlist as the replica: they must
+ * belong to an organisation this peer serves to the user (and be the item asked for); other
+ * items are dropped, and a single bad item fails the call.
+ */
+export async function sanitizeResponse(
+  db: Db,
+  user: User,
+  peer: Peer,
+  json: unknown,
+  expectId: string | undefined,
+): Promise<unknown> {
+  const orgs = await db
+    .select()
+    .from(schema.federationReplicaOrgs)
+    .where(
+      and(
+        eq(schema.federationReplicaOrgs.userUuid, user.uuid),
+        eq(schema.federationReplicaOrgs.peerUuid, peer.uuid),
+      ),
+    )
+  const cols = new Map(
+    orgs.map((o) => [
+      o.organizationUuid,
+      new Set((JSON.parse(o.collectionsJson) as { id: string }[]).map((x) => x.id)),
+    ]),
+  )
+  const clean = (item: Record<string, unknown>) => {
+    const org = item.organizationId
+    const set = typeof org === 'string' ? cols.get(org) : undefined
+    return set ? sanitizeCipher(item, org as string, set, peer.domain) : null
+  }
+  const bad = () => new ApiError(502, 'The home instance of the organisation sent an invalid item.')
+  if (isCipher(json)) {
+    const out = clean(json)
+    if (!out || (expectId && out.id !== expectId)) throw bad()
+    return out
+  }
+  if (json && typeof json === 'object') {
+    const o = { ...(json as Record<string, unknown>) }
+    if (isCipher(o.cipherResponse)) {
+      const out = clean(o.cipherResponse)
+      if (!out || (expectId && out.id !== expectId)) throw bad()
+      o.cipherResponse = out
+    }
+    if (Array.isArray(o.data) && o.data.some(isCipher)) {
+      o.data = o.data.flatMap((d) => (isCipher(d) ? (clean(d) ?? []) : [d]))
+    }
+    return o
+  }
+  return json
+}
+
 /** Sends the current request (or a rewritten one) to the hosting side and relays the answer. */
 export async function forward(
   c: Ctx,
@@ -203,19 +257,25 @@ export async function forward(
   const type = res.headers.get('content-type') ?? ''
   if (!type.includes('json')) {
     if (res.ok && write) await refresh(c, user, peer)
-    const headers = new Headers()
-    for (const h of ['content-type', 'content-disposition', 'content-length']) {
-      const v = res.headers.get(h)
-      if (v) headers.set(h, v)
-    }
+    // Never the peer's own type or disposition: nothing a peer returns runs on this origin.
+    const headers = new Headers({
+      'content-type': 'application/octet-stream',
+      'content-disposition': 'attachment',
+      'content-security-policy': "sandbox; default-src 'none'",
+      'x-content-type-options': 'nosniff',
+    })
     return new Response(res.body, { status: res.status, headers })
   }
-  const text = rewriteLinks(await res.text(), c.env, peer)
   let json: unknown = null
   try {
-    json = JSON.parse(text)
+    json = JSON.parse(await res.text())
   } catch {
     json = null
+  }
+  if (res.ok) {
+    const expectId = opts.folderFor && opts.folderFor !== 'new' ? opts.folderFor : undefined
+    json = await sanitizeResponse(db, user, peer, json, expectId)
+    json = JSON.parse(rewriteLinks(JSON.stringify(json), c.env, peer))
   }
   if (res.ok) {
     const target =

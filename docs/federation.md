@@ -205,8 +205,15 @@ These are refused with a clear message (400) for federated members:
 - Deleting the organisation from the serving side. Administer the organisation on its home
   instance; the Admin Console of a federated organisation on B is not supported.
 
-Policies of the federated organisation are synced to the clients (which enforce the client-side
-ones), but server-side policy checks on B (single organisation, personal ownership) do not see
+Turning on single sign-on, Require SSO or required two-step login in an organisation that
+already has federated members blocks them at once: the hosting side stops listing the
+organisation to their home instances (which purge it) and refuses their forwarded requests. They
+return if the setting is turned off again. Federated members cannot be owners.
+
+The hosting organisation's client-side policies (master password requirements, password
+generator, personal ownership, Send options, vault timeout, export) apply to federated members
+through their clients exactly as for local members. Policies of the federated organisation are
+synced to the clients (which enforce the client-side ones), but server-side policy checks on B (single organisation, personal ownership) do not see
 federated organisations.
 
 ## Threat model

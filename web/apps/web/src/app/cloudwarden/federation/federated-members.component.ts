@@ -72,7 +72,6 @@ const ROLE_KEYS: Record<number, string> = { 0: "owner", 1: "admin", 2: "user", 4
                 <select bitInput formControlName="type">
                   <option [ngValue]="2">{{ "user" | i18n }}</option>
                   <option [ngValue]="1">{{ "admin" | i18n }}</option>
-                  <option [ngValue]="0">{{ "owner" | i18n }}</option>
                 </select>
               </bit-form-field>
               <bit-form-control class="tw-mt-6">

@@ -42,6 +42,11 @@ export interface Bindings {
   PUSH_RELAY_URI?: string
   /** Identity address that issues the relay token; default https://identity.bitwarden.com (EU: https://identity.bitwarden.eu). */
   PUSH_IDENTITY_URI?: string
+  /**
+   * Key (32+ characters) that encrypts organisation API keys, SCIM keys and integration tokens at
+   * rest (TASKS #270). Optional: without it a key derived from JWT_SECRET is used.
+   */
+  DATA_ENCRYPTION_KEY?: string
   /** Comma-separated addresses that are instance admins (the account must also be email verified). */
   ADMIN_EMAILS?: string
   /** Yubico API client id and base64 secret key for YubiKey OTP two-factor (key portal). */
@@ -103,6 +108,8 @@ export type SmActor =
 
 /** Values set on the Hono context by `requireAuth`. */
 export interface Variables {
+  /** Set by `requireOrgApiAuth` on Public API routes (TASKS #271). */
+  orgApi?: { organizationUuid: string }
   /** Set by `requireSmAuth` on Secrets Manager routes. */
   sm?: SmActor
   user: User

@@ -42,6 +42,7 @@ pnpm exec cf workers secrets update ADMIN_EMAILS      # comma-separated admin ad
 # optional mobile push (docs/push-notifications.md):
 # pnpm exec cf workers secrets update PUSH_INSTALLATION_ID
 # pnpm exec cf workers secrets update PUSH_INSTALLATION_KEY
+pnpm exec cf workers secrets update DATA_ENCRYPTION_KEY  # 32+ characters; seals API keys and integration tokens (docs/integrations.md)
 ```
 
 Optional, for YubiKey OTP two-factor (see `docs/two-factor.md`): `YUBICO_CLIENT_ID` and

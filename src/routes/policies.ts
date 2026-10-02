@@ -6,16 +6,11 @@ import { verifyPurposeToken } from '../auth/purpose-token'
 import { createDb, schema } from '../db'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
-import { bumpOrgRevision, requireMember, requirePermission } from '../orgs/access'
-import { EventType, PolicyType } from '../orgs/constants'
-import { eventStatement } from '../orgs/events'
-import {
-  emptyPolicyJson,
-  type PolicyRow,
-  policyJson,
-  revokeNonCompliantMembers,
-} from '../orgs/policies'
-import { authOnce, batch } from '../orgs/util'
+import { requireMember, requirePermission } from '../orgs/access'
+import { PolicyType } from '../orgs/constants'
+import { emptyPolicyJson, type PolicyRow, policyJson } from '../orgs/policies'
+import { savePolicy } from '../orgs/policy-save'
+import { authOnce } from '../orgs/util'
 import { parseBody } from '../validation'
 import { INVITE_PURPOSE } from './org-users'
 
@@ -94,44 +89,12 @@ const saveSchema = z.union([
   policyBody,
 ])
 
-const savePolicy = async (c: Ctx) => {
+const saveHandler = async (c: Ctx) => {
   const type = typeParam(c)
   const body = await parseBody(c, saveSchema)
   const db = createDb(c.env.DB)
   await requirePermission(db, c.var.user.uuid, org(c), 'managePolicies')
-  const existing = await findPolicy(c, type)
-  const uuid = existing?.uuid ?? crypto.randomUUID()
-  const now = Date.now()
-  const data = body.data ? JSON.stringify(body.data) : null
-  await batch(db, [
-    db
-      .insert(schema.policies)
-      .values({
-        uuid,
-        organizationUuid: org(c),
-        atype: type,
-        enabled: body.enabled,
-        data,
-        updatedAt: now,
-      })
-      .onConflictDoUpdate({
-        target: [schema.policies.organizationUuid, schema.policies.atype],
-        set: { enabled: body.enabled, data, updatedAt: now },
-      }),
-    // Members who cannot meet a newly required two-step login are revoked, owners excepted.
-    ...(type === PolicyType.TwoFactorAuthentication && body.enabled
-      ? [revokeNonCompliantMembers(db, org(c), now)]
-      : []),
-    eventStatement(db, c, {
-      type: EventType.PolicyUpdated,
-      organizationUuid: org(c),
-      policyUuid: uuid,
-    }),
-    bumpOrgRevision(db, org(c), now),
-  ])
-  const row = await findPolicy(c, type)
-  if (!row) throw new ApiError(500, 'Policy was not saved.')
-  return c.json(policyJson(row))
+  return c.json(policyJson(await savePolicy(c, db, org(c), type, body)))
 }
-policies.put('/api/organizations/:orgId/policies/:type', savePolicy)
-policies.put('/api/organizations/:orgId/policies/:type/vnext', savePolicy)
+policies.put('/api/organizations/:orgId/policies/:type', saveHandler)
+policies.put('/api/organizations/:orgId/policies/:type/vnext', saveHandler)

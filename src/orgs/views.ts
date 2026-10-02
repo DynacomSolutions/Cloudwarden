@@ -9,11 +9,12 @@ export type OrgRow = typeof schema.organizations.$inferSelect
 /** Plan and feature flags: every organisation behaves like a self-hosted enterprise one. */
 const FEATURES = {
   useGroups: true,
-  useDirectory: false,
+  // Directory Connector and the Public API (TASKS #271, #272).
+  useDirectory: true,
   useEvents: true,
   useTotp: true,
   use2fa: true,
-  useApi: false,
+  useApi: true,
   useResetPassword: false,
   // Secrets Manager API (TASKS #220); members still need `accessSecretsManager`.
   useSecretsManager: true,
@@ -59,7 +60,7 @@ export const profileOrgJson = (o: OrgRow, m: Member) => ({
   useSso: false,
   useOrganizationDomains: false,
   useKeyConnector: false,
-  useScim: false,
+  useScim: true,
   useCustomPermissions: true,
   useActivateAutofillPolicy: true,
   useAutomaticUserConfirmation: false,

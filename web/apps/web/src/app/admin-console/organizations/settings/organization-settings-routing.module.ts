@@ -48,6 +48,16 @@ const routes: Routes = [
         },
       },
       {
+        // Cloudwarden: native SCIM settings page (web/NOTICE.md, docs/integrations.md).
+        path: "scim",
+        loadComponent: () =>
+          import("../../../cloudwarden/org-integrations/scim-settings.component").then(
+            (m) => m.ScimSettingsComponent,
+          ),
+        canActivate: [organizationPermissionsGuard((o) => o.canManageScim)],
+        data: { titleId: "scim" },
+      },
+      {
         path: "tools",
         children: [
           {

@@ -20,6 +20,8 @@ export interface EventInput {
   /** Machine account that acted, or that the event is about. */
   serviceAccountUuid?: string | null
   grantedServiceAccountUuid?: string | null
+  /** Non-member actor: 1 SCIM, 3 Public API (TASKS #270). */
+  systemUser?: number | null
   date?: number
 }
 
@@ -55,6 +57,7 @@ export function eventStatement(
     projectUuid: e.projectUuid ?? null,
     serviceAccountUuid: e.serviceAccountUuid ?? null,
     grantedServiceAccountUuid: e.grantedServiceAccountUuid ?? null,
+    systemUser: e.systemUser ?? null,
     deviceType: meta.deviceType,
     ipAddress: meta.ipAddress,
     eventDate: e.date ?? Date.now(),
@@ -82,7 +85,7 @@ export function eventJson(e: typeof schema.events.$inferSelect) {
     deviceType: e.deviceType,
     ipAddress: e.ipAddress,
     installationId: null,
-    systemUser: null,
+    systemUser: e.systemUser,
     domainName: null,
     secretId: e.secretUuid,
     projectId: e.projectUuid,
@@ -114,7 +117,12 @@ function decodeCursor(token: string | undefined): { date: number; uuid: string }
 }
 
 /** One page of events, newest first, filtered by `where` and the request's start, end and cursor. */
-export async function listEvents(db: Db, c: Context<Env>, where: SQL | undefined) {
+export async function listEvents(
+  db: Db,
+  c: Context<Env>,
+  where: SQL | undefined,
+  map: (e: typeof schema.events.$inferSelect) => unknown = eventJson,
+) {
   const start = parseDate(c.req.query('start'))
   const end = parseDate(c.req.query('end'))
   const cursor = decodeCursor(c.req.query('continuationToken'))
@@ -137,7 +145,7 @@ export async function listEvents(db: Db, c: Context<Env>, where: SQL | undefined
   const last = page[page.length - 1]
   return {
     object: 'list',
-    data: page.map(eventJson),
+    data: page.map(map),
     continuationToken: rows.length > EVENT_PAGE_SIZE && last ? encodeCursor(last) : null,
   }
 }

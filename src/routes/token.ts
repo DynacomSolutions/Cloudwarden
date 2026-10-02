@@ -22,6 +22,7 @@ import { WebAuthnError } from '../auth/webauthn'
 import { createDb, schema } from '../db'
 import type { Env, User } from '../env'
 import { oauthError, sendAccessError } from '../errors'
+import { organizationLoginGrant } from '../orgs/api-keys'
 import { rateLimit, tooManyRequests } from '../ratelimit'
 import { MACHINE_SCOPE, machineLoginGrant } from '../sm/auth'
 import {
@@ -380,6 +381,8 @@ token.post('/identity/connect/token', rateLimit('token'), async (c) => {
     case 'client_credentials':
       // Secrets Manager machine accounts log in with their access token (TASKS #220).
       if ((form.scope ?? '').split(' ').includes(MACHINE_SCOPE)) return machineLoginGrant(c, form)
+      // Organisation API key: Public API and Directory Connector (TASKS #270).
+      if ((form.client_id ?? '').startsWith('organization.')) return organizationLoginGrant(c, form)
       return clientCredentialsGrant(c, form)
     case 'send_access':
       return sendAccessGrant(c, form)

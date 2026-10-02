@@ -1,0 +1,9 @@
+{
+  "version": "2026.9.0",
+  "url": "https://github.com/bitwarden/directory-connector/releases/download/v2026.9.0/bwdc-linux-2026.9.0.zip",
+  "sha256": "306e656d883f75291060a6daf6e67a44646a6d68c5293af91e252ca662fd24bd",
+  "libatomic": {
+    "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gcc-12/libatomic1_12.3.0-1ubuntu1~22.04.3_amd64.deb",
+    "sha256": "56573c81b5dd84817882400cfea49fe671f5e6cfdd0f88b5d3a894c08b150462"
+  }
+}

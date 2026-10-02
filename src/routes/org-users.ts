@@ -148,7 +148,7 @@ function inviteLink(c: Ctx, orgRow: { uuid: string; name: string }, m: Member, t
   return `${c.env.DOMAIN.replace(/\/+$/, '')}/#/accept-organization?${q.toString()}`
 }
 
-async function sendInvite(c: Ctx, orgRow: { uuid: string; name: string }, m: Member) {
+export async function sendInvite(c: Ctx, orgRow: { uuid: string; name: string }, m: Member) {
   const transport = createEmailTransport(c.env)
   if (!transport.configured || !m.email) return
   const token = await signPurposeToken(

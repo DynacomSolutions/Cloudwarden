@@ -49,6 +49,7 @@ export const cipherSchema = z.object({
   secureNote: opaque.optional(),
   sshKey: opaque.optional(),
   lastKnownRevisionDate: nullishString,
+  archivedDate: nullishString,
 })
 export type CipherBody = z.infer<typeof cipherSchema>
 
@@ -102,7 +103,7 @@ export function cipherJson({ cipher, folderId }: CipherRow, attachments: unknown
     revisionDate: iso(cipher.updatedAt),
     creationDate: iso(cipher.createdAt),
     deletedDate: cipher.deletedAt == null ? null : iso(cipher.deletedAt),
-    archivedDate: null,
+    archivedDate: cipher.archivedAt == null ? null : iso(cipher.archivedAt),
     reprompt: cipher.reprompt ?? 0,
     key: cipher.key,
     edit: true,
@@ -158,6 +159,13 @@ export async function requireFolder(db: Db, userUuid: string, folderId: string):
 export function rejectUnsupported(body: { organizationId?: string | null }) {
   // TODO(TASKS #63): organisation ciphers arrive with Phase 3.
   if (body.organizationId) throw new ApiError(400, 'Organizations are not supported yet.')
+}
+
+/** The archive date a new item arrives with (imports of archived items); updates never carry one. */
+export function archivedAtOf(body: CipherBody): number | null {
+  if (!body.archivedDate) return null
+  const ms = Date.parse(body.archivedDate)
+  return Number.isNaN(ms) ? null : ms
 }
 
 /** Column values shared by insert and update. */

@@ -14,6 +14,7 @@ import { parseBody } from '../validation'
 import { attachmentKeys, cipherResponses, userAttachmentKeys } from '../vault/attachments'
 import { deleteBlobs } from '../vault/blobs'
 import {
+  archivedAtOf,
   bumpRevision,
   type CipherBody,
   checkRevision,
@@ -64,6 +65,7 @@ async function createCipher(c: Ctx, body: CipherBody) {
       uuid: id,
       userUuid: user.uuid,
       ...cipherValues(body),
+      archivedAt: archivedAtOf(body),
       createdAt: now,
       updatedAt: now,
     }),
@@ -150,6 +152,7 @@ ciphers.post('/api/ciphers/import', async (c) => {
             uuid: cipherIds[i] as string,
             userUuid: user.uuid,
             ...cipherValues(ci),
+            archivedAt: archivedAtOf(ci),
             createdAt: now,
             updatedAt: now,
           }),

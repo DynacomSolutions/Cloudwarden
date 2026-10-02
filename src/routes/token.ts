@@ -21,15 +21,24 @@ import { findUserByEmail } from '../auth/users'
 import { WebAuthnError } from '../auth/webauthn'
 import { createDb, schema } from '../db'
 import type { Env, User } from '../env'
-import { oauthError } from '../errors'
-import { rateLimit } from '../ratelimit'
+import { oauthError, sendAccessError } from '../errors'
+import { rateLimit, tooManyRequests } from '../ratelimit'
 import { MACHINE_SCOPE, machineLoginGrant } from '../sm/auth'
 import {
   checkSendPassword,
+  requestSendCode,
   SEND_TOKEN_TTL_SECONDS,
   signSendAccessToken,
+  verifySendCode,
 } from '../vault/send-access'
-import { sendUuidFrom, unavailable } from '../vault/sends'
+import {
+  authTypeOf,
+  normaliseEmail,
+  SEND_AUTH_EMAIL,
+  SEND_AUTH_PASSWORD,
+  sendUuidFrom,
+  unavailable,
+} from '../vault/sends'
 import { AUTH_REQUEST_TTL_MS } from './auth-requests'
 
 export const token = new Hono<Env>()
@@ -303,8 +312,10 @@ async function clientCredentialsGrant(c: Ctx, form: Form) {
 }
 
 /**
- * `send_access` grant: issues a short-lived token naming one Send, after the password check.
- * The grant shape is inferred from the client error types; see the contract (TASKS #14).
+ * `send_access` grant: issues a short-lived token naming one Send once the recipient has met its
+ * authentication: nothing, a password hash (`password_hash_b64`), or an emailed code (`email`
+ * first, which mails the code, then `email` and `otp`). Errors carry `send_access_error_type`,
+ * which the client SDK maps to the next step of the page.
  */
 async function sendAccessGrant(c: Ctx, form: Form) {
   const db = createDb(c.env.DB)
@@ -313,14 +324,38 @@ async function sendAccessGrant(c: Ctx, form: Form) {
     ? await db.select().from(schema.sends).where(eq(schema.sends.uuid, uuid)).limit(1)
     : []
   if (!send || unavailable(send, Date.now())) {
-    return oauthError(c, 'invalid_grant', 'send_id_invalid', 'Send not found.')
+    return sendAccessError(c, 'invalid_grant', 'send_id_invalid', 'Send not found.')
   }
-  const check = await checkSendPassword(send, form.password_hash_b64)
-  if (check === 'required') {
-    return oauthError(c, 'invalid_request', 'password_hash_b64_required', 'Password required.')
-  }
-  if (check === 'invalid') {
-    return oauthError(c, 'invalid_request', 'password_hash_b64_invalid', 'Invalid password.')
+  const kind = authTypeOf(send)
+  if (kind === SEND_AUTH_PASSWORD) {
+    const check = await checkSendPassword(send, form.password_hash_b64)
+    if (check === 'required') {
+      return sendAccessError(
+        c,
+        'invalid_request',
+        'password_hash_b64_required',
+        'Password required.',
+      )
+    }
+    if (check === 'invalid') {
+      return sendAccessError(c, 'invalid_grant', 'password_hash_b64_invalid', 'Invalid password.')
+    }
+  } else if (kind === SEND_AUTH_EMAIL) {
+    const email = normaliseEmail(form.email ?? '')
+    if (!email) return sendAccessError(c, 'invalid_request', 'email_required', 'Email required.')
+    const otp = (form.otp ?? '').trim()
+    const needCode = () =>
+      sendAccessError(
+        c,
+        'invalid_request',
+        'email_and_otp_required',
+        'Email and verification code required.',
+      )
+    if (!otp) {
+      if (!(await requestSendCode(c, db, send, email))) return tooManyRequests(c)
+      return needCode()
+    }
+    if (!(await verifySendCode(c, db, send, email, otp))) return needCode()
   }
   return c.json({
     access_token: await signSendAccessToken(c.env, send),

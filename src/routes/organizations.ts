@@ -13,6 +13,7 @@ import {
   requireOrg,
   requireOwner,
 } from '../orgs/access'
+import { dropMemberStateFor } from '../orgs/ciphers'
 import { EventType, Role, Status } from '../orgs/constants'
 import { eventStatement } from '../orgs/events'
 import { assertNotLastOwner } from '../orgs/members'
@@ -203,6 +204,7 @@ organizations.post('/api/organizations/:id/leave', async (c) => {
   const m = await requireMember(db, c.var.user.uuid, id)
   await assertNotLastOwner(db, id, m)
   await runBatch(db, [
+    ...dropMemberStateFor(db, c.var.user.uuid, id),
     db
       .delete(schema.usersOrganizations)
       .where(

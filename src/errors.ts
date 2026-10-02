@@ -33,3 +33,23 @@ export const oauthError = (
     { error, error_description: description, ErrorModel: { Message: message, Object: 'error' } },
     400,
   )
+
+/**
+ * Error of the `send_access` grant. The SDK reads `send_access_error_type` to tell a missing
+ * password from a wrong one, an unknown Send, or a step of the email code flow.
+ */
+export const sendAccessError = (
+  c: Context<Env>,
+  error: 'invalid_request' | 'invalid_grant',
+  type: string,
+  message: string,
+) =>
+  c.json(
+    {
+      error,
+      error_description: message,
+      send_access_error_type: type,
+      ErrorModel: { Message: message, Object: 'error' },
+    },
+    400,
+  )

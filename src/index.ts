@@ -10,6 +10,7 @@ import { accountEmail } from './routes/account-email'
 import { accounts } from './routes/accounts'
 import { alive } from './routes/alive'
 import { appId } from './routes/app-id'
+import { archive } from './routes/archive'
 import { downloadAttachment } from './routes/attachments'
 import { authRequests } from './routes/auth-requests'
 import { ciphers } from './routes/ciphers'
@@ -76,6 +77,7 @@ app.route('/', groupsRouter)
 app.route('/', policies)
 app.route('/', events)
 app.route('/', emergencyAccess)
+app.route('/', archive)
 app.route('/', orgCiphers)
 app.route('/', ciphers)
 app.route('/', folders)

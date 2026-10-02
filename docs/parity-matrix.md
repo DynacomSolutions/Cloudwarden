@@ -30,8 +30,8 @@ Directory Connector, SCIM, event integrations; G this audit.
 | | Rows |
 |---|---|
 | Distinct method and path pairs | 625 |
-| Implemented (including self-host answers) | 338 |
-| Owned by workstreams A to F, not yet implemented | 88 |
+| Implemented (including self-host answers) | 342 |
+| Owned by workstreams A to F, not yet implemented | 84 |
 | Remaining for G | 107 |
 | Not called by any client (SDK-generated only) | 92 |
 
@@ -316,9 +316,9 @@ Directory Connector, SCIM, event integrations; G this audit.
 | DELETE | `/api/organizations/{id}/access-rules/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | GET | `/api/organizations/{id}/access-rules/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | PUT | `/api/organizations/{id}/access-rules/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/organizations/{id}/api-key` | sdk, web | missing | F |  |
-| GET | `/api/organizations/{id}/api-key-information` | web | missing | F |  |
-| GET | `/api/organizations/{id}/api-key-information/{type}` | sdk, web | missing | F |  |
+| POST | `/api/organizations/{id}/api-key` | sdk, web | implemented | F |  |
+| GET | `/api/organizations/{id}/api-key-information` | web | implemented | F |  |
+| GET | `/api/organizations/{id}/api-key-information/{type}` | sdk, web | implemented | F |  |
 | GET | `/api/organizations/{id}/auth-requests` | sdk | missing | C |  |
 | POST | `/api/organizations/{id}/auth-requests` | sdk | missing | C |  |
 | POST | `/api/organizations/{id}/auth-requests/{id}` | sdk | missing | C |  |
@@ -412,7 +412,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/api/organizations/{orgId}/projects` | bws, web | implemented |  |  |
 | GET | `/api/organizations/(id)/public-key` | ios, sdk | missing | C |  |
 | POST | `/api/organizations/{id}/reinstate` | sdk, web | missing | G |  |
-| POST | `/api/organizations/{id}/rotate-api-key` | sdk, web | missing | F |  |
+| POST | `/api/organizations/{id}/rotate-api-key` | sdk, web | implemented | F |  |
 | POST | `/api/organizations/{id}/seat` | sdk, web | missing | G |  |
 | GET | `/api/organizations/{orgId}/secrets` | bws, web | implemented |  |  |
 | POST | `/api/organizations/{orgId}/secrets` | bws, web | implemented |  |  |

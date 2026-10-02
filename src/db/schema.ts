@@ -817,6 +817,8 @@ export const orgIntegrations = sqliteTable(
     updatedAt: updatedAt(),
   },
   (t) => [index('org_integrations_organization_idx').on(t.organizationUuid)],
+)
+
 // ----- Notification centre and security tasks (TASKS #231) -----
 
 /**

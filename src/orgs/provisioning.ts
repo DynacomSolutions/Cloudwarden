@@ -35,6 +35,7 @@ export async function invitedMember(db: Db, orgUuid: string, input: NewMember): 
     resetPasswordKey: null,
     externalId: input.externalId ?? null,
     accessSecretsManager: false,
+    accessPam: false,
     createdAt: now,
     updatedAt: now,
   }
@@ -93,6 +94,7 @@ export const systemActor = (orgUuid: string): Member => ({
   resetPasswordKey: null,
   externalId: null,
   accessSecretsManager: false,
+  accessPam: false,
   createdAt: 0,
   updatedAt: 0,
 })

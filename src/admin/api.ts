@@ -1,7 +1,7 @@
 // JSON admin API for the native admin pages in the web vault (TASKS #150).
 // Bearer auth (the vault's own access token) plus an admin check; never cookie based.
 import { type Context, Hono } from 'hono'
-import { requireAuth } from '../auth/middleware'
+import { authenticateAccessToken, requireAuth } from '../auth/middleware'
 import type { EmailTransport } from '../email'
 import type { Bindings, Env } from '../env'
 import { ApiError, errorBody } from '../errors'
@@ -45,6 +45,15 @@ const notFound = (what: string) => new ApiError(404, `${what} not found`)
 export function createAdminApi(deps: AdminApiDeps = {}) {
   const api = new Hono<Env>()
 
+  // Used by the web client to decide whether to show the Instance admin pages.
+  api.get('/api/cloudwarden/me', async (c) => {
+    c.header('Cache-Control', 'no-store')
+    const match = /^Bearer\s+(\S+)$/i.exec(c.req.header('Authorization') ?? '')
+    const authed = match?.[1] ? await authenticateAccessToken(c.env, match[1]) : null
+    if (!authed) return c.json(errorBody('Unauthorized'), 401)
+    return c.json({ isAdmin: isAdminUser(c.env, authed.user), email: authed.user.email })
+  })
+
   api.use(`${PREFIX}/*`, async (c, next) => {
     c.header('Cache-Control', 'no-store')
     await next()
@@ -81,7 +90,7 @@ export function createAdminApi(deps: AdminApiDeps = {}) {
   })
 
   api.get(`${PREFIX}/diagnostics`, async (c) => {
-    const d = await diagnostics(c.env.DB, Date.now())
+    const d = await diagnostics(c.env.DB)
     return c.json({
       storage: {
         attachments: d.attachments,
@@ -92,7 +101,6 @@ export function createAdminApi(deps: AdminApiDeps = {}) {
       },
       server: serverConfig(c.env, emailTransportFor(c.env, deps.emailTransport)),
       pendingInvitations: d.pendingInvitations,
-      activeAdminSessions: d.activeAdminSessions,
     })
   })
 

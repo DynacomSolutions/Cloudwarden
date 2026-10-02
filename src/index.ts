@@ -7,7 +7,6 @@ import { errorKind, log, requestLogger } from './log'
 import { securityHeaders } from './middleware'
 import { orgChangeNotifier, secretsRevisionOnMemberChange } from './orgs/notify'
 import { accounts } from './routes/accounts'
-import { admin } from './routes/admin'
 import { alive } from './routes/alive'
 import { appId } from './routes/app-id'
 import { downloadAttachment } from './routes/attachments'
@@ -86,7 +85,6 @@ app.route('/', twofactor)
 app.route('/', webauthn)
 app.route('/', authRequests)
 app.route('/', notifications)
-app.route('/', admin)
 app.route('/', adminApi)
 
 app.notFound((c) => c.json({ message: 'Not found', validationErrors: null, object: 'error' }, 404))

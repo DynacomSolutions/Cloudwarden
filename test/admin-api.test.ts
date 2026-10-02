@@ -262,7 +262,6 @@ describe('admin API reads', () => {
       signupsAllowed: true,
       adminEnabled: true,
       emailConfigured: false,
-      magicLinkAdminsConfigured: true,
       jwtSecretConfigured: true,
     })
     expect(JSON.stringify(body)).not.toMatch(/secret-test/)
@@ -336,7 +335,6 @@ describe('admin API reads', () => {
     expect(diag.server.version).toEqual(expect.any(String))
     expect(diag).toMatchObject({
       pendingInvitations: expect.any(Number),
-      activeAdminSessions: expect.any(Number),
     })
   })
 })

@@ -1,7 +1,7 @@
 import { bindings, defineConfig, exports, triggers } from 'cf/config'
 
 // Secrets (set with `cf workers secrets update`, never committed): JWT_SECRET (32+ characters),
-// JWT_SECRET_PREVIOUS (only while rotating), ADMIN_EMAILS, ADMIN_TOKEN_HASH. Deploy-time values
+// JWT_SECRET_PREVIOUS (only while rotating), ADMIN_EMAILS. Deploy-time values
 // come from the environment (see docs/deploy.md); the committed defaults are placeholders.
 const env = process.env
 const domain = env.DEPLOY_DOMAIN || undefined
@@ -17,8 +17,9 @@ export default defineConfig({
     assets: {
       htmlHandling: 'auto-trailing-slash',
       notFoundHandling: 'single-page-application',
-      // The Worker handles API, auth, admin, push, icon, events and health routes first, so a
-      // static file can never shadow them.
+      // The Worker handles API, auth, push, icon, events and health routes first, so a static
+      // file can never shadow them. `/admin*` stays worker-first so the removed server-rendered
+      // admin returns the standard 404 JSON instead of the single-page fallback (the vault).
       runWorkerFirst: [
         '/api/*',
         '/identity/*',

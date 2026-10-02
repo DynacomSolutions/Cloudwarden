@@ -70,10 +70,6 @@ jobs:
             echo "built HTML contains an inline script, which the CSP would block"
             exit 1
           fi
-          if grep -q 'cloudwarden/admin-link.js' "$out/index.html"; then
-            echo "built index.html still references the old admin link script"
-            exit 1
-          fi
           echo "built assets carry the Cloudwarden build marker"
       - name: Apply D1 migrations
         env:
@@ -94,6 +90,12 @@ jobs:
             code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "https://${DEPLOY_DOMAIN}/alive" || true)
             if [ "$code" = "200" ]; then
               echo "alive check passed"
+              # The server-rendered admin is gone: /admin must be the standard 404 JSON, not the vault.
+              admin=$(curl -s -o /dev/null -w '%{http_code} %{content_type}' --max-time 10 "https://${DEPLOY_DOMAIN}/admin" || true)
+              case "$admin" in
+                "404 application/json"*) echo "/admin is 404 JSON" ;;
+                *) echo "/admin returned: ${admin}"; exit 1 ;;
+              esac
               exit 0
             fi
             echo "attempt ${attempt}: status ${code}"

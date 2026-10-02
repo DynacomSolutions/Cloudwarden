@@ -11,8 +11,8 @@ implementation is still in `TASKS.md` are modelled against the intended design a
 | Vault ciphertext (ciphers, folders, sends, attachments) | The user's secrets; encrypted client-side, server never holds keys |
 | Account key material (`akey`, private key, KDF parameters) | Wrapped by the master key; theft enables offline guessing |
 | Master password hash (server-side hash of the client hash) | Authenticates login; offline guessing target |
-| Tokens (access, refresh, device, admin session, magic link) | Bearer credentials |
-| `JWT_SECRET`, `ADMIN_TOKEN_HASH` | Forging tokens, admin access |
+| Tokens (access, refresh, device) | Bearer credentials |
+| `JWT_SECRET` | Forging tokens, admin access |
 | Metadata (emails, org membership, event log, timestamps) | Privacy, social graph |
 | Backups in R2 | Full copy of the database |
 | Availability of the vault | Users lock themselves out of their credentials |
@@ -31,7 +31,7 @@ stolen device or backup; compromised dependency or CI; Cloudflare account takeov
 4. Worker to Cloudflare Email Service (outbound only).
 5. Client to Durable Object (WebSocket after authentication).
 6. Operator tooling to Cloudflare account (API tokens, `cf` CLI, CI).
-7. Browser to admin UI (separate origin concerns share the Worker origin).
+7. Browser to the Instance admin pages in the web client (same origin as the vault; they call the Bearer-authenticated JSON admin API).
 
 ## STRIDE by area
 
@@ -58,16 +58,19 @@ stolen device or backup; compromised dependency or CI; Cloudflare account takeov
 | D | Oversized payloads, storage exhaustion | Size limits per request and per attachment; D1 and R2 quotas | Quota exhaustion by an authenticated user until per-user limits land |
 | E | Org member gains admin rights | Role checks on every org route; invite flow requires acceptance and confirmation | |
 
-### Admin (`ADMIN_ENABLED`; TASKS #140, `docs/admin.md`)
+### Admin (`ADMIN_ENABLED`; `docs/admin.md`)
+
+The server-rendered `/admin` (magic link, admin token, cookie sessions) was removed. Instance admin is only the native web client pages on the JSON admin API, authenticated with the vault's own access token.
 
 | | Threat | Mitigation | Residual |
 |---|---|---|---|
-| S | Guessing the admin token or magic link | `ADMIN_TOKEN_HASH` stores only a hash; magic links are single use, short lived, hashed at rest; login attempts rate limited in D1; disabled by default (404) | Token strength is operator-chosen |
-| T | CSRF against admin actions | Same-site session cookie, CSRF token on state changes, security headers | |
-| R | Unattributed admin changes | Admin actions logged by route and status | No per-field audit trail |
+| S | Impersonating an admin | Admin is a normal vault login (master password, second factor) for an enabled account whose verified address is in `ADMIN_EMAILS`; admin addresses cannot be claimed by registering them (verification token required); disabled by default (API 403, `/admin` is 404) | A compromised admin vault account is a compromised admin |
+| T | CSRF against admin actions | Bearer token only, no cookie authentication, so a cross-site request carries no credential | |
+| R | Unattributed admin changes | Every write inserts an `events` row (types 9001 to 9008) with the acting admin | No per-field audit trail |
 | I | Admin sees vault contents | Admin can view accounts and metadata, not decrypt vaults | Admin can still delete or disable accounts |
-| D | Admin lockout | Token login works without email; disabling the flag removes the surface | |
-| E | Email access becomes admin access | Only addresses in `ADMIN_EMAILS` receive links; mailbox security is out of scope | A compromised admin mailbox is a compromised admin |
+| D | Admin lockout | No recovery web surface to attack; the operator restores access with documented D1 statements (`docs/admin.md`, Recovery) | Needs Cloudflare account access |
+| E | Email access becomes admin access | There is no email sign-in any more; a mailbox alone grants nothing. Admin addresses must be verified | Account recovery by email (if enabled elsewhere) is out of scope |
+| E | Stale `/admin` links or probes | `/admin` and `/admin/*` return the standard 404 JSON and are served by the Worker first, never by the vault's SPA fallback | |
 
 ### Email (Cloudflare Email Service; TASKS #141)
 

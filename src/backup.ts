@@ -25,11 +25,7 @@ export const REDACTED_COLUMNS: Record<string, Record<string, null | string>> = {
 }
 
 /** Short-lived auth state that is useless after a restore and sensitive to keep. */
-export const EXCLUDED_TABLES = new Set([
-  'admin_login_tokens',
-  'admin_rate_limits',
-  'admin_sessions',
-])
+export const EXCLUDED_TABLES = new Set(['admin_rate_limits'])
 
 export interface ManifestPart {
   key: string

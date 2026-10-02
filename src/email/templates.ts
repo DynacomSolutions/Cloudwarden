@@ -15,18 +15,6 @@ const shell = (heading: string, paragraphs: string[], link?: { url: string; labe
 const plain = (paragraphs: string[], link?: string) =>
   [...paragraphs, ...(link ? [link] : [])].join('\n\n')
 
-export function magicLinkEmail(url: string, minutes: number): Template {
-  const lines = [
-    'Use the link below to sign in to the Cloudwarden admin area.',
-    `It works once and expires in ${minutes} minutes. If you did not ask for it, ignore this message.`,
-  ]
-  return {
-    subject: 'Your Cloudwarden admin sign-in link',
-    text: plain(lines, url),
-    html: shell('Admin sign-in', lines, { url, label: 'Continue to sign in' }),
-  }
-}
-
 export function inviteEmail(registerUrl: string): Template {
   const lines = [
     'You have been invited to create an account on this Cloudwarden server.',

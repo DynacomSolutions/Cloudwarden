@@ -18,8 +18,7 @@ backups/<YYYY-MM-DD>/run-<epoch seconds>/manifest.json          tables, ordered 
 - A failure fails the scheduled invocation (the export is awaited), so it appears in the dashboard and in
   `backup.failed` log lines.
 - Backups older than 14 days are deleted after each successful export.
-- Skipped tables: `d1_migrations` and the short-lived admin tables (`admin_login_tokens`, `admin_rate_limits`,
-  `admin_sessions`). Admins sign in again after a restore.
+- Skipped tables: `d1_migrations` and the short-lived rate limit counters (`admin_rate_limits`).
 - Redacted columns: `devices.refresh_token` (written as an empty string, which the token endpoint treats as revoked),
   `devices.twofactor_remember` and `devices.push_token` (null). Every device must sign in again after a restore.
   TOTP secrets and other two-factor material are kept because a restore is useless without them.

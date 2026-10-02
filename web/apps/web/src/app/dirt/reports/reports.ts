@@ -1,0 +1,78 @@
+import {
+  TwoFactorAuthWebAuthnIcon,
+  NoCredentialsIcon,
+  ReportBreach,
+  ReportExposedPasswords,
+  ReportUnsecuredWebsites,
+  SecurityKeyWarningIcon,
+  UnlockedIcon,
+  UserLockIcon,
+} from "@bitwarden/assets/svg";
+
+import { ReportEntry } from "./shared";
+
+// FIXME: update to use a const object instead of a typescript enum
+// eslint-disable-next-line @bitwarden/platform/no-enums
+export enum ReportType {
+  ExposedPasswords = "exposedPasswords",
+  ReusedPasswords = "reusedPasswords",
+  WeakPasswords = "weakPasswords",
+  UnsecuredWebsites = "unsecuredWebsites",
+  Inactive2fa = "inactive2fa",
+  DataBreach = "dataBreach",
+  MemberAccessReport = "memberAccessReport",
+  PasskeyLogin = "passkeyLogin",
+}
+
+type ReportWithoutVariant = Omit<ReportEntry, "variant">;
+
+export const reports: Record<ReportType, ReportWithoutVariant> = {
+  [ReportType.ExposedPasswords]: {
+    title: "exposedPasswordsReport",
+    description: "exposedPasswordsReportDesc",
+    route: "exposed-passwords-report",
+    icon: ReportExposedPasswords,
+  },
+  [ReportType.ReusedPasswords]: {
+    title: "reusedPasswordsReport",
+    description: "reusedPasswordsReportDesc",
+    route: "reused-passwords-report",
+    icon: NoCredentialsIcon,
+  },
+  [ReportType.WeakPasswords]: {
+    title: "weakPasswordsReport",
+    description: "weakPasswordsReportDesc",
+    route: "weak-passwords-report",
+    icon: UnlockedIcon,
+  },
+  [ReportType.UnsecuredWebsites]: {
+    title: "unsecuredWebsitesReport",
+    description: "unsecuredWebsitesReportDesc",
+    route: "unsecured-websites-report",
+    icon: ReportUnsecuredWebsites,
+  },
+  [ReportType.Inactive2fa]: {
+    title: "inactive2faReport",
+    description: "inactive2faReportDesc",
+    route: "inactive-two-factor-report",
+    icon: SecurityKeyWarningIcon,
+  },
+  [ReportType.DataBreach]: {
+    title: "dataBreachReport",
+    description: "breachDesc",
+    route: "breach-report",
+    icon: ReportBreach,
+  },
+  [ReportType.MemberAccessReport]: {
+    title: "memberAccessReport",
+    description: "memberAccessReportDesc",
+    route: "member-access-report",
+    icon: UserLockIcon,
+  },
+  [ReportType.PasskeyLogin]: {
+    title: "passkeyLoginReport",
+    description: "passkeyLoginReportMenuDesc",
+    route: "passkey-report",
+    icon: TwoFactorAuthWebAuthnIcon,
+  },
+};

@@ -1,0 +1,12 @@
+<p bitTypography="body1" class="tw-break-words tw-whitespace-normal tw-mb-8">
+  {{ "uploadLicenseFileOrg" | i18n }}
+</p>
+<form [formGroup]="form" [bitSubmit]="submit">
+  <bit-file-upload formControlName="file" accept="application/JSON">
+    <bit-label>{{ description | i18n }}</bit-label>
+    <bit-hint>{{ "licenseFileDesc" | i18n: hintFileName }}</bit-hint>
+  </bit-file-upload>
+  <button type="submit" bitButton bitFormButton buttonType="primary">
+    {{ "submit" | i18n }}
+  </button>
+</form>

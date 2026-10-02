@@ -206,3 +206,28 @@ test('parseArgs', () => {
     files: ['a', 'b'],
   })
 })
+
+test('skips only unmodified vendored upstream files', async () => {
+  const { isVendoredUpstream, gitBlobId, parseUpstreamManifest } = await import(
+    './check-identifiers.mjs'
+  )
+  const upstream = 'contact hello@upstream.example.io\n'
+  const manifest = parseUpstreamManifest(
+    `${gitBlobId(upstream)}  libs/common/src/a.ts\n${gitBlobId(upstream)}  apps/web/src/index.html\n`,
+  )
+  assert.equal(isVendoredUpstream('web/libs/common/src/a.ts', upstream, manifest), true)
+  // Changed content, unknown files and always-scanned paths are scanned.
+  assert.equal(isVendoredUpstream('web/libs/common/src/a.ts', `${upstream}x`, manifest), false)
+  assert.equal(isVendoredUpstream('web/libs/common/src/b.ts', upstream, manifest), false)
+  assert.equal(isVendoredUpstream('web/apps/web/src/index.html', upstream, manifest), false)
+  assert.equal(
+    isVendoredUpstream('web/apps/web/src/app/cloudwarden/x.ts', upstream, manifest),
+    false,
+  )
+  assert.equal(isVendoredUpstream('src/web/a.ts', upstream, manifest), false)
+})
+
+test('gitBlobId matches git hash-object', async () => {
+  const { gitBlobId } = await import('./check-identifiers.mjs')
+  assert.equal(gitBlobId('hello\n'), 'ce013625030ba8dba906f756967f9e9ca394464a')
+})

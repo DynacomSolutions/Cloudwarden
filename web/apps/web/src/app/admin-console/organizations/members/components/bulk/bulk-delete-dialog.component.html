@@ -1,0 +1,112 @@
+<bit-dialog dialogSize="large" [title]="'deleteMembers' | i18n">
+  <ng-container bitDialogContent>
+    @if (users().length <= 0) {
+      <bit-callout type="danger">
+        {{ "noSelectedMembersApplicable" | i18n }}
+      </bit-callout>
+    }
+    @if (error()) {
+      <bit-callout type="danger" [title]="'error' | i18n">
+        {{ error() }}
+      </bit-callout>
+    }
+    @if (!done()) {
+      <ng-container>
+        @if (users().length > 0 && !error()) {
+          <p bitTypography="body1">
+            {{
+              "deleteManyOrganizationUsersWarningDesc"
+                | vfo1I18n: "deleteManyOrganizationUsersWarningDescSharedFolders"
+            }}
+          </p>
+        }
+        <bit-table>
+          <ng-container header>
+            <tr>
+              <th bitCell colspan="2">{{ "member" | i18n }}</th>
+            </tr>
+          </ng-container>
+          <ng-template body>
+            @for (user of users(); track user.id) {
+              <tr bitRow>
+                <td bitCell class="tw-w-5">
+                  <bit-avatar
+                    [text]="user | userName"
+                    [id]="user | avatarId"
+                    [color]="user.avatarColor"
+                  ></bit-avatar>
+                </td>
+                <td bitCell>
+                  <div>
+                    {{ user.email }}
+                    @if (user.status === userStatusType.Invited) {
+                      <span bitBadge class="tw-text-xs" variant="secondary">
+                        {{ "invited" | i18n }}
+                      </span>
+                    }
+                  </div>
+                  @if (user.name) {
+                    <small class="tw-text-muted tw-block">{{ user.name }}</small>
+                  }
+                </td>
+              </tr>
+            }
+          </ng-template>
+        </bit-table>
+      </ng-container>
+    }
+    @if (done()) {
+      <ng-container>
+        <bit-table>
+          <ng-container header>
+            <tr>
+              <th bitCell colspan="2">{{ "member" | i18n }}</th>
+              <th bitCell>{{ "status" | i18n }}</th>
+            </tr>
+          </ng-container>
+          <ng-template body>
+            @for (user of users(); track user.id) {
+              <tr bitRow>
+                <td bitCell class="tw-w-5">
+                  <bit-avatar
+                    [text]="user | userName"
+                    [id]="user | avatarId"
+                    [color]="user.avatarColor"
+                  ></bit-avatar>
+                </td>
+                <td bitCell>
+                  {{ user.email }}
+                  @if (user.name) {
+                    <small class="tw-text-muted tw-block">{{ user.name }}</small>
+                  }
+                </td>
+                @if (statuses().has(user.id)) {
+                  <td bitCell>{{ statuses().get(user.id) }}</td>
+                }
+                @if (!statuses().has(user.id)) {
+                  <td bitCell>{{ "bulkFilteredMessage" | i18n }}</td>
+                }
+              </tr>
+            }
+          </ng-template>
+        </bit-table>
+      </ng-container>
+    }
+  </ng-container>
+  <ng-container bitDialogFooter>
+    @if (!done() && users().length > 0) {
+      <button
+        bitButton
+        type="submit"
+        buttonType="primary"
+        [disabled]="loading()"
+        (click)="submit()"
+      >
+        {{ "deleteMembers" | i18n }}
+      </button>
+    }
+    <button bitButton type="button" buttonType="secondary" bitDialogClose>
+      {{ "close" | i18n }}
+    </button>
+  </ng-container>
+</bit-dialog>

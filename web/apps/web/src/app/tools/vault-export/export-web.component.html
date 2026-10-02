@@ -1,0 +1,31 @@
+<app-header>
+  @if (showBreadcrumbs()) {
+    <bit-breadcrumbs slot="breadcrumbs">
+      <bit-breadcrumb [route]="['/settings']" icon="bwi-cog">{{
+        "settings" | i18n
+      }}</bit-breadcrumb>
+      <bit-breadcrumb [route]="[]" queryParamsHandling="preserve">{{
+        "exportNoun" | i18n
+      }}</bit-breadcrumb>
+    </bit-breadcrumbs>
+  }
+</app-header>
+
+<bit-container>
+  <tools-export
+    (formDisabled)="this.disabled = $event"
+    (formLoading)="this.loading = $event"
+    (onSuccessfulExport)="this.onSuccessfulExport($event)"
+  ></tools-export>
+  <button
+    [disabled]="disabled"
+    [loading]="loading"
+    form="export_form_exportForm"
+    bitButton
+    type="submit"
+    bitFormButton
+    buttonType="primary"
+  >
+    {{ "exportVerb" | i18n }}
+  </button>
+</bit-container>

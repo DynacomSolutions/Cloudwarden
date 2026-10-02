@@ -1,0 +1,15 @@
+{
+  "name": "@bitwarden/web-vault",
+  "version": "2026.9.1",
+  "scripts": {
+    "build:oss": "webpack",
+    "build:oss:watch": "webpack serve",
+    "build:oss:selfhost:watch": "cross-env ENV=selfhosted npm run build:oss:watch",
+    "build:oss:selfhost:prod": "cross-env ENV=selfhosted NODE_ENV=production npm run build:oss",
+    "clean:l10n": "git push origin --delete l10n_master",
+    "dist:oss:selfhost": "npm run build:oss:selfhost:prod",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:watch:all": "jest --watchAll"
+  }
+}

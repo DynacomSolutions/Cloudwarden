@@ -1,0 +1,348 @@
+import { Injectable } from "@angular/core";
+import { Router } from "@angular/router";
+import {
+  BehaviorSubject,
+  filter,
+  firstValueFrom,
+  from,
+  lastValueFrom,
+  map,
+  merge,
+  Observable,
+  of,
+  Subject,
+  switchMap,
+  tap,
+} from "rxjs";
+import { take } from "rxjs/operators";
+
+import { OrganizationApiServiceAbstraction } from "@bitwarden/common/admin-console/abstractions/organization/organization-api.service.abstraction";
+import { Organization } from "@bitwarden/common/admin-console/models/domain/organization";
+import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
+import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
+import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
+import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
+import { OrganizationId } from "@bitwarden/common/types/guid";
+import { DialogService } from "@bitwarden/components";
+import { BILLING_DISK_LOCAL, StateProvider, UserKeyDefinition } from "@bitwarden/state";
+import { OrganizationBillingClient } from "@bitwarden/web-vault/app/billing/clients";
+import { TaxIdWarningType } from "@bitwarden/web-vault/app/billing/warnings/types";
+
+import {
+  TRIAL_PAYMENT_METHOD_DIALOG_RESULT_TYPE,
+  TrialPaymentDialogComponent,
+} from "../../../shared/trial-payment-dialog/trial-payment-dialog.component";
+import { openChangePlanDialog } from "../../change-plan-dialog.component";
+import {
+  OrganizationFreeTrialWarning,
+  OrganizationResellerRenewalWarning,
+  OrganizationScheduledPriceIncreaseWarning,
+  OrganizationWarningsResponse,
+} from "../types";
+
+const format = (date: Date) =>
+  date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+  });
+
+type TrialPaymentModalDismissedOrgs = Partial<Record<OrganizationId, boolean>>;
+
+export const TRIAL_PAYMENT_MODAL_DISMISSED_ORGS_KEY =
+  new UserKeyDefinition<TrialPaymentModalDismissedOrgs>(
+    BILLING_DISK_LOCAL,
+    "trialPaymentModalDismissedOrgs",
+    {
+      deserializer: (value) => value,
+      clearOn: [], // Do not clear dismissed modals
+    },
+  );
+
+@Injectable({ providedIn: "root" })
+export class OrganizationWarningsService {
+  private cache$ = new Map<OrganizationId, Observable<OrganizationWarningsResponse>>();
+
+  private refreshFreeTrialWarningTrigger = new Subject<void>();
+  private refreshTaxIdWarningTrigger = new Subject<void>();
+  private refreshInactiveSubscriptionWarningTrigger = new Subject<void>();
+
+  private taxIdWarningRefreshedSubject = new BehaviorSubject<TaxIdWarningType | null>(null);
+  taxIdWarningRefreshed$ = this.taxIdWarningRefreshedSubject.asObservable();
+
+  constructor(
+    private dialogService: DialogService,
+    private i18nService: I18nService,
+    private organizationApiService: OrganizationApiServiceAbstraction,
+    private organizationBillingClient: OrganizationBillingClient,
+    private platformUtilsService: PlatformUtilsService,
+    private router: Router,
+    private accountService: AccountService,
+    private logService: LogService,
+    private stateProvider: StateProvider,
+  ) {}
+
+  getFreeTrialWarning$ = (
+    organization: Organization,
+    includeOrganizationNameInMessaging = false,
+  ): Observable<OrganizationFreeTrialWarning | null> =>
+    merge(
+      this.getWarning$(organization, (response) => response.freeTrial),
+      this.refreshFreeTrialWarningTrigger.pipe(
+        switchMap(() => this.getWarning$(organization, (response) => response.freeTrial, true)),
+      ),
+    ).pipe(
+      map((warning) => {
+        if (!warning) {
+          return null;
+        }
+
+        const { remainingTrialDays } = warning;
+
+        if (remainingTrialDays >= 2) {
+          return {
+            organization,
+            message: includeOrganizationNameInMessaging
+              ? this.i18nService.t(
+                  "freeTrialEndPromptMultipleDays",
+                  organization.name,
+                  remainingTrialDays,
+                )
+              : this.i18nService.t("freeTrialEndPromptCount", remainingTrialDays),
+          };
+        }
+
+        if (remainingTrialDays == 1) {
+          return {
+            organization,
+            message: includeOrganizationNameInMessaging
+              ? this.i18nService.t("freeTrialEndPromptTomorrow", organization.name)
+              : this.i18nService.t("freeTrialEndPromptTomorrowNoOrgName"),
+          };
+        }
+
+        return {
+          organization,
+          message: includeOrganizationNameInMessaging
+            ? this.i18nService.t("freeTrialEndPromptToday", organization.name)
+            : this.i18nService.t("freeTrialEndingTodayWithoutOrgName"),
+        };
+      }),
+    );
+
+  getResellerRenewalWarning$ = (
+    organization: Organization,
+  ): Observable<OrganizationResellerRenewalWarning | null> =>
+    this.getWarning$(organization, (response) => response.resellerRenewal).pipe(
+      map((warning) => {
+        if (!warning) {
+          return null;
+        }
+        switch (warning.type) {
+          case "upcoming": {
+            return {
+              type: "info",
+              message: this.i18nService.t(
+                "resellerRenewalWarningMsgV2",
+                format(warning.upcoming!.renewalDate),
+              ),
+            };
+          }
+          case "issued": {
+            return null;
+          }
+          case "past_due": {
+            return {
+              type: "info",
+              message: this.i18nService.t(
+                "resellerPastDueWarningMsgV2",
+                format(warning.pastDue!.suspensionDate),
+              ),
+            };
+          }
+        }
+      }),
+    );
+
+  getScheduledPriceIncreaseWarning$ = (
+    organization: Organization,
+  ): Observable<OrganizationScheduledPriceIncreaseWarning | null> =>
+    this.getWarning$(organization, (response) => response.scheduledPriceIncrease);
+
+  getTaxIdWarning$ = (organization: Organization): Observable<TaxIdWarningType | null> =>
+    merge(
+      this.getWarning$(organization, (response) => response.taxId),
+      this.refreshTaxIdWarningTrigger.pipe(
+        switchMap(() =>
+          this.getWarning$(organization, (response) => response.taxId, true).pipe(
+            tap((warning) => this.taxIdWarningRefreshedSubject.next(warning ? warning.type : null)),
+          ),
+        ),
+      ),
+    ).pipe(map((warning) => (warning ? warning.type : null)));
+
+  refreshFreeTrialWarning = () => this.refreshFreeTrialWarningTrigger.next();
+
+  refreshInactiveSubscriptionWarning = () => this.refreshInactiveSubscriptionWarningTrigger.next();
+
+  refreshTaxIdWarning = () => this.refreshTaxIdWarningTrigger.next();
+
+  showInactiveSubscriptionDialog$ = (organization: Organization): Observable<void> =>
+    merge(
+      this.getWarning$(organization, (response) => response.inactiveSubscription),
+      this.refreshInactiveSubscriptionWarningTrigger.pipe(
+        switchMap(() =>
+          this.getWarning$(organization, (response) => response.inactiveSubscription, true),
+        ),
+      ),
+    ).pipe(
+      switchMap(async (warning) => {
+        if (!warning) {
+          return;
+        }
+
+        switch (warning.resolution) {
+          case "contact_provider": {
+            await this.dialogService.openSimpleDialog({
+              title: this.i18nService.t("suspendedOrganizationTitle", organization.name),
+              content: {
+                key: "suspendedManagedOrgMessage",
+                placeholders: [organization.providerName],
+              },
+              type: "danger",
+              acceptButtonText: this.i18nService.t("close"),
+              cancelButtonText: null,
+            });
+            break;
+          }
+          case "add_payment_method": {
+            const confirmed = await this.dialogService.openSimpleDialog({
+              title: this.i18nService.t("suspendedOrganizationTitle", organization.name),
+              content: { key: "suspendedOwnerOrgMessage" },
+              type: "danger",
+              acceptButtonText: this.i18nService.t("continue"),
+              cancelButtonText: this.i18nService.t("close"),
+            });
+            if (confirmed) {
+              await this.router.navigate(
+                ["organizations", `${organization.id}`, "billing", "payment-details"],
+                {
+                  state: { launchPaymentModalAutomatically: true },
+                },
+              );
+            }
+            break;
+          }
+          case "resubscribe": {
+            const subscription = await this.organizationApiService.getSubscription(organization.id);
+            const dialogReference = openChangePlanDialog(this.dialogService, {
+              data: {
+                organizationId: organization.id,
+                subscription: subscription,
+                productTierType: organization.productTierType,
+              },
+            });
+            await lastValueFrom(dialogReference.closed);
+            break;
+          }
+          case "contact_owner": {
+            await this.dialogService.openSimpleDialog({
+              title: this.i18nService.t("suspendedOrganizationTitle", organization.name),
+              content: { key: "suspendedUserOrgMessage" },
+              type: "danger",
+              acceptButtonText: this.i18nService.t("close"),
+              cancelButtonText: null,
+            });
+            break;
+          }
+        }
+      }),
+    );
+
+  showSubscribeBeforeFreeTrialEndsDialog$ = (organization: Organization): Observable<void> =>
+    this.getWarning$(organization, (response) => response.freeTrial).pipe(
+      // Sales-assisted trials are invoiced through the customer's sales representative,
+      // so the self-serve payment modal does not apply.
+      filter((warning) => warning !== null && !warning.isSalesAssisted),
+      switchMap(async () => {
+        const account = await firstValueFrom(this.accountService.activeAccount$);
+        if (!account) {
+          return;
+        }
+
+        const dismissedOrgs = await firstValueFrom(
+          this.stateProvider.getUserState$(TRIAL_PAYMENT_MODAL_DISMISSED_ORGS_KEY, account.id),
+        );
+        // dismissedOrgs is null when no dismissals have been stored yet
+        if (dismissedOrgs?.[organization.id]) {
+          return;
+        }
+
+        const organizationSubscriptionResponse = await this.organizationApiService.getSubscription(
+          organization.id,
+        );
+
+        const dialogRef = TrialPaymentDialogComponent.open(this.dialogService, {
+          data: {
+            organizationId: organization.id,
+            subscription: organizationSubscriptionResponse,
+            productTierType: organization?.productTierType,
+          },
+        });
+
+        const result = await lastValueFrom(dialogRef.closed);
+
+        switch (result) {
+          case TRIAL_PAYMENT_METHOD_DIALOG_RESULT_TYPE.SUBMITTED: {
+            this.refreshFreeTrialWarningTrigger.next();
+            break;
+          }
+          default: {
+            // Covers CLOSED, X button, ESC, and clicking outside (all emit undefined).
+            // Uses .update() to read current state at write time, preventing stale overwrites
+            // if multiple tabs dismiss different orgs concurrently.
+            try {
+              await this.stateProvider
+                .getUser(account.id, TRIAL_PAYMENT_MODAL_DISMISSED_ORGS_KEY)
+                .update((current) => ({ ...(current ?? {}), [organization.id]: true }));
+            } catch (error) {
+              this.logService.error("Failed to save trial payment modal dismissal state:", error);
+            }
+            break;
+          }
+        }
+      }),
+    );
+
+  private readThroughWarnings$ = (
+    organization: Organization,
+    bypassCache: boolean = false,
+  ): Observable<OrganizationWarningsResponse> => {
+    const organizationId = organization.id as OrganizationId;
+    const existing = this.cache$.get(organizationId);
+    if (existing && !bypassCache) {
+      return existing;
+    }
+    const response$ = from(this.organizationBillingClient.getWarnings(organizationId));
+    this.cache$.set(organizationId, response$);
+    return response$;
+  };
+
+  private getWarning$ = <T>(
+    organization: Organization,
+    extract: (response: OrganizationWarningsResponse) => T | null | undefined,
+    bypassCache: boolean = false,
+  ): Observable<T | null> => {
+    if (this.platformUtilsService.isSelfHost()) {
+      return of(null);
+    }
+
+    return this.readThroughWarnings$(organization, bypassCache).pipe(
+      map((response) => {
+        const value = extract(response);
+        return value ? value : null;
+      }),
+      take(1),
+    );
+  };
+}

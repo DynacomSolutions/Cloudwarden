@@ -40,9 +40,12 @@ export default defineConfig({
     },
     env: {
       // Local dev only: the dev server drops secrets that are not declared, so
-      // `LOCAL_DEV_SECRETS=true JWT_SECRET=... pnpm dev` (or `.dev.vars`) declares it. Never set the
-      // flag when deploying; production JWT_SECRET is set out of band with `cf workers secrets`.
-      ...(env.LOCAL_DEV_SECRETS === 'true' ? { JWT_SECRET: bindings.secret() } : {}),
+      // `LOCAL_DEV_SECRETS=true JWT_SECRET=... ADMIN_EMAILS=... pnpm dev` (or `.dev.vars`) declares
+      // JWT_SECRET and ADMIN_EMAILS (to try the web client's Instance admin pages). Never set the
+      // flag when deploying; production secrets are set out of band with `cf workers secrets`.
+      ...(env.LOCAL_DEV_SECRETS === 'true'
+        ? { JWT_SECRET: bindings.secret(), ADMIN_EMAILS: bindings.secret() }
+        : {}),
       DOMAIN: bindings.text(domain ? `https://${domain}` : 'https://vault.example.com'),
       SIGNUPS_ALLOWED: bindings.text(env.SIGNUPS_ALLOWED || 'false'),
       ADMIN_ENABLED: bindings.text(env.ADMIN_ENABLED || 'false'),

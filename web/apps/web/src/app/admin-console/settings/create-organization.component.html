@@ -1,0 +1,18 @@
+<app-header>
+  @if (showBreadcrumbs()) {
+    <bit-breadcrumbs slot="breadcrumbs">
+      <bit-breadcrumb [route]="['/settings']" icon="bwi-cog">{{
+        "settings" | i18n
+      }}</bit-breadcrumb>
+      <bit-breadcrumb [route]="[]" queryParamsHandling="preserve">{{
+        "addPlan" | i18n
+      }}</bit-breadcrumb>
+    </bit-breadcrumbs>
+  }
+</app-header>
+
+<bit-container>
+  <p>{{ "newOrganizationDesc" | vfo1I18n: "addPlanDesc" }}</p>
+  <!-- Cloudwarden: plain create form, never the licence upload (web/NOTICE.md) -->
+  <cw-create-organization-form></cw-create-organization-form>
+</bit-container>

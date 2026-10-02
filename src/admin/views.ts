@@ -121,7 +121,7 @@ export const loginPage = (nonce: string, error?: string) =>
     html`<div>
 ${error ? html`<div class="flash" role="alert">${error}</div>` : ''}
 <div class="card"><h1>Recovery sign-in</h1>
-<p class="muted">For when no admin can sign in to the web vault. Normal admin access is through the vault: <a href="/#/login">sign in</a> and choose Instance admin.</p></div>
+<p class="muted">For when no admin can sign in to the web vault. Normal admin access is in the web vault: <a href="/#/login">sign in</a> and choose Instance admin.</p></div>
 <div class="card"><h1>Email me a sign-in link</h1>
 <form method="post" action="/admin/recovery/magic-link">
 <label for="email">Email address</label>
@@ -141,7 +141,7 @@ export const landingPage = (nonce: string) =>
     'Sign in',
     nonce,
     html`<div class="card"><h1>Admin sign-in</h1>
-<p>Instance admins sign in with their normal vault account. Sign in to the web vault, then choose <b>Instance admin</b> in the side navigation.</p>
+<p>Instance administration is part of the web vault: sign in, then choose <b>Instance admin</b> in the side navigation. This page is only for break-glass recovery.</p>
 <p><a class="btn" href="/#/login">Go to the web vault</a></p>
 <p class="muted">Locked out? Use <a href="/admin/recovery">recovery sign-in</a>.</p></div>`,
   )

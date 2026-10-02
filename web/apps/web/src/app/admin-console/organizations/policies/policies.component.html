@@ -1,0 +1,52 @@
+<app-header>
+  @if (showBreadcrumbs()) {
+    <bit-breadcrumbs slot="breadcrumbs">
+      <bit-breadcrumb [route]="['/organizations', orgId(), 'settings']" icon="bwi-cog">{{
+        "settings" | i18n
+      }}</bit-breadcrumb>
+      <bit-breadcrumb [route]="[]" queryParamsHandling="preserve">{{
+        "policies" | i18n
+      }}</bit-breadcrumb>
+    </bit-breadcrumbs>
+  }
+</app-header>
+
+@let policySections = policySections$ | async;
+@let policiesEnabledMap = policiesEnabledMap$ | async;
+@let organization = organization$ | async;
+
+<bit-container>
+  @if (!policySections || !policiesEnabledMap || !organization) {
+    <i
+      class="bwi bwi-spinner bwi-spin tw-text-muted"
+      title="{{ 'loading' | i18n }}"
+      aria-hidden="true"
+    ></i>
+    <span class="tw-sr-only">{{ "loading" | i18n }}</span>
+  } @else {
+    @for (section of policySections; track section.category) {
+      <bit-section>
+        <bit-section-header>
+          <h2 bitTypography="h2">{{ section.labelKey | i18n }}</h2>
+        </bit-section-header>
+        <bit-item-group [attr.aria-label]="section.labelKey | i18n">
+          @for (p of section.policies; track p.type) {
+            <bit-item>
+              @let nk = nameKeys(p);
+              @let dk = descriptionKeys(p);
+              <button type="button" bit-item-content (click)="edit(p, organization)">
+                {{ nk[0] | vfo1I18n: nk[1] }}
+                <span slot="secondary">{{ dk[0] | vfo1I18n: dk[1] }}</span>
+                @if (policiesEnabledMap.get(p.type)) {
+                  <span bitBadge variant="success" slot="end">{{ "on" | i18n }}</span>
+                } @else {
+                  <span bitBadge variant="secondary" slot="end">{{ "off" | i18n }}</span>
+                }
+              </button>
+            </bit-item>
+          }
+        </bit-item-group>
+      </bit-section>
+    }
+  }
+</bit-container>

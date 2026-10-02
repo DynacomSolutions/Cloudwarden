@@ -2,7 +2,7 @@
 # simulator with throwaway state; it is a development convenience, not the production deploy path.
 FROM node:22-slim
 
-# `openssl` is for the end-to-end suite; `ca-certificates` for fetching the optional web vault.
+# `openssl` is for the end-to-end suite; `ca-certificates` for npm downloads.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates openssl \
  && rm -rf /var/lib/apt/lists/* \
@@ -14,9 +14,10 @@ RUN pnpm install --frozen-lockfile
 
 COPY . .
 
-# Bake in the official web vault with `--build-arg WEB_VAULT=true` (needs network at build time).
+# Build the web client into the image with `--build-arg WEB_VAULT=true` (docs/web-client.md;
+# needs network and about 10 GiB of memory at build time). A prebuilt `web-vault/` is copied as is.
 ARG WEB_VAULT=false
-RUN if [ "$WEB_VAULT" = "true" ]; then pnpm web-vault:fetch; fi
+RUN if [ "$WEB_VAULT" = "true" ]; then node scripts/build-web.mjs --no-scope; fi
 
 ENV CI=true
 EXPOSE 8080

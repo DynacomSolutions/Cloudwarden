@@ -1,0 +1,399 @@
+import { inject, Injectable, WritableSignal } from "@angular/core";
+import { firstValueFrom, lastValueFrom, map, Observable } from "rxjs";
+
+import { OrganizationUserBulkResponse } from "@bitwarden/admin-console/common";
+import { UserNamePipe } from "@bitwarden/angular/pipes/user-name.pipe";
+import { Organization } from "@bitwarden/common/admin-console/models/domain/organization";
+import { ProviderUserBulkResponse } from "@bitwarden/common/admin-console/models/response/provider/provider-user-bulk.response";
+import { ProductTierType } from "@bitwarden/common/billing/enums";
+import { OrganizationBillingMetadataResponse } from "@bitwarden/common/billing/models/response/organization-billing-metadata.response";
+import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
+import { OrganizationId } from "@bitwarden/common/types/guid";
+import { CenterPositionStrategy, DialogService, ToastService } from "@bitwarden/components";
+import { OrganizationUserStatusType } from "@bitwarden/sdk-internal";
+import { Vfo1TerminologyService } from "@bitwarden/vault";
+import { openEntityEventsDialog } from "@bitwarden/web-vault/app/dirt/event-logs/components/entity-events/entity-events.component";
+
+import { OrganizationUserView } from "../../../core/views/organization-user.view";
+import {
+  AccountRecoveryDialogComponent,
+  AccountRecoveryDialogResultType,
+} from "../../components/account-recovery";
+import { BulkConfirmDialogComponent } from "../../components/bulk/bulk-confirm-dialog.component";
+import { BulkDeleteDialogComponent } from "../../components/bulk/bulk-delete-dialog.component";
+import { BulkEnablePrivilegedControlsDialogComponent } from "../../components/bulk/bulk-enable-privileged-controls-dialog.component";
+import { BulkEnableSecretsManagerDialogComponent } from "../../components/bulk/bulk-enable-sm-dialog.component";
+import { BulkProgressDialogComponent } from "../../components/bulk/bulk-progress-dialog.component";
+import { BulkReinviteFailureDialogComponent } from "../../components/bulk/bulk-reinvite-failure-dialog.component";
+import { BulkRemoveDialogComponent } from "../../components/bulk/bulk-remove-dialog.component";
+import { BulkRestoreRevokeComponent } from "../../components/bulk/bulk-restore-revoke.component";
+import { BulkStatusComponent } from "../../components/bulk/bulk-status.component";
+import { EditMemberDialogComponent } from "../../components/edit-member-dialog";
+import { InviteMembersDialogComponent } from "../../components/invite-members-dialog";
+import {
+  MemberDialogResult,
+  MemberDialogTab,
+} from "../../components/member-dialog/member-dialog.types";
+import { DeleteManagedMemberWarningService } from "../delete-managed-member/delete-managed-member-warning.service";
+import { BulkActionResult } from "../member-actions/member-actions.types";
+
+@Injectable({ providedIn: "root" })
+export class MemberDialogManagerService {
+  private dialogService = inject(DialogService);
+  private i18nService = inject(I18nService);
+  private toastService = inject(ToastService);
+  private userNamePipe = inject(UserNamePipe);
+  private deleteManagedMemberWarningService = inject(DeleteManagedMemberWarningService);
+  private vfo1TerminologyService = inject(Vfo1TerminologyService);
+
+  async openInviteDialog(
+    organization: Organization,
+    billingMetadata: OrganizationBillingMetadataResponse,
+    allUsers: OrganizationUserView[],
+    showCoachMarks: boolean = false,
+  ): Promise<MemberDialogResult> {
+    const dialog = InviteMembersDialogComponent.open(this.dialogService, {
+      data: {
+        organizationId: organization.id,
+        allOrganizationUsers: allUsers,
+        occupiedSeatCount: billingMetadata?.organizationOccupiedSeats ?? 0,
+        isOnSecretsManagerStandalone: billingMetadata?.isOnSecretsManagerStandalone ?? false,
+        showCoachMarks,
+      },
+    });
+
+    const result = await lastValueFrom(dialog.closed);
+    return result ?? MemberDialogResult.Canceled;
+  }
+
+  async openEditDialog(
+    user: OrganizationUserView,
+    organization: Organization,
+    billingMetadata: OrganizationBillingMetadataResponse,
+    initialTab: MemberDialogTab = MemberDialogTab.Details,
+  ): Promise<MemberDialogResult> {
+    const dialog = EditMemberDialogComponent.open(this.dialogService, {
+      data: {
+        kind: "Edit",
+        name: this.userNamePipe.transform(user),
+        profileName: user.name,
+        email: user.email,
+        organizationId: organization.id,
+        organizationUserId: user.id,
+        usesKeyConnector: user.usesKeyConnector,
+        isOnSecretsManagerStandalone: billingMetadata?.isOnSecretsManagerStandalone ?? false,
+        initialTab: initialTab,
+        claimedByOrganization: user.claimedByOrganization,
+        hasMasterPassword: user.hasMasterPassword,
+      },
+    });
+
+    const result = await lastValueFrom(dialog.closed);
+    return result ?? MemberDialogResult.Canceled;
+  }
+
+  async openAccountRecoveryDialog(
+    user: OrganizationUserView,
+    organization: Organization,
+  ): Promise<AccountRecoveryDialogResultType> {
+    const dialogRef = AccountRecoveryDialogComponent.open(this.dialogService, {
+      data: {
+        name: this.userNamePipe.transform(user),
+        email: user.email,
+        organizationId: organization.id as OrganizationId,
+        organizationUserId: user.id,
+        organizationUserType: user.type,
+        twoFactorEnabled: user.twoFactorEnabled,
+      },
+    });
+
+    const result = await lastValueFrom(dialogRef.closed);
+    return result ?? AccountRecoveryDialogResultType.Ok;
+  }
+
+  async openBulkConfirmDialog(
+    organization: Organization,
+    users: OrganizationUserView[],
+  ): Promise<void> {
+    const dialogRef = BulkConfirmDialogComponent.open(this.dialogService, {
+      data: {
+        organization: organization,
+        users: users,
+      },
+    });
+
+    await lastValueFrom(dialogRef.closed);
+  }
+
+  async openBulkRemoveDialog(
+    organization: Organization,
+    users: OrganizationUserView[],
+  ): Promise<void> {
+    const dialogRef = BulkRemoveDialogComponent.open(this.dialogService, {
+      data: {
+        organizationId: organization.id,
+        users: users,
+      },
+    });
+
+    await lastValueFrom(dialogRef.closed);
+  }
+
+  async openBulkDeleteDialog(
+    organization: Organization,
+    users: OrganizationUserView[],
+  ): Promise<void> {
+    const warningAcknowledged = await firstValueFrom(
+      this.deleteManagedMemberWarningService.warningAcknowledged(organization.id),
+    );
+
+    if (
+      !warningAcknowledged &&
+      organization.canManageUsers &&
+      organization.productTierType === ProductTierType.Enterprise
+    ) {
+      const acknowledged = await this.deleteManagedMemberWarningService.showWarning();
+      if (!acknowledged) {
+        return;
+      }
+    }
+
+    const dialogRef = BulkDeleteDialogComponent.open(this.dialogService, {
+      data: {
+        organizationId: organization.id,
+        users: users,
+      },
+    });
+
+    await lastValueFrom(dialogRef.closed);
+  }
+
+  async openBulkRestoreRevokeDialog(
+    organization: Organization,
+    users: OrganizationUserView[],
+    isRevoking: boolean,
+  ): Promise<void> {
+    const ref = BulkRestoreRevokeComponent.open(this.dialogService, {
+      organizationId: organization.id,
+      users: users,
+      isRevoking: isRevoking,
+    });
+
+    await firstValueFrom(ref.closed);
+  }
+
+  async openBulkEnableSecretsManagerDialog(
+    organization: Organization,
+    users: OrganizationUserView[],
+  ): Promise<void> {
+    const eligibleUsers = users.filter((ou) => !ou.accessSecretsManager);
+
+    if (eligibleUsers.length === 0) {
+      this.toastService.showToast({
+        variant: "error",
+        title: this.i18nService.t("errorOccurred"),
+        message: this.i18nService.t("noSelectedUsersApplicable"),
+      });
+      return;
+    }
+
+    const dialogRef = BulkEnableSecretsManagerDialogComponent.open(this.dialogService, {
+      orgId: organization.id,
+      users: eligibleUsers,
+    });
+
+    await lastValueFrom(dialogRef.closed);
+  }
+
+  async openBulkActivatePrivilegedControlsDialog(
+    organization: Organization,
+    users: OrganizationUserView[],
+  ): Promise<void> {
+    const eligibleUsers = users.filter((ou) => !ou.accessPam);
+
+    if (eligibleUsers.length === 0) {
+      this.toastService.showToast({
+        variant: "error",
+        title: this.i18nService.t("errorOccurred"),
+        message: this.i18nService.t("noSelectedUsersApplicable"),
+      });
+      return;
+    }
+
+    const dialogRef = BulkEnablePrivilegedControlsDialogComponent.open(this.dialogService, {
+      orgId: organization.id,
+      users: eligibleUsers,
+    });
+
+    await lastValueFrom(dialogRef.closed);
+  }
+
+  async openBulkStatusDialog(
+    users: OrganizationUserView[],
+    filteredUsers: OrganizationUserView[],
+    request: Promise<OrganizationUserBulkResponse[] | ProviderUserBulkResponse[]>,
+    successMessage: string,
+  ): Promise<void> {
+    const dialogRef = BulkStatusComponent.open(this.dialogService, {
+      data: {
+        users: users,
+        filteredUsers: filteredUsers,
+        request: request,
+        successfulMessage: successMessage,
+      },
+    });
+
+    await lastValueFrom(dialogRef.closed);
+  }
+
+  openEventsDialog(user: OrganizationUserView, organization: Organization): void {
+    openEntityEventsDialog(this.dialogService, {
+      data: {
+        name: this.userNamePipe.transform(user),
+        organizationId: organization.id,
+        entityId: user.id,
+        showUser: false,
+        entity: "user",
+      },
+    });
+  }
+
+  async openRemoveUserConfirmationDialog(user: OrganizationUserView): Promise<boolean> {
+    const content = user.usesKeyConnector
+      ? "removeUserConfirmationKeyConnector"
+      : "removeOrgUserConfirmation";
+
+    const confirmed = await this.dialogService.openSimpleDialog({
+      title: {
+        key: "removeUserIdAccess",
+        placeholders: [this.userNamePipe.transform(user)],
+      },
+      content: { key: content },
+      type: "warning",
+    });
+
+    if (!confirmed) {
+      return false;
+    }
+
+    if (
+      [OrganizationUserStatusType.Accepted, OrganizationUserStatusType.Confirmed].includes(
+        user.status,
+      ) &&
+      user.hasMasterPassword === false
+    ) {
+      return await this.openNoMasterPasswordConfirmationDialog(user);
+    }
+
+    return true;
+  }
+
+  async openRevokeUserConfirmationDialog(user: OrganizationUserView): Promise<boolean> {
+    const confirmed = await this.dialogService.openSimpleDialog({
+      title: { key: "revokeAccess", placeholders: [this.userNamePipe.transform(user)] },
+      content: this.i18nService.t("revokeUserConfirmation"),
+      acceptButtonText: { key: "revokeAccess" },
+      type: "warning",
+    });
+
+    if (!confirmed) {
+      return false;
+    }
+
+    if (
+      [OrganizationUserStatusType.Accepted, OrganizationUserStatusType.Confirmed].includes(
+        user.status,
+      ) &&
+      user.hasMasterPassword === false
+    ) {
+      return await this.openNoMasterPasswordConfirmationDialog(user);
+    }
+
+    return true;
+  }
+
+  async openDeleteUserConfirmationDialog(
+    user: OrganizationUserView,
+    organization: Organization,
+  ): Promise<boolean> {
+    const warningAcknowledged = await firstValueFrom(
+      this.deleteManagedMemberWarningService.warningAcknowledged(organization.id),
+    );
+
+    if (
+      !warningAcknowledged &&
+      organization.canManageUsers &&
+      organization.productTierType === ProductTierType.Enterprise
+    ) {
+      const acknowledged = await this.deleteManagedMemberWarningService.showWarning();
+      if (!acknowledged) {
+        return false;
+      }
+    }
+
+    const confirmed = await this.dialogService.openSimpleDialog({
+      title: {
+        key: "deleteOrganizationUser",
+        placeholders: [this.userNamePipe.transform(user)],
+      },
+      content: {
+        key: this.vfo1TerminologyService.enabled()
+          ? "deleteOrganizationUserWarningDescSharedFolders"
+          : "deleteOrganizationUserWarningDesc",
+        placeholders: [this.userNamePipe.transform(user)],
+      },
+      type: "warning",
+      acceptButtonText: { key: "delete" },
+      cancelButtonText: { key: "cancel" },
+    });
+
+    if (confirmed) {
+      await this.deleteManagedMemberWarningService.acknowledgeWarning(organization.id);
+    }
+
+    return confirmed;
+  }
+
+  private async openNoMasterPasswordConfirmationDialog(
+    user: OrganizationUserView,
+  ): Promise<boolean> {
+    return this.dialogService.openSimpleDialog({
+      title: {
+        key: "removeOrgUserNoMasterPasswordTitle",
+      },
+      content: {
+        key: "removeOrgUserNoMasterPasswordDesc",
+        placeholders: [this.userNamePipe.transform(user)],
+      },
+      type: "warning",
+    });
+  }
+
+  openBulkProgressDialog(progress: WritableSignal<number>, allCount: number) {
+    return this.dialogService.open<BulkProgressDialogComponent>(BulkProgressDialogComponent, {
+      disableClose: true,
+      positionStrategy: new CenterPositionStrategy(),
+      data: {
+        progress,
+        allCount,
+      },
+    });
+  }
+
+  openBulkReinviteFailureDialog(
+    organization: Organization,
+    users: OrganizationUserView[],
+    result: BulkActionResult,
+  ): Observable<OrganizationUserView[]> {
+    const resend = BulkReinviteFailureDialogComponent.open(this.dialogService, {
+      data: {
+        organization,
+        users,
+        result,
+      },
+      positionStrategy: new CenterPositionStrategy(),
+    });
+
+    return resend.closed.pipe(map((r) => (Array.isArray(r) ? (r as OrganizationUserView[]) : [])));
+  }
+}

@@ -16,13 +16,14 @@ jobs:
   deploy:
     name: Deploy
     runs-on: k3s-runners
+    # The web client build (webpack, about 2955 npm packages) dominates the run time.
+    timeout-minutes: 90
     environment: production
     permissions:
       contents: read
+    # Cloudflare credentials are set only on the steps that talk to Cloudflare (migrate, build,
+    # deploy), never while npm or pnpm install and run third-party build code.
     env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      CF_D1_DATABASE_ID: ${{ secrets.CF_D1_DATABASE_ID }}
       DEPLOY_DOMAIN: ${{ secrets.DEPLOY_DOMAIN }}
       MAIL_FROM: ${{ secrets.MAIL_FROM }}
       ADMIN_ENABLED: ${{ vars.ADMIN_ENABLED }}
@@ -38,6 +39,11 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: pnpm
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: web/package-lock.json
       - run: pnpm install --frozen-lockfile
       - name: Quality gate
         run: |
@@ -46,19 +52,40 @@ jobs:
           pnpm typecheck
           pnpm test
           pnpm check:identifiers
-      - name: Apply D1 migrations
-        run: pnpm exec cf d1 migrations apply "$CF_D1_DATABASE_ID" --dir migrations
-      - name: Fetch web vault
-        run: pnpm web-vault:fetch
-      - name: Check built web vault includes the admin link
+      - name: Build web client
+        run: pnpm web:build
+      - name: Check built web client
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_D1_DATABASE_ID: ${{ secrets.CF_D1_DATABASE_ID }}
         run: |
           set -euo pipefail
           pnpm exec cf build
           out=.cloudflare/output/v0/workers/default/assets
-          grep -q '<script src="cloudwarden/admin-link.js" integrity="sha384-' "$out/index.html"
-          cmp web-vault-overlay/admin-link.js "$out/cloudwarden/admin-link.js"
-          echo "built index.html references the admin link script"
+          grep -q '"product": "Cloudwarden"' "$out/cloudwarden-build.json"
+          grep -q '<title page-title>Cloudwarden</title>' "$out/index.html"
+          # The CSP has no inline script allowance, so built pages must not contain inline scripts.
+          if grep -o '<script[^>]*>' "$out"/*.html | grep -v 'src='; then
+            echo "built HTML contains an inline script, which the CSP would block"
+            exit 1
+          fi
+          if grep -q 'cloudwarden/admin-link.js' "$out/index.html"; then
+            echo "built index.html still references the old admin link script"
+            exit 1
+          fi
+          echo "built assets carry the Cloudwarden build marker"
+      - name: Apply D1 migrations
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_D1_DATABASE_ID: ${{ secrets.CF_D1_DATABASE_ID }}
+        run: pnpm exec cf d1 migrations apply "$CF_D1_DATABASE_ID" --dir migrations
       - name: Deploy Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_D1_DATABASE_ID: ${{ secrets.CF_D1_DATABASE_ID }}
         run: pnpm exec cf deploy
       - name: Smoke check
         run: |
@@ -74,14 +101,19 @@ jobs:
           done
           echo "alive check failed"
           exit 1
-      - name: Check served web vault includes the admin link
+      - name: Check served web client
         run: |
           set -euo pipefail
-          for path in "/" "/index.html"; do
-            body=$(curl -sfL --max-time 10 -H 'Cache-Control: no-cache' "https://${DEPLOY_DOMAIN}${path}?v=${GITHUB_SHA}")
-            if ! grep -q 'cloudwarden/admin-link.js' <<<"$body"; then
-              echo "served ${path} lacks the admin link script tag"
-              exit 1
+          for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
+            marker=$(curl -sfL --max-time 10 -H 'Cache-Control: no-cache' "https://${DEPLOY_DOMAIN}/cloudwarden-build.json?v=${GITHUB_SHA}-${attempt}" || true)
+            if grep -q "\"commit\": \"${GITHUB_SHA}\"" <<<"$marker"; then
+              body=$(curl -sfL --max-time 10 -H 'Cache-Control: no-cache' "https://${DEPLOY_DOMAIN}/?v=${GITHUB_SHA}")
+              grep -q '<title page-title>Cloudwarden</title>' <<<"$body"
+              echo "served web client is the Cloudwarden build for this commit"
+              exit 0
             fi
+            echo "attempt ${attempt}: served build marker is not for this commit yet"
+            sleep 10
           done
-          echo "served index.html references the admin link script"
+          echo "served build marker never matched this commit"
+          exit 1

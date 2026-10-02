@@ -40,7 +40,7 @@ time:
 | `DEV_ALLOWED_HOSTS` | `*` in the container | Host headers the Vite dev server accepts (`*` or a comma separated list); unset outside the container keeps Vite's default |
 | `SIGNUPS_ALLOWED`, `ADMIN_ENABLED` | `false` | As in the README configuration table |
 
-Build with `--build-arg WEB_VAULT=true` to bake in the official web vault (see `docs/web-vault.md`).
+Build with `--build-arg WEB_VAULT=true` to build the web client into the image (see `docs/web-client.md`), or run `pnpm web:build` first so the prebuilt `web-vault/` is copied in.
 
 ## On the cluster with `devdeploy`
 

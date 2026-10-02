@@ -30,9 +30,9 @@ Directory Connector, SCIM, event integrations; G this audit.
 | | Rows |
 |---|---|
 | Distinct method and path pairs | 625 |
-| Implemented (including self-host answers) | 368 |
-| Owned by workstreams A to F, not yet implemented | 58 |
-| Remaining for G | 107 |
+| Implemented (including self-host answers) | 478 |
+| Owned by workstreams A to F, not yet implemented | 55 |
+| Remaining for G | 0 |
 | Not called by any client (SDK-generated only) | 92 |
 
 ## Matrix
@@ -55,27 +55,27 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/account/billing/subscription/preview` | sdk, web | implemented |  |  |
 | GET | `/api/account/billing/subscription/purchase/preview` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | GET | `/api/account/billing/subscription/upgrade/preview` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/account/billing/subscriptions/organizations/invoice/preview` | web | missing | G |  |
-| POST | `/api/account/billing/subscriptions/premium/invoice/preview` | web | missing | G |  |
-| POST | `/api/account/billing/subscriptions/premium/upgrade/invoice/preview` | web | missing | G |  |
-| GET | `/api/account/billing/vnext/address` | web | missing | G |  |
-| PUT | `/api/account/billing/vnext/address` | web | missing | G |  |
-| GET | `/api/account/billing/vnext/credit` | sdk, web | missing | G |  |
-| POST | `/api/account/billing/vnext/credit/bitpay` | sdk, web | missing | G |  |
-| GET | `/api/account/billing/vnext/discounts` | sdk, web | missing | G |  |
-| GET | `/api/account/billing/vnext/license` | sdk, web | missing | G |  |
-| GET | `/api/account/billing/vnext/payment-method` | sdk, web | missing | G |  |
-| PUT | `/api/account/billing/vnext/payment-method` | sdk, web | missing | G |  |
-| POST | `/api/account/billing/vnext/payment-method/verify-bank-account` | web | missing | G |  |
-| POST | `/api/account/billing/vnext/portal-session` | android, ios, sdk | missing | G |  |
-| POST | `/api/account/billing/vnext/premium/checkout` | android, ios, sdk, web | missing | G |  |
+| POST | `/api/account/billing/subscriptions/organizations/invoice/preview` | web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| POST | `/api/account/billing/subscriptions/premium/invoice/preview` | web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| POST | `/api/account/billing/subscriptions/premium/upgrade/invoice/preview` | web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| GET | `/api/account/billing/vnext/address` | web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| PUT | `/api/account/billing/vnext/address` | web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| GET | `/api/account/billing/vnext/credit` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| POST | `/api/account/billing/vnext/credit/bitpay` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| GET | `/api/account/billing/vnext/discounts` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| GET | `/api/account/billing/vnext/license` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| GET | `/api/account/billing/vnext/payment-method` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| PUT | `/api/account/billing/vnext/payment-method` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| POST | `/api/account/billing/vnext/payment-method/verify-bank-account` | web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| POST | `/api/account/billing/vnext/portal-session` | android, ios, sdk | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| POST | `/api/account/billing/vnext/premium/checkout` | android, ios, sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | POST | `/api/account/billing/vnext/self-host/license` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| GET | `/api/account/billing/vnext/subscription` | android, ios, sdk, web | missing | G |  |
-| POST | `/api/account/billing/vnext/subscription` | sdk, web | missing | G |  |
-| POST | `/api/account/billing/vnext/subscription/reinstate` | sdk, web | missing | G |  |
-| POST | `/api/account/billing/vnext/subscription/restart` | web | missing | G |  |
-| PUT | `/api/account/billing/vnext/subscription/storage` | sdk, web | missing | G |  |
-| POST | `/api/account/billing/vnext/upgrade` | sdk, web | missing | G |  |
+| GET | `/api/account/billing/vnext/subscription` | android, ios, sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| POST | `/api/account/billing/vnext/subscription` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| POST | `/api/account/billing/vnext/subscription/reinstate` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| POST | `/api/account/billing/vnext/subscription/restart` | web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| PUT | `/api/account/billing/vnext/subscription/storage` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| POST | `/api/account/billing/vnext/upgrade` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | DELETE | `/api/accounts` | ios, sdk, web | implemented |  |  |
 | POST | `/api/accounts/api-key` | sdk, web | implemented |  |  |
 | PUT | `/api/accounts/avatar` | sdk, web | implemented |  |  |
@@ -90,7 +90,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/api/accounts/email-token` | sdk, web | implemented |  |  |
 | POST | `/api/accounts/kdf` | android, ios, sdk | implemented |  |  |
 | GET | `/api/accounts/key-connector/confirmation-details/{orgId}` | sdk, web | implemented | E |  |
-| POST | `/api/accounts/key-connector/enroll` | sdk | missing | E |  |
+| POST | `/api/accounts/key-connector/enroll` | sdk | missing | E | Open: SSO federation, Key Connector and trusted device follow-ups (open PRs) |
 | GET | `/api/accounts/key-management/key-rotation-data` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | POST | `/api/accounts/key-management/regenerate-keys` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | POST | `/api/accounts/key-management/rotate-user-account-keys` | sdk, web | implemented |  |  |
@@ -107,7 +107,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | PUT | `/api/accounts/profile` | sdk, web | implemented |  |  |
 | POST | `/api/accounts/register/verification-email-clicked` | ios | implemented |  |  |
 | POST | `/api/accounts/request-otp` | android, ios, sdk, web | implemented | A |  |
-| POST | `/api/accounts/resend-new-device-otp` | android, ios, sdk, web | missing | A |  |
+| POST | `/api/accounts/resend-new-device-otp` | android, ios, sdk, web | implemented | A |  |
 | GET | `/api/accounts/revision-date` | android, ios, sdk, web | implemented |  |  |
 | POST | `/api/accounts/rotate-api-key` | sdk, web | implemented |  |  |
 | POST | `/api/accounts/security-stamp` | sdk, web | implemented |  |  |
@@ -117,7 +117,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/accounts/sso/user-identifier` | sdk, web | implemented | E |  |
 | GET | `/api/accounts/subscription` | sdk, web | implemented |  |  |
 | PUT | `/api/accounts/update-tde-offboarding-password` | sdk, web | implemented | E |  |
-| PUT | `/api/accounts/update-temp-password` | android, ios, sdk, web | missing | C |  |
+| PUT | `/api/accounts/update-temp-password` | android, ios, sdk, web | missing | C | Open: account recovery and device approvals (workstream C) |
 | POST | `/api/accounts/verify-devices` | web | implemented |  |  |
 | PUT | `/api/accounts/verify-devices` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | POST | `/api/accounts/verify-email` | sdk, web | implemented | A |  |
@@ -130,15 +130,15 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/auth-requests/{id}` | android, ios, sdk, web | implemented |  |  |
 | PUT | `/api/auth-requests/{id}` | android, ios, sdk, web | implemented |  |  |
 | GET | `/api/auth-requests/{id}/response` | android, ios, sdk, web | implemented |  |  |
-| POST | `/api/auth-requests/admin-request` | android, ios, sdk, web | missing | C |  |
+| POST | `/api/auth-requests/admin-request` | android, ios, sdk, web | missing | C | Open: account recovery and device approvals (workstream C) |
 | GET | `/api/auth-requests/pending` | sdk, web | implemented |  |  |
-| POST | `/api/billing/preview-invoice/organizations/{orgId}/subscription/plan-change` | sdk, web | missing | G |  |
-| POST | `/api/billing/preview-invoice/organizations/{orgId}/subscription/update` | web | missing | G |  |
+| POST | `/api/billing/preview-invoice/organizations/{orgId}/subscription/plan-change` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| POST | `/api/billing/preview-invoice/organizations/{orgId}/subscription/update` | web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | PUT | `/api/billing/preview-invoice/organizations/{id}/subscription/update` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/billing/preview-invoice/organizations/subscriptions/purchase` | sdk, web | missing | G |  |
-| POST | `/api/billing/preview-invoice/premium/subscriptions/purchase` | sdk, web | missing | G |  |
-| POST | `/api/billing/preview-invoice/premium/subscriptions/upgrade` | sdk, web | missing | G |  |
-| POST | `/api/bitpay-invoice` | web | missing | G |  |
+| POST | `/api/billing/preview-invoice/organizations/subscriptions/purchase` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| POST | `/api/billing/preview-invoice/premium/subscriptions/purchase` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| POST | `/api/billing/preview-invoice/premium/subscriptions/upgrade` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| POST | `/api/bitpay-invoice` | web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | DELETE | `/api/ciphers` | sdk, web | implemented |  |  |
 | GET | `/api/ciphers` | sdk | implemented |  |  |
 | POST | `/api/ciphers` | android, ios, sdk, web | implemented |  |  |
@@ -213,10 +213,10 @@ Directory Connector, SCIM, event integrations; G this audit.
 | PUT | `/api/devices/{deviceIdentifier}/keys` | android, ios, sdk, web | implemented | E |  |
 | POST | `/api/devices/{deviceIdentifier}/retrieve-keys` | web | implemented | E |  |
 | GET | `/api/devices/identifier/{deviceIdentifier}` | ios, sdk, web | implemented |  |  |
-| PUT | `/api/devices/identifier/{id}/clear-token` | sdk | missing | E |  |
+| PUT | `/api/devices/identifier/{id}/clear-token` | sdk | missing | E | Open: SSO federation, Key Connector and trusted device follow-ups (open PRs) |
 | PUT | `/api/devices/identifier/{id}/token` | android, ios, sdk | implemented |  |  |
-| POST | `/api/devices/identifier/{getAppId}/web-push-auth` | web | missing | A |  |
-| PUT | `/api/devices/identifier/{id}/web-push-auth` | sdk | missing | A |  |
+| POST | `/api/devices/identifier/{getAppId}/web-push-auth` | web | missing | A | Open: push relay registration and web push settings (PR for push settings) |
+| PUT | `/api/devices/identifier/{id}/web-push-auth` | sdk | missing | A | Open: push relay registration and web push settings (PR for push settings) |
 | GET | `/api/devices/knowndevice` | android, ios, sdk, web | implemented |  |  |
 | POST | `/api/devices/lost-trust` | sdk, web | implemented | E |  |
 | POST | `/api/devices/untrust` | sdk, web | implemented | E |  |
@@ -247,8 +247,8 @@ Directory Connector, SCIM, event integrations; G this audit.
 | PUT | `/api/folders/{id}` | android, cli, ios, sdk, web | implemented |  |  |
 | DELETE | `/api/folders/all` | sdk, web | implemented |  |  |
 | GET | `/api/hibp/breach` | sdk, web | implemented |  |  |
-| POST | `/api/installations` | sdk | missing | A |  |
-| GET | `/api/installations/{id}` | sdk | missing | A |  |
+| POST | `/api/installations` | sdk | missing | A | Open: push relay registration and web push settings (PR for push settings) |
+| GET | `/api/installations/{id}` | sdk | missing | A | Open: push relay registration and web push settings (PR for push settings) |
 | POST | `/api/leases/{id}/extend` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | POST | `/api/leases/{id}/revoke` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | GET | `/api/leases/active` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
@@ -266,20 +266,20 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/organization/{orgId}/projects/{id}/events` | sdk, web | implemented |  |  |
 | GET | `/api/organization/{orgId}/secrets/{id}/events` | sdk, web | implemented |  |  |
 | GET | `/api/organization/{orgId}/service-account/{id}/events` | sdk, web | implemented |  |  |
-| DELETE | `/api/organization/sponsorship/{orgId}` | sdk, web | missing | G |  |
-| DELETE | `/api/organization/sponsorship/{orgId}/{sponsoredFriendlyName}/revoke` | sdk, web | missing | G |  |
-| POST | `/api/organization/sponsorship/{orgId}/families-for-enterprise` | sdk, web | missing | G |  |
-| POST | `/api/organization/sponsorship/{orgId}/families-for-enterprise/resend` | sdk, web | missing | G |  |
-| GET | `/api/organization/sponsorship/{orgId}/sponsored` | sdk, web | missing | G |  |
-| GET | `/api/organization/sponsorship/{orgId}/sync-status` | sdk, web | missing | G |  |
-| POST | `/api/organization/sponsorship/redeem` | sdk, web | missing | G |  |
-| DELETE | `/api/organization/sponsorship/self-hosted/{orgId}` | sdk, web | missing | G |  |
-| DELETE | `/api/organization/sponsorship/self-hosted/{orgId}/{sponsoredFriendlyName}/revoke` | sdk, web | missing | G |  |
-| POST | `/api/organization/sponsorship/self-hosted/{orgId}/families-for-enterprise` | sdk, web | missing | G |  |
-| GET | `/api/organization/sponsorship/self-hosted/{orgId}/sponsored` | sdk, web | missing | G |  |
-| DELETE | `/api/organization/sponsorship/sponsored/{orgId}` | sdk, web | missing | G |  |
+| DELETE | `/api/organization/sponsorship/{orgId}` | sdk, web | self-host | G | No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation |
+| DELETE | `/api/organization/sponsorship/{orgId}/{sponsoredFriendlyName}/revoke` | sdk, web | self-host | G | No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation |
+| POST | `/api/organization/sponsorship/{orgId}/families-for-enterprise` | sdk, web | self-host | G | No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation |
+| POST | `/api/organization/sponsorship/{orgId}/families-for-enterprise/resend` | sdk, web | self-host | G | No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation |
+| GET | `/api/organization/sponsorship/{orgId}/sponsored` | sdk, web | self-host | G | No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation |
+| GET | `/api/organization/sponsorship/{orgId}/sync-status` | sdk, web | self-host | G | No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation |
+| POST | `/api/organization/sponsorship/redeem` | sdk, web | self-host | G | No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation |
+| DELETE | `/api/organization/sponsorship/self-hosted/{orgId}` | sdk, web | self-host | G | No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation |
+| DELETE | `/api/organization/sponsorship/self-hosted/{orgId}/{sponsoredFriendlyName}/revoke` | sdk, web | self-host | G | No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation |
+| POST | `/api/organization/sponsorship/self-hosted/{orgId}/families-for-enterprise` | sdk, web | self-host | G | No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation |
+| GET | `/api/organization/sponsorship/self-hosted/{orgId}/sponsored` | sdk, web | self-host | G | No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation |
+| DELETE | `/api/organization/sponsorship/sponsored/{orgId}` | sdk, web | self-host | G | No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation |
 | POST | `/api/organization/sponsorship/sync` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/organization/sponsorship/validate-token` | sdk, web | missing | G |  |
+| POST | `/api/organization/sponsorship/validate-token` | sdk, web | self-host | G | No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation |
 | GET | `/api/organizations` | sdk | implemented |  |  |
 | POST | `/api/organizations` | sdk, web | implemented |  |  |
 | DELETE | `/api/organizations/{id}` | sdk, web | implemented |  |  |
@@ -319,36 +319,36 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/api/organizations/{id}/api-key` | sdk, web | implemented | F |  |
 | GET | `/api/organizations/{id}/api-key-information` | web | implemented | F |  |
 | GET | `/api/organizations/{id}/api-key-information/{type}` | sdk, web | implemented | F |  |
-| GET | `/api/organizations/{id}/auth-requests` | sdk | missing | C |  |
-| POST | `/api/organizations/{id}/auth-requests` | sdk | missing | C |  |
-| POST | `/api/organizations/{id}/auth-requests/{id}` | sdk | missing | C |  |
-| POST | `/api/organizations/{id}/auth-requests/deny` | sdk | missing | C |  |
+| GET | `/api/organizations/{id}/auth-requests` | sdk | missing | C | Open: account recovery and device approvals (workstream C) |
+| POST | `/api/organizations/{id}/auth-requests` | sdk | missing | C | Open: account recovery and device approvals (workstream C) |
+| POST | `/api/organizations/{id}/auth-requests/{id}` | sdk | missing | C | Open: account recovery and device approvals (workstream C) |
+| POST | `/api/organizations/{id}/auth-requests/deny` | sdk | missing | C | Open: account recovery and device approvals (workstream C) |
 | GET | `/api/organizations/{identifier}/auto-enroll-status` | android, ios, sdk, web | implemented | C |  |
 | GET | `/api/organizations/{id}/billing` | sdk, web | implemented |  |  |
-| POST | `/api/organizations/{orgId}/billing/change-frequency` | sdk, web | missing | G |  |
+| POST | `/api/organizations/{orgId}/billing/change-frequency` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | GET | `/api/organizations/{id}/billing/history` | sdk, web | implemented |  |  |
-| GET | `/api/organizations/{id}/billing/invoices` | sdk, web | missing | G |  |
-| POST | `/api/organizations/{orgId}/billing/restart-subscription` | web | missing | G |  |
-| POST | `/api/organizations/{id}/billing/setup-business-unit` | sdk, web | missing | G |  |
-| POST | `/api/organizations/{orgId}/billing/subscription/plan-change/invoice/preview` | web | missing | G |  |
+| GET | `/api/organizations/{id}/billing/invoices` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| POST | `/api/organizations/{orgId}/billing/restart-subscription` | web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| POST | `/api/organizations/{id}/billing/setup-business-unit` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| POST | `/api/organizations/{orgId}/billing/subscription/plan-change/invoice/preview` | web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | GET | `/api/organizations/{orgId}/billing/subscription/preview` | sdk, web | implemented |  |  |
-| GET | `/api/organizations/{id}/billing/transactions` | sdk, web | missing | G |  |
-| GET | `/api/organizations/{orgId}/billing/vnext/address` | sdk, web | missing | G |  |
-| PUT | `/api/organizations/{orgId}/billing/vnext/address` | sdk, web | missing | G |  |
-| GET | `/api/organizations/{orgId}/billing/vnext/annual-upgrade-offer` | sdk, web | missing | G |  |
-| POST | `/api/organizations/{orgId}/billing/vnext/annual-upgrade-offer/redeem` | sdk, web | missing | G |  |
-| GET | `/api/organizations/{orgId}/billing/vnext/churn-mitigation-offer` | sdk, web | missing | G |  |
-| POST | `/api/organizations/{orgId}/billing/vnext/churn-mitigation-offer/redeem` | sdk, web | missing | G |  |
-| GET | `/api/organizations/{orgId}/billing/vnext/credit` | sdk, web | missing | G |  |
-| POST | `/api/organizations/{orgId}/billing/vnext/credit/bitpay` | sdk, web | missing | G |  |
+| GET | `/api/organizations/{id}/billing/transactions` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| GET | `/api/organizations/{orgId}/billing/vnext/address` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| PUT | `/api/organizations/{orgId}/billing/vnext/address` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| GET | `/api/organizations/{orgId}/billing/vnext/annual-upgrade-offer` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| POST | `/api/organizations/{orgId}/billing/vnext/annual-upgrade-offer/redeem` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| GET | `/api/organizations/{orgId}/billing/vnext/churn-mitigation-offer` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| POST | `/api/organizations/{orgId}/billing/vnext/churn-mitigation-offer/redeem` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| GET | `/api/organizations/{orgId}/billing/vnext/credit` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| POST | `/api/organizations/{orgId}/billing/vnext/credit/bitpay` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | GET | `/api/organizations/{orgId}/billing/vnext/metadata` | sdk, web | implemented |  |  |
-| GET | `/api/organizations/{orgId}/billing/vnext/payment-method` | sdk, web | missing | G |  |
-| PUT | `/api/organizations/{orgId}/billing/vnext/payment-method` | sdk, web | missing | G |  |
-| POST | `/api/organizations/{orgId}/billing/vnext/payment-method/verify-bank-account` | web | missing | G |  |
+| GET | `/api/organizations/{orgId}/billing/vnext/payment-method` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| PUT | `/api/organizations/{orgId}/billing/vnext/payment-method` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| POST | `/api/organizations/{orgId}/billing/vnext/payment-method/verify-bank-account` | web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | GET | `/api/organizations/{orgId}/billing/vnext/self-host/metadata` | sdk, web | implemented |  |  |
-| POST | `/api/organizations/{orgId}/billing/vnext/subscription/restart` | sdk, web | missing | G |  |
-| GET | `/api/organizations/{orgId}/billing/vnext/warnings` | sdk, web | missing | G |  |
-| POST | `/api/organizations/{orgId}/cancel` | sdk, web | missing | G |  |
+| POST | `/api/organizations/{orgId}/billing/vnext/subscription/restart` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| GET | `/api/organizations/{orgId}/billing/vnext/warnings` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| POST | `/api/organizations/{orgId}/cancel` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | PUT | `/api/organizations/{id}/collection-management` | sdk, web | implemented |  |  |
 | DELETE | `/api/organizations/{orgId}/collections` | sdk, web | implemented |  |  |
 | GET | `/api/organizations/{orgId}/collections` | cli, sdk, web | implemented |  |  |
@@ -361,7 +361,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/organizations/{id}/collections/access` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | POST | `/api/organizations/{orgId}/collections/bulk-access` | sdk, web | implemented |  |  |
 | GET | `/api/organizations/{orgId}/collections/details` | sdk, web | implemented |  |  |
-| POST | `/api/organizations/{orgId}/delete-recover-token` | sdk, web | missing | A |  |
+| POST | `/api/organizations/{orgId}/delete-recover-token` | sdk, web | missing | A | Open: account recovery and device approvals (workstream C) |
 | GET | `/api/organizations/{orgId}/domain` | sdk, web | implemented | E |  |
 | POST | `/api/organizations/{orgId}/domain` | sdk, web | implemented | E |  |
 | DELETE | `/api/organizations/{orgId}/domain/{orgId}` | sdk, web | implemented | E |  |
@@ -380,18 +380,18 @@ Directory Connector, SCIM, event integrations; G this audit.
 | DELETE | `/api/organizations/{orgId}/groups/{id}/user/{orgId}` | sdk, web | implemented |  |  |
 | GET | `/api/organizations/{orgId}/groups/{id}/users` | sdk, web | implemented |  |  |
 | GET | `/api/organizations/{orgId}/groups/details` | sdk, web | implemented |  |  |
-| POST | `/api/organizations/{orgId}/import` | web | missing | F |  |
-| GET | `/api/organizations/{id}/integrations` | sdk | missing | F |  |
-| POST | `/api/organizations/{id}/integrations` | sdk | missing | F |  |
-| DELETE | `/api/organizations/{id}/integrations/{id}` | sdk | missing | F |  |
-| PUT | `/api/organizations/{id}/integrations/{id}` | sdk | missing | F |  |
-| GET | `/api/organizations/{id}/integrations/{id}/configurations` | sdk | missing | F |  |
-| POST | `/api/organizations/{id}/integrations/{id}/configurations` | sdk | missing | F |  |
-| DELETE | `/api/organizations/{id}/integrations/{id}/configurations/{id}` | sdk | missing | F |  |
-| PUT | `/api/organizations/{id}/integrations/{id}/configurations/{id}` | sdk | missing | F |  |
-| GET | `/api/organizations/{id}/integrations/{id}/teams/channels` | sdk | missing | F |  |
-| GET | `/api/organizations/{id}/integrations/slack/redirect` | sdk | missing | F |  |
-| GET | `/api/organizations/{id}/integrations/teams/redirect` | sdk | missing | F |  |
+| POST | `/api/organizations/{orgId}/import` | web | missing | F | Open: Directory Connector style member and group import (workstream F) |
+| GET | `/api/organizations/{id}/integrations` | sdk | missing | F | Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials |
+| POST | `/api/organizations/{id}/integrations` | sdk | missing | F | Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials |
+| DELETE | `/api/organizations/{id}/integrations/{id}` | sdk | missing | F | Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials |
+| PUT | `/api/organizations/{id}/integrations/{id}` | sdk | missing | F | Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials |
+| GET | `/api/organizations/{id}/integrations/{id}/configurations` | sdk | missing | F | Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials |
+| POST | `/api/organizations/{id}/integrations/{id}/configurations` | sdk | missing | F | Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials |
+| DELETE | `/api/organizations/{id}/integrations/{id}/configurations/{id}` | sdk | missing | F | Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials |
+| PUT | `/api/organizations/{id}/integrations/{id}/configurations/{id}` | sdk | missing | F | Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials |
+| GET | `/api/organizations/{id}/integrations/{id}/teams/channels` | sdk | missing | F | Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials |
+| GET | `/api/organizations/{id}/integrations/slack/redirect` | sdk | missing | F | Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials |
+| GET | `/api/organizations/{id}/integrations/teams/redirect` | sdk | missing | F | Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials |
 | DELETE | `/api/organizations/{orgId}/invite-link` | sdk, web | implemented |  |  |
 | GET | `/api/organizations/{orgId}/invite-link` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/{id}/invite-link` | sdk | implemented |  |  |
@@ -410,29 +410,29 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/organizations/{id}/private-key` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | GET | `/api/organizations/{orgId}/projects` | bws, web | implemented |  |  |
 | POST | `/api/organizations/{orgId}/projects` | bws, web | implemented |  |  |
-| GET | `/api/organizations/(id)/public-key` | ios, sdk | missing | C |  |
-| POST | `/api/organizations/{id}/reinstate` | sdk, web | missing | G |  |
+| GET | `/api/organizations/(id)/public-key` | ios, sdk | missing | C | Open: account recovery and device approvals (workstream C) |
+| POST | `/api/organizations/{id}/reinstate` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | POST | `/api/organizations/{id}/rotate-api-key` | sdk, web | implemented | F |  |
-| POST | `/api/organizations/{id}/seat` | sdk, web | missing | G |  |
+| POST | `/api/organizations/{id}/seat` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | GET | `/api/organizations/{orgId}/secrets` | bws, web | implemented |  |  |
 | POST | `/api/organizations/{orgId}/secrets` | bws, web | implemented |  |  |
 | GET | `/api/organizations/{id}/secrets/sync` | bws | implemented |  |  |
-| GET | `/api/organizations/{orgId}/sends/{id}/events` | sdk, web | missing | B |  |
+| GET | `/api/organizations/{orgId}/sends/{id}/events` | sdk, web | implemented | B |  |
 | GET | `/api/organizations/{orgId}/service-accounts` | bws, web | implemented |  |  |
 | POST | `/api/organizations/{orgId}/service-accounts` | bws, web | implemented |  |  |
 | GET | `/api/organizations/{id}/sm-counts` | sdk | implemented |  |  |
-| POST | `/api/organizations/{id}/sm-subscription` | sdk, web | missing | G |  |
+| POST | `/api/organizations/{id}/sm-subscription` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | GET | `/api/organizations/{id}/sso` | sdk, web | implemented | E |  |
 | POST | `/api/organizations/{id}/sso` | sdk, web | implemented | E |  |
-| POST | `/api/organizations/{id}/storage` | sdk, web | missing | G |  |
+| POST | `/api/organizations/{id}/storage` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | POST | `/api/organizations/{id}/subscribe-secrets-manager` | sdk, web | implemented |  |  |
 | GET | `/api/organizations/{id}/subscription` | sdk, web | implemented |  |  |
-| POST | `/api/organizations/{id}/subscription` | sdk, web | missing | G |  |
+| POST | `/api/organizations/{id}/subscription` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | GET | `/api/organizations/{orgId}/two-factor` | sdk, web | implemented |  |  |
 | DELETE | `/api/organizations/{orgId}/two-factor/duo` | sdk, web | implemented | D |  |
 | PUT | `/api/organizations/{orgId}/two-factor/duo` | sdk, web | implemented | D |  |
 | POST | `/api/organizations/{orgId}/two-factor/get-duo` | sdk, web | implemented | D |  |
-| POST | `/api/organizations/{id}/upgrade` | sdk, web | missing | G |  |
+| POST | `/api/organizations/{id}/upgrade` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | DELETE | `/api/organizations/{orgId}/users` | sdk, web | implemented |  |  |
 | GET | `/api/organizations/{orgId}/users` | cli, sdk, web | implemented |  |  |
 | DELETE | `/api/organizations/{orgId}/users/{id}` | sdk, web | implemented |  |  |
@@ -444,13 +444,13 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/api/organizations/{orgId}/users/{id}/confirm` | cli, sdk, web | implemented |  |  |
 | DELETE | `/api/organizations/{orgId}/users/{id}/delete-account` | sdk, web | implemented | E |  |
 | GET | `/api/organizations/{orgId}/users/{id}/events` | sdk, web | implemented |  |  |
-| PUT | `/api/organizations/{orgId}/users/{id}/recover-account` | sdk, web | missing | C |  |
+| PUT | `/api/organizations/{orgId}/users/{id}/recover-account` | sdk, web | missing | C | Open: account recovery and device approvals (workstream C) |
 | POST | `/api/organizations/{orgId}/users/{id}/reinvite` | sdk, web | implemented |  |  |
-| GET | `/api/organizations/{orgId}/users/{id}/reset-password-details` | sdk, web | missing | C |  |
-| PUT | `/api/organizations/{orgId}/users/{userId}/reset-password-enrollment` | android, ios, sdk, web | missing | C |  |
+| GET | `/api/organizations/{orgId}/users/{id}/reset-password-details` | sdk, web | missing | C | Open: account recovery and device approvals (workstream C) |
+| PUT | `/api/organizations/{orgId}/users/{userId}/reset-password-enrollment` | android, ios, sdk, web | missing | C | Open: account recovery and device approvals (workstream C) |
 | PUT | `/api/organizations/{orgId}/users/{id}/restore/vnext` | sdk, web | implemented |  |  |
 | PUT | `/api/organizations/{orgId}/users/{id}/revoke` | sdk, web | implemented |  |  |
-| POST | `/api/organizations/{orgId}/users/account-recovery-details` | sdk, web | missing | C |  |
+| POST | `/api/organizations/{orgId}/users/account-recovery-details` | sdk, web | missing | C | Open: account recovery and device approvals (workstream C) |
 | POST | `/api/organizations/{orgId}/users/bulk-auto-confirm` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/{orgId}/users/confirm` | sdk, web | implemented |  |  |
 | DELETE | `/api/organizations/{orgId}/users/delete-account` | sdk, web | implemented | E |  |
@@ -466,22 +466,22 @@ Directory Connector, SCIM, event integrations; G this audit.
 | PUT | `/api/organizations/{orgId}/users/revoke-self` | android, ios, sdk, web | implemented |  |  |
 | POST | `/api/organizations/{id}/users/send-invite` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | POST | `/api/organizations/billing/subscription/purchase/preview` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/organizations/connections/` | sdk, web | missing | F |  |
-| DELETE | `/api/organizations/connections/{id}` | sdk, web | missing | F |  |
-| PUT | `/api/organizations/connections/{orgId}` | sdk, web | missing | F |  |
-| GET | `/api/organizations/connections/{id}/{type}` | sdk, web | missing | F |  |
-| GET | `/api/organizations/connections/enabled` | sdk, web | missing | F |  |
+| POST | `/api/organizations/connections/` | sdk, web | missing | F | Owner decision needed: organisation connections link a self-hosted server to the cloud (billing sync, SCIM or Directory Connector keys); no cloud exists for this server |
+| DELETE | `/api/organizations/connections/{id}` | sdk, web | missing | F | Owner decision needed: organisation connections link a self-hosted server to the cloud (billing sync, SCIM or Directory Connector keys); no cloud exists for this server |
+| PUT | `/api/organizations/connections/{orgId}` | sdk, web | missing | F | Owner decision needed: organisation connections link a self-hosted server to the cloud (billing sync, SCIM or Directory Connector keys); no cloud exists for this server |
+| GET | `/api/organizations/connections/{id}/{type}` | sdk, web | missing | F | Owner decision needed: organisation connections link a self-hosted server to the cloud (billing sync, SCIM or Directory Connector keys); no cloud exists for this server |
+| GET | `/api/organizations/connections/enabled` | sdk, web | missing | F | Owner decision needed: organisation connections link a self-hosted server to the cloud (billing sync, SCIM or Directory Connector keys); no cloud exists for this server |
 | POST | `/api/organizations/create-without-payment` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/domain/sso/verified` | android, ios, sdk, web | implemented | E |  |
-| GET | `/api/organizations/integrations/slack/create` | sdk | missing | F |  |
-| GET | `/api/organizations/integrations/teams/create` | sdk | missing | F |  |
-| POST | `/api/organizations/integrations/teams/incoming` | sdk | missing | F |  |
+| GET | `/api/organizations/integrations/slack/create` | sdk | missing | F | Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials |
+| GET | `/api/organizations/integrations/teams/create` | sdk | missing | F | Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials |
+| POST | `/api/organizations/integrations/teams/incoming` | sdk | missing | F | Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials |
 | POST | `/api/organizations/invite-link/policies` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/invite-link/status` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/invite-link/validate-email-domain` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/licenses/self-hosted` | sdk, web | implemented |  |  |
-| POST | `/api/organizations/licenses/self-hosted/{id}` | sdk, web | missing | G |  |
-| POST | `/api/organizations/licenses/self-hosted/{id}/sync/` | sdk, web | missing | G |  |
+| POST | `/api/organizations/licenses/self-hosted/{id}` | sdk, web | self-host | G | Cloud licence files are not used: answers 400 with an explanation |
+| POST | `/api/organizations/licenses/self-hosted/{id}/sync/` | sdk, web | self-host | G | Cloud licence files are not used: answers 400 with an explanation |
 | POST | `/api/organizations/users/invite-link/accept` | sdk | implemented |  |  |
 | POST | `/api/organizations/users/invite-link/confirm` | sdk | implemented |  |  |
 | POST | `/api/organizations/users/invite-link/invite` | sdk | implemented |  |  |
@@ -496,50 +496,50 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/projects/{projectId}/secrets` | bws, web | implemented |  |  |
 | GET | `/api/projects/{id}/sm-counts` | bws | implemented |  |  |
 | POST | `/api/projects/delete` | bws, web | implemented |  |  |
-| DELETE | `/api/providers/{id}` | sdk, web | missing | G |  |
-| GET | `/api/providers/{id}` | sdk, web | missing | G |  |
-| PUT | `/api/providers/{id}` | sdk, web | missing | G |  |
-| GET | `/api/providers/{providerId}/billing/invoices` | sdk, web | missing | G |  |
-| GET | `/api/providers/{providerId}/billing/invoices/{invoiceId}` | sdk, web | missing | G |  |
-| GET | `/api/providers/{providerId}/billing/subscription` | sdk, web | missing | G |  |
-| GET | `/api/providers/{providerId}/billing/vnext/address` | sdk, web | missing | G |  |
-| PUT | `/api/providers/{providerId}/billing/vnext/address` | sdk, web | missing | G |  |
-| GET | `/api/providers/{providerId}/billing/vnext/credit` | sdk, web | missing | G |  |
-| POST | `/api/providers/{providerId}/billing/vnext/credit/bitpay` | sdk, web | missing | G |  |
-| GET | `/api/providers/{providerId}/billing/vnext/payment-method` | sdk, web | missing | G |  |
-| PUT | `/api/providers/{providerId}/billing/vnext/payment-method` | sdk, web | missing | G |  |
-| POST | `/api/providers/{providerId}/billing/vnext/payment-method/verify-bank-account` | web | missing | G |  |
-| POST | `/api/providers/{providerId}/billing/vnext/subscription/restart` | web | missing | G |  |
+| DELETE | `/api/providers/{id}` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| GET | `/api/providers/{id}` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| PUT | `/api/providers/{id}` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| GET | `/api/providers/{providerId}/billing/invoices` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| GET | `/api/providers/{providerId}/billing/invoices/{invoiceId}` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| GET | `/api/providers/{providerId}/billing/subscription` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| GET | `/api/providers/{providerId}/billing/vnext/address` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| PUT | `/api/providers/{providerId}/billing/vnext/address` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| GET | `/api/providers/{providerId}/billing/vnext/credit` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| POST | `/api/providers/{providerId}/billing/vnext/credit/bitpay` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| GET | `/api/providers/{providerId}/billing/vnext/payment-method` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| PUT | `/api/providers/{providerId}/billing/vnext/payment-method` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| POST | `/api/providers/{providerId}/billing/vnext/payment-method/verify-bank-account` | web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| POST | `/api/providers/{providerId}/billing/vnext/subscription/restart` | web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
 | GET | `/api/providers/{id}/billing/vnext/warnings` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/providers/{providerId}/clients` | sdk, web | missing | G |  |
-| PUT | `/api/providers/{providerId}/clients/{orgId}` | sdk, web | missing | G |  |
-| GET | `/api/providers/{providerId}/clients/addable` | sdk, web | missing | G |  |
-| POST | `/api/providers/{providerId}/clients/existing` | sdk, web | missing | G |  |
-| POST | `/api/providers/{providerId}/delete-recover-token` | sdk, web | missing | A |  |
-| GET | `/api/providers/{providerId}/events` | sdk, web | missing | G |  |
-| GET | `/api/providers/{providerId}/organizations` | sdk, web | missing | G |  |
-| POST | `/api/providers/{providerId}/organizations` | sdk, web | missing | G |  |
-| DELETE | `/api/providers/{providerId}/organizations/{id}` | sdk, web | missing | G |  |
-| POST | `/api/providers/{providerId}/organizations/add` | sdk, web | missing | G |  |
-| POST | `/api/providers/{id}/setup` | sdk, web | missing | G |  |
-| DELETE | `/api/providers/{providerId}/users` | sdk, web | missing | G |  |
-| GET | `/api/providers/{providerId}/users` | sdk, web | missing | G |  |
-| DELETE | `/api/providers/{providerId}/users/{id}` | sdk, web | missing | G |  |
-| GET | `/api/providers/{providerId}/users/{id}` | sdk, web | missing | G |  |
-| PUT | `/api/providers/{providerId}/users/{id}` | sdk, web | missing | G |  |
-| POST | `/api/providers/{providerId}/users/{id}/accept` | sdk, web | missing | G |  |
-| POST | `/api/providers/{providerId}/users/{id}/confirm` | sdk, web | missing | G |  |
-| GET | `/api/providers/{providerId}/users/{id}/events` | sdk, web | missing | G |  |
-| POST | `/api/providers/{providerId}/users/{id}/reinvite` | sdk, web | missing | G |  |
-| POST | `/api/providers/{providerId}/users/confirm` | sdk, web | missing | G |  |
-| POST | `/api/providers/{providerId}/users/invite` | sdk, web | missing | G |  |
-| POST | `/api/providers/{providerId}/users/public-keys` | sdk, web | missing | G |  |
-| POST | `/api/providers/{providerId}/users/reinvite` | sdk, web | missing | G |  |
-| PUT | `/api/push/add-organization` | sdk | missing | A |  |
-| POST | `/api/push/delete` | sdk | missing | A |  |
-| PUT | `/api/push/delete-organization` | sdk | missing | A |  |
-| POST | `/api/push/register` | sdk | missing | A |  |
-| POST | `/api/push/send` | sdk | missing | A |  |
+| POST | `/api/providers/{providerId}/clients` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| PUT | `/api/providers/{providerId}/clients/{orgId}` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| GET | `/api/providers/{providerId}/clients/addable` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| POST | `/api/providers/{providerId}/clients/existing` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| POST | `/api/providers/{providerId}/delete-recover-token` | sdk, web | missing | A | Open: account recovery and device approvals (workstream C) |
+| GET | `/api/providers/{providerId}/events` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| GET | `/api/providers/{providerId}/organizations` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| POST | `/api/providers/{providerId}/organizations` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| DELETE | `/api/providers/{providerId}/organizations/{id}` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| POST | `/api/providers/{providerId}/organizations/add` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| POST | `/api/providers/{id}/setup` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| DELETE | `/api/providers/{providerId}/users` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| GET | `/api/providers/{providerId}/users` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| DELETE | `/api/providers/{providerId}/users/{id}` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| GET | `/api/providers/{providerId}/users/{id}` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| PUT | `/api/providers/{providerId}/users/{id}` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| POST | `/api/providers/{providerId}/users/{id}/accept` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| POST | `/api/providers/{providerId}/users/{id}/confirm` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| GET | `/api/providers/{providerId}/users/{id}/events` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| POST | `/api/providers/{providerId}/users/{id}/reinvite` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| POST | `/api/providers/{providerId}/users/confirm` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| POST | `/api/providers/{providerId}/users/invite` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| POST | `/api/providers/{providerId}/users/public-keys` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| POST | `/api/providers/{providerId}/users/reinvite` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
+| PUT | `/api/push/add-organization` | sdk | missing | A | Open: push relay registration and web push settings (PR for push settings) |
+| POST | `/api/push/delete` | sdk | missing | A | Open: push relay registration and web push settings (PR for push settings) |
+| PUT | `/api/push/delete-organization` | sdk | missing | A | Open: push relay registration and web push settings (PR for push settings) |
+| POST | `/api/push/register` | sdk | missing | A | Open: push relay registration and web push settings (PR for push settings) |
+| POST | `/api/push/send` | sdk | missing | A | Open: push relay registration and web push settings (PR for push settings) |
 | GET | `/api/reports/member-access/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | GET | `/api/reports/member-cipher-details/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | POST | `/api/reports/organizations/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
@@ -561,17 +561,17 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/api/reports/password-health-report-applications` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | GET | `/api/reports/password-health-report-applications/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | POST | `/api/request-access/request-sm-access` | sdk, web | implemented |  |  |
-| GET | `/api/secret-versions/{id}` | sdk | missing | D |  |
-| POST | `/api/secret-versions/delete` | sdk | missing | D |  |
-| POST | `/api/secret-versions/get-by-ids` | sdk | missing | D |  |
+| GET | `/api/secret-versions/{id}` | sdk | missing | D | Open: Secrets Manager versions, import and export (workstream D, open PR) |
+| POST | `/api/secret-versions/delete` | sdk | missing | D | Open: Secrets Manager versions, import and export (workstream D, open PR) |
+| POST | `/api/secret-versions/get-by-ids` | sdk | missing | D | Open: Secrets Manager versions, import and export (workstream D, open PR) |
 | GET | `/api/secrets/{id}` | bws, web | implemented |  |  |
 | PUT | `/api/secrets/{id}` | bws, web | implemented |  |  |
 | GET | `/api/secrets/{id}/access-policies` | bws | implemented |  |  |
 | GET | `/api/secrets/{id}/trash` | bws | implemented |  |  |
 | POST | `/api/secrets/{id}/trash/empty` | bws | implemented |  |  |
 | POST | `/api/secrets/{id}/trash/restore` | bws | implemented |  |  |
-| GET | `/api/secrets/{id}/versions` | bws | missing | D |  |
-| PUT | `/api/secrets/{id}/versions/restore` | bws | missing | D |  |
+| GET | `/api/secrets/{id}/versions` | bws | missing | D | Open: Secrets Manager versions, import and export (workstream D, open PR) |
+| PUT | `/api/secrets/{id}/versions/restore` | bws | missing | D | Open: Secrets Manager versions, import and export (workstream D, open PR) |
 | POST | `/api/secrets/delete` | bws, web | implemented |  |  |
 | POST | `/api/secrets/get-by-ids` | bws | implemented |  |  |
 | GET | `/api/sends` | sdk, web | implemented | B |  |
@@ -587,7 +587,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/api/sends/access/{id}` | cli | implemented | B |  |
 | POST | `/api/sends/access/file/{id}` | cli, sdk, web | implemented | B |  |
 | POST | `/api/sends/file/v2` | android, cli, ios, sdk, web | implemented | B |  |
-| POST | `/api/sends/file/validate/azure` | sdk | missing | B |  |
+| POST | `/api/sends/file/validate/azure` | sdk | implemented | B |  |
 | GET | `/api/service-accounts/{id}` | bws, web | implemented |  |  |
 | PUT | `/api/service-accounts/{id}` | bws, web | implemented |  |  |
 | GET | `/api/service-accounts/{id}/access-policies/people` | bws, web | implemented |  |  |
@@ -601,13 +601,13 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/api/service-accounts/delete` | bws, web | implemented |  |  |
 | GET | `/api/settings/domains` | sdk, web | implemented |  |  |
 | PUT | `/api/settings/domains` | sdk, web | implemented |  |  |
-| POST | `/api/setup-intent/bank-account` | sdk, web | missing | G |  |
-| POST | `/api/setup-intent/card` | sdk, web | missing | G |  |
-| POST | `/api/setup-payment` | web | missing | G |  |
-| GET | `/api/sm/{id}/export` | sdk | missing | D |  |
-| POST | `/api/sm/{id}/import` | sdk | missing | D |  |
+| POST | `/api/setup-intent/bank-account` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| POST | `/api/setup-intent/card` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| POST | `/api/setup-payment` | web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| GET | `/api/sm/{id}/export` | sdk | missing | D | Open: Secrets Manager versions, import and export (workstream D, open PR) |
+| POST | `/api/sm/{id}/import` | sdk | missing | D | Open: Secrets Manager versions, import and export (workstream D, open PR) |
 | GET | `/api/sm/events/service-accounts/{id}` | sdk | implemented |  |  |
-| GET | `/api/sso-cookie-vendor` | sdk | missing | E |  |
+| GET | `/api/sso-cookie-vendor` | sdk | missing | E | Open: SSO federation, Key Connector and trusted device follow-ups (open PRs) |
 | GET | `/api/sync` | android, ios, sdk, web | implemented |  |  |
 | GET | `/api/tasks` | sdk, web | implemented |  |  |
 | POST | `/api/tasks/{id}/bulk-create` | sdk | implemented |  |  |
@@ -657,9 +657,9 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/identity/alive` | sdk | implemented |  |  |
 | GET | `/identity/connect/authorize` | web | implemented | E |  |
 | POST | `/identity/connect/token` | android, bws, cli, ios, web | implemented |  |  |
-| GET | `/identity/sso/ExternalCallback` | sdk | missing | E |  |
-| GET | `/identity/sso/ExternalChallenge` | sdk | missing | E |  |
-| GET | `/identity/sso/Login` | sdk | missing | E |  |
+| GET | `/identity/sso/ExternalCallback` | sdk | missing | E | Open: SSO federation, Key Connector and trusted device follow-ups (open PRs) |
+| GET | `/identity/sso/ExternalChallenge` | sdk | missing | E | Open: SSO federation, Key Connector and trusted device follow-ups (open PRs) |
+| GET | `/identity/sso/Login` | sdk | missing | E | Open: SSO federation, Key Connector and trusted device follow-ups (open PRs) |
 | GET | `/identity/sso/prevalidate` | android, ios, sdk, web | implemented | E |  |
 | GET | `/notifications/anonymous-hub` | web | implemented |  |  |
 | GET | `/notifications/hub` | web | implemented |  |  |

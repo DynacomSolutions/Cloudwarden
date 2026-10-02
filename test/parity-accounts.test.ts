@@ -171,11 +171,22 @@ describe('attachments', () => {
 
 describe('reports', () => {
   const token = async (email: string) => (await actor(email)).token
-  const call = (f: Fetcher, path: string, t: string, overrides: Record<string, unknown> = {}) =>
+  const call = (
+    f: Fetcher,
+    path: string,
+    t: string,
+    overrides: Record<string, unknown> = {},
+    headers: Record<string, string> = {},
+  ) =>
     new Hono<Env>()
       .onError((e) => new Response(null, { status: e instanceof ApiError ? e.status : 500 }))
       .route('/', createReports(f))
-      .request(path, { headers: { Authorization: `Bearer ${t}` } }, { ...env, ...overrides }, ctx)
+      .request(
+        path,
+        { headers: { Authorization: `Bearer ${t}`, ...headers } },
+        { ...env, ...overrides },
+        ctx,
+      )
 
   it('proxies HIBP only when a key is configured', async () => {
     const t = await token('w2-hibp@example.com')
@@ -198,6 +209,64 @@ describe('reports', () => {
     expect(
       (await call(fetcher, '/api/hibp/breach?username=x', 'bad', { HIBP_API_KEY: 'k' })).status,
     ).toBe(401)
+  })
+
+  it('limits the breach report per account', async () => {
+    const t = await token('lim-hibp@example.com')
+    const other = await token('lim-hibp-other@example.com')
+    const fetcher: Fetcher = async () => new Response('', { status: 404 })
+    const statuses: number[] = []
+    for (let i = 0; i < 22; i++) {
+      statuses.push(
+        (await call(fetcher, '/api/hibp/breach?username=clean', t, { HIBP_API_KEY: 'k' })).status,
+      )
+    }
+    expect(statuses.slice(0, 20).every((x) => x === 200)).toBe(true)
+    expect(statuses[21]).toBe(429)
+    // Another account has its own allowance.
+    expect(
+      (await call(fetcher, '/api/hibp/breach?username=clean', other, { HIBP_API_KEY: 'k' })).status,
+    ).toBe(200)
+  })
+
+  it('limits and coalesces passkey directory cache misses', async () => {
+    const t = await token('lim-pk@example.com')
+    const headers = { 'CF-Connecting-IP': '203.0.113.77' }
+    const failing: Fetcher = async () => new Response('', { status: 500 })
+    const statuses: number[] = []
+    for (let i = 0; i < 12; i++) {
+      statuses.push((await call(failing, '/api/reports/passkey-directory', t, {}, headers)).status)
+    }
+    expect(statuses.slice(0, 10).every((x) => x === 502)).toBe(true)
+    expect(statuses[11]).toBe(429)
+
+    // An oversized body is refused (before anything is cached); concurrent misses share one request.
+    const huge: Fetcher = async () =>
+      new Response('{}', { headers: { 'Content-Length': String(64 * 1024 * 1024) } })
+    expect(
+      (
+        await call(
+          huge,
+          '/api/reports/passkey-directory',
+          t,
+          {},
+          { 'CF-Connecting-IP': '203.0.113.79' },
+        )
+      ).status,
+    ).toBe(502)
+    let upstream = 0
+    const slow: Fetcher = async () => {
+      upstream++
+      await new Promise((r) => setTimeout(r, 50))
+      return Response.json({ 'example.net': { mfa: 'required' } })
+    }
+    const ip = { 'CF-Connecting-IP': '203.0.113.78' }
+    const both = await Promise.all([
+      call(slow, '/api/reports/passkey-directory', t, {}, ip),
+      call(slow, '/api/reports/passkey-directory', t, {}, ip),
+    ])
+    expect(both.map((r) => r.status)).toEqual([200, 200])
+    expect(upstream).toBe(1)
   })
 
   it('maps the passkey directory', async () => {

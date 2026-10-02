@@ -1,4 +1,4 @@
-import { and, eq, notBetween, or } from 'drizzle-orm'
+import { and, eq, notBetween, or, sql } from 'drizzle-orm'
 import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { z } from 'zod'
@@ -111,6 +111,14 @@ events.get('/api/organizations/:orgId/events', async (c) => {
   const db = createDb(c.env.DB)
   await requirePermission(db, c.var.user.uuid, orgId(c), 'accessEventLogs')
   return c.json(await listEvents(db, c, eq(schema.events.organizationUuid, orgId(c))))
+})
+
+// Sends belong to accounts here and no Send event types are recorded, so the list is empty; the
+// permission check still applies, as the Admin Console reads it for members who view event logs.
+events.get('/api/organizations/:orgId/sends/:id/events', async (c) => {
+  const db = createDb(c.env.DB)
+  await requirePermission(db, c.var.user.uuid, orgId(c), 'accessEventLogs')
+  return c.json(await listEvents(db, c, sql`1 = 0`))
 })
 
 events.get('/api/organizations/:orgId/users/:id/events', async (c) => {

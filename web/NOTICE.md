@@ -31,7 +31,12 @@ Summary of changes made by Cloudwarden (see `git log -- web/` for the full histo
 
 - Workspaces reduced to `apps/web` and `libs/**`; `package-lock.json` regenerated for that set.
   The development TLS key shipped upstream for the dev server is removed.
-- Rebranding: product name, page titles, logos, favicons and web manifest replaced; the
+- Bitwarden License build targets removed from `angular.json`, `tsconfig*.json`,
+  `apps/web/project.json`, `apps/web/package.json` and the Tailwind content paths.
+- Rebranding: product name, page titles, logos, favicons, web manifest, welcome graphic and the
+  shield glyph replaced (names of real Bitwarden products the user installs separately, such as
+  the browser extension, apps and Authenticator, are kept; `web/scripts/rebrand-locales.py`);
+  the upstream extension videos are not shown; the
   "More from Bitwarden" product switcher entries, premium upsell, Secrets Manager and Provider
   Portal entry points and marketing links are hidden. The footer reads "Cloudwarden, based on
   Bitwarden clients (GPL-3.0)".

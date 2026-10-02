@@ -60,10 +60,13 @@ client). CI test jobs do not build the client.
 
 ## Deploying
 
-The deploy workflow runs `pnpm web:build` before `cf build`, caches npm downloads for
+The deploy workflow builds and checks the web client first (with no Cloudflare credentials in
+the environment: they are set only on the migrate, `cf build` and `cf deploy` steps), then
+applies D1 migrations immediately before `cf deploy`. It runs `pnpm web:build` before `cf build`, caches npm downloads for
 `web/package-lock.json`, has a 90 minute job timeout, and fails unless the built assets carry
-`cloudwarden-build.json` and the `Cloudwarden` page title. After deploying it checks the served
-marker and page title.
+`cloudwarden-build.json`, the `Cloudwarden` page title and no inline scripts (the CSP has no
+inline allowance). After deploying it retries until the served marker carries this commit, and
+fails otherwise.
 
 If the `k3s-runners` pods run out of memory or time for the webpack build, build once on a
 larger machine and cache the result instead: publish `web-vault/` as an artifact keyed by the
@@ -90,7 +93,10 @@ the key matches and build only on a miss.
    conflicts, preferring upstream except in `Cloudwarden:` edits and `cloudwarden/` directories.
 4. Keep the workspaces trimmed (`apps/web`, `libs/**/*`) and regenerate the lock with
    `npm install --package-lock-only` in `web/`.
-5. Re-run the locale rebrand (product name only) on new strings, update the tag in
+5. Re-run the locale rebrand on the new upstream strings
+   (`python3 web/scripts/rebrand-locales.py web/apps/web/src/locales`; it keeps names of real
+   Bitwarden products such as the browser extension, apps and Authenticator), regenerate
+   `web/UPSTREAM-BLOBS.txt` from the new tag, update the tag in
    `scripts/build-web.mjs` (`UPSTREAM_TAG`), `web/NOTICE.md` and this file.
 6. `pnpm check:web-licence`, `pnpm web:build`, `pnpm dev` and a browser check of login, vault,
    organisation creation and Instance admin, then `pnpm e2e`.
@@ -101,12 +107,20 @@ reviewable.
 ## Repository tooling
 
 - Biome ignores `web/` (upstream uses its own ESLint and Prettier setup).
-- The identifier check skips upstream files under `web/` (they contain upstream's own domains,
-  emails, UUIDs and fixtures) but scans `cloudwarden/` directories, `web/NOTICE.md` and
-  `web/scripts/`.
-- gitleaks allowlists upstream unit test fixtures, spec data and public sandbox configuration
-  under `web/` (`.gitleaks.toml`).
-- TypeScript (`pnpm typecheck`) and Vitest do not include `web/`.
+- `web/UPSTREAM-BLOBS.txt` records the git blob id of every vendored upstream file. The
+  identifier check skips a file under `web/` only while its content still matches that blob, so
+  every file Cloudwarden changes or adds there is scanned. `cloudwarden/` directories,
+  `web/NOTICE.md`, `web/scripts/`, `apps/web/config/selfhosted.json`, `apps/web/src/index.html`
+  and the locale files are always scanned. Upstream placeholder values in those files (example
+  addresses in translations, payment provider hosts in the webpack CSP) are allowlisted one by
+  one in `.identifiers-allow`.
+- gitleaks allowlists only named upstream files (unit test fixtures, spec data, public sandbox
+  config) in `.gitleaks.toml`; nothing under a `cloudwarden/` directory is allowlisted.
+- `pnpm check:web-licence` rejects `bitwarden_license/` paths and any `@bitwarden/bit-*`
+  reference or Bitwarden License notice anywhere in source and config files under `web/`.
+- The CI job "Web client unit tests" runs Cloudwarden's own Jest specs
+  (`web/apps/web/src/app/cloudwarden`). TypeScript (`pnpm typecheck`) and Vitest do not include
+  `web/`.
 
 ## Routing and headers
 
@@ -118,7 +132,9 @@ from assets, with unknown paths falling back to `index.html`.
 The client needs no generated runtime config: its default environment URLs are relative and
 resolve against the page origin. Static responses get their headers from the generated
 `_headers`: a Content-Security-Policy that allows `wasm-unsafe-eval` (WebAssembly SDK),
-same-origin scripts and connections, Duo frames and the breach-check API, plus
+same-origin scripts and connections (`'self'` covers the same-origin notifications WebSocket; no
+scheme-wide `wss:`), Duo frames for two-step login, the vault's own WebAuthn connector frame and
+the breach-check API, plus
 `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` and `Permissions-Policy`. Edit
 `scripts/build-web.mjs` to loosen `connect-src` or `frame-src`.
 

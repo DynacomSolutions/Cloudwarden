@@ -1572,6 +1572,9 @@ secretsManager.post('/api/secrets/:orgId/trash/restore', async (c) => {
 
 // ----- secret versions (TASKS #224) -----
 
+/** Ids per get-by-ids call; each distinct secret costs an access check. */
+const MAX_VERSION_IDS = 100
+
 const versionRows = (db: Db, where: ReturnType<typeof eq>) =>
   db
     .select({
@@ -1637,7 +1640,7 @@ async function versionsByIds(c: Ctx, db: Db, ids: string[], need: 'read' | 'writ
 }
 
 secretsManager.post('/api/secret-versions/get-by-ids', async (c) => {
-  const ids = await parseBody(c, idList)
+  const ids = await parseBody(c, z.array(z.string()).min(1).max(MAX_VERSION_IDS))
   const rows = await versionsByIds(c, db_(c), ids, 'read')
   return c.json(list(rows.map(versionJson)))
 })
@@ -1737,8 +1740,9 @@ const importSchema = z.object({
  * Creates the projects and secrets of an export under fresh ids (ids in the file only link secrets
  * to projects, so an import can never overwrite or claim existing data). Needs Secrets Manager
  * access; secrets without a project need an owner or admin, as everywhere else. Large imports are
- * written in several batches (D1 limit), projects first, so a failure part way leaves what was
- * written; the revision and events come last.
+ * written in several batches (D1 limit), projects first, never splitting a project from its
+ * creator access policy. A failure part way keeps what was written (a partial import) and still
+ * bumps the revision so clients resync.
  */
 secretsManager.post('/api/sm/:orgId/import', async (c) => {
   const body = await parseBody(c, importSchema)
@@ -1767,10 +1771,11 @@ secretsManager.post('/api/sm/:orgId/import', async (c) => {
     if (linked.length === 0 && !ctx.admin) throw forbidden()
   }
   const now = Date.now()
-  const statements: unknown[] = []
+  // One group per project or secret, so an object and its access policy never split across batches.
+  const groups: unknown[][] = []
   for (const p of projects) {
     const uuid = projectIds.get(p.id.toLowerCase()) as string
-    statements.push(
+    groups.push([
       db.insert(schema.smProjects).values({
         uuid,
         organizationUuid: ctx.orgUuid,
@@ -1785,11 +1790,11 @@ secretsManager.post('/api/sm/:orgId/import', async (c) => {
         projectUuid: uuid,
         ...actorEventFields(ctx),
       }),
-    )
+    ])
   }
   for (const s of secrets) {
     const uuid = crypto.randomUUID()
-    statements.push(
+    groups.push([
       db.insert(schema.smSecrets).values({
         uuid,
         organizationUuid: ctx.orgUuid,
@@ -1810,11 +1815,27 @@ secretsManager.post('/api/sm/:orgId/import', async (c) => {
         secretUuid: uuid,
         ...actorEventFields(ctx),
       }),
-    )
+    ])
   }
-  for (let i = 0; i < statements.length; i += IMPORT_CHUNK) {
-    await batch(db, statements.slice(i, i + IMPORT_CHUNK))
+  // Written in batches (D1 limit) with whole groups only. A failure part way keeps the batches
+  // already written, and the revision is bumped either way so clients resync what exists.
+  let batchStatements: unknown[] = []
+  let written = false
+  try {
+    for (const group of groups) {
+      if (batchStatements.length + group.length > IMPORT_CHUNK) {
+        await batch(db, batchStatements)
+        written = true
+        batchStatements = []
+      }
+      batchStatements.push(...group)
+    }
+    if (batchStatements.length > 0) {
+      await batch(db, batchStatements)
+      written = true
+    }
+  } finally {
+    if (written) await batch(db, [bumpSecretsRevision(db, ctx.orgUuid, now)])
   }
-  await batch(db, [bumpSecretsRevision(db, ctx.orgUuid, now)])
   return c.body(null, 200)
 })

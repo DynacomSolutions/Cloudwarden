@@ -194,6 +194,40 @@ describe('secret versions', () => {
   })
 })
 
+describe('limits', () => {
+  it('caps get-by-ids at 100 ids', async () => {
+    const ids = Array.from({ length: 101 }, () => crypto.randomUUID())
+    expect((await owner.call('/api/secret-versions/get-by-ids', 'POST', ids)).status).toBe(400)
+  })
+
+  it('imports more than one batch of statements and bumps the revision', async () => {
+    const lone = await actor('smv-big@example.com')
+    const org = (await createOrg(lone, 'Big Org')).id
+    const projects = Array.from({ length: 150 }, (_, i) => ({
+      id: crypto.randomUUID(),
+      name: enc(`p${i}`),
+    }))
+    const secrets = Array.from({ length: 450 }, (_, i) => ({
+      id: crypto.randomUUID(),
+      key: enc(`k${i}`),
+      value: enc(`v${i}`),
+      note: '',
+      projectIds: [(projects[i % 150] as { id: string }).id],
+    }))
+    const before = await lone.json(`/api/organizations/${org}/secrets/sync`)
+    expect((await lone.call(`/api/sm/${org}/import`, 'POST', { projects, secrets })).status).toBe(
+      200,
+    )
+    const back = await lone.json(`/api/sm/${org}/export`)
+    expect(back.projects).toHaveLength(150)
+    expect(back.secrets).toHaveLength(450)
+    expect(before.hasChanges).toBe(true)
+    const date = new Date(Date.now() - 60_000).toISOString()
+    const sync = await lone.json(`/api/organizations/${org}/secrets/sync?lastSyncedDate=${date}`)
+    expect(sync.hasChanges).toBe(true)
+  })
+})
+
 describe('import and export', () => {
   it('exports readable projects and secrets and re-imports them under new ids', async () => {
     const target = await actor('smv-port@example.com')

@@ -221,13 +221,18 @@ Shapes come from `apis/secret_versions_api.rs`, `apis/secrets_manager_porting_ap
   `POST /secret-versions/get-by-ids`, `POST /secret-versions/delete` (all-or-nothing, empty
   response) and `PUT /secrets/{id}/versions/restore`. Reading needs read access to the secret,
   restoring and deleting need write access; no access is a 404. Machine accounts may call them.
+  `get-by-ids` takes at most 100 ids. History is not scoped to who made a change: anyone who gains
+  read access to a secret later (a project grant, say) can read all its earlier values, so rotate a
+  secret rather than relying on old versions being hidden, and delete versions that must go.
 - `GET /sm/{organizationId}/export` returns the projects and secrets the caller can read (admins:
   all) as encrypted fields; `POST /sm/{organizationId}/import` creates them. Both are for members,
   not machine accounts. Ids in a file only link secrets to projects; every object is created under
   a fresh id, so an import cannot overwrite or claim existing data. Importers get creator access
   to the projects they create, and only owners and admins may import secrets without a project.
-  Imports above 400 statements are written in several batches (D1 limit), projects first, so a
-  failure part way keeps what was written. The web client's own import and export UI is a
+  Imports above 400 statements are written in several batches (D1 limit), projects first; a project
+  and its creator access policy always share a batch. A failure part way keeps what was written (a
+  partial import, to be retried or cleaned up) and the secrets revision is bumped regardless, so
+  clients resync what exists. The web client's own import and export UI is a
   follow-up (#230).
 
 ## Not implemented (deferred)

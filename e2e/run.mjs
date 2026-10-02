@@ -13,7 +13,6 @@ import { migrateLocal } from '../scripts/local-migrate.mjs'
 import { ensureBwdc } from './bwdc.mjs'
 import { ensureBws } from './bws.mjs'
 import { buildAccount, decType2, encType2, encType4 } from './crypto.mjs'
-import { startLdap } from './ldap-server.mjs'
 import { deriveAccessTokenKey } from './sm-client.mjs'
 import { makeCert } from './tls-proxy.mjs'
 
@@ -676,11 +675,23 @@ async function main() {
         },
       },
     ]
-    const ldap = await startLdap({
-      entries: directory,
-      bindDn: dn('cn=admin'),
-      password: 'ldap-secret',
-    })
+    const directoryFile = join(work, 'directory.json')
+    const saveDirectory = () => writeFileSync(directoryFile, JSON.stringify(directory))
+    saveDirectory()
+    // A separate process: bwdc runs through spawnSync, which blocks this event loop.
+    const ldapProc = spawn(
+      process.execPath,
+      [join(root, 'e2e', 'ldap-server.mjs'), directoryFile, dn('cn=admin'), 'ldap-secret'],
+      { stdio: ['ignore', 'pipe', 'inherit'] },
+    )
+    const ldap = {
+      port: await new Promise((ok, fail) => {
+        ldapProc.stdout.once('data', (d) => ok(Number(String(d).trim())))
+        ldapProc.once('exit', (code) => fail(new Error(`ldap server exited ${code}`)))
+      }),
+      close: () => ldapProc.kill('SIGKILL'),
+    }
+    process.on('exit', () => ldap.close())
     const orgApiKey = await api(`/organizations/${smOrg.id}/api-key`, 'POST', {
       masterPasswordHash: acct.masterPasswordHash,
       type: 0,
@@ -754,6 +765,7 @@ async function main() {
       1,
     )
     directory[directory.length - 1].attrs.member = [dn('uid=alice,ou=people')]
+    saveDirectory()
     configure({ overwriteExisting: true })
     bwdc(['sync'])
     const remaining = (await api(`/organizations/${smOrg.id}/users`)).data.map((m) => m.email)

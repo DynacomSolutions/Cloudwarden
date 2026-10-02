@@ -131,8 +131,9 @@ function inScope(dn, base, scope) {
 // ----- server -----
 
 /**
- * Starts the server. `entries` are `{ dn, attrs: { name: [values] } }`; `bind` checks a DN and
- * password. Resolves to `{ port, close }`.
+ * Starts the server. `entries()` returns `{ dn, attrs: { name: [values] } }` objects, read on
+ * every search; `bindDn` and `password` are the only accepted credentials. Resolves to
+ * `{ port, close }`.
  */
 export function startLdap({ entries, bindDn, password }) {
   const server = createServer((socket) => {
@@ -160,7 +161,7 @@ export function startLdap({ entries, bindDn, password }) {
           const [base, scope, , sizeLimit, , , filter] = children(op.value)
           const limit = readInt(sizeLimit.value)
           let sent = 0
-          for (const e of entries) {
+          for (const e of entries()) {
             if (limit && sent >= limit) break
             if (!inScope(e.dn, base.value.toString('utf8'), readInt(scope.value))) continue
             if (!matchFilter(e, filter)) continue
@@ -194,4 +195,18 @@ export function startLdap({ entries, bindDn, password }) {
       ok({ port: server.address().port, close: () => new Promise((r) => server.close(r)) }),
     )
   })
+}
+
+// Run as its own process (`node e2e/ldap-server.mjs <entries.json> <bindDn> <password>`) so a
+// client started with spawnSync from the e2e runner cannot block it. Prints the port, then
+// serves until killed; the entries file is re-read on every search.
+if (process.argv[1] === import.meta.filename) {
+  const [file, bindDn, password] = process.argv.slice(2)
+  const { readFileSync } = await import('node:fs')
+  const { port } = await startLdap({
+    entries: () => JSON.parse(readFileSync(file, 'utf8')),
+    bindDn,
+    password,
+  })
+  console.log(port)
 }

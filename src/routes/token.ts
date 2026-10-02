@@ -21,7 +21,8 @@ import { findUserByEmail } from '../auth/users'
 import { WebAuthnError } from '../auth/webauthn'
 import { createDb, schema } from '../db'
 import type { Env, User } from '../env'
-import { oauthError, sendAccessError } from '../errors'
+import { ApiError, oauthError, sendAccessError } from '../errors'
+import { isStandInUser } from '../federation/standin'
 import { organizationLoginGrant } from '../orgs/api-keys'
 import { rateLimit, tooManyRequests } from '../ratelimit'
 import { MACHINE_SCOPE, machineLoginGrant } from '../sm/auth'
@@ -43,6 +44,16 @@ import {
   unavailable,
 } from '../vault/sends'
 import { AUTH_REQUEST_TTL_MS } from './auth-requests'
+
+/** Stand-in accounts of federated members never sign in, not even far enough to register a device. */
+function assertNotStandIn(user: { passwordHash: string }) {
+  if (isStandInUser(user)) {
+    throw new ApiError(
+      400,
+      'This account belongs to another server (federated) and cannot sign in here.',
+    )
+  }
+}
 
 export const token = new Hono<Env>()
 
@@ -173,6 +184,7 @@ async function passwordGrant(c: Ctx, form: Form) {
   // Spend the approval only now that every check has passed, right before issuing tokens.
   if (authRequest && !(await consumeAuthRequest(db, authRequest.uuid))) return BAD_LOGIN(c)
 
+  assertNotStandIn(user)
   const refreshToken = await registerDevice(db, user.uuid, device)
   if (state.isNew && state.hasOthers && !form.newDeviceOtp) announceNewDevice(c, user, device)
   const body = await tokenResponse(c.env, user, {
@@ -242,6 +254,7 @@ async function webauthnGrant(c: Ctx, form: Form) {
   // Spend the challenge only now: a replayed response finds it used and fails here.
   if (!(await spendAssertion(db, verified))) return bad()
 
+  assertNotStandIn(user)
   const refreshToken = await registerDevice(db, user.uuid, device)
   return c.json(
     await tokenResponse(c.env, user, {
@@ -285,6 +298,7 @@ async function authorizationCodeGrant(c: Ctx, form: Form) {
   if (challenge) return challenge
   if (!(await consumeCode(db, code.codeHash))) return bad()
 
+  assertNotStandIn(user)
   const refreshToken = await registerDevice(db, user.uuid, device)
   const body = await tokenResponse(c.env, user, {
     deviceIdentifier: device.identifier,
@@ -373,6 +387,7 @@ async function clientCredentialsGrant(c: Ctx, form: Form) {
   if (challenge) return challenge
 
   const device = deviceFrom(form) ?? { identifier: crypto.randomUUID(), name: 'API key', type: 14 }
+  assertNotStandIn(user)
   await registerDevice(db, user.uuid, device)
   // API key sessions get no refresh token: clients re-authenticate with the key.
   return c.json(

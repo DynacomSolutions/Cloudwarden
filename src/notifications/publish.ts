@@ -78,6 +78,12 @@ export async function pushUserUpdate(
   excludeDeviceIdentifier?: string | null,
   options: { relay?: boolean } = {},
 ): Promise<void> {
+  // A stand-in account of a federated member: the event goes to its home instance (TASKS #305).
+  if (env.FEDERATION_ENABLED === 'true') {
+    const { notifyPeerOfUser } = await import('../federation/hosting')
+    if (await notifyPeerOfUser(env, userUuid, type, payload, excludeDeviceIdentifier ?? null))
+      return
+  }
   // Live sockets and the mobile relay are independent: one failing never blocks the other.
   await Promise.all([
     (async () => {

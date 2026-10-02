@@ -725,6 +725,15 @@ const routes: Routes = [
         data: { titleId: "requestAccessToSecretsManager" },
       },
       {
+        // Cloudwarden: federated organisation invitations (web/NOTICE.md, docs/federation.md).
+        path: "federation",
+        loadComponent: () =>
+          import("./cloudwarden/federation/federated-invitations.component").then(
+            (m) => m.FederatedInvitationsComponent,
+          ),
+        data: { titleId: "cwFederatedInvitations" } satisfies RouteDataProperties,
+      },
+      {
         // Cloudwarden: native instance admin pages (web/NOTICE.md).
         path: "instance-admin",
         loadChildren: () =>

@@ -81,6 +81,8 @@ tags:
   description: 'Billing, plans, licences and families sponsorships. Cloudwarden is self-hosted with no payment provider: every organisation has every feature and every account has premium. Reads answer as for an account or organisation without a subscription; changes that need a payment provider or the cloud answer 400.'
 - name: Providers
   description: Provider Portal. Providers do not exist on a self-hosted Cloudwarden server; lookups and changes answer 404 and lists are empty.
+- name: x-cloudwarden-federation
+  description: 'Cloudwarden federated organisations (docs/federation.md), not part of the Bitwarden API. `/federation/v1/*` is server to server: every request carries an RFC 9421 HTTP Message Signature (Ed25519, components `@method`, `@target-uri`, `content-type`, `content-digest`, `cloudwarden-federated-user`, `cloudwarden-federated-device`, with `created`, `expires`, `nonce` and `keyid` set to the sender instance id) and a Content-Digest; unknown, unapproved or suspended peers get 403, bad or replayed signatures 401. `/api/cloudwarden/federation/*` serves the web client. Everything answers 404 unless `FEDERATION_ENABLED` is true.'
 paths:
   /api/accounts:
     delete:
@@ -15193,8 +15195,847 @@ paths:
           $ref: "#/components/responses/NotFound"
       x-source-version: web-v2026.9.1
       x-source-file: libs/common/src/admin-console/services/organization/organization-api.service.ts
+  /.well-known/cloudwarden-federation:
+    get:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationDescriptor
+      summary: 'Public instance descriptor (instance id, domain, Ed25519 public key, protocol version)'
+      security: []
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationDescriptor'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /federation/v1/pair:
+    post:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationPair
+      summary: 'Pairing request from a peer whose key is fetched from its descriptor'
+      security:
+      - federationSignature: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FederationPairRequest'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationPairResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Conflict (a different key or account already holds the name).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseModel'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /federation/v1/ping:
+    post:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationPing
+      summary: 'Signed health check'
+      security:
+      - federationSignature: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FederationEmpty'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationPing'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /federation/v1/unpair:
+    post:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationUnpair
+      summary: 'The peer removed this instance; purge everything tied to it'
+      security:
+      - federationSignature: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FederationEmpty'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationOk'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /federation/v1/invitations:
+    post:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationReceiveInvitation
+      summary: 'Serving side: an organisation on the peer invites a local user'
+      security:
+      - federationSignature: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FederationInvitationIn'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationOk'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /federation/v1/invitations/{id}/revoke:
+    post:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationRevokeInvitation
+      summary: 'Serving side: the hosting side withdrew an invitation'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      security:
+      - federationSignature: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FederationEmpty'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationOk'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /federation/v1/invitations/{id}/accept:
+    post:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationAcceptInvitation
+      summary: 'Hosting side: the peer user accepted (sends user id, email and public key)'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      security:
+      - federationSignature: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FederationAccept'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationAcceptResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflict (a different key or account already holds the name).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseModel'
+  /federation/v1/invitations/{id}/decline:
+    post:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationDeclineInvitation
+      summary: 'Hosting side: the peer user declined'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      security:
+      - federationSignature: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FederationEmpty'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationOk'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /federation/v1/events:
+    post:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationEvent
+      summary: 'Serving side: change event for a federated user (refresh replica, fan out to devices)'
+      security:
+      - federationSignature: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FederationEventIn'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationOk'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /federation/v1/members/{userId}/organizations:
+    post:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationMemberOrganizations
+      summary: 'Hosting side: organisations of the federated user (and public key check)'
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      security:
+      - federationSignature: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FederationPublicKey'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationOrgList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /federation/v1/members/{userId}/organizations/{orgId}/index:
+    post:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationOrgIndex
+      summary: 'Hosting side: profile entry, collections, policies and a digest per item'
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+      security:
+      - federationSignature: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FederationEmpty'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationOrgIndex'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /federation/v1/members/{userId}/organizations/{orgId}/ciphers:
+    post:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationOrgCiphers
+      summary: 'Hosting side: full item views by id (incremental pull)'
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+      security:
+      - federationSignature: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FederationIds'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationCiphers'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /federation/v1/members/{userId}/proxy/{path}:
+    post:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationProxy
+      summary: 'Hosting side: a client request of the federated user, run with normal authorisation (any method; only cipher, organisation and attachment download paths)'
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+      security:
+      - federationSignature: []
+      responses:
+        '200':
+          description: Success.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /federation/attachments/{peerId}/{cipherId}/{attachmentId}:
+    get:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationAttachmentDownload
+      summary: 'Serving side: attachment download relayed from the hosting instance (token from the hosting side)'
+      parameters:
+      - name: peerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: cipherId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: attachmentId
+        in: path
+        required: true
+        schema:
+          type: string
+      security: []
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/cloudwarden/federation/status:
+    get:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationStatus
+      summary: 'Whether federation is on and which peers are active'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/cloudwarden/federation/admin/identity:
+    get:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationAdminIdentity
+      summary: 'Instance admin: this instance descriptor and fingerprint'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationDescriptor'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/cloudwarden/federation/admin/peers:
+    get:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationAdminPeers
+      summary: 'Instance admin: list peers'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationPeerList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationAdminAddPeer
+      summary: 'Instance admin: add a peer by domain (fetches its descriptor, SSRF checked)'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FederationAddPeer'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationPeer'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/cloudwarden/federation/admin/peers/{id}:
+    delete:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationAdminRemovePeer
+      summary: 'Instance admin: unpair and purge'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/cloudwarden/federation/admin/peers/{id}/approve:
+    post:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationAdminApprovePeer
+      summary: 'Instance admin: approve after comparing the fingerprint out of band'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FederationApprove'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationPeer'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflict (a different key or account already holds the name).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseModel'
+  /api/cloudwarden/federation/admin/peers/{id}/suspend:
+    post:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationAdminSuspendPeer
+      summary: 'Instance admin: suspend a peer immediately'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationPeer'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/cloudwarden/federation/admin/peers/{id}/resume:
+    post:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationAdminResumePeer
+      summary: 'Instance admin: lift a suspension'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationPeer'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/cloudwarden/federation/admin/peers/{id}/check:
+    post:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationAdminCheckPeer
+      summary: 'Instance admin: health check'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationCheck'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/cloudwarden/federation/admin/events:
+    get:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationAdminEvents
+      summary: 'Instance admin: federation audit events'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationEventList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/cloudwarden/federation/organizations/{orgId}/members:
+    get:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationOrgMembers
+      summary: 'Org admin: federated members with their home instance'
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationMemberList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationOrgInvite
+      summary: 'Org admin: invite a user of a peer instance'
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FederationInvite'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationInviteResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/cloudwarden/federation/organizations/{orgId}/members/{id}:
+    delete:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationOrgRemoveMember
+      summary: 'Org admin: remove a federated member or withdraw the invitation'
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/cloudwarden/federation/invitations:
+    get:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationInvitations
+      summary: 'User: incoming federated invitations'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationInvitationList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/cloudwarden/federation/invitations/{id}/accept:
+    post:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationAcceptOwn
+      summary: 'User: accept an incoming invitation'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/cloudwarden/federation/invitations/{id}/decline:
+    post:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationDeclineOwn
+      summary: 'User: decline an incoming invitation'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/cloudwarden/federation/memberships:
+    get:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationMemberships
+      summary: 'User: federated organisations and their home instance'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationMembershipList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
 components:
   securitySchemes:
+    federationSignature:
+      type: apiKey
+      in: header
+      name: Signature
+      description: RFC 9421 signature by a paired instance (see the x-cloudwarden-federation tag). Signature-Input and Content-Digest are required too.
     organizationToken:
       type: http
       scheme: bearer
@@ -15292,6 +16133,375 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponseModel'
   schemas:
+    FederationEmpty:
+      type: object
+      description: Empty JSON object. The body is still covered by Content-Digest.
+    FederationOk:
+      type: object
+      properties:
+        ok:
+          type: boolean
+    FederationDescriptor:
+      type: object
+      required: [protocol, version, instanceId, domain, algorithm, publicKey, fingerprint]
+      properties:
+        protocol:
+          type: string
+          enum: [cloudwarden-federation]
+        version:
+          type: integer
+          enum: [1]
+        instanceId:
+          type: string
+          format: uuid
+        domain:
+          type: string
+        algorithm:
+          type: string
+          enum: [ed25519]
+        publicKey:
+          type: string
+          description: Raw Ed25519 public key, base64url.
+        fingerprint:
+          type: string
+          description: SHA-256 of the raw key, upper-case hex in groups of four.
+        endpoints:
+          type: object
+          properties:
+            api:
+              type: string
+    FederationPairRequest:
+      type: object
+      required: [domain]
+      properties:
+        domain:
+          type: string
+    FederationPairResponse:
+      type: object
+      properties:
+        instanceId:
+          type: string
+        localApproved:
+          type: boolean
+    FederationPing:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        domain:
+          type: string
+        time:
+          type: string
+          format: date-time
+    FederationInvitationIn:
+      type: object
+      required: [memberId, organizationId, organizationName, email]
+      properties:
+        memberId:
+          type: string
+        organizationId:
+          type: string
+        organizationName:
+          type: string
+        inviterEmail:
+          type: [string, 'null']
+        email:
+          type: string
+    FederationAccept:
+      type: object
+      required: [userId, email, publicKey]
+      properties:
+        userId:
+          type: string
+        email:
+          type: string
+        name:
+          type: [string, 'null']
+        publicKey:
+          type: string
+    FederationAcceptResponse:
+      type: object
+      properties:
+        organizationId:
+          type: string
+    FederationEventIn:
+      type: object
+      required: [userId, type]
+      properties:
+        userId:
+          type: string
+        type:
+          type: integer
+          description: Push notification type, as for the official clients.
+        payload:
+          type: object
+        contextId:
+          type: [string, 'null']
+    FederationPublicKey:
+      type: object
+      properties:
+        publicKey:
+          type: [string, 'null']
+    FederationOrgList:
+      type: object
+      properties:
+        organizations:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              status:
+                type: integer
+              revisionDate:
+                type: integer
+    FederationOrgIndex:
+      type: object
+      properties:
+        profile:
+          type: object
+          description: The profileOrganization entry as the hosting side would sync it.
+        collections:
+          type: array
+          items:
+            type: object
+        policies:
+          type: array
+          items:
+            type: object
+        ciphers:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              digest:
+                type: string
+              revisionDate:
+                type: string
+    FederationIds:
+      type: object
+      required: [ids]
+      properties:
+        ids:
+          type: array
+          maxItems: 500
+          items:
+            type: string
+    FederationCiphers:
+      type: object
+      properties:
+        ciphers:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              digest:
+                type: string
+              json:
+                type: object
+    FederationStatus:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        domain:
+          type: string
+        isInstanceAdmin:
+          type: boolean
+        peers:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              domain:
+                type: string
+    FederationPeer:
+      type: object
+      properties:
+        id:
+          type: string
+        instanceId:
+          type: string
+        domain:
+          type: string
+        fingerprint:
+          type: string
+        protocolVersion:
+          type: integer
+        status:
+          type: string
+          enum: [pending, active, suspended]
+        localApproved:
+          type: boolean
+        remoteApproved:
+          type: boolean
+        active:
+          type: boolean
+        lastSeenDate:
+          type: [string, 'null']
+        lastError:
+          type: [string, 'null']
+        creationDate:
+          type: string
+    FederationPeerList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/FederationPeer'
+    FederationAddPeer:
+      type: object
+      required: [domain]
+      properties:
+        domain:
+          type: string
+    FederationApprove:
+      type: object
+      required: [fingerprint]
+      properties:
+        fingerprint:
+          type: string
+    FederationCheck:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        latencyMs:
+          type: integer
+        error:
+          type: string
+        peer:
+          $ref: '#/components/schemas/FederationPeer'
+    FederationEventList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: integer
+              name:
+                type: string
+              organizationId:
+                type: [string, 'null']
+              userId:
+                type: [string, 'null']
+              peer:
+                type: [string, 'null']
+              date:
+                type: string
+    FederationMemberList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              userId:
+                type: [string, 'null']
+              email:
+                type: string
+              type:
+                type: integer
+              status:
+                type: integer
+              peerId:
+                type: string
+              peerDomain:
+                type: string
+              peerStatus:
+                type: string
+    FederationInvite:
+      type: object
+      required: [email, type]
+      properties:
+        email:
+          type: string
+        peerId:
+          type: [string, 'null']
+        type:
+          type: integer
+        accessAll:
+          type: [boolean, 'null']
+        collections:
+          type: [array, 'null']
+          items:
+            type: object
+        groups:
+          type: [array, 'null']
+          items:
+            type: string
+        permissions:
+          type: [object, 'null']
+    FederationInviteResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        peer:
+          type: string
+        status:
+          type: integer
+    FederationInvitationList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              organizationId:
+                type: string
+              organizationName:
+                type: string
+              inviterEmail:
+                type: [string, 'null']
+              peerDomain:
+                type: string
+              peerActive:
+                type: boolean
+              status:
+                type: string
+                enum: [pending, accepted, declined]
+              creationDate:
+                type: string
+    FederationMembershipList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              organizationId:
+                type: string
+              name:
+                type: [string, 'null']
+              status:
+                type: [integer, 'null']
+              peerDomain:
+                type: string
+              peerStatus:
+                type: string
+              syncedDate:
+                type: string
     PublicAssociation:
       type: object
       properties:

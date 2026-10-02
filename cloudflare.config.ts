@@ -37,6 +37,9 @@ export default defineConfig({
         '/public/*',
         '/scim/*',
         '/v2/*',
+        // Federated organisations (TASKS #300, docs/federation.md).
+        '/federation/*',
+        '/.well-known/cloudwarden-federation',
       ],
     },
     // Workers Logs: structured JSON lines from src/log.ts (TASKS #164), see docs/observability.md.
@@ -59,6 +62,8 @@ export default defineConfig({
       // D1 Sessions API wrapper, off by default; needs read replication (docs/d1-sessions.md).
       D1_SESSIONS: bindings.text(env.D1_SESSIONS || 'false'),
       ICONS_ENABLED: bindings.text(env.ICONS_ENABLED || 'true'),
+      // Federated organisations, off by default (docs/federation.md).
+      FEDERATION_ENABLED: bindings.text(env.FEDERATION_ENABLED || 'false'),
       MAIL_FROM: bindings.text(env.MAIL_FROM || 'Cloudwarden <noreply@example.com>'),
       // Cloudflare Email Service (TASKS #141). Onboard the sending domain first.
       EMAIL: bindings.sendEmail(),

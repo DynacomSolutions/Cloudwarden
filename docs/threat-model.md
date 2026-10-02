@@ -115,6 +115,15 @@ The proxy makes server-side requests to attacker-chosen hosts, so SSRF is the ma
 - **Repudiation:** creates, edits, deletes and machine reads are events (2100 to 2305) with the acting member or machine account.
 - **Residual:** revocation is immediate (token row read per request), but a copied access token string stays valid until revoked or expired; tokens without `expireAt` never expire.
 
+### Federated organisations (TASKS #300 to #309, `docs/federation.md`)
+
+- **Spoofing:** peer requests carry an RFC 9421 Ed25519 signature checked against a key pinned at pairing, after both admins compared fingerprints out of band; pairing binds the key to the domain through the https descriptor. Unknown, unapproved and suspended peers get 403.
+- **Tampering and replay:** the signature covers method, full URL, Content-Digest and the user and device headers; 300 second window; per-peer nonce store.
+- **Information disclosure:** a peer sees only the EncStrings its user may see; organisation keys are wrapped in the browser for the member's public key. Outbound calls are https only to public addresses (DoH checks, no redirects).
+- **Elevation of privilege:** forwarded requests run as the peer user's stand-in account through the normal authorisation, restricted to cipher, organisation and attachment download paths; the stand-in account has no usable password and cannot be registered over. Events are accepted only for local users who hold something from the calling peer.
+- **Denial of service:** per-peer rate limit, request size caps, timeouts; admins suspend a peer instantly.
+- **Residual:** a compromised serving instance can act as its users within their organisation permissions until the hosting admin suspends it; server-side policy checks on the serving side do not see federated organisations.
+
 ### Operations and supply chain
 
 | Threat | Mitigation | Residual |

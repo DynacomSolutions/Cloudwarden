@@ -5,6 +5,8 @@ declare global {
   namespace Cloudflare {
     interface Env extends Bindings {
       TEST_MIGRATIONS: D1Migration[]
+      /** Second instance's database for the federation tests. */
+      DB_PEER: D1Database
     }
   }
 }

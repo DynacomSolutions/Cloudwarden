@@ -17,6 +17,7 @@ import {
 import { later, sendNotice } from '../email/send'
 import type { Env, User } from '../env'
 import { ApiError } from '../errors'
+import { federatedProfileOrgs } from '../federation/replica'
 import { pushLogOut } from '../notifications/publish'
 import { relayDeleteDevice } from '../notifications/relay'
 import { assertNotClaimed } from '../orgs/domains'
@@ -59,7 +60,10 @@ export async function profileJson(c: Ctx, user: User) {
     verifyDevices: user.verifyDevices,
     avatarColor: user.avatarColor,
     creationDate: new Date(user.createdAt).toISOString(),
-    organizations: await profileOrganizations(createDb(c.env.DB), user.uuid),
+    organizations: [
+      ...(await profileOrganizations(createDb(c.env.DB), user.uuid)),
+      ...(await federatedProfileOrgs(c.env, user.uuid)),
+    ],
     providers: [],
     providerOrganizations: [],
     object: 'profile',

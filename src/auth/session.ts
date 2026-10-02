@@ -2,6 +2,8 @@ import { and, eq } from 'drizzle-orm'
 import type { Db } from '../db'
 import { createDb, schema } from '../db'
 import type { AccessTokenClaims, Bindings, User } from '../env'
+import { ApiError } from '../errors'
+import { isStandInUser } from '../federation/standin'
 import { masterPasswordPolicyFor } from '../orgs/policies'
 import { decryptionOptions, hasMasterPassword } from '../sso/decryption'
 import { randomB64u, sha256B64u } from './crypto'
@@ -124,6 +126,14 @@ export async function tokenResponse(
     ssoOrgUuid?: string
   },
 ) {
+  // No grant (password, refresh, SSO, passkey, device approval, API key) signs in a stand-in
+  // account of a federated member (TASKS #303).
+  if (isStandInUser(user)) {
+    throw new ApiError(
+      400,
+      'This account belongs to another server (federated) and cannot sign in here.',
+    )
+  }
   const mp = hasMasterPassword(user)
   const extraOptions = await decryptionOptions(createDb(env.DB), user, {
     deviceIdentifier: opts.deviceIdentifier,

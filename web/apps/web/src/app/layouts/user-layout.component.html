@@ -57,6 +57,13 @@
             <bit-nav-item [text]="'addPlan' | i18n" route="settings/add-plan"></bit-nav-item>
           }
           <billing-free-families-nav-item></billing-free-families-nav-item>
+        @if (federationEnabled()) {
+          <!-- Cloudwarden: federated organisations (web/NOTICE.md) -->
+          <bit-nav-item
+            [text]="'cwFederatedInvitations' | i18n"
+            route="federation"
+          ></bit-nav-item>
+        }
           <bit-nav-item [text]="'exportNoun' | i18n" route="tools/export"></bit-nav-item>
         </bit-nav-group>
       </bit-nav-section>
@@ -132,6 +139,10 @@
         route="instance-admin/organizations"
       ></bit-nav-item>
       <bit-nav-item [text]="'cwMobilePush' | i18n" route="instance-admin/push"></bit-nav-item>
+      <bit-nav-item
+        [text]="'cwFederation' | i18n"
+        route="instance-admin/federation"
+      ></bit-nav-item>
       <bit-nav-item
         [text]="'cwDiagnostics' | i18n"
         route="instance-admin/diagnostics"

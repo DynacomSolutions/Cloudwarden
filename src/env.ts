@@ -56,6 +56,14 @@ export interface Bindings {
   YUBICO_SERVER?: string
   /** Have I Been Pwned API key for the breach report. Without it the report is unavailable. */
   HIBP_API_KEY?: string
+
+  // Federated organisations (TASKS #300, docs/federation.md)
+  /** `true` turns federation on. Off by default. */
+  FEDERATION_ENABLED?: string
+  /** Secret the federation signing key is encrypted with; defaults to JWT_SECRET. */
+  FEDERATION_KEY_SECRET?: string
+  /** Test seam: replaces outbound `fetch` (and its DNS checks) for federation calls. */
+  FEDERATION_TRANSPORT?: { fetch(request: Request): Promise<Response> }
 }
 
 export type User = typeof users.$inferSelect

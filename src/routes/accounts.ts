@@ -19,6 +19,7 @@ import type { Env, User } from '../env'
 import { ApiError } from '../errors'
 import { pushLogOut } from '../notifications/publish'
 import { relayDeleteDevice } from '../notifications/relay'
+import { assertNotClaimed } from '../orgs/domains'
 import { assertNotSoleOwner } from '../orgs/members'
 import { profileOrganizations } from '../orgs/views'
 import { type KdfParams, kdfProblem, parseBody } from '../validation'
@@ -49,12 +50,12 @@ export async function profileJson(c: Ctx, user: User) {
     masterPasswordHint: user.passwordHint,
     culture: 'en-US',
     twoFactorEnabled: tf !== undefined,
-    key: user.akey,
+    key: user.akey || null,
     privateKey: user.privateKey,
     accountKeys: accountKeysJson(user),
     securityStamp: user.securityStamp,
     forcePasswordReset: false,
-    usesKeyConnector: false,
+    usesKeyConnector: user.usesKeyConnector,
     verifyDevices: user.verifyDevices,
     avatarColor: null,
     creationDate: new Date(user.createdAt).toISOString(),
@@ -286,6 +287,11 @@ accounts.post('/api/accounts/email-token', requireAuth, async (c) => {
   const user = c.var.user
   await requirePassword(user, body.masterPasswordHash)
   const db = createDb(c.env.DB)
+  await assertNotClaimed(
+    db,
+    user,
+    'Your account is claimed by an organization; its email address cannot be changed.',
+  )
   const newEmail = normalizeEmail(body.newEmail)
   if (await findUserByEmail(db, newEmail)) throw new ApiError(400, 'Email is already in use.')
   const code = String((crypto.getRandomValues(new Uint32Array(1))[0] ?? 0) % 1_000_000).padStart(
@@ -392,6 +398,8 @@ type RotationInput = Omit<z.infer<typeof rotateSchema>, 'masterPasswordHash'> & 
   credentials?: { hash: string; kdf: KdfParams; hint: string | null }
   /** Re-wrapped passkey keysets (key-management endpoint only). */
   passkeys?: z.infer<typeof passkeyUnlock>
+  /** Re-wrapped trusted device keys (TASKS #284); trusted devices left out lose their trust. */
+  devices?: z.infer<typeof deviceUnlock>
 }
 
 /**
@@ -520,10 +528,12 @@ async function applyRotation(c: Ctx, user: User, body: RotationInput) {
   }
 
   const passkeyStatements = await passkeyRotation(db, user.uuid, body.passkeys)
+  const deviceStatements = await deviceTrustRotation(db, user.uuid, body.devices ?? [])
 
   const now = Date.now()
   await runBatch(db, [
     ...passkeyStatements,
+    ...deviceStatements,
     db
       .update(schema.users)
       .set({
@@ -580,6 +590,43 @@ accounts.post('/api/accounts/key', requireAuth, async (c) => {
   return c.body(null, 200)
 })
 
+const deviceUnlock = z.array(
+  z.object({
+    deviceId: z.string().min(1),
+    encryptedPublicKey: z.string().min(1),
+    encryptedUserKey: z.string().min(1),
+  }),
+)
+
+/**
+ * Trusted devices hold the user key wrapped for them; after a rotation those wrappings are stale.
+ * Devices the client re-wrapped get the new values, every other trusted device is untrusted.
+ */
+async function deviceTrustRotation(
+  db: ReturnType<typeof createDb>,
+  userUuid: string,
+  given: z.infer<typeof deviceUnlock>,
+) {
+  const rows = await db
+    .select({ uuid: schema.devices.uuid, key: schema.devices.encryptedUserKey })
+    .from(schema.devices)
+    .where(eq(schema.devices.userUuid, userUuid))
+  const byId = new Map(given.map((g) => [g.deviceId, g]))
+  return rows
+    .filter((r) => r.key !== null)
+    .map((r) => {
+      const g = byId.get(r.uuid)
+      return db
+        .update(schema.devices)
+        .set(
+          g
+            ? { encryptedPublicKey: g.encryptedPublicKey, encryptedUserKey: g.encryptedUserKey }
+            : { encryptedPublicKey: null, encryptedUserKey: null, encryptedPrivateKey: null },
+        )
+        .where(eq(schema.devices.uuid, r.uuid))
+    })
+}
+
 // Rotation as sent by clients 2026.9 (web vault).
 const passkeyUnlock = z.array(
   z.object({
@@ -602,6 +649,7 @@ const rotateAccountKeys = z.object({
       masterPasswordHint: z.string().max(50).nullish(),
     }),
     passkeyUnlockData: passkeyUnlock.default([]),
+    deviceKeyUnlockData: deviceUnlock.nullish(),
   }),
   accountKeys: z.object({
     userKeyEncryptedAccountPrivateKey: z.string().min(1),
@@ -639,6 +687,7 @@ accounts.post('/api/accounts/key-management/rotate-user-account-keys', requireAu
     publicKey: body.accountKeys.accountPublicKey,
     ...body.accountData,
     passkeys: body.accountUnlockData.passkeyUnlockData,
+    devices: body.accountUnlockData.deviceKeyUnlockData ?? [],
     credentials: {
       hash: m.masterKeyAuthenticationHash,
       kdf,
@@ -651,6 +700,11 @@ accounts.post('/api/accounts/key-management/rotate-user-account-keys', requireAu
 /** Deletes the account and everything it owns; blobs are removed after the response. */
 export async function eraseAccount(c: Ctx, user: User) {
   const db = createDb(c.env.DB)
+  await assertNotClaimed(
+    db,
+    user,
+    'Your account is claimed by an organization and cannot be deleted. Contact your administrator.',
+  )
   await assertNotSoleOwner(db, user.uuid)
   // Child rows (devices, folders, ciphers, sends, 2FA) cascade from the user row.
   const keys = [

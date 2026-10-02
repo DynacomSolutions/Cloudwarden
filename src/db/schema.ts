@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm'
 import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core'
 
 // Conventions: text UUID primary keys, integer timestamps in epoch milliseconds,
@@ -40,6 +41,8 @@ export const users = sqliteTable(
     verifiedAt: integer('verified_at'),
     /** Newest accepted passkey creation challenge time, so a creation token works once. */
     passkeyCreateAt: integer('passkey_create_at').notNull().default(0),
+    /** Unlocks through an organisation's key connector instead of a master password (TASKS #285). */
+    usesKeyConnector: integer('uses_key_connector', { mode: 'boolean' }).notNull().default(false),
     lastVerifyingAt: integer('last_verifying_at'),
     loginVerifyCount: integer('login_verify_count').notNull().default(0),
     enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
@@ -71,6 +74,12 @@ export const devices = sqliteTable(
     // SHA-256 (base64url) of the refresh token secret; empty string means revoked.
     refreshToken: text('refresh_token').notNull(),
     twofactorRemember: text('twofactor_remember'),
+    // Trusted device encryption (TASKS #284): the user key encrypted with the device public key,
+    // the device public key encrypted with the user key, and the device private key encrypted with
+    // the device key (which never leaves the device). All three or none.
+    encryptedUserKey: text('encrypted_user_key'),
+    encryptedPublicKey: text('encrypted_public_key'),
+    encryptedPrivateKey: text('encrypted_private_key'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -122,17 +131,23 @@ export const folders = sqliteTable(
   (t) => [index('folders_user_idx').on(t.userUuid)],
 )
 
-export const organizations = sqliteTable('organizations', {
-  uuid: id(),
-  name: text('name').notNull(),
-  billingEmail: text('billing_email').notNull(),
-  privateKey: text('private_key'),
-  publicKey: text('public_key'),
-  // Last change to any Secrets Manager data of the organisation (TASKS #220); drives secrets sync.
-  secretsRevisionDate: integer('secrets_revision_date'),
-  createdAt: createdAt(),
-  updatedAt: updatedAt(),
-})
+export const organizations = sqliteTable(
+  'organizations',
+  {
+    uuid: id(),
+    name: text('name').notNull(),
+    billingEmail: text('billing_email').notNull(),
+    privateKey: text('private_key'),
+    publicKey: text('public_key'),
+    // Last change to any Secrets Manager data of the organisation (TASKS #220); drives secrets sync.
+    secretsRevisionDate: integer('secrets_revision_date'),
+    // SSO identifier members type on the login page (TASKS #280); unique ignoring case.
+    identifier: text('identifier'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex('organizations_identifier_unique').on(sql`lower(${t.identifier})`)],
+)
 
 export const ciphers = sqliteTable(
   'ciphers',
@@ -761,4 +776,124 @@ export const orgIntegrations = sqliteTable(
     updatedAt: updatedAt(),
   },
   (t) => [index('org_integrations_organization_idx').on(t.organizationUuid)],
+)
+
+// ----- Single sign-on, trusted devices and claimed domains (TASKS #280 to #289) -----
+
+/** One SSO configuration per organisation. `data` is the client's `SsoConfigApi` JSON. */
+export const ssoConfigs = sqliteTable('sso_configs', {
+  organizationUuid: text('organization_uuid')
+    .primaryKey()
+    .references(() => organizations.uuid, { onDelete: 'cascade' }),
+  enabled: integer('enabled', { mode: 'boolean' }).notNull().default(false),
+  data: text('data').notNull(),
+  // SAML service provider signing key (PKCS#8, base64) and its self-signed certificate (DER,
+  // base64), created on first use. Published in the SP metadata; signs AuthnRequests.
+  spPrivateKey: text('sp_private_key'),
+  spCertificate: text('sp_certificate'),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+})
+
+/** Links an identity provider subject to a Cloudwarden account, per organisation. */
+export const ssoUsers = sqliteTable(
+  'sso_users',
+  {
+    organizationUuid: text('organization_uuid')
+      .notNull()
+      .references(() => organizations.uuid, { onDelete: 'cascade' }),
+    userUuid: text('user_uuid')
+      .notNull()
+      .references(() => users.uuid, { onDelete: 'cascade' }),
+    externalId: text('external_id').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.organizationUuid, t.externalId] }),
+    uniqueIndex('sso_users_org_user_unique').on(t.organizationUuid, t.userUuid),
+    index('sso_users_user_idx').on(t.userUuid),
+  ],
+)
+
+/**
+ * An SSO login in progress, from `/identity/connect/authorize` to the identity provider's
+ * callback. The browser holds a cookie whose hash is `bindingHash`, so a callback only completes
+ * in the browser that started the flow. Single use (`consumedAt`).
+ */
+export const ssoFlows = sqliteTable(
+  'sso_flows',
+  {
+    uuid: id(),
+    organizationUuid: text('organization_uuid')
+      .notNull()
+      .references(() => organizations.uuid, { onDelete: 'cascade' }),
+    clientId: text('client_id').notNull(),
+    redirectUri: text('redirect_uri').notNull(),
+    codeChallenge: text('code_challenge').notNull(),
+    clientState: text('client_state').notNull(),
+    bindingHash: text('binding_hash').notNull(),
+    // OIDC: nonce and PKCE verifier towards the identity provider. SAML: the AuthnRequest ID.
+    nonce: text('nonce'),
+    idpCodeVerifier: text('idp_code_verifier'),
+    samlRequestId: text('saml_request_id'),
+    // Set when an signed-in user links their account (`user_identifier`).
+    linkUserUuid: text('link_user_uuid'),
+    consumedAt: integer('consumed_at'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('sso_flows_created_idx').on(t.createdAt)],
+)
+
+/** Authorization codes issued to the client after SSO, redeemed once at the token endpoint. */
+export const ssoCodes = sqliteTable(
+  'sso_codes',
+  {
+    // SHA-256 (base64url) of the code.
+    codeHash: text('code_hash').primaryKey(),
+    userUuid: text('user_uuid')
+      .notNull()
+      .references(() => users.uuid, { onDelete: 'cascade' }),
+    organizationUuid: text('organization_uuid')
+      .notNull()
+      .references(() => organizations.uuid, { onDelete: 'cascade' }),
+    clientId: text('client_id').notNull(),
+    redirectUri: text('redirect_uri').notNull(),
+    codeChallenge: text('code_challenge').notNull(),
+    usedAt: integer('used_at'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('sso_codes_created_idx').on(t.createdAt)],
+)
+
+/** SAML assertion IDs already accepted, kept until the assertion would have expired anyway. */
+export const ssoReplay = sqliteTable(
+  'sso_replay',
+  {
+    key: text('key').primaryKey(),
+    expiresAt: integer('expires_at').notNull(),
+  },
+  (t) => [index('sso_replay_expires_idx').on(t.expiresAt)],
+)
+
+/** Domains an organisation claims, proven by a DNS TXT record (TASKS #286). */
+export const organizationDomains = sqliteTable(
+  'organization_domains',
+  {
+    uuid: id(),
+    organizationUuid: text('organization_uuid')
+      .notNull()
+      .references(() => organizations.uuid, { onDelete: 'cascade' }),
+    domainName: text('domain_name').notNull(),
+    txt: text('txt').notNull(),
+    verifiedAt: integer('verified_at'),
+    lastCheckedAt: integer('last_checked_at'),
+    nextRunAt: integer('next_run_at').notNull(),
+    jobRunCount: integer('job_run_count').notNull().default(0),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex('organization_domains_org_domain_unique').on(t.organizationUuid, t.domainName),
+    index('organization_domains_domain_idx').on(t.domainName),
+    index('organization_domains_next_run_idx').on(t.nextRunAt),
+  ],
 )

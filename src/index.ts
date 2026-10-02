@@ -35,6 +35,8 @@ import { register } from './routes/register'
 import { secretsManager } from './routes/secrets-manager'
 import { downloadSendFile, sends } from './routes/sends'
 import { settings } from './routes/settings'
+import { sso } from './routes/sso'
+import { publicSso, ssoAccounts, ssoAdmin } from './routes/sso-admin'
 import { sync } from './routes/sync'
 import { token } from './routes/token'
 import { twofactor } from './routes/twofactor'
@@ -55,7 +57,10 @@ app.route('/', icons)
 app.route('/', prelogin)
 app.route('/', register)
 app.route('/', token)
+// SSO browser endpoints and service provider callbacks (TASKS #280 to #282).
+app.route('/', sso)
 app.route('/', devices)
+app.route('/', ssoAccounts)
 app.route('/', accounts)
 app.route('/', accountEmail)
 app.route('/', sync)
@@ -77,6 +82,9 @@ for (const path of [
   app.use(path, secretsRevisionOnMemberChange)
 }
 app.route('/', publicPolicies)
+// Anonymous SSO discovery by email must run before the authenticated organisation routers.
+app.route('/', publicSso)
+app.route('/', ssoAdmin)
 app.route('/', orgApiKeys)
 app.route('/', orgIntegrations)
 app.route('/', organizations)

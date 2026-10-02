@@ -9,6 +9,7 @@ import type { Env } from '../env'
 import { ApiError } from '../errors'
 import { PushType } from '../notifications/publish'
 import { notifyCipher, notifyCiphers, notifyUser } from '../notifications/vault-events'
+import { assertNotClaimed } from '../orgs/domains'
 import { rateLimit } from '../ratelimit'
 import { parseBody } from '../validation'
 import { attachmentKeys, cipherResponses, userAttachmentKeys } from '../vault/attachments'
@@ -296,6 +297,11 @@ ciphers.post('/api/ciphers/purge', rateLimit('purge'), async (c) => {
     throw new ApiError(400, 'Invalid password.', { masterPasswordHash: ['Invalid password.'] })
   }
   const db = createDb(c.env.DB)
+  await assertNotClaimed(
+    db,
+    user,
+    'Your account is claimed by an organization; the vault cannot be purged.',
+  )
   const keys = [
     ...(await userAttachmentKeys(db, user.uuid)),
     ...(await userSendKeys(db, user.uuid)),

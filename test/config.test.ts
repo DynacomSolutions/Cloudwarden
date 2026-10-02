@@ -19,7 +19,7 @@ it('GET /api/config returns the shape current clients expect', async () => {
     api: 'https://vault.example.com/api',
     identity: 'https://vault.example.com/identity',
     notifications: 'https://vault.example.com/notifications',
-    sso: '',
+    sso: 'https://vault.example.com/sso',
   })
   expect(res.headers.get('Cache-Control')).toBe('no-store')
 })

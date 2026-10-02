@@ -26,9 +26,11 @@ const DUMMY_HASH = new Uint8Array(32).fill(0xa5)
 
 /** Constant-time verification. Pass null for an unknown account; it always returns false. */
 export async function verifyMasterPassword(
-  stored: StoredPassword | null,
+  input: StoredPassword | null,
   masterPasswordHash: string,
 ): Promise<boolean> {
+  // Accounts without a master password (SSO, TASKS #283) never match; do the same work anyway.
+  const stored = input && input.passwordHash !== '' ? input : null
   const salt = (stored && fromB64u(stored.salt)) || DUMMY_SALT
   const expected = (stored && fromB64u(stored.passwordHash)) || DUMMY_HASH
   const derived = await pbkdf2Sha256(

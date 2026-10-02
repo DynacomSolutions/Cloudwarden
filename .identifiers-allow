@@ -42,3 +42,12 @@ datadoghq\.(com|eu)|ddog-gov\.com
 login\.microsoftonline\.com|monitor\.azure\.com|cloudflare-dns\.com
 # Pinned libatomic1 package for the bwdc e2e steps (TASKS #272)
 archive\.ubuntu\.com
+# SSO (TASKS #280 to #286): standard claim and attribute URIs, X.500 OIDs, the DNS over HTTPS
+# resolver, a SAML spec section number and property accesses that look like domains.
+^schemas\.(xmlsoap\.org|microsoft\.com)$
+^cloudflare-dns\.com$
+^2\.5\.4\.\d+$
+^3\.4\.4\.1$
+^0:ac:$
+^(r|l|row|found)\.org$
+^form\.code$

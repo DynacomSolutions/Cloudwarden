@@ -485,21 +485,9 @@ const cases: Case[] = [
  */
 const UNIMPLEMENTED = [
   'PUT /api/accounts/avatar',
-  'POST /api/accounts/convert-to-key-connector',
-  'POST /api/accounts/set-key-connector-key',
-  'POST /api/accounts/set-password',
-  'GET /api/accounts/sso/user-identifier',
-  'DELETE /api/accounts/sso/{organizationId}',
-  'PUT /api/accounts/update-tde-offboarding-password',
   'PUT /api/accounts/update-temp-password',
   'POST /api/auth-requests/admin-request',
   'POST /api/devices/identifier/{deviceIdentifier}/web-push-auth',
-  'POST /api/devices/lost-trust',
-  'POST /api/devices/untrust',
-  'POST /api/devices/update-trust',
-  'PUT /api/devices/{deviceIdentifier}/keys',
-  'POST /api/devices/{deviceIdentifier}/retrieve-keys',
-  'GET /identity/sso/prevalidate',
 ]
 
 const specOperations = () =>

@@ -42,8 +42,14 @@
     "yaml": "2.9.1"
   },
   "dependencies": {
+    "@xmldom/xmldom": "^0.9.12",
+    "asn1js": "^3.0.6",
     "drizzle-orm": "^0.45.3",
     "hono": "^4.13.12",
+    "oauth4webapi": "^3.8.8",
+    "pkijs": "^3.4.0",
+    "xml-core": "^1.2.6",
+    "xmldsigjs": "^2.8.8",
     "zod": "^4.6.5"
   },
   "packageManager": "pnpm@9.15.9",

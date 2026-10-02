@@ -236,7 +236,7 @@
     "message": "Acompanhe as melhorias em toda a sua equipa"
   },
   "membersAreAutomaticallyNotified": {
-    "message": "Os membros são automaticamente notificados de palavras-passe em risco na sua extensão do Cloudwarden. Não é necessário fazer follow-up."
+    "message": "Os membros são automaticamente notificados de palavras-passe em risco na sua extensão do Bitwarden. Não é necessário fazer follow-up."
   },
   "importYourOrgDataToGetStarted": {
     "message": "Importe os dados da sua organização para começar"
@@ -399,7 +399,7 @@
     }
   },
   "membersWillReceiveSecurityTask": {
-    "message": "Os membros da sua organização serão atribuídos a uma tarefa para alterar palavras-passe vulneráveis. Receberão uma notificação na extensão do Cloudwarden do navegador."
+    "message": "Os membros da sua organização serão atribuídos a uma tarefa para alterar palavras-passe vulneráveis. Receberão uma notificação na extensão do Bitwarden do navegador."
   },
   "membersAtRiskCount": {
     "message": "$COUNT$ membros em risco",
@@ -2222,7 +2222,7 @@
     "message": "Iniciar sessão com o dispositivo"
   },
   "loginWithDeviceEnabledNote": {
-    "message": "O início de sessão com o dispositivo deve ser ativado nas definições da app Cloudwarden. Precisa de outra opção?"
+    "message": "O início de sessão com o dispositivo deve ser ativado nas definições da app Bitwarden. Precisa de outra opção?"
   },
   "needAnotherOptionV1": {
     "message": "Precisa de outra opção?"
@@ -2387,7 +2387,7 @@
     "message": "O que é um dispositivo?"
   },
   "aDeviceIs": {
-    "message": "Um dispositivo é uma instalação única da app Cloudwarden onde o utilizador iniciou sessão. Reinstalar, limpar os dados da aplicação ou limpar os seus cookies pode fazer com que um dispositivo apareça várias vezes."
+    "message": "Um dispositivo é uma instalação única da app Bitwarden onde o utilizador iniciou sessão. Reinstalar, limpar os dados da aplicação ou limpar os seus cookies pode fazer com que um dispositivo apareça várias vezes."
   },
   "logInInitiated": {
     "message": "A preparar o início de sessão"
@@ -8682,7 +8682,7 @@
     "message": "Como ativar a confirmação automática do utilizador"
   },
   "autoConfirmExtension1": {
-    "message": "Abra a sua extensão Cloudwarden"
+    "message": "Abra a sua extensão Bitwarden"
   },
   "autoConfirmExtension2": {
     "message": "Selecione",
@@ -15745,16 +15745,16 @@
     "message": "Saltar para a aplicação web"
   },
   "bitwardenExtensionInstalled": {
-    "message": "Extensão Cloudwarden instalada!"
+    "message": "Extensão Bitwarden instalada!"
   },
   "bitwardenExtensionIsInstalled": {
-    "message": "A extensão Cloudwarden está instalada!"
+    "message": "A extensão Bitwarden está instalada!"
   },
   "openExtensionToAutofill": {
     "message": "Abra a extensão para iniciar sessão e começar o preenchimento automático."
   },
   "openBitwardenExtension": {
-    "message": "Abrir a extensão Cloudwarden"
+    "message": "Abrir a extensão Bitwarden"
   },
   "gettingStartedWithBitwardenPart1": {
     "message": "Para obter dicas sobre como começar a utilizar o Cloudwarden, visite a página",
@@ -16638,7 +16638,7 @@
     "message": "Com a extensão do navegador instalada, terá o Cloudwarden sempre disponível online. Esta preencherá automaticamente as palavras-passe, para que possa iniciar sessão nas suas contas com um único clique."
   },
   "extensionPromptImageAlt": {
-    "message": "Um navegador web a apresentar a extensão Cloudwarden com itens de preenchimento automático para a página atual."
+    "message": "Um navegador web a apresentar a extensão Bitwarden com itens de preenchimento automático para a página atual."
   },
   "skip": {
     "message": "Saltar"
@@ -16923,7 +16923,7 @@
     "message": "Ajude os membros a melhorar"
   },
   "aiCoachmarkHelpMembersDescription": {
-    "message": "Depois de selecionar as aplicações críticas, peça aos membros para alterarem as palavras-passe em risco. Eles receberão uma mensagem na sua extensão do Cloudwarden."
+    "message": "Depois de selecionar as aplicações críticas, peça aos membros para alterarem as palavras-passe em risco. Eles receberão uma mensagem na sua extensão do Bitwarden."
   },
   "aiCoachmarkRunReportTitle": {
     "message": "Mantenha-se a par dos novos riscos"

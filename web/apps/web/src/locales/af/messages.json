@@ -2932,7 +2932,7 @@
     "message": "Hierdie uitstuur vergrendel u data met u rekening se enkripsiesleutel. Indien u ooit u rekening se enkripsiesleitel wil verander moet u dit weer uitstuur aangesien u dan nie hierdie uitstuurlêer sal kan dekripteer nie."
   },
   "encExportAccountWarningDesc": {
-    "message": "Rekeningenkripsiesleutels is uniek tot elke Bitwarden-gebruikersrekening, daarom kan u nie ’n geënkripteerde uitstuur in ’n ander rekening invoer nie."
+    "message": "Rekeningenkripsiesleutels is uniek tot elke Cloudwarden-gebruikersrekening, daarom kan u nie ’n geënkripteerde uitstuur in ’n ander rekening invoer nie."
   },
   "exportNoun": {
     "message": "Export",
@@ -3162,7 +3162,7 @@
     "message": "Request pending"
   },
   "logBackInOthersToo": {
-    "message": "Teken asb. weer aan. Indien u ander Bitwarden-toepassings gebruik, teken daarop ook weer uit en aan."
+    "message": "Teken asb. weer aan. Indien u ander Cloudwarden-toepassings gebruik, teken daarop ook weer uit en aan."
   },
   "changeMasterPassword": {
     "message": "Verander hoofwagwoord"
@@ -4059,7 +4059,7 @@
     "message": "Bewaar die vorm."
   },
   "twoFactorYubikeyWarning": {
-    "message": "Due to platform limitations, YubiKeys cannot be used on all Cloudwarden applications. You should set up another two-step login provider so that you can access your account when YubiKeys cannot be used. Supported platforms:"
+    "message": "Due to platform limitations, YubiKeys cannot be used on all Bitwarden applications. You should set up another two-step login provider so that you can access your account when YubiKeys cannot be used. Supported platforms:"
   },
   "twoFactorYubikeySupportUsb": {
     "message": "Web vault, desktop application, CLI, and all browser extensions on a device with a USB port that can accept your YubiKey."
@@ -4110,7 +4110,7 @@
     "message": "Deaktiveer alle sleutels"
   },
   "twoFactorDuoDesc": {
-    "message": "Enter the Cloudwarden application information from your Duo Admin panel."
+    "message": "Enter the Bitwarden application information from your Duo Admin panel."
   },
   "twoFactorDuoClientId": {
     "message": "Client Id"
@@ -4161,7 +4161,7 @@
     "message": "Bewaar die vorm."
   },
   "twoFactorU2fWarning": {
-    "message": "Due to platform limitations, FIDO U2F cannot be used on all Cloudwarden applications. You should set up another two-step login provider so that you can access your account when FIDO U2F cannot be used. Supported platforms:"
+    "message": "Due to platform limitations, FIDO U2F cannot be used on all Bitwarden applications. You should set up another two-step login provider so that you can access your account when FIDO U2F cannot be used. Supported platforms:"
   },
   "twoFactorU2fSupportWeb": {
     "message": "Web vault and browser extensions on a desktop/laptop with a U2F supported browser (Chrome, Opera, Vivaldi, or Firefox with FIDO U2F turned on)."
@@ -4176,7 +4176,7 @@
     "message": "There was a problem reading the security key. Try again."
   },
   "twoFactorRecoveryYourCode": {
-    "message": "U herstelkode vir Bitwarden-tweestapaantekening"
+    "message": "U herstelkode vir Cloudwarden-tweestapaantekening"
   },
   "twoFactorRecoveryNoCode": {
     "message": "You have not set up any two-step login providers yet. After you have set up a two-step login provider you can check back here for your recovery code."
@@ -4229,7 +4229,7 @@
     "message": "Onaktiewe tweestapaantekening"
   },
   "inactive2faReportDesc": {
-    "message": "Two-step login adds a layer of protection to your accounts. Set up two-step login using Cloudwarden authenticator for these accounts or use an alternative method."
+    "message": "Two-step login adds a layer of protection to your accounts. Set up two-step login using Bitwarden authenticator for these accounts or use an alternative method."
   },
   "inactive2faFound": {
     "message": "Logins without two-step login found"
@@ -7403,7 +7403,7 @@
     }
   },
   "updateEncryptionKeyWarning": {
-    "message": "After updating your encryption key, you are required to log out and back in to all Cloudwarden applications that you are currently using (such as the mobile app or browser extensions). Failure to log out and back in (which downloads your new encryption key) may result in data corruption. We will attempt to log you out automatically, however, it may be delayed."
+    "message": "After updating your encryption key, you are required to log out and back in to all Bitwarden applications that you are currently using (such as the mobile app or browser extensions). Failure to log out and back in (which downloads your new encryption key) may result in data corruption. We will attempt to log you out automatically, however, it may be delayed."
   },
   "updateEncryptionKeyAccountExportWarning": {
     "message": "Any account restricted exports you have saved will become invalid."
@@ -7725,7 +7725,7 @@
     "message": "Swak Hoofwagwoord"
   },
   "weakMasterPasswordDesc": {
-    "message": "U gekose hoofwagwoord is te swak. U behoort ’n sterk wagwoord (of ’n wagfrase) te gebruik om u Bitwarden-rekening behoorlik te beveilig. Is u seker u wil hierdie hoofwagwoord gebruik?"
+    "message": "U gekose hoofwagwoord is te swak. U behoort ’n sterk wagwoord (of ’n wagfrase) te gebruik om u Cloudwarden-rekening behoorlik te beveilig. Is u seker u wil hierdie hoofwagwoord gebruik?"
   },
   "rotateAccountEncKey": {
     "message": "Roteer ook my rekening se enrkipsiesleutel"
@@ -8149,7 +8149,7 @@
     "description": "VFO1 terminology variant of 'singleOrgPolicyDescV2'"
   },
   "singleOrgBlockCreateMessage": {
-    "message": "U huidige organisasie het ’n beleid wat u nie toelaat om deel te neem aan meer as een organisasie nie. Kontak u organisasie se beheerders of teken aan met’n ander Bitwarden-rekening."
+    "message": "U huidige organisasie het ’n beleid wat u nie toelaat om deel te neem aan meer as een organisasie nie. Kontak u organisasie se beheerders of teken aan met’n ander Cloudwarden-rekening."
   },
   "singleOrgPolicyMemberWarning": {
     "message": "Non-compliant members will be placed in revoked status until they leave all other organizations. Administrators are exempt and can restore members once compliance is met."
@@ -9176,7 +9176,7 @@
     "description": "Toast message shown when a user clicks the resend code link on the Send access page. 'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "viewSendHiddenEmailWarning": {
-    "message": "Die Bitwarden-gebruiker wat hierdie Send geskep het, het gekies om hul e-posadres te verberg. U moet verseker dat u die bron van hierdie skakel vertrou voordat u die inhoud gebruik of aflaai.",
+    "message": "Die Cloudwarden-gebruiker wat hierdie Send geskep het, het gekies om hul e-posadres te verberg. U moet verseker dat u die bron van hierdie skakel vertrou voordat u die inhoud gebruik of aflaai.",
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "expirationDateIsInvalid": {
@@ -9574,7 +9574,7 @@
     "message": "Aanbiederopstelling"
   },
   "setupProviderLoginDesc": {
-    "message": "U is genooi om ’n nuwe aanbieder op te stel. Om voort te gaan moet u aanteken of ’n nuwe Bitwarden-rekening skep."
+    "message": "U is genooi om ’n nuwe aanbieder op te stel. Om voort te gaan moet u aanteken of ’n nuwe Cloudwarden-rekening skep."
   },
   "setupProviderDesc": {
     "message": "Please enter the details below to complete the Provider setup. Contact Customer Support if you have any questions."
@@ -9611,7 +9611,7 @@
     "message": "Join Provider"
   },
   "joinProviderDesc": {
-    "message": "U is uitgenooi om aan te sluit by die bovenstaande verskaffer. Om die uitnodiging te aanvaar moet u aanteken of ’n nuwe Bitwarden-rekening skep."
+    "message": "U is uitgenooi om aan te sluit by die bovenstaande verskaffer. Om die uitnodiging te aanvaar moet u aanteken of ’n nuwe Cloudwarden-rekening skep."
   },
   "providerInviteAcceptFailed": {
     "message": "Kan nie uitnodiging aanvaar nie. Vra ’n verskafferadmin om ’n nuwe uitnodiging te stuur."

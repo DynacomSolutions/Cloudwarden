@@ -21,7 +21,7 @@
     "message": "All critical apps"
   },
   "appLogoLabel": {
-    "message": "Bitwarden-logo"
+    "message": "Cloudwarden-logo"
   },
   "criticalApplications": {
     "message": "Kritiske programmer"
@@ -2222,7 +2222,7 @@
     "message": "Logg på med enhet"
   },
   "loginWithDeviceEnabledNote": {
-    "message": "Logg på med enhet må settes opp i Bitwarden-innstillingene. Trenger du et annet alternativ?"
+    "message": "Logg på med enhet må settes opp i Cloudwarden-innstillingene. Trenger du et annet alternativ?"
   },
   "needAnotherOptionV1": {
     "message": "Trenger du et annet alternativ?"
@@ -2988,10 +2988,10 @@
     "message": "This KeePass database is too large to import."
   },
   "accountRestrictedOptionDescription": {
-    "message": "Bruk kontokrypteringsnøkkelen, avledet fra ditt kontobrukernavn og hovedpassord, for å kryptere eksporten og hindre import til andre kontoer enn den aktuelle Bitwarden-kontoen."
+    "message": "Bruk kontokrypteringsnøkkelen, avledet fra ditt kontobrukernavn og hovedpassord, for å kryptere eksporten og hindre import til andre kontoer enn den aktuelle Cloudwarden-kontoen."
   },
   "passwordProtectedOptionDescription": {
-    "message": "Sett et filpassord for kryptering av eksporten. Bruk passordet for å dekryptere og importere til en hvilken som helst Bitwarden-konto."
+    "message": "Sett et filpassord for kryptering av eksporten. Bruk passordet for å dekryptere og importere til en hvilken som helst Cloudwarden-konto."
   },
   "exportTypeHeading": {
     "message": "Eksport-type"
@@ -3891,7 +3891,7 @@
     "message": "Dersom du har satt opp SSO eller planlegger det, så kan det være tofaktor-innlogging allerede kreves via din identitetstjeneste."
   },
   "twoStepLoginRecoveryWarning": {
-    "message": "Å skru på 2-trinnsinnlogging kan låse deg permanent ut av din Bitwarden-konto. En gjenopprettingskode gir deg tilgang til kontoen din i det tilfellet at du ikke lenger kan bruke din vanlige 2-trinnsinnloggingsleverandør (f.eks. at du mister enheten din). Bitwarden-kundestøtten vil ikke kunne hjelpe deg dersom du mister tilgang til kontoen din. Vi anbefaler at du skriver ned eller skriver ut gjenopprettingskoden og legger den på en trygg plass."
+    "message": "Å skru på 2-trinnsinnlogging kan låse deg permanent ut av din Cloudwarden-konto. En gjenopprettingskode gir deg tilgang til kontoen din i det tilfellet at du ikke lenger kan bruke din vanlige 2-trinnsinnloggingsleverandør (f.eks. at du mister enheten din). Cloudwarden-kundestøtten vil ikke kunne hjelpe deg dersom du mister tilgang til kontoen din. Vi anbefaler at du skriver ned eller skriver ut gjenopprettingskoden og legger den på en trygg plass."
   },
   "restrictedItemTypePolicy": {
     "message": "Remove card item type"
@@ -5454,7 +5454,7 @@
     "message": "Inviter"
   },
   "inviteUserDesc": {
-    "message": "Inviter en ny bruker til din organisasjon ved å skrive inn E-postadressen til Bitwarden-kontoen deres nedenfor. Hvis de ikke allerede har en Bitwarden-konto, vil de bli forespurt om å lage en ny konto."
+    "message": "Inviter en ny bruker til din organisasjon ved å skrive inn E-postadressen til Cloudwarden-kontoen deres nedenfor. Hvis de ikke allerede har en Cloudwarden-konto, vil de bli forespurt om å lage en ny konto."
   },
   "inviteUserDescription": {
     "message": "Invite new users to your organization by entering their email address below."
@@ -6925,7 +6925,7 @@
     "message": "Return to registration"
   },
   "joinOrganizationDesc": {
-    "message": "Du har blitt invitert til å bli med i organisasjonen som er listet opp ovenfor. For å godkjenne invitasjonen, må du enten logge på eller lage en ny Bitwarden-konto."
+    "message": "Du har blitt invitert til å bli med i organisasjonen som er listet opp ovenfor. For å godkjenne invitasjonen, må du enten logge på eller lage en ny Cloudwarden-konto."
   },
   "finishJoiningThisOrganizationBySettingAMasterPassword": {
     "message": "Finish joining this organization by setting a master password."
@@ -7066,7 +7066,7 @@
     "message": "Dersom kontoen din eksisterer, har vi sendt deg en E-post med ytterligere instrukser."
   },
   "deleteRecoverConfirmDesc": {
-    "message": "Du har bedt om å slette Bitwarden-kontoen din. Klikk knappen nedenfor for å bekrefte."
+    "message": "Du har bedt om å slette Cloudwarden-kontoen din. Klikk knappen nedenfor for å bekrefte."
   },
   "deleteRecoverOrgConfirmDesc": {
     "message": "You have requested to delete your Cloudwarden organization."
@@ -7725,7 +7725,7 @@
     "message": "Svakt hovedpassord"
   },
   "weakMasterPasswordDesc": {
-    "message": "Hovedpassordet du har valgt er svakt. Du bør bruke et sterkt hovedpassord (eller en passordfrase) for å sikre Bitwarden-kontoen din på en forsvarlig måte. Er du sikker på at du vil bruke dette superpassordet?"
+    "message": "Hovedpassordet du har valgt er svakt. Du bør bruke et sterkt hovedpassord (eller en passordfrase) for å sikre Cloudwarden-kontoen din på en forsvarlig måte. Er du sikker på at du vil bruke dette superpassordet?"
   },
   "rotateAccountEncKey": {
     "message": "Oppdater også krypteringsnøkkelen til kontoen min"
@@ -8149,7 +8149,7 @@
     "description": "VFO1 terminology variant of 'singleOrgPolicyDescV2'"
   },
   "singleOrgBlockCreateMessage": {
-    "message": "Din nåværende organisasjon har en policy som ikke lar deg bli med i mer enn én organisasjon. Kontakt din organisasjons admins eller registrer deg fra en annen Bitwarden-konto."
+    "message": "Din nåværende organisasjon har en policy som ikke lar deg bli med i mer enn én organisasjon. Kontakt din organisasjons admins eller registrer deg fra en annen Cloudwarden-konto."
   },
   "singleOrgPolicyMemberWarning": {
     "message": "Non-compliant members will be placed in revoked status until they leave all other organizations. Administrators are exempt and can restore members once compliance is met."
@@ -8457,7 +8457,7 @@
     "message": "Rediger nødkontakt"
   },
   "inviteEmergencyContactDesc": {
-    "message": "Inviter en ny nødkontakt ved å skrive inn e-postadressen til deres Bitwarden-konto nedenfor. Dersom de ikke allerede har en Bitwarden-konto, vil de bli bedt om å opprette en ny konto."
+    "message": "Inviter en ny nødkontakt ved å skrive inn e-postadressen til deres Cloudwarden-konto nedenfor. Dersom de ikke allerede har en Cloudwarden-konto, vil de bli bedt om å opprette en ny konto."
   },
   "emergencyAccessRecoveryInitiated": {
     "message": "Nødtilgang initiert"
@@ -8496,7 +8496,7 @@
     "message": "Invitert bruker."
   },
   "acceptEmergencyAccess": {
-    "message": "Du har blitt invitert til å bli en nødkontakt for brukeren som er listet ovenfor. For å godkjenne invitasjonen, må du logge på eller lage en ny Bitwarden-konto."
+    "message": "Du har blitt invitert til å bli en nødkontakt for brukeren som er listet ovenfor. For å godkjenne invitasjonen, må du logge på eller lage en ny Cloudwarden-konto."
   },
   "emergencyInviteAcceptFailed": {
     "message": "Klarte ikke å godkjenne invitasjonen. Be brukeren om å sende en ny invitasjon."
@@ -9176,7 +9176,7 @@
     "description": "Toast message shown when a user clicks the resend code link on the Send access page. 'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "viewSendHiddenEmailWarning": {
-    "message": "Bitwarden-brukeren som opprettet denne sendingen, har valgt å skjule deres e-postadresse. Du bør forsikre deg om at du stoler på kilden til denne lenken før du bruker eller laster ned innholdet.",
+    "message": "Cloudwarden-brukeren som opprettet denne sendingen, har valgt å skjule deres e-postadresse. Du bør forsikre deg om at du stoler på kilden til denne lenken før du bruker eller laster ned innholdet.",
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "expirationDateIsInvalid": {
@@ -9574,7 +9574,7 @@
     "message": "Oppsett av søkeleverandør"
   },
   "setupProviderLoginDesc": {
-    "message": "Du har blitt invitert til å sette opp en ny leverandør. For å fortsette, må du logge på eller lage en ny Bitwarden-konto."
+    "message": "Du har blitt invitert til å sette opp en ny leverandør. For å fortsette, må du logge på eller lage en ny Cloudwarden-konto."
   },
   "setupProviderDesc": {
     "message": "Skriv inn opplysningene nedenfor for å fullføre leverandøroppsettet. Kontakt kundestøtte hvis du har spørsmål."
@@ -9605,13 +9605,13 @@
     "message": "Tjenestebrukere kan få tilgang til og administrere alle kundeorganisasjoner."
   },
   "providerInviteUserDesc": {
-    "message": "Inviter en ny bruker til leverandøren din ved å skrive inn E-postadressen til Bitwarden-kontoen deres nedenfor. Dersom de ikke allerede har en Bitwarden-konto, vil de bli bedt om å opprette en ny konto."
+    "message": "Inviter en ny bruker til leverandøren din ved å skrive inn E-postadressen til Cloudwarden-kontoen deres nedenfor. Dersom de ikke allerede har en Cloudwarden-konto, vil de bli bedt om å opprette en ny konto."
   },
   "joinProvider": {
     "message": "Koble til leverandør"
   },
   "joinProviderDesc": {
-    "message": "Du har blitt invitert til å bli med i leverandøren som er listet opp ovenfor. For å godkjenne invitasjonen, må du enten logge på eller lage en ny Bitwarden-konto."
+    "message": "Du har blitt invitert til å bli med i leverandøren som er listet opp ovenfor. For å godkjenne invitasjonen, må du enten logge på eller lage en ny Cloudwarden-konto."
   },
   "providerInviteAcceptFailed": {
     "message": "Klarte ikke å godkjenne invitasjonen. Spør en leverandøradministrator om å sende en ny invitasjon."
@@ -15754,7 +15754,7 @@
     "message": "Open the extension to log in and start autofilling."
   },
   "openBitwardenExtension": {
-    "message": "Åpne Bitwarden-utvidelsen"
+    "message": "Åpne Cloudwarden-utvidelsen"
   },
   "gettingStartedWithBitwardenPart1": {
     "message": "For tips on getting started with Cloudwarden visit the",
@@ -16689,7 +16689,7 @@
     "message": "You're in! Welcome to Cloudwarden"
   },
   "vaultWelcomeDialogDescription": {
-    "message": "Lagre alle passordene dine og personlig informasjon i Bitwarden-hvelvet ditt. Vi viser deg rundt."
+    "message": "Lagre alle passordene dine og personlig informasjon i Cloudwarden-hvelvet ditt. Vi viser deg rundt."
   },
   "vaultWelcomeDialogPrimaryCta": {
     "message": "Start tour"

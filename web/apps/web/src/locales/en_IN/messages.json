@@ -3162,7 +3162,7 @@
     "message": "Request pending"
   },
   "logBackInOthersToo": {
-    "message": "Please log back in. If you are using other Cloudwarden applications, log out and back in to those as well."
+    "message": "Please log back in. If you are using other Bitwarden applications, log out and back in to those as well."
   },
   "changeMasterPassword": {
     "message": "Change master password"
@@ -4059,7 +4059,7 @@
     "message": "Save the form."
   },
   "twoFactorYubikeyWarning": {
-    "message": "Due to platform limitations, YubiKeys cannot be used on all Cloudwarden applications. You should enable another two-step login provider so that you can access your account when YubiKeys cannot be used. Supported platforms:"
+    "message": "Due to platform limitations, YubiKeys cannot be used on all Bitwarden applications. You should enable another two-step login provider so that you can access your account when YubiKeys cannot be used. Supported platforms:"
   },
   "twoFactorYubikeySupportUsb": {
     "message": "Web vault, desktop application, CLI, and all browser extensions on a device with a USB port that can accept your YubiKey."
@@ -4110,7 +4110,7 @@
     "message": "Disable all keys"
   },
   "twoFactorDuoDesc": {
-    "message": "Enter the Cloudwarden application information from your Duo Admin panel."
+    "message": "Enter the Bitwarden application information from your Duo Admin panel."
   },
   "twoFactorDuoClientId": {
     "message": "Client Id"
@@ -4161,7 +4161,7 @@
     "message": "Save the form."
   },
   "twoFactorU2fWarning": {
-    "message": "Due to platform limitations, FIDO U2F cannot be used on all Cloudwarden applications. You should enable another two-step login provider so that you can access your account when FIDO U2F cannot be used. Supported platforms:"
+    "message": "Due to platform limitations, FIDO U2F cannot be used on all Bitwarden applications. You should enable another two-step login provider so that you can access your account when FIDO U2F cannot be used. Supported platforms:"
   },
   "twoFactorU2fSupportWeb": {
     "message": "Web vault and browser extensions on a desktop/laptop with a U2F enabled browser (Chrome, Opera, Vivaldi, or Firefox with FIDO U2F enabled)."
@@ -7403,7 +7403,7 @@
     }
   },
   "updateEncryptionKeyWarning": {
-    "message": "After updating your encryption key, you are required to log out and back in to all Cloudwarden applications that you are currently using (such as the mobile app or browser extensions). Failure to log out and back in (which downloads your new encryption key) may result in data corruption. We will attempt to log you out automatically, although this may be delayed."
+    "message": "After updating your encryption key, you are required to log out and back in to all Bitwarden applications that you are currently using (such as the mobile app or browser extensions). Failure to log out and back in (which downloads your new encryption key) may result in data corruption. We will attempt to log you out automatically, although this may be delayed."
   },
   "updateEncryptionKeyAccountExportWarning": {
     "message": "Any account restricted exports you have saved will become invalid."

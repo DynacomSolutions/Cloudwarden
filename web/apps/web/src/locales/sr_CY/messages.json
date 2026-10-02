@@ -2339,7 +2339,7 @@
     "message": "Креирај налог"
   },
   "newToBitwarden": {
-    "message": "Нови сте у Bitwarden-у?"
+    "message": "Нови сте у Cloudwarden-у?"
   },
   "setAStrongPassword": {
     "message": "Поставите јаку лозинку"
@@ -3195,7 +3195,7 @@
     }
   },
   "kdfIterationsWarning": {
-    "message": "Постављање превисоких KDF итерација може резултирати лошим перформансама приликом пријављивања (и откључавања) Bitwarden-а на уређајима са споријим процесорима. Препоручујемо вам да повећате вредност у корацима од $INCREMENT$, а затим тестирате све своје уређаје.",
+    "message": "Постављање превисоких KDF итерација може резултирати лошим перформансама приликом пријављивања (и откључавања) Cloudwarden-а на уређајима са споријим процесорима. Препоручујемо вам да повећате вредност у корацима од $INCREMENT$, а затим тестирате све своје уређаје.",
     "placeholders": {
       "increment": {
         "content": "$1",
@@ -3208,7 +3208,7 @@
     "description": "Memory refers to computer memory (RAM). MB is short for megabytes."
   },
   "argon2Warning": {
-    "message": "Постављање превисоких KDF итерација, меморија и паралелизам може резултирати лошим перформансама приликом пријављивања (и откључавања) Bitwarden-а на старим уређајима или са споријим процесорима. Препоручујемо вам да промените вредност у корацима, а затим тестирате све своје уређаје."
+    "message": "Постављање превисоких KDF итерација, меморија и паралелизам може резултирати лошим перформансама приликом пријављивања (и откључавања) Cloudwarden-а на старим уређајима или са споријим процесорима. Препоручујемо вам да промените вредност у корацима, а затим тестирате све своје уређаје."
   },
   "kdfParallelism": {
     "message": "KDF паралелизам"
@@ -3891,7 +3891,7 @@
     "message": "Ако сте поставили SSO или планирате, Пријава у два корака је можда већ принуђена преко вашег добављача идентитета."
   },
   "twoStepLoginRecoveryWarning": {
-    "message": "Омогућавање пријаве у два корака може вас трајно закључати са вашег Bitwarden-а налога. Код за опоравак омогућава вам приступ вашем налогу у случају да више не можете да користите свог уобичајеног добављача услуге пријављивања у два корака (нпр. ако изгубите уређај). Подршка Bitwarden-а неће вам моћи помоћи ако изгубите приступ свом налогу. Препоручујемо да запишете или одштампате код за опоравак и сачувате га на сигурном месту."
+    "message": "Омогућавање пријаве у два корака може вас трајно закључати са вашег Cloudwarden-а налога. Код за опоравак омогућава вам приступ вашем налогу у случају да више не можете да користите свог уобичајеног добављача услуге пријављивања у два корака (нпр. ако изгубите уређај). Подршка Cloudwarden-а неће вам моћи помоћи ако изгубите приступ свом налогу. Препоручујемо да запишете или одштампате код за опоравак и сачувате га на сигурном месту."
   },
   "restrictedItemTypePolicy": {
     "message": "Уклоните тип ставке картице"
@@ -4339,7 +4339,7 @@
     "message": "Извештај о слабим лозинкама"
   },
   "weakPasswordsReportDesc": {
-    "message": "Хакери и аутоматизовани алати могу лако погодити слабе лозинке. Генератор лозинки Bitwarden-а може вам помоћи да створите јаке лозинке."
+    "message": "Хакери и аутоматизовани алати могу лако погодити слабе лозинке. Генератор лозинки Cloudwarden-а може вам помоћи да створите јаке лозинке."
   },
   "weakPasswordsFound": {
     "message": "Пронађене су слабе лозинке"
@@ -5397,7 +5397,7 @@
     "message": "SSO Спољни ИД"
   },
   "ssoExternalIdDesc": {
-    "message": "SSO Спољни ИД је неуредна референца између Bitwarden-а и вашег конфигурисаног SSO провајдера."
+    "message": "SSO Спољни ИД је неуредна референца између Cloudwarden-а и вашег конфигурисаног SSO провајдера."
   },
   "nestCollectionUnder": {
     "message": "Постави колекцију испод"
@@ -8693,7 +8693,7 @@
     "description": "This is a fragment of a larger sencence. The whole sentence will read: 'Select Turn on'"
   },
   "autoConfirmExtensionOpened": {
-    "message": "Успешно је отворена екстензија прегледача Bitwarden-а. Сада можете активирати поставку аутоматске потврде корисника."
+    "message": "Успешно је отворена екстензија прегледача Cloudwarden-а. Сада можете активирати поставку аутоматске потврде корисника."
   },
   "autoConfirmPolicyEditDescription": {
     "message": "Нови корисници позвани у организацију биће аутоматски потврђени када се администраторски уређај откључа. Пре него што укључите ову политику, прегледајте и прихватите следеће: ",
@@ -10366,7 +10366,7 @@
     "message": "Прилагођено окружење"
   },
   "selfHostedBaseUrlHint": {
-    "message": "Наведите основну УРЛ адресу вашег локалног хостовања Bitwarden-а. Пример: https://bitwarden.company.com"
+    "message": "Наведите основну УРЛ адресу вашег локалног хостовања Cloudwarden-а. Пример: https://bitwarden.company.com"
   },
   "selfHostedCustomEnvHeader": {
     "message": "За напредну конфигурацију, можете навести основну УРЛ адресу сваке услуге независно."
@@ -12877,7 +12877,7 @@
     "message": "User set a master password during TDE offboarding."
   },
   "startYour7DayFreeTrialOfBitwardenFor": {
-    "message": "Започните своју 7-дневну бесплатну пробну Bitwarden-а за $ORG$",
+    "message": "Започните своју 7-дневну бесплатну пробну Cloudwarden-а за $ORG$",
     "placeholders": {
       "org": {
         "content": "$1",
@@ -14265,10 +14265,10 @@
     "message": "Управљајте наплатом из Provider Portal"
   },
   "continueSettingUp": {
-    "message": "Наставити са подешавањем Bitwarden-а"
+    "message": "Наставити са подешавањем Cloudwarden-а"
   },
   "continueSettingUpFreeTrial": {
-    "message": "Наставите са подешавањем бесплатне пробне верзије Bitwarden-а"
+    "message": "Наставите са подешавањем бесплатне пробне верзије Cloudwarden-а"
   },
   "continueSettingUpPasswordManager": {
     "message": "Наставите са подешавањем Cloudwarden менаџер лозинки"
@@ -14556,7 +14556,7 @@
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'Notice: Later this month, client vault privacy will be improved and provider members will no longer have direct access to client vault items. For questions, please contact Bitwarden support'."
   },
   "contactBitwardenSupport": {
-    "message": "контактирајте подршку Bitwarden-а.",
+    "message": "контактирајте подршку Cloudwarden-а.",
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'Notice: Later this month, client vault privacy will be improved and provider members will no longer have direct access to client vault items. For questions, please contact Bitwarden support'. 'Bitwarden' should not be translated"
   },
   "sponsored": {
@@ -14681,7 +14681,7 @@
     "message": "Шта је CVV број?"
   },
   "learnMoreAboutApi": {
-    "message": "Сазнајте више о API Bitwarden-а"
+    "message": "Сазнајте више о API Cloudwarden-а"
   },
   "fileSends": {
     "message": "Датотека „Send“"
@@ -15309,7 +15309,7 @@
     "message": "Копирај приватни кључ"
   },
   "openingExtension": {
-    "message": "Отварање Cloudwarden додатка прегледача"
+    "message": "Отварање Bitwarden додатка прегледача"
   },
   "somethingWentWrong": {
     "message": "Нешто није у реду..."
@@ -15321,7 +15321,7 @@
     "message": "Отвори додатак"
   },
   "doNotHaveExtension": {
-    "message": "Немате додатак за Cloudwarden?"
+    "message": "Немате додатак за Bitwarden?"
   },
   "installExtension": {
     "message": "Инсталирајте додатак"
@@ -15727,7 +15727,7 @@
     "message": "Ауто-попунити лозинке са једним кликом"
   },
   "setupExtensionPageDescription": {
-    "message": "Преузети Cloudwarden додатак за претраживач и почнети са ауто-попуњавањем"
+    "message": "Преузети Bitwarden додатак за претраживач и почнети са ауто-попуњавањем"
   },
   "getTheExtension": {
     "message": "Добити додатак"
@@ -15757,7 +15757,7 @@
     "message": "Отворити Cloudwarden екстензију"
   },
   "gettingStartedWithBitwardenPart1": {
-    "message": "За савете о почетку рада са Bitwarden-ом посетите",
+    "message": "За савете о почетку рада са Cloudwarden-ом посетите",
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'For tips on getting started with Bitwarden visit the Learning Center and Help Center'"
   },
   "gettingStartedWithBitwardenPart2": {

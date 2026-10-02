@@ -236,7 +236,7 @@
     "message": "Acompanhe as melhorias em toda a sua equipe"
   },
   "membersAreAutomaticallyNotified": {
-    "message": "Os membros são notificados automaticamente de senhas em risco na sua extensão do Cloudwarden. Não é necessário ficar olhando."
+    "message": "Os membros são notificados automaticamente de senhas em risco na sua extensão do Bitwarden. Não é necessário ficar olhando."
   },
   "importYourOrgDataToGetStarted": {
     "message": "Importe os dados da sua organização para começar"
@@ -2222,7 +2222,7 @@
     "message": "Conectar-se com dispositivo"
   },
   "loginWithDeviceEnabledNote": {
-    "message": "A autenticação com dispositivo deve ser configurada nas configurações do aplicativo móvel do Cloudwarden. Precisa de outra opção?"
+    "message": "A autenticação com dispositivo deve ser configurada nas configurações do aplicativo móvel do Bitwarden. Precisa de outra opção?"
   },
   "needAnotherOptionV1": {
     "message": "Precisa de outra opção?"
@@ -2387,7 +2387,7 @@
     "message": "O que é um dispositivo?"
   },
   "aDeviceIs": {
-    "message": "Um dispositivo é uma instalação única do aplicativo do Cloudwarden na qual você se conectou. Reinstalar, limpar os dados do aplicativo ou limpar seus cookies pode fazer com que um dispositivo apareça várias vezes."
+    "message": "Um dispositivo é uma instalação única do aplicativo do Bitwarden na qual você se conectou. Reinstalar, limpar os dados do aplicativo ou limpar seus cookies pode fazer com que um dispositivo apareça várias vezes."
   },
   "logInInitiated": {
     "message": "Autenticação iniciada"
@@ -3162,7 +3162,7 @@
     "message": "Solicitação pendente"
   },
   "logBackInOthersToo": {
-    "message": "Conecte-se novamente. Se estiver usando outros aplicativos do Cloudwarden, desconecte-se e conecte-se neles também."
+    "message": "Conecte-se novamente. Se estiver usando outros aplicativos do Bitwarden, desconecte-se e conecte-se neles também."
   },
   "changeMasterPassword": {
     "message": "Alterar senha principal"
@@ -4059,7 +4059,7 @@
     "message": "Salve o formulário."
   },
   "twoFactorYubikeyWarning": {
-    "message": "Devido às limitações da plataforma, as YubiKeys não podem ser usadas em todos os aplicativos do Cloudwarden. Você deve ativar outro provedor de autenticação em duas etapas, para que possa acessar a sua conta quando as YubiKeys não puderem ser usadas. Plataformas suportadas:"
+    "message": "Devido às limitações da plataforma, as YubiKeys não podem ser usadas em todos os aplicativos do Bitwarden. Você deve ativar outro provedor de autenticação em duas etapas, para que possa acessar a sua conta quando as YubiKeys não puderem ser usadas. Plataformas suportadas:"
   },
   "twoFactorYubikeySupportUsb": {
     "message": "Cofre web, aplicativo de computador, CLI, e todas as extensões de navegador em um dispositivo com uma porta USB que pode aceitar a sua YubiKey."
@@ -4110,7 +4110,7 @@
     "message": "Desativar todas as chaves"
   },
   "twoFactorDuoDesc": {
-    "message": "Digite as informações do aplicativo Cloudwarden no painel de administração do Duo."
+    "message": "Digite as informações do aplicativo Bitwarden no painel de administração do Duo."
   },
   "twoFactorDuoClientId": {
     "message": "ID do cliente"
@@ -4161,7 +4161,7 @@
     "message": "Salve o formulário."
   },
   "twoFactorU2fWarning": {
-    "message": "Devido às limitações da plataforma, o FIDO U2F não pode ser usado em todos os aplicativos do Cloudwarden. Você deve configurar outro provedor de autenticação em duas etapas para poder acessar a sua conta quando o FIDO U2F não puder ser usado. Plataformas suportadas:"
+    "message": "Devido às limitações da plataforma, o FIDO U2F não pode ser usado em todos os aplicativos do Bitwarden. Você deve configurar outro provedor de autenticação em duas etapas para poder acessar a sua conta quando o FIDO U2F não puder ser usado. Plataformas suportadas:"
   },
   "twoFactorU2fSupportWeb": {
     "message": "Cofre web e extensões de navegador em um computador com um navegador que suporte U2F (Chrome, Opera, Vivaldi ou Firefox com o FIDO U2F ativado)."
@@ -7403,7 +7403,7 @@
     }
   },
   "updateEncryptionKeyWarning": {
-    "message": "Depois de atualizar sua chave de criptografia, é necessário se desconectar e reconectar em todos os aplicativos do Cloudwarden que você está usando atualmente (como o aplicativo móvel ou as extensões do navegador). Não fazer isso (que descarrega sua nova chave de criptografia) pode resultar em corrupção de dados. Nós tentaremos desconectá-lo automaticamente, mas isso pode demorar um pouco."
+    "message": "Depois de atualizar sua chave de criptografia, é necessário se desconectar e reconectar em todos os aplicativos do Bitwarden que você está usando atualmente (como o aplicativo móvel ou as extensões do navegador). Não fazer isso (que descarrega sua nova chave de criptografia) pode resultar em corrupção de dados. Nós tentaremos desconectá-lo automaticamente, mas isso pode demorar um pouco."
   },
   "updateEncryptionKeyAccountExportWarning": {
     "message": "Quaisquer exportações que você tenha salvado e que são restritas à conta se tornarão inválidas."
@@ -8682,7 +8682,7 @@
     "message": "Como ativar a confirmação automática de usuários"
   },
   "autoConfirmExtension1": {
-    "message": "Abra a sua extensão do Cloudwarden"
+    "message": "Abra a sua extensão do Bitwarden"
   },
   "autoConfirmExtension2": {
     "message": "Selecione",
@@ -15745,16 +15745,16 @@
     "message": "Ir para o aplicativo web"
   },
   "bitwardenExtensionInstalled": {
-    "message": "Extensão do Cloudwarden instalada!"
+    "message": "Extensão do Bitwarden instalada!"
   },
   "bitwardenExtensionIsInstalled": {
-    "message": "A extensão do Cloudwarden está instalada!"
+    "message": "A extensão do Bitwarden está instalada!"
   },
   "openExtensionToAutofill": {
     "message": "Abra a extensão, conecte-se e comece a usar o preenchimento automático."
   },
   "openBitwardenExtension": {
-    "message": "Abrir extensão do Cloudwarden"
+    "message": "Abrir extensão do Bitwarden"
   },
   "gettingStartedWithBitwardenPart1": {
     "message": "Para dicas de como começar a usar o Cloudwarden, visite a ",
@@ -16638,7 +16638,7 @@
     "message": "Com a extensão de navegador instalada, você levará o Cloudwarden a todos os lugares. Ele preencherá senhas automaticamente, e você poderá entrar nas suas contas com um só clique."
   },
   "extensionPromptImageAlt": {
-    "message": "Um navegador da web mostrando a extensão do Cloudwarden com itens para preenchimento na página atual."
+    "message": "Um navegador da web mostrando a extensão do Bitwarden com itens para preenchimento na página atual."
   },
   "skip": {
     "message": "Pular"
@@ -16923,7 +16923,7 @@
     "message": "Ajude membros a melhorar"
   },
   "aiCoachmarkHelpMembersDescription": {
-    "message": "Depois que você selecionar aplicativos críticos, peça que os membros alterem senhas em risco. Eles receberão uma mensagem na sua extensão do Cloudwarden."
+    "message": "Depois que você selecionar aplicativos críticos, peça que os membros alterem senhas em risco. Eles receberão uma mensagem na sua extensão do Bitwarden."
   },
   "aiCoachmarkRunReportTitle": {
     "message": "Fique sabendo de novos riscos"

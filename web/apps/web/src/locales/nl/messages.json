@@ -21,7 +21,7 @@
     "message": "Alle kritieke applicaties"
   },
   "appLogoLabel": {
-    "message": "Bitwarden-logo"
+    "message": "Cloudwarden-logo"
   },
   "criticalApplications": {
     "message": "Belangrijke applicaties"
@@ -2932,7 +2932,7 @@
     "message": "Deze export versleutelt je gegevens met de encryptiesleutel van je account. Als je je encryptiesleutel verandert moet je opnieuw exporteren, omdat je deze export dan niet meer kunt ontcijferen."
   },
   "encExportAccountWarningDesc": {
-    "message": "Encryptiesleutels zijn uniek voor elk Bitwarden-gebruikersaccount, je kun kunt een versleutelde niet in een ander account importeren."
+    "message": "Encryptiesleutels zijn uniek voor elk Cloudwarden-gebruikersaccount, je kun kunt een versleutelde niet in een ander account importeren."
   },
   "exportNoun": {
     "message": "Exporteren",
@@ -2988,7 +2988,7 @@
     "message": "This KeePass database is too large to import."
   },
   "accountRestrictedOptionDescription": {
-    "message": "Gebruik de encryptiesleutel van je account, afgeleid van je gebruikersnaam en hoodfwachtwoord, om de export te versleutelen en importeren te beperken tot het huidige Bitwarden-account."
+    "message": "Gebruik de encryptiesleutel van je account, afgeleid van je gebruikersnaam en hoodfwachtwoord, om de export te versleutelen en importeren te beperken tot het huidige Cloudwarden-account."
   },
   "passwordProtectedOptionDescription": {
     "message": "Maak een door de gebruiker gegenereerd wachtwoord aan om de export te beschermen. Gebruik dit om een export te maken die je in andere accounts kunt gebruiken."
@@ -3878,7 +3878,7 @@
     "message": "Tweestapsaanmelding voor je organisatie activeren."
   },
   "twoStepLoginEnterpriseDescStart": {
-    "message": "Bitwarden-tweestapsaanmeldingsinstellingen afdwingen voor leden via het ",
+    "message": "Cloudwarden-tweestapsaanmeldingsinstellingen afdwingen voor leden via het ",
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Enforce Bitwarden Two-step Login options for members by using the Two-step Login Policy.'"
   },
   "twoStepLoginPolicy": {
@@ -3891,7 +3891,7 @@
     "message": "Als je SSO hebt ingesteld of dat van plan bent, is tweestapsaanmelding misschien al afgedwongen via je Identity Provider."
   },
   "twoStepLoginRecoveryWarning": {
-    "message": "Door aanmelden in twee stappen in te schakelen, kun je jezelf definitief buitensluiten van je Bitwarden-account. Een herstelcode geeft je toegang tot je account in het geval dat je je normale tweestapsaanmelding niet meer kunt gebruiken (bijv. als je je apparaat verliest). De Bitwarden-klantondersteuning kan je niet helpen als je de toegang tot je account verliest. We raden je met klem aan de herstelcode op te schrijven of af te drukken en op een veilige plaats te bewaren."
+    "message": "Door aanmelden in twee stappen in te schakelen, kun je jezelf definitief buitensluiten van je Cloudwarden-account. Een herstelcode geeft je toegang tot je account in het geval dat je je normale tweestapsaanmelding niet meer kunt gebruiken (bijv. als je je apparaat verliest). De Cloudwarden-klantondersteuning kan je niet helpen als je de toegang tot je account verliest. We raden je met klem aan de herstelcode op te schrijven of af te drukken en op een veilige plaats te bewaren."
   },
   "restrictedItemTypePolicy": {
     "message": "Kaart item type verwijderen"
@@ -4176,7 +4176,7 @@
     "message": "Er was een probleem met het lezen van de beveiligingssleutel. Probeer het nogmaals."
   },
   "twoFactorRecoveryYourCode": {
-    "message": "Je herstelcode voor Bitwarden-tweestapsaanmelding"
+    "message": "Je herstelcode voor Cloudwarden-tweestapsaanmelding"
   },
   "twoFactorRecoveryNoCode": {
     "message": "Je hebt nog geen tweestapsaanmeldingsaanbieders ingeschakeld. Nadat je een tweestapsaanmeldingsaanbieder hebt ingeschakeld kun je hier je herstelcode vinden."
@@ -4738,7 +4738,7 @@
     }
   },
   "churnOfferDiscountBody": {
-    "message": "Als dank voor je lange tijd als Bitwarden-klant, willen we je $DISCOUNT$ korting aanbieden op je volgende $DURATION$ service.",
+    "message": "Als dank voor je lange tijd als Cloudwarden-klant, willen we je $DISCOUNT$ korting aanbieden op je volgende $DURATION$ service.",
     "description": "Body copy on the churn-mitigation offer card. DISCOUNT = discount amount; DURATION = service duration (e.g. 'year' or '6 months')",
     "placeholders": {
       "discount": {
@@ -4800,7 +4800,7 @@
     }
   },
   "churnOfferDiscountBodyRecurringAmount": {
-    "message": "Als dank voor je lange tijd als Bitwarden-klant, willen we je $AMOUNT$ korting aanbieden voor iedere $INTERVAL$ op voor de volgende $DURATION$.",
+    "message": "Als dank voor je lange tijd als Cloudwarden-klant, willen we je $AMOUNT$ korting aanbieden voor iedere $INTERVAL$ op voor de volgende $DURATION$.",
     "description": "Body copy on the churn-mitigation offer card for a fixed-amount discount that repeats each billing period. AMOUNT = discount amount (e.g. '$15.00'); INTERVAL = billing interval unit (e.g. 'month'); DURATION = discount duration (e.g. 'year' or '6 months')",
     "placeholders": {
       "amount": {
@@ -5454,13 +5454,13 @@
     "message": "Uitnodigen"
   },
   "inviteUserDesc": {
-    "message": "Nodig een nieuwe gebruiker uit voor je organisatie door het e-mailadres van hun Bitwarden-account hieronder in te vullen. Als ze nog geen Bitwarden-account hebben, kunnen ze een nieuw account aanmaken."
+    "message": "Nodig een nieuwe gebruiker uit voor je organisatie door het e-mailadres van hun Cloudwarden-account hieronder in te vullen. Als ze nog geen Cloudwarden-account hebben, kunnen ze een nieuw account aanmaken."
   },
   "inviteUserDescription": {
     "message": "Nodig nieuwe gebruikers uit voor je organisatie door hun e-mailadres hieronder in te vullen."
   },
   "inviteUserDescSharedFolders": {
-    "message": "Nodig een nieuwe gebruiker uit voor je organisatie door het e-mailadres van hun Bitwarden-account hieronder in te vullen. Wanneer ze nog geen Bitwarden-account hebben wordt ze gevraagd om een nieuw account aan te maken.",
+    "message": "Nodig een nieuwe gebruiker uit voor je organisatie door het e-mailadres van hun Cloudwarden-account hieronder in te vullen. Wanneer ze nog geen Cloudwarden-account hebben wordt ze gevraagd om een nieuw account aan te maken.",
     "description": "VFO1 (shared folder terminology) variant of inviteUserDesc, shown when the vfo1-foundation flag is enabled."
   },
   "inviteMultipleEmailDesc": {
@@ -6925,7 +6925,7 @@
     "message": "Terug naar registratie"
   },
   "joinOrganizationDesc": {
-    "message": "Je bent uitgenodigd om lid te worden van bovenstaande organisatie. Om de uitnodiging te accepteren, moet je inloggen of een nieuw Bitwarden-account aanmaken."
+    "message": "Je bent uitgenodigd om lid te worden van bovenstaande organisatie. Om de uitnodiging te accepteren, moet je inloggen of een nieuw Cloudwarden-account aanmaken."
   },
   "finishJoiningThisOrganizationBySettingAMasterPassword": {
     "message": "Voltooi je lidmaatschap aan deze organisatie door een hoofdwachtwoord in te stellen."
@@ -7066,10 +7066,10 @@
     "message": "Als je account bestaat, hebben we je een e-mailbericht met nadere instructies gestuurd."
   },
   "deleteRecoverConfirmDesc": {
-    "message": "Je hebt een aanvraag gedaan om je Bitwarden-account te verwijderen. Klik op onderstaande knop om dit te bevestigen."
+    "message": "Je hebt een aanvraag gedaan om je Cloudwarden-account te verwijderen. Klik op onderstaande knop om dit te bevestigen."
   },
   "deleteRecoverOrgConfirmDesc": {
-    "message": "Je hebt het verwijderen van je Bitwarden-organisatie aangevraagd."
+    "message": "Je hebt het verwijderen van je Cloudwarden-organisatie aangevraagd."
   },
   "myOrganization": {
     "message": "Mijn organisatie"
@@ -7546,7 +7546,7 @@
     "message": "De link kopiëren en plakken waar je team deze kan vinden: je onboarding-checklist, een Slack-kanaal #new-joiners, Notion-documenten, of een e-mailtemplate."
   },
   "viewBitwardenOnboardingGuide": {
-    "message": "Bitwarden-onboardinggids bekijken"
+    "message": "Cloudwarden-onboardinggids bekijken"
   },
   "coachMarkStepOfTotal": {
     "message": "$CURRENT$ van $TOTAL$",
@@ -7725,7 +7725,7 @@
     "message": "Zwak hoofdwachtwoord"
   },
   "weakMasterPasswordDesc": {
-    "message": "Je hebt een zwak hoofdwachtwoord gekozen. Gebruik een sterk hoofdwachtwoord (of wachtwoordzin) om jouw Bitwarden-account goed te beschermen. Weet je zeker dat je dit hoofdwachtwoord wilt gebruiken?"
+    "message": "Je hebt een zwak hoofdwachtwoord gekozen. Gebruik een sterk hoofdwachtwoord (of wachtwoordzin) om jouw Cloudwarden-account goed te beschermen. Weet je zeker dat je dit hoofdwachtwoord wilt gebruiken?"
   },
   "rotateAccountEncKey": {
     "message": "De encryptiesleutel van mijn account ook roteren"
@@ -8149,7 +8149,7 @@
     "description": "VFO1 terminology variant of 'singleOrgPolicyDescV2'"
   },
   "singleOrgBlockCreateMessage": {
-    "message": "Jouw huidige organisatie heeft een beleid dat je niet toestaat om deel te nemen aan meer dan één organisatie. Neem contact op met de beheerders van jouw organisatie of meld je aan met een ander Bitwarden-account."
+    "message": "Jouw huidige organisatie heeft een beleid dat je niet toestaat om deel te nemen aan meer dan één organisatie. Neem contact op met de beheerders van jouw organisatie of meld je aan met een ander Cloudwarden-account."
   },
   "singleOrgPolicyMemberWarning": {
     "message": "Niet-conforme leden krijgen de status ingetrokken totdat ze alle andere organisaties hebben verlaten. Beheerders zijn uitgezonderd en kunnen leden herstellen zodra ze aan de naleving voldoen."
@@ -8400,7 +8400,7 @@
     "message": "Probleem ervaren? Download het diagnostische rapport en deel het met"
   },
   "bitwardenSupport": {
-    "message": "Bitwarden-ondersteuning",
+    "message": "Cloudwarden-ondersteuning",
     "description": "Link text that follows the troubleshooting description sentence. 'Bitwarden' should not be translated."
   },
   "download": {
@@ -8457,7 +8457,7 @@
     "message": "Noodcontact bewerken"
   },
   "inviteEmergencyContactDesc": {
-    "message": "Nodig een nieuw noodcontact uit door hieronder het e-mailadres van hun Bitwarden-account in te vullen. Als ze nog geen Bitwarden-account hebben, krijgen ze de mogelijkheid direct een account aan te maken."
+    "message": "Nodig een nieuw noodcontact uit door hieronder het e-mailadres van hun Cloudwarden-account in te vullen. Als ze nog geen Cloudwarden-account hebben, krijgen ze de mogelijkheid direct een account aan te maken."
   },
   "emergencyAccessRecoveryInitiated": {
     "message": "Noodtoegang geïnitieerd"
@@ -8496,7 +8496,7 @@
     "message": "Uitgenodigde gebruiker."
   },
   "acceptEmergencyAccess": {
-    "message": "Je bent uitgenodigd als noodcontact voor bovenstaande gebruiker. Om de uitnodiging te accepteren, moet je inloggen of een nieuw Bitwarden-account aanmaken."
+    "message": "Je bent uitgenodigd als noodcontact voor bovenstaande gebruiker. Om de uitnodiging te accepteren, moet je inloggen of een nieuw Cloudwarden-account aanmaken."
   },
   "emergencyInviteAcceptFailed": {
     "message": "Kon de uitnodiging niet accepteren. Vraag de gebruiker om een nieuwe uitnodiging te versturen."
@@ -9151,7 +9151,7 @@
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Learn more about Bitwarden Send or sign up to **try it today.**'"
   },
   "sendAccessCreatorIdentifier": {
-    "message": "Bitwarden-lid $USER_IDENTIFIER$ heeft het volgende met je gedeeld",
+    "message": "Cloudwarden-lid $USER_IDENTIFIER$ heeft het volgende met je gedeeld",
     "placeholders": {
       "user_identifier": {
         "content": "$1",
@@ -9176,7 +9176,7 @@
     "description": "Toast message shown when a user clicks the resend code link on the Send access page. 'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "viewSendHiddenEmailWarning": {
-    "message": "De Bitwarden-gebruiker die deze Send heeft gemaakt heeft ervoor gekozen het e-mailadres te verbergen. Je moet je ervan verzekeren dat je de bron van deze link vertrouwt voordat je de inhoud gebruikt of downloadt.",
+    "message": "De Cloudwarden-gebruiker die deze Send heeft gemaakt heeft ervoor gekozen het e-mailadres te verbergen. Je moet je ervan verzekeren dat je de bron van deze link vertrouwt voordat je de inhoud gebruikt of downloadt.",
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "expirationDateIsInvalid": {
@@ -9574,7 +9574,7 @@
     "message": "Providerinstellingen"
   },
   "setupProviderLoginDesc": {
-    "message": "Je bent uitgenodigd om een nieuwe provider in te stellen. Om door te gaan, moet je inloggen of een nieuw Bitwarden-account aanmaken."
+    "message": "Je bent uitgenodigd om een nieuwe provider in te stellen. Om door te gaan, moet je inloggen of een nieuw Cloudwarden-account aanmaken."
   },
   "setupProviderDesc": {
     "message": "Vul de gegevens hieronder in om de configuratie van de provider te voltooien. Neem contact op met de klantenservice als je vragen hebt."
@@ -9605,13 +9605,13 @@
     "message": "Servicegebruikers hebben toegang tot alle clientorganisaties en kunnen deze beheren."
   },
   "providerInviteUserDesc": {
-    "message": "Nodig een nieuw gebruikers uit voor je provider door hun Bitwarden-account e-mailadres hieronder in te vullen. Wanneer ze nog geen Bitwarden-account hebben worden ze gevraagd om een nieuw account aan te maken."
+    "message": "Nodig een nieuw gebruikers uit voor je provider door hun Cloudwarden-account e-mailadres hieronder in te vullen. Wanneer ze nog geen Cloudwarden-account hebben worden ze gevraagd om een nieuw account aan te maken."
   },
   "joinProvider": {
     "message": "Aansluiten bij provider"
   },
   "joinProviderDesc": {
-    "message": "Je bent uitgenodigd om je aan te sluiten bij de bovenstaande provider. Om de uitnodiging te accepteren, moet je inloggen of een nieuw Bitwarden-account aanmaken."
+    "message": "Je bent uitgenodigd om je aan te sluiten bij de bovenstaande provider. Om de uitnodiging te accepteren, moet je inloggen of een nieuw Cloudwarden-account aanmaken."
   },
   "providerInviteAcceptFailed": {
     "message": "Kan de uitnodiging niet accepteren. Vraag een providerbeheerder om een nieuwe uitnodiging te versturen."
@@ -10039,10 +10039,10 @@
     "message": "Geen niet-leden hebben het gesponsorde Familie-abonnement verzilverd."
   },
   "sponsorshipFreeBitwardenFamilies": {
-    "message": "Leden van je organisatie komen in aanmerking voor gratis Cloudwarden Familie. Je kunt de gratis Cloudwarden Familie sponsoren voor medewerkers die geen lid zijn van je Bitwarden-organisatie. Het sponsoren van een niet-lid vereist een beschikbare zitplaats binnen je organisatie."
+    "message": "Leden van je organisatie komen in aanmerking voor gratis Cloudwarden Familie. Je kunt de gratis Cloudwarden Familie sponsoren voor medewerkers die geen lid zijn van je Cloudwarden-organisatie. Het sponsoren van een niet-lid vereist een beschikbare zitplaats binnen je organisatie."
   },
   "sponsorshipFreeBitwardenFamiliesV2": {
-    "message": "Je leden komen in aanmerking om een gesponsord familie-abonnement te verzilveren. Je kunt een familie-abonnement sponsoren voor medewerkers die geen lid zijn van je Bitwarden-organisatie, maar dit vereist wel beschikbare zetels binnen je organisatie."
+    "message": "Je leden komen in aanmerking om een gesponsord familie-abonnement te verzilveren. Je kunt een familie-abonnement sponsoren voor medewerkers die geen lid zijn van je Cloudwarden-organisatie, maar dit vereist wel beschikbare zetels binnen je organisatie."
   },
   "sponsoredFamiliesRemoveActiveSponsorship": {
     "message": "Als je een actieve sponsoring verwijdert, komt er een plaats binnen je organisatie beschikbaar na de verlengingsdatum van de gesponsorde organisatie."
@@ -10051,7 +10051,7 @@
     "message": "Jij en je familie komen in aanmerking voor gratis Cloudwarden Families. Verzilver met je persoonlijke e-mail om je gegevens veilig te houden, zelfs als je niet op het werk bent."
   },
   "sponsoredFamiliesEligibleV2": {
-    "message": "Jij en je familie komen in aanmerking voor een kosteloos gesponsord Families-abonnement. Verzilver dit abonnement met je persoonlijke e-mailadres om je gegevens veilig en gescheiden van je Bitwarden-werkaccount te houden."
+    "message": "Jij en je familie komen in aanmerking voor een kosteloos gesponsord Families-abonnement. Verzilver dit abonnement met je persoonlijke e-mailadres om je gegevens veilig en gescheiden van je Cloudwarden-werkaccount te houden."
   },
   "sponsoredFamiliesEligibleCard": {
     "message": "Verzilver je gratis Cloudwarden Families vandaag om je gegevens veilig te houden, zelfs wanneer je niet aan het werk bent."
@@ -10414,7 +10414,7 @@
     "message": "Factureringssynchronisatietoken"
   },
   "automaticBillingSyncDesc": {
-    "message": "Automatisch synchroniseren ontgrendelt Families-sponsorships en zodat je je licentie kunt synchroniseren zonder een bestand te uploaden. Kies na wijzigingen op de Bitwarden-cloud-server voor Licentie synchroniseren om wijzigingen toe te passen."
+    "message": "Automatisch synchroniseren ontgrendelt Families-sponsorships en zodat je je licentie kunt synchroniseren zonder een bestand te uploaden. Kies na wijzigingen op de Cloudwarden-cloud-server voor Licentie synchroniseren om wijzigingen toe te passen."
   },
   "active": {
     "message": "Actief"
@@ -12877,7 +12877,7 @@
     "message": "Gebruiker geeft een hoofdwachtwoord ingesteld tijdens TDE-offboarding."
   },
   "startYour7DayFreeTrialOfBitwardenFor": {
-    "message": "Begin je 7-daagse gratis Bitwarden-proefperiode voor $ORG$",
+    "message": "Begin je 7-daagse gratis Cloudwarden-proefperiode voor $ORG$",
     "placeholders": {
       "org": {
         "content": "$1",
@@ -14563,7 +14563,7 @@
     "message": "Gesponsord"
   },
   "licenseAndBillingManagementDesc": {
-    "message": "Na het bijwerken in de Bitwarden-cloud-server, upload je je licentiebestand voor het toepassen van de meest recente wijzigingen."
+    "message": "Na het bijwerken in de Cloudwarden-cloud-server, upload je je licentiebestand voor het toepassen van de meest recente wijzigingen."
   },
   "addToFolder": {
     "message": "Aan map toevoegen"
@@ -15346,7 +15346,7 @@
     }
   },
   "resellerRenewalWarningMsgV2": {
-    "message": "Je abonnement wordt binnenkort verlengd. Neem voor $RENEWAL_DATE$ contact op met je Bitwarden-provider om je verlenging te bevestigen en een ononderbroken service te verzekeren.",
+    "message": "Je abonnement wordt binnenkort verlengd. Neem voor $RENEWAL_DATE$ contact op met je Cloudwarden-provider om je verlenging te bevestigen en een ononderbroken service te verzekeren.",
     "placeholders": {
       "renewal_date": {
         "content": "$1",
@@ -15385,7 +15385,7 @@
     }
   },
   "resellerPastDueWarningMsgV2": {
-    "message": "De factuur voor je abonnement is niet betaald. Neem contact op met je Bitwarden-provider voor $GRACE_PERIOD_END$ om je verlenging te bevestigen en een ononderbroken service te verzekeren.",
+    "message": "De factuur voor je abonnement is niet betaald. Neem contact op met je Cloudwarden-provider voor $GRACE_PERIOD_END$ om je verlenging te bevestigen en een ononderbroken service te verzekeren.",
     "placeholders": {
       "grace_period_end": {
         "content": "$1",
@@ -15745,7 +15745,7 @@
     "message": "Ga naar webapp"
   },
   "bitwardenExtensionInstalled": {
-    "message": "Cloudwarden extensie geïnstalleerd!"
+    "message": "Bitwarden extensie geïnstalleerd!"
   },
   "bitwardenExtensionIsInstalled": {
     "message": "Bitwarden-extensie geïnstalleerd!"
@@ -16211,7 +16211,7 @@
     "message": "Er is een fout opgetreden tijdens het verwerken van het opwaarderen. Probeer het opnieuw."
   },
   "bitwardenFreeplanMessage": {
-    "message": "Je hebt het gratis Bitwarden-abonnement"
+    "message": "Je hebt het gratis Cloudwarden-abonnement"
   },
   "upgradeCompleteSecurity": {
     "message": "Upgrade voor volledige beveiliging"
@@ -16260,7 +16260,7 @@
     "description": "VFO1 terminology variant of 'blockClaimedDomainAccountCreationDesc', shown in the policies list"
   },
   "blockClaimedDomainAccountCreationDescV2": {
-    "message": "Leden blokkeren om je geclaimde domein te gebruiken om Bitwarden-accounts buiten je organisatie te maken."
+    "message": "Leden blokkeren om je geclaimde domein te gebruiken om Cloudwarden-accounts buiten je organisatie te maken."
   },
   "blockClaimedDomainAccountCreationDescV2Vfo1": {
     "message": "Block members from using your claimed domain to create Cloudwarden accounts outside of your organization vault.",
@@ -16543,13 +16543,13 @@
     "message": "Heb je al een abonnement?"
   },
   "alreadyHaveSubscriptionSelfHostedMessage": {
-    "message": "Open de abonnementspagina op je Bitwarden-cloudaccount en download je licentiebestand. Ga daarna terug naar dit scherm en upload het hieronder."
+    "message": "Open de abonnementspagina op je Cloudwarden-cloudaccount en download je licentiebestand. Ga daarna terug naar dit scherm en upload het hieronder."
   },
   "alreadyHaveSubscriptionSelfHostedMessageV2": {
-    "message": "Open de abonnementspagina op je Bitwarden-account en download je licentiebestand. Ga daarna terug naar dit scherm en upload het hieronder."
+    "message": "Open de abonnementspagina op je Cloudwarden-account en download je licentiebestand. Ga daarna terug naar dit scherm en upload het hieronder."
   },
   "alreadyHaveSubscriptionSelfHostedMessageV3": {
-    "message": "Log in op je Bitwarden-account in je cloudomgeving, open de abonnementspagina en download je licentiebestand. Ga vervolgens terug naar dit scherm en upload het."
+    "message": "Log in op je Cloudwarden-account in je cloudomgeving, open de abonnementspagina en download je licentiebestand. Ga vervolgens terug naar dit scherm en upload het."
   },
   "viewAllPlans": {
     "message": "Alle abonnementen bekijken"
@@ -16689,7 +16689,7 @@
     "message": "Je bent erbij! Welkom bij Cloudwarden"
   },
   "vaultWelcomeDialogDescription": {
-    "message": "Sla al je wachtwoorden en persoonlijke informatie op in je Bitwarden-kluis. We laten je zien hoe het werkt."
+    "message": "Sla al je wachtwoorden en persoonlijke informatie op in je Cloudwarden-kluis. We laten je zien hoe het werkt."
   },
   "vaultWelcomeDialogPrimaryCta": {
     "message": "Rondleiding starten"

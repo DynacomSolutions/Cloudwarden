@@ -236,7 +236,7 @@
     "message": "跟踪整个团队的改进情况"
   },
   "membersAreAutomaticallyNotified": {
-    "message": "成员会在他们的 Cloudwarden 扩展中自动收到风险密码通知，无需您逐个提醒。"
+    "message": "成员会在他们的 Bitwarden 扩展中自动收到风险密码通知，无需您逐个提醒。"
   },
   "importYourOrgDataToGetStarted": {
     "message": "导入您的组织数据以开始使用"
@@ -2222,7 +2222,7 @@
     "message": "使用设备登录"
   },
   "loginWithDeviceEnabledNote": {
-    "message": "必须在 Cloudwarden App 的设置中设置设备登录。需要其他选项吗？"
+    "message": "必须在 Bitwarden App 的设置中设置设备登录。需要其他选项吗？"
   },
   "needAnotherOptionV1": {
     "message": "需要其他选项吗？"
@@ -2387,7 +2387,7 @@
     "message": "什么是设备？"
   },
   "aDeviceIs": {
-    "message": "设备是您登录过的 Cloudwarden App 的独立安装。重新安装、清除 App 数据或清除 Cookie，可能会导致设备多次出现。"
+    "message": "设备是您登录过的 Bitwarden App 的独立安装。重新安装、清除 App 数据或清除 Cookie，可能会导致设备多次出现。"
   },
   "logInInitiated": {
     "message": "登录已发起"
@@ -3162,7 +3162,7 @@
     "message": "请求待处理"
   },
   "logBackInOthersToo": {
-    "message": "请重新登录。如果您正在使用其他 Cloudwarden 应用程序，也请注销然后重新登录。"
+    "message": "请重新登录。如果您正在使用其他 Bitwarden 应用程序，也请注销然后重新登录。"
   },
   "changeMasterPassword": {
     "message": "更改主密码"
@@ -4059,7 +4059,7 @@
     "message": "保存表单。"
   },
   "twoFactorYubikeyWarning": {
-    "message": "由于平台限制，YubiKey 不能在所有 Cloudwarden 应用程序上使用。您应该设置其他两步登录提供程序，以便在无法使用 YubiKey 时可以访问您的账户。支持的平台："
+    "message": "由于平台限制，YubiKey 不能在所有 Bitwarden 应用程序上使用。您应该设置其他两步登录提供程序，以便在无法使用 YubiKey 时可以访问您的账户。支持的平台："
   },
   "twoFactorYubikeySupportUsb": {
     "message": "具有可使用 YubiKey 的 USB 端口的设备上的网页密码库、桌面应用程序、CLI 以及浏览器扩展。"
@@ -4110,7 +4110,7 @@
     "message": "停用全部密钥"
   },
   "twoFactorDuoDesc": {
-    "message": "输入 Duo 管理面板提供的 Cloudwarden 应用程序信息。"
+    "message": "输入 Duo 管理面板提供的 Bitwarden 应用程序信息。"
   },
   "twoFactorDuoClientId": {
     "message": "Client ID"
@@ -4161,7 +4161,7 @@
     "message": "保存表单。"
   },
   "twoFactorU2fWarning": {
-    "message": "由于平台限制，FIDO U2F 不能在所有 Cloudwarden 应用程序上使用。您应该设置其他两步登录提供程序，以便在无法使用 FIDO U2F 时可以访问您的账户。支持的平台："
+    "message": "由于平台限制，FIDO U2F 不能在所有 Bitwarden 应用程序上使用。您应该设置其他两步登录提供程序，以便在无法使用 FIDO U2F 时可以访问您的账户。支持的平台："
   },
   "twoFactorU2fSupportWeb": {
     "message": "桌面/笔记本电脑上支持 U2F 的浏览器（启用了 FIDO U2F 的 Chrome、Opera、Vivaldi 或 Firefox）中的网页密码库和浏览器扩展。"
@@ -7403,7 +7403,7 @@
     }
   },
   "updateEncryptionKeyWarning": {
-    "message": "更新加密密钥后，您需要注销当前正在使用的所有 Cloudwarden 应用程序（例如移动 App 或浏览器扩展）然后重新登录。注销然后重新登录（这将下载新的加密密钥）失败可能会导致数据损坏。我们会尝试自动为您注销，但可能会有所延迟。"
+    "message": "更新加密密钥后，您需要注销当前正在使用的所有 Bitwarden 应用程序（例如移动 App 或浏览器扩展）然后重新登录。注销然后重新登录（这将下载新的加密密钥）失败可能会导致数据损坏。我们会尝试自动为您注销，但可能会有所延迟。"
   },
   "updateEncryptionKeyAccountExportWarning": {
     "message": "所有您已保存的账户限制的导出文件将失效。"
@@ -8682,7 +8682,7 @@
     "message": "如何启用自动用户确认"
   },
   "autoConfirmExtension1": {
-    "message": "打开您的 Cloudwarden 扩展"
+    "message": "打开您的 Bitwarden 扩展"
   },
   "autoConfirmExtension2": {
     "message": "选择",
@@ -15745,16 +15745,16 @@
     "message": "跳转到网页 App"
   },
   "bitwardenExtensionInstalled": {
-    "message": "Cloudwarden 扩展已安装！"
+    "message": "Bitwarden 扩展已安装！"
   },
   "bitwardenExtensionIsInstalled": {
-    "message": "Cloudwarden 扩展已安装！"
+    "message": "Bitwarden 扩展已安装！"
   },
   "openExtensionToAutofill": {
     "message": "打开扩展以登录并开始自动填充。"
   },
   "openBitwardenExtension": {
-    "message": "打开 Cloudwarden 扩展"
+    "message": "打开 Bitwarden 扩展"
   },
   "gettingStartedWithBitwardenPart1": {
     "message": "有关开始使用 Cloudwarden 的提示，请访问",
@@ -16638,7 +16638,7 @@
     "message": "安装浏览器扩展后，您可以随时随地在线使用 Cloudwarden。它会自动填充密码，只需单击一下即可登录您的账户。"
   },
   "extensionPromptImageAlt": {
-    "message": "一个显示 Cloudwarden 扩展的网页浏览器，该扩展为当前网页提供了自动填充项目。"
+    "message": "一个显示 Bitwarden 扩展的网页浏览器，该扩展为当前网页提供了自动填充项目。"
   },
   "skip": {
     "message": "跳过"

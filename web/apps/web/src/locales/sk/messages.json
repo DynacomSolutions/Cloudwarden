@@ -3162,7 +3162,7 @@
     "message": "Žiadosť čaká na spracovanie"
   },
   "logBackInOthersToo": {
-    "message": "Prosím odhláste sa. Ak používate iné Cloudwarden aplikácie, odhláste sa a opäť sa prihláste aj v nich."
+    "message": "Prosím odhláste sa. Ak používate iné Bitwarden aplikácie, odhláste sa a opäť sa prihláste aj v nich."
   },
   "changeMasterPassword": {
     "message": "Zmeniť hlavné heslo"
@@ -4059,7 +4059,7 @@
     "message": "Ulož formulár."
   },
   "twoFactorYubikeyWarning": {
-    "message": "Vzhľadom na obmedzenia platform, YubiKey nemôže byť použitý vo všetkých Cloudwarden aplikáciách. Mali by ste povoliť inú formu dvojitého overenia, aby ste sa mohli prihlásiť k svojmu účtu ak nie je možné použiť YubiKey. Podporované platformy:"
+    "message": "Vzhľadom na obmedzenia platform, YubiKey nemôže byť použitý vo všetkých Bitwarden aplikáciách. Mali by ste povoliť inú formu dvojitého overenia, aby ste sa mohli prihlásiť k svojmu účtu ak nie je možné použiť YubiKey. Podporované platformy:"
   },
   "twoFactorYubikeySupportUsb": {
     "message": "Webový trezor, desktopová aplikácia, CLI aplikácia a všetky rozšírenia pre browser na zariadení s USB portom akceptujúcim váš YubiKey."
@@ -4161,7 +4161,7 @@
     "message": "Ulož formulár."
   },
   "twoFactorU2fWarning": {
-    "message": "Vzhľadom na obmedzenia platform, FIDO U2F nemôže byť použitý vo všetkých Cloudwarden aplikáciách. Mali by ste povoliť inú formu dvojitého overenia, aby ste sa mohli prihlásiť k svojmu účtu ak nie je možné použiť FIDO U2F. Podporované platformy:"
+    "message": "Vzhľadom na obmedzenia platform, FIDO U2F nemôže byť použitý vo všetkých Bitwarden aplikáciách. Mali by ste povoliť inú formu dvojitého overenia, aby ste sa mohli prihlásiť k svojmu účtu ak nie je možné použiť FIDO U2F. Podporované platformy:"
   },
   "twoFactorU2fSupportWeb": {
     "message": "Webový trezor a rozšírenia prehliadača na pracovnej stanici s prehliadačom podporujúcim U2F (Chrome, Opera, Vivaldi, alebo Firefox so zapnutou podporou FIDO U2F)."
@@ -4229,7 +4229,7 @@
     "message": "Neaktívne 2FA"
   },
   "inactive2faReportDesc": {
-    "message": "Two-step login adds a layer of protection to your accounts. Set up two-step login using Cloudwarden authenticator for these accounts or use an alternative method."
+    "message": "Two-step login adds a layer of protection to your accounts. Set up two-step login using Bitwarden authenticator for these accounts or use an alternative method."
   },
   "inactive2faFound": {
     "message": "Našli sa prihlásenia bez dvojstupňového overenia"
@@ -7403,7 +7403,7 @@
     }
   },
   "updateEncryptionKeyWarning": {
-    "message": "Po aktualizácii šifrovacieho kľúča budete požiadaní o opätovné prihlásenie do všetkých Cloudwarden aplikácii ktoré momentálne používate (napríklad mobilné aplikácie, alebo rozšírenia v prehliadači). Ak sa opätovne neprihlásite (touto operáciou sa stiahnu nové šifrovacie kľúče), mohlo by to viesť k poškodeniu uložených dát. Pokúsime sa odhlásiť vás automaticky, ale môže to chvíľu trvať."
+    "message": "Po aktualizácii šifrovacieho kľúča budete požiadaní o opätovné prihlásenie do všetkých Bitwarden aplikácii ktoré momentálne používate (napríklad mobilné aplikácie, alebo rozšírenia v prehliadači). Ak sa opätovne neprihlásite (touto operáciou sa stiahnu nové šifrovacie kľúče), mohlo by to viesť k poškodeniu uložených dát. Pokúsime sa odhlásiť vás automaticky, ale môže to chvíľu trvať."
   },
   "updateEncryptionKeyAccountExportWarning": {
     "message": "Všetky exporty obmedzené účtom budú neplatné."

@@ -2222,7 +2222,7 @@
     "message": "Cihazla giriş yap"
   },
   "loginWithDeviceEnabledNote": {
-    "message": "Cihazla girişi Cloudwarden mobil uygulamasının ayarlarından etkinleştirmelisiniz. Başka bir seçeneğe mi ihtiyacınız var?"
+    "message": "Cihazla girişi Bitwarden mobil uygulamasının ayarlarından etkinleştirmelisiniz. Başka bir seçeneğe mi ihtiyacınız var?"
   },
   "needAnotherOptionV1": {
     "message": "Başka bir seçeneğe mi ihtiyacınız var?"
@@ -8682,7 +8682,7 @@
     "message": "Otomatik kullanıcı onayı nasıl açılır"
   },
   "autoConfirmExtension1": {
-    "message": "Cloudwarden uzantınızı açın"
+    "message": "Bitwarden uzantınızı açın"
   },
   "autoConfirmExtension2": {
     "message": "Etkinleştir",
@@ -15745,16 +15745,16 @@
     "message": "Web uygulamasına geç"
   },
   "bitwardenExtensionInstalled": {
-    "message": "Cloudwarden uzantısı yüklendi!"
+    "message": "Bitwarden uzantısı yüklendi!"
   },
   "bitwardenExtensionIsInstalled": {
-    "message": "Cloudwarden uzantısı yüklendi!"
+    "message": "Bitwarden uzantısı yüklendi!"
   },
   "openExtensionToAutofill": {
     "message": "Otomatik doldurmaya başlamak için uzantıyı açıp giriş yapın."
   },
   "openBitwardenExtension": {
-    "message": "Cloudwarden uzantısını aç"
+    "message": "Bitwarden uzantısını aç"
   },
   "gettingStartedWithBitwardenPart1": {
     "message": "Cloudwarden ile çalışmaya başlamaya ilişkin ipuçları için",

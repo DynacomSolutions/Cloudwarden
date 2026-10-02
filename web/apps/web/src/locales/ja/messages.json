@@ -236,7 +236,7 @@
     "message": "チーム全体の改善を追跡する"
   },
   "membersAreAutomaticallyNotified": {
-    "message": "Cloudwarden 拡張機能でメンバーに自動的にリスクの高いパスワードが通知されます。追跡する必要はありません。"
+    "message": "Bitwarden 拡張機能でメンバーに自動的にリスクの高いパスワードが通知されます。追跡する必要はありません。"
   },
   "importYourOrgDataToGetStarted": {
     "message": "開始するには組織データをインポートします"
@@ -2222,7 +2222,7 @@
     "message": "デバイスでログイン"
   },
   "loginWithDeviceEnabledNote": {
-    "message": "Cloudwarden アプリで「デバイスでログイン」の設定をする必要があります。別のオプションが必要ですか？"
+    "message": "Bitwarden アプリで「デバイスでログイン」の設定をする必要があります。別のオプションが必要ですか？"
   },
   "needAnotherOptionV1": {
     "message": "別の選択肢が必要ですか？"
@@ -2387,7 +2387,7 @@
     "message": "デバイスとは何ですか？"
   },
   "aDeviceIs": {
-    "message": "デバイスとは、あなたがログインしている Cloudwarden アプリの一意なインストールです。 再インストールや、アプリデータの消去、 Cookie の消去をすると、同じデバイスが複数回表示される場合があります。"
+    "message": "デバイスとは、あなたがログインしている Bitwarden アプリの一意なインストールです。 再インストールや、アプリデータの消去、 Cookie の消去をすると、同じデバイスが複数回表示される場合があります。"
   },
   "logInInitiated": {
     "message": "ログイン開始"

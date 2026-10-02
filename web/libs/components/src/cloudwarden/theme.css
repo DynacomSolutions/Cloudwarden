@@ -140,3 +140,8 @@
 .tw-rounded-xl {
   border-radius: 8px;
 }
+
+/* The upstream shield glyph is Bitwarden's mark; show the generic vault glyph instead. */
+.bwi-bitwarden-shield:before {
+  content: "\f106";
+}

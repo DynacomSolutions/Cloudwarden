@@ -2222,7 +2222,7 @@
     "message": "Iniciar sesión con el dispositivo"
   },
   "loginWithDeviceEnabledNote": {
-    "message": "Iniciar sesión con el dispositivo debe configurarse en los ajustes de la aplicación Cloudwarden. ¿Necesitas otra opción?"
+    "message": "Iniciar sesión con el dispositivo debe configurarse en los ajustes de la aplicación Bitwarden. ¿Necesitas otra opción?"
   },
   "needAnotherOptionV1": {
     "message": "¿Necesitas otra opción?"
@@ -2387,7 +2387,7 @@
     "message": "¿Qué es un dispositivo?"
   },
   "aDeviceIs": {
-    "message": "Un dispositivo es una instalación única de la aplicación Cloudwarden donde has iniciado sesión. La reinstalación, la eliminación de datos de la aplicación o la eliminación de tus cookies podrían resultar en la aparición de un dispositivo múltiples veces."
+    "message": "Un dispositivo es una instalación única de la aplicación Bitwarden donde has iniciado sesión. La reinstalación, la eliminación de datos de la aplicación o la eliminación de tus cookies podrían resultar en la aparición de un dispositivo múltiples veces."
   },
   "logInInitiated": {
     "message": "Inicio de sesión en proceso"
@@ -4110,7 +4110,7 @@
     "message": "Deshabilitar todas las llaves"
   },
   "twoFactorDuoDesc": {
-    "message": "Introduce la información de la aplicación Cloudwarden de tu panel de administración Duo."
+    "message": "Introduce la información de la aplicación Bitwarden de tu panel de administración Duo."
   },
   "twoFactorDuoClientId": {
     "message": "Id de cliente"

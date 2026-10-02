@@ -236,7 +236,7 @@
     "message": "Sledujte pokroky v rámci celého týmu"
   },
   "membersAreAutomaticallyNotified": {
-    "message": "Členové jsou automaticky upozorněni na ohrožená hesla v rozšíření Cloudwarden. Není třeba nic dohledávat."
+    "message": "Členové jsou automaticky upozorněni na ohrožená hesla v rozšíření Bitwarden. Není třeba nic dohledávat."
   },
   "importYourOrgDataToGetStarted": {
     "message": "Pro spuštění nahrajte data své organizace"
@@ -399,7 +399,7 @@
     }
   },
   "membersWillReceiveSecurityTask": {
-    "message": "Členům Vaší organizace bude přiřazen úkol ke změně zranitelných hesel. Obdrží oznámení v rámci jejich rozšíření prohlížeče Cloudwarden."
+    "message": "Členům Vaší organizace bude přiřazen úkol ke změně zranitelných hesel. Obdrží oznámení v rámci jejich rozšíření prohlížeče Bitwarden."
   },
   "membersAtRiskCount": {
     "message": "$COUNT$ zranitelných členů",
@@ -2222,7 +2222,7 @@
     "message": "Přihlásit se zařízením"
   },
   "loginWithDeviceEnabledNote": {
-    "message": "Přihlášení zařízením musí být nastaveno v aplikaci Cloudwarden. Potřebujete další volby?"
+    "message": "Přihlášení zařízením musí být nastaveno v aplikaci Bitwarden. Potřebujete další volby?"
   },
   "needAnotherOptionV1": {
     "message": "Potřebujete další volby?"
@@ -2387,7 +2387,7 @@
     "message": "Co je to zařízení?"
   },
   "aDeviceIs": {
-    "message": "Zařízení je jedinečná instalace aplikace Cloudwarden, ve které jste se přihlásili. Přeinstalování, vymazání dat aplikace nebo vymazání souborů cookie může vést k tomu, že se zařízení objeví vícekrát."
+    "message": "Zařízení je jedinečná instalace aplikace Bitwarden, ve které jste se přihlásili. Přeinstalování, vymazání dat aplikace nebo vymazání souborů cookie může vést k tomu, že se zařízení objeví vícekrát."
   },
   "logInInitiated": {
     "message": "Bylo zahájeno přihlášení"
@@ -3195,7 +3195,7 @@
     }
   },
   "kdfIterationsWarning": {
-    "message": "Nastavení příliš vysoké hodnoty počtu iterací KDF může mít za následek špatný výkon při přihlašování (a odemykání) aplikace Cloudwarden na zařízeních se slabým procesorem. Doporučujeme hodnotu navyšovat přírůstkově po $INCREMENT$ a vyzkoušet všechna Vaše zařízení.",
+    "message": "Nastavení příliš vysoké hodnoty počtu iterací KDF může mít za následek špatný výkon při přihlašování (a odemykání) aplikace Bitwarden na zařízeních se slabým procesorem. Doporučujeme hodnotu navyšovat přírůstkově po $INCREMENT$ a vyzkoušet všechna Vaše zařízení.",
     "placeholders": {
       "increment": {
         "content": "$1",
@@ -3208,7 +3208,7 @@
     "description": "Memory refers to computer memory (RAM). MB is short for megabytes."
   },
   "argon2Warning": {
-    "message": "Nastavení příliš vysoké hodnoty počtu iterací KDF, paměti a paralelity může mít za následek špatný výkon při přihlašování (a odemykání) aplikace Cloudwarden na zařízeních se slabým procesorem. Doporučujeme hodnotu navyšovat přírůstkově a vyzkoušet všechna Vaše zařízení."
+    "message": "Nastavení příliš vysoké hodnoty počtu iterací KDF, paměti a paralelity může mít za následek špatný výkon při přihlašování (a odemykání) aplikace Bitwarden na zařízeních se slabým procesorem. Doporučujeme hodnotu navyšovat přírůstkově a vyzkoušet všechna Vaše zařízení."
   },
   "kdfParallelism": {
     "message": "Paralelita KDF"
@@ -4110,7 +4110,7 @@
     "message": "Deaktivovat všechny klíče"
   },
   "twoFactorDuoDesc": {
-    "message": "Zadejte informace o aplikaci Cloudwarden z panelu Duo Admin."
+    "message": "Zadejte informace o aplikaci Bitwarden z panelu Duo Admin."
   },
   "twoFactorDuoClientId": {
     "message": "ID klienta"
@@ -8682,7 +8682,7 @@
     "message": "Jak zapnout automatické potvrzení uživatele"
   },
   "autoConfirmExtension1": {
-    "message": "Otevřít rozšíření Cloudwarden"
+    "message": "Otevřít rozšíření Bitwarden"
   },
   "autoConfirmExtension2": {
     "message": "Vybrat",
@@ -8693,7 +8693,7 @@
     "description": "This is a fragment of a larger sencence. The whole sentence will read: 'Select Turn on'"
   },
   "autoConfirmExtensionOpened": {
-    "message": "Rozšíření prohlížeče Cloudwarden bylo úspěšně otevřeno. Nyní můžete aktivovat automatické potvrzení uživatele."
+    "message": "Rozšíření prohlížeče Bitwarden bylo úspěšně otevřeno. Nyní můžete aktivovat automatické potvrzení uživatele."
   },
   "autoConfirmPolicyEditDescription": {
     "message": "Noví uživatelé pozvaní do organizace budou automaticky potvrzeni při odemknutí zařízení správce. Před zapnutím této zásady zkontrolujte a odsouhlaste následující: ",
@@ -10366,7 +10366,7 @@
     "message": "Vlastní prostředí"
   },
   "selfHostedBaseUrlHint": {
-    "message": "Zadejte základní URL adresu Vaší vlastní hostované aplikace Cloudwarden. Příklad: https://bitwarden.spolecnost.cz"
+    "message": "Zadejte základní URL adresu Vaší vlastní hostované aplikace Bitwarden. Příklad: https://bitwarden.spolecnost.cz"
   },
   "selfHostedCustomEnvHeader": {
     "message": "Pro rozšířená nastavení můžete zadat základní URL adresu každé služby zvlášť."
@@ -14268,7 +14268,7 @@
     "message": "Pokračovat v nastavení Bitwardenu"
   },
   "continueSettingUpFreeTrial": {
-    "message": "Pokračujte v nastavení zkušební verze aplikace Cloudwarden"
+    "message": "Pokračujte v nastavení zkušební verze aplikace Bitwarden"
   },
   "continueSettingUpPasswordManager": {
     "message": "Pokračujte v nastavení Správce hesel Cloudwarden"
@@ -15309,19 +15309,19 @@
     "message": "Kopírovat soukromý klíč"
   },
   "openingExtension": {
-    "message": "Otevírání rozšíření Cloudwarden pro prohlížeč"
+    "message": "Otevírání rozšíření Bitwarden pro prohlížeč"
   },
   "somethingWentWrong": {
     "message": "Něco se pokazilo…"
   },
   "openingExtensionError": {
-    "message": "Měli jsme potíže s otevřením rozšíření Cloudwarden pro pohlížeč. Klepněte na tlačítko pro jeho otevření."
+    "message": "Měli jsme potíže s otevřením rozšíření Bitwarden pro pohlížeč. Klepněte na tlačítko pro jeho otevření."
   },
   "openExtension": {
     "message": "Otevřít rozšíření"
   },
   "doNotHaveExtension": {
-    "message": "Nemáte rozšíření Cloudwarden pro prohlížeč?"
+    "message": "Nemáte rozšíření Bitwarden pro prohlížeč?"
   },
   "installExtension": {
     "message": "Nainstalovat rozšíření"
@@ -15330,7 +15330,7 @@
     "message": "Otevřeno rozšíření prohlížeče"
   },
   "openedExtensionViewAtRiskPasswords": {
-    "message": "Rozšíření Cloudwarden pro prohlížeč bylo úspěšně otevřeno. Nyní můžete zkontrolovat Vaše zranitelná hesla."
+    "message": "Rozšíření Bitwarden pro prohlížeč bylo úspěšně otevřeno. Nyní můžete zkontrolovat Vaše zranitelná hesla."
   },
   "resellerRenewalWarningMsg": {
     "message": "Vaše předplatné se brzy obnoví. Chcete-li zajistit nepřerušenou službu, kontaktujte $RESELLER$ pro potvrzení obnovení před $RENEWAL_DATE$.",
@@ -15727,7 +15727,7 @@
     "message": "Bezpečné automatické vyplňování hesel jedním klepnutím"
   },
   "setupExtensionPageDescription": {
-    "message": "Získejte rozšíření Cloudwarden pro prohlížeč a začněte s automatickým vyplňováním ještě dnes"
+    "message": "Získejte rozšíření Bitwarden pro prohlížeč a začněte s automatickým vyplňováním ještě dnes"
   },
   "getTheExtension": {
     "message": "Získat rozšíření"
@@ -15745,16 +15745,16 @@
     "message": "Přeskočit na webovou aplikaci"
   },
   "bitwardenExtensionInstalled": {
-    "message": "Rozšíření Cloudwarden nainstalováno!"
+    "message": "Rozšíření Bitwarden nainstalováno!"
   },
   "bitwardenExtensionIsInstalled": {
-    "message": "Rozšíření Cloudwarden je nainstalováno!"
+    "message": "Rozšíření Bitwarden je nainstalováno!"
   },
   "openExtensionToAutofill": {
     "message": "Otevřete rozšíření pro příhlášení a spuštění automatického vyplňování."
   },
   "openBitwardenExtension": {
-    "message": "Otevřít rozšíření Cloudwarden"
+    "message": "Otevřít rozšíření Bitwarden"
   },
   "gettingStartedWithBitwardenPart1": {
     "message": "Pro tipy, jak začít používat Cloudwarden, navštivte",
@@ -15777,7 +15777,7 @@
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'For tips on getting started with Bitwarden visit the Learning Center and Help Center'"
   },
   "setupExtensionContentAlt": {
-    "message": "Pomocí rozšíření Cloudwarden pro prohlížeč můžete snadno vytvářet nová přihlašovací jména, přistupovat k uloženým přihlašovacím jménům přímo z panelu nástrojů prohlížeče a rychle se přihlašovat k účtům pomocí automatického vyplňování."
+    "message": "Pomocí rozšíření Bitwarden pro prohlížeč můžete snadno vytvářet nová přihlašovací jména, přistupovat k uloženým přihlašovacím jménům přímo z panelu nástrojů prohlížeče a rychle se přihlašovat k účtům pomocí automatického vyplňování."
   },
   "restart": {
     "message": "Restartovat"
@@ -16638,7 +16638,7 @@
     "message": "S nainstalovaným rozšířením prohlížeče budete mít Cloudwarden všude online. Budou se vyplňovat hesla, takže se můžete přihlásit do svých účtů jediným klepnutím."
   },
   "extensionPromptImageAlt": {
-    "message": "Webový prohlížeč zobrazující rozšíření Cloudwarden s položkami automatického vyplňování aktuální webové stránky."
+    "message": "Webový prohlížeč zobrazující rozšíření Bitwarden s položkami automatického vyplňování aktuální webové stránky."
   },
   "skip": {
     "message": "Přeskočit"
@@ -16923,7 +16923,7 @@
     "message": "Pomozte členům se zlepšovat"
   },
   "aiCoachmarkHelpMembersDescription": {
-    "message": "Jakmile vyberete klíčové aplikace, vyzvěte členy, aby si změnili ohrožená hesla. Zpráva se jim zobrazí v rozšíření Cloudwarden."
+    "message": "Jakmile vyberete klíčové aplikace, vyzvěte členy, aby si změnili ohrožená hesla. Zpráva se jim zobrazí v rozšíření Bitwarden."
   },
   "aiCoachmarkRunReportTitle": {
     "message": "Mějte přehled o nových rizicích"

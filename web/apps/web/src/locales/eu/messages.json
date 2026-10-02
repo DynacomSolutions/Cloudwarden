@@ -3827,7 +3827,7 @@
     "message": "Domeinu arauak"
   },
   "domainRulesDesc": {
-    "message": "Webguneko hainbat domeinutan saio bera hasia baduzu, webgunea \"baliokide\" gisa marka dezakezu. Domeinu \"globalak\" Bitwarden-ek zure ordez sortzen ditu."
+    "message": "Webguneko hainbat domeinutan saio bera hasia baduzu, webgunea \"baliokide\" gisa marka dezakezu. Domeinu \"globalak\" Cloudwarden-ek zure ordez sortzen ditu."
   },
   "globalEqDomains": {
     "message": "Domeinu baliokide globalak"
@@ -3891,7 +3891,7 @@
     "message": "SSO ezarrita baduzu edo hori egiteko asmoa baduzu, baliteke bi urratseko saio-hasiera iada zure identitate-hornitzailearen bidez erabiltzen aritzea."
   },
   "twoStepLoginRecoveryWarning": {
-    "message": "Bi urratseko saio hasiera gaitzeak betirako blokea dezake Cloudwarden kontura sartzea. Berreskuratze-kode baten bidez, zure kontura sar zaitezke, bi urratseko saio hasierako hornitzailea erabili ezin baduzu (adb. gailua galtzen baduzu). Bitwarden-ek ezingo dizu lagundu zure konturako sarbidea galtzen baduzu. Berreskuratze-kodea idatzi edo inprimatzea eta leku seguruan edukitzea gomendatzen dugu."
+    "message": "Bi urratseko saio hasiera gaitzeak betirako blokea dezake Cloudwarden kontura sartzea. Berreskuratze-kode baten bidez, zure kontura sar zaitezke, bi urratseko saio hasierako hornitzailea erabili ezin baduzu (adb. gailua galtzen baduzu). Cloudwarden-ek ezingo dizu lagundu zure konturako sarbidea galtzen baduzu. Berreskuratze-kodea idatzi edo inprimatzea eta leku seguruan edukitzea gomendatzen dugu."
   },
   "restrictedItemTypePolicy": {
     "message": "Remove card item type"
@@ -4059,7 +4059,7 @@
     "message": "Formularioa gorde."
   },
   "twoFactorYubikeyWarning": {
-    "message": "Plataformaren mugak direla eta, YubiKey ezin da erabili Bitwarden-en aplikazio guztietan. Bi urratseko saio hasierako beste hornitzaile bat gaitu beharko duzu, YubiKey erabili ezin denean zure kontuan sartzeko. Plataforma bateragarriak:"
+    "message": "Plataformaren mugak direla eta, YubiKey ezin da erabili Cloudwarden-en aplikazio guztietan. Bi urratseko saio hasierako beste hornitzaile bat gaitu beharko duzu, YubiKey erabili ezin denean zure kontuan sartzeko. Plataforma bateragarriak:"
   },
   "twoFactorYubikeySupportUsb": {
     "message": "Weguneko kutxa gotorra, mahaigaineko aplikazioa, CLI eta nabigatzailearen luzapen guztiak USB ataka duen gailu batean, zure YubiKeyak onar ditzakeena."
@@ -4110,7 +4110,7 @@
     "message": "Desgaitu gako guztiak"
   },
   "twoFactorDuoDesc": {
-    "message": "Sartu zure Duo administrazio paneleko Cloudwarden aplikazioaren informazioa."
+    "message": "Sartu zure Duo administrazio paneleko Bitwarden aplikazioaren informazioa."
   },
   "twoFactorDuoClientId": {
     "message": "Client Id"
@@ -4161,7 +4161,7 @@
     "message": "Formularioa gorde."
   },
   "twoFactorU2fWarning": {
-    "message": "Plataformaren mugak direla eta, FIDO U2F ezin da erabili Bitwarden-en aplikazio guztietan. Bi urratseko saio hasierako beste hornitzaile bat gaitu beharko duzu, FIDO U2F erabili ezin denean zure kontuan sartzeko. Plataforma bateragarriak:"
+    "message": "Plataformaren mugak direla eta, FIDO U2F ezin da erabili Cloudwarden-en aplikazio guztietan. Bi urratseko saio hasierako beste hornitzaile bat gaitu beharko duzu, FIDO U2F erabili ezin denean zure kontuan sartzeko. Plataforma bateragarriak:"
   },
   "twoFactorU2fSupportWeb": {
     "message": "Webguneko kutxa gotorra eta nabigatzailearen gehiagarriak mahaigain/ordenagailu eramangarri batean, U2F nabigatzaile gaitu batekin (Chrome, Opera, Vivaldi edo Firefox, FIDO U2F gaitua duena)."
@@ -7403,7 +7403,7 @@
     }
   },
   "updateEncryptionKeyWarning": {
-    "message": "Zifratze-gakoa eguneratu ondoren, saioa hasi eta erabiltzen ari zaren Cloudwarden aplikazio guztietara itzuli behar duzu (adibidez, aplikazio mugikorra edo nabigatzailearen gehigarriak). Saioa berriro hasteak huts egiten badu (zifratze-gako berria deskargatzea dakar) datuen korrupzioa ekar lezake. Automatikoki saioa ixten saiatuko gara, baina atzeratu egin daiteke."
+    "message": "Zifratze-gakoa eguneratu ondoren, saioa hasi eta erabiltzen ari zaren Bitwarden aplikazio guztietara itzuli behar duzu (adibidez, aplikazio mugikorra edo nabigatzailearen gehigarriak). Saioa berriro hasteak huts egiten badu (zifratze-gako berria deskargatzea dakar) datuen korrupzioa ekar lezake. Automatikoki saioa ixten saiatuko gara, baina atzeratu egin daiteke."
   },
   "updateEncryptionKeyAccountExportWarning": {
     "message": "Any account restricted exports you have saved will become invalid."

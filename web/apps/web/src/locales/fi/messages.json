@@ -21,7 +21,7 @@
     "message": "All critical apps"
   },
   "appLogoLabel": {
-    "message": "Bitwarden-logo"
+    "message": "Cloudwarden-logo"
   },
   "criticalApplications": {
     "message": "Kriittiset sovellukset"
@@ -2339,7 +2339,7 @@
     "message": "Luo uusi tili"
   },
   "newToBitwarden": {
-    "message": "Oletko uusi Bitwarden-käyttäjä?"
+    "message": "Oletko uusi Cloudwarden-käyttäjä?"
   },
   "setAStrongPassword": {
     "message": "Aseta vahva salasana"
@@ -2779,7 +2779,7 @@
     "message": "Todennussovellus"
   },
   "authenticatorAppDescV2": {
-    "message": "Syötä Cloudwarden Authenticatorin kaltaisen todennusovelluksen luoma koodi.",
+    "message": "Syötä Bitwarden Authenticatorin kaltaisen todennusovelluksen luoma koodi.",
     "description": "'Bitwarden Authenticator' is a product name and should not be translated."
   },
   "yubiKeyTitleV2": {
@@ -2932,7 +2932,7 @@
     "message": "Vienti salaa tietosi käyttäen tilisi salausavainta. Jos joskus uudistat tilisi salausavaimen, tulisi vienti suorittaa uudelleen, koska et voi enää purkaa nyt viedyn tiedoston salausta."
   },
   "encExportAccountWarningDesc": {
-    "message": "Tilin salausavaimet ovat ainutlaatuisia jokaiselle Bitwarden-käyttäjätilille, joten et voi tuoda salattua vientitiedostoa toiselle tilille."
+    "message": "Tilin salausavaimet ovat ainutlaatuisia jokaiselle Cloudwarden-käyttäjätilille, joten et voi tuoda salattua vientitiedostoa toiselle tilille."
   },
   "exportNoun": {
     "message": "Export",
@@ -2988,10 +2988,10 @@
     "message": "This KeePass database is too large to import."
   },
   "accountRestrictedOptionDescription": {
-    "message": "Salaa vienti ja rajoita tuonti vain nykyiselle Bitwarden-tilille tilisi käyttäjätunnukseen ja pääsalasanaan pohjautuvalla salausavaimella."
+    "message": "Salaa vienti ja rajoita tuonti vain nykyiselle Cloudwarden-tilille tilisi käyttäjätunnukseen ja pääsalasanaan pohjautuvalla salausavaimella."
   },
   "passwordProtectedOptionDescription": {
-    "message": "Salaa vientitiedosto salasanalla, joka mahdollistaa sen tuonnin mille tahansa Bitwarden-tilille."
+    "message": "Salaa vientitiedosto salasanalla, joka mahdollistaa sen tuonnin mille tahansa Cloudwarden-tilille."
   },
   "exportTypeHeading": {
     "message": "Viennin tyyppi"
@@ -3891,7 +3891,7 @@
     "message": "Jos olet määrittänyt kertakirjautumisen tai aiot määrittää sen, on kaksivaiheinen kirjautuminen saatettu jo pakottaa identiteettitoimittajasi kautta."
   },
   "twoStepLoginRecoveryWarning": {
-    "message": "Kaksivaiheisen kirjautumisen käyttöönotto voi lukita sinut ulos Bitwarden-tililtäsi pysyvästi. Palautuskoodi mahdollistaa pääsyn tilillesi myös silloin, kun et voi käyttää normaaleja kaksivaiheisen tunnistautumisen vahvistustapoja (esim. kadotat suojausavaimesi tai se varastetaan). Bitwardenin asiakaspalvelukaan ei voi auttaa sinua, jos menetät pääsyn tillesi. Suosittelemme, että kirjoitat palautuskoodin muistiin tai tulostat sen ja säilytät turvallisessa paikassa (esim. kassakaapissa tai pankin tallelokerossa)."
+    "message": "Kaksivaiheisen kirjautumisen käyttöönotto voi lukita sinut ulos Cloudwarden-tililtäsi pysyvästi. Palautuskoodi mahdollistaa pääsyn tilillesi myös silloin, kun et voi käyttää normaaleja kaksivaiheisen tunnistautumisen vahvistustapoja (esim. kadotat suojausavaimesi tai se varastetaan). Bitwardenin asiakaspalvelukaan ei voi auttaa sinua, jos menetät pääsyn tillesi. Suosittelemme, että kirjoitat palautuskoodin muistiin tai tulostat sen ja säilytät turvallisessa paikassa (esim. kassakaapissa tai pankin tallelokerossa)."
   },
   "restrictedItemTypePolicy": {
     "message": "Remove card item type"
@@ -4017,7 +4017,7 @@
     "message": "Avataanko bitwarden.com?"
   },
   "twoStepContinueToBitwardenUrlDesc": {
-    "message": "Cloudwarden Authenticatorin avulla voit säilyttää todennusavaimet ja luoda TOTP-koodeja kaksivaiheista kirjautumista varten. Lue lisää bitwarden.com-sivustolta."
+    "message": "Bitwarden Authenticatorin avulla voit säilyttää todennusavaimet ja luoda TOTP-koodeja kaksivaiheista kirjautumista varten. Lue lisää bitwarden.com-sivustolta."
   },
   "twoStepAuthenticatorScanCodeV2": {
     "message": "Skannaa alla oleva QR-koodi todennussovelluksellasi tai syötä avain itse."
@@ -5454,7 +5454,7 @@
     "message": "Invite"
   },
   "inviteUserDesc": {
-    "message": "Kutsu organisaatioosi uusi käyttäjä syöttämällä alle hänen Bitwarden-tilinsä sähköpostiosoite. Jos hänellä ei vielä ole Bitwarden-tiliä, pyydetään häntä luomaan uusi tili."
+    "message": "Kutsu organisaatioosi uusi käyttäjä syöttämällä alle hänen Cloudwarden-tilinsä sähköpostiosoite. Jos hänellä ei vielä ole Cloudwarden-tiliä, pyydetään häntä luomaan uusi tili."
   },
   "inviteUserDescription": {
     "message": "Invite new users to your organization by entering their email address below."
@@ -6925,7 +6925,7 @@
     "message": "Return to registration"
   },
   "joinOrganizationDesc": {
-    "message": "Sinut on kutsuttu liittymään yllä mainittuun organisaatioon. Hyväksyäksesi kutsun, sinun tulee kirjautua tilillesi tai luoda uusi Bitwarden-tili."
+    "message": "Sinut on kutsuttu liittymään yllä mainittuun organisaatioon. Hyväksyäksesi kutsun, sinun tulee kirjautua tilillesi tai luoda uusi Cloudwarden-tili."
   },
   "finishJoiningThisOrganizationBySettingAMasterPassword": {
     "message": "Viimeistele organisaatioon liittyminen asettamalla pääsalasana."
@@ -7066,10 +7066,10 @@
     "message": "Jos tilisi on olemassa, olemme lähettäneet sinulle lisäohjeita sähköpostitse."
   },
   "deleteRecoverConfirmDesc": {
-    "message": "Olet pyytänyt Bitwarden-tilisi poistoa. Vahvista alla olevalla painikeella."
+    "message": "Olet pyytänyt Cloudwarden-tilisi poistoa. Vahvista alla olevalla painikeella."
   },
   "deleteRecoverOrgConfirmDesc": {
-    "message": "Olet pyytänyt Bitwarden-organisaatiosi poistoa."
+    "message": "Olet pyytänyt Cloudwarden-organisaatiosi poistoa."
   },
   "myOrganization": {
     "message": "Oma organisaatio"
@@ -8149,7 +8149,7 @@
     "description": "VFO1 terminology variant of 'singleOrgPolicyDescV2'"
   },
   "singleOrgBlockCreateMessage": {
-    "message": "Nykyisen organisaatiosi käytäntö ei salli liittymistä yhtä useampaan organisaatioon. Ole yhteydessä organisaatiosi ylläpitoon tai liity eri Bitwarden-tilin kautta."
+    "message": "Nykyisen organisaatiosi käytäntö ei salli liittymistä yhtä useampaan organisaatioon. Ole yhteydessä organisaatiosi ylläpitoon tai liity eri Cloudwarden-tilin kautta."
   },
   "singleOrgPolicyMemberWarning": {
     "message": "Non-compliant members will be placed in revoked status until they leave all other organizations. Administrators are exempt and can restore members once compliance is met."
@@ -8457,7 +8457,7 @@
     "message": "Muokkaa varmuuskontaktia"
   },
   "inviteEmergencyContactDesc": {
-    "message": "Kutsu uusi varmuuskontakti syöttämällä alle hänen Bitwarden-tilinsä sähköpostiosoite. Jos hänellä ei vielä ole Bitwarden-tiliä, pyydetään häntä luomaan uusi tili."
+    "message": "Kutsu uusi varmuuskontakti syöttämällä alle hänen Cloudwarden-tilinsä sähköpostiosoite. Jos hänellä ei vielä ole Cloudwarden-tiliä, pyydetään häntä luomaan uusi tili."
   },
   "emergencyAccessRecoveryInitiated": {
     "message": "Varmuuskäyttö aloitettiin"
@@ -9151,7 +9151,7 @@
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Learn more about Bitwarden Send or sign up to **try it today.**'"
   },
   "sendAccessCreatorIdentifier": {
-    "message": "Bitwarden-jäsen $USER_IDENTIFIER$ jakoi sinulle seuraavat",
+    "message": "Cloudwarden-jäsen $USER_IDENTIFIER$ jakoi sinulle seuraavat",
     "placeholders": {
       "user_identifier": {
         "content": "$1",
@@ -9176,7 +9176,7 @@
     "description": "Toast message shown when a user clicks the resend code link on the Send access page. 'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "viewSendHiddenEmailWarning": {
-    "message": "Sendin luonut Bitwarden-käyttäjä on piilottanut sähköpostiosoitteensa. Varmista, että linkin lähde on luotettava ennen kuin käytät tai lataat sen sisältöä.",
+    "message": "Sendin luonut Cloudwarden-käyttäjä on piilottanut sähköpostiosoitteensa. Varmista, että linkin lähde on luotettava ennen kuin käytät tai lataat sen sisältöä.",
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "expirationDateIsInvalid": {
@@ -9574,7 +9574,7 @@
     "message": "Toimittajan määritys"
   },
   "setupProviderLoginDesc": {
-    "message": "Sinut on kutsuttu määrittämään uusi toimittaja. Jatka kirjautumalla sisään tai luomalla uusi Bitwarden-tili."
+    "message": "Sinut on kutsuttu määrittämään uusi toimittaja. Jatka kirjautumalla sisään tai luomalla uusi Cloudwarden-tili."
   },
   "setupProviderDesc": {
     "message": "Syötä alla pyydetyt tiedot viimeistelläksesi todentajan määrityksen. Jos sinulla on kysyttävää, ole yhteydessä asiakaspalveluun."
@@ -9605,13 +9605,13 @@
     "message": "Palvelun käyttäjät voivat käyttää ja hallita kaikkia asiakasorganisaatioita."
   },
   "providerInviteUserDesc": {
-    "message": "Kutsu toimittajaasi uusi käyttäjä syöttämällä alle heidän Bitwarden-tilinsä sähköpostiosoite. Jos heillä ei vielä ole Bitwarden-tiliä, pyydetään heitä luomaan uusi tili."
+    "message": "Kutsu toimittajaasi uusi käyttäjä syöttämällä alle heidän Cloudwarden-tilinsä sähköpostiosoite. Jos heillä ei vielä ole Cloudwarden-tiliä, pyydetään heitä luomaan uusi tili."
   },
   "joinProvider": {
     "message": "Liity toimittajaan"
   },
   "joinProviderDesc": {
-    "message": "Sinut on kutsuttu liittymään yllä mainittuun toimittajaan. Hyväksyäksesi kutsun, sinun on kirjauduttava tilillesi tai luotava uusi Bitwarden-tili."
+    "message": "Sinut on kutsuttu liittymään yllä mainittuun toimittajaan. Hyväksyäksesi kutsun, sinun on kirjauduttava tilillesi tai luotava uusi Cloudwarden-tili."
   },
   "providerInviteAcceptFailed": {
     "message": "Kutsua ei voitu hyväksyä. Pyydä toimittajan ylläpitäjää lähettämään uusi kutsu."
@@ -10366,7 +10366,7 @@
     "message": "Mukautettu palvelinympäristö"
   },
   "selfHostedBaseUrlHint": {
-    "message": "Määritä itse ylläpitämäsi Bitwarden-asennuksen perusosoite. Esimerkki: https://bitwarden.yritys.fi."
+    "message": "Määritä itse ylläpitämäsi Cloudwarden-asennuksen perusosoite. Esimerkki: https://bitwarden.yritys.fi."
   },
   "selfHostedCustomEnvHeader": {
     "message": "Edistynyttä määritystä varten voit syöttää jokaisen palvelun perusosoitteen erikseen."
@@ -12877,7 +12877,7 @@
     "message": "Käyttäjä asetti pääsalasanan TDE offboarding -prosessin aikana."
   },
   "startYour7DayFreeTrialOfBitwardenFor": {
-    "message": "Aloita seitsemän päivän ilmainen Bitwarden-kokeilu organisaatiolle $ORG$",
+    "message": "Aloita seitsemän päivän ilmainen Cloudwarden-kokeilu organisaatiolle $ORG$",
     "placeholders": {
       "org": {
         "content": "$1",
@@ -14268,7 +14268,7 @@
     "message": "Continue setting up Cloudwarden"
   },
   "continueSettingUpFreeTrial": {
-    "message": "Jatka ilmaisen Bitwarden-kokeilusi käyttöönottoa"
+    "message": "Jatka ilmaisen Cloudwarden-kokeilusi käyttöönottoa"
   },
   "continueSettingUpPasswordManager": {
     "message": "Continue setting up Cloudwarden Password Manager"
@@ -15309,7 +15309,7 @@
     "message": "Kopioi yksityinen avain"
   },
   "openingExtension": {
-    "message": "Avataan Bitwarden-selainlaajennusta"
+    "message": "Avataan Cloudwarden-selainlaajennusta"
   },
   "somethingWentWrong": {
     "message": "Jokin meni pieleen..."
@@ -15321,7 +15321,7 @@
     "message": "Avaa laajennus"
   },
   "doNotHaveExtension": {
-    "message": "Eikö sinulla ole Bitwarden-selainlaajennusta?"
+    "message": "Eikö sinulla ole Cloudwarden-selainlaajennusta?"
   },
   "installExtension": {
     "message": "Asenna laajennus"

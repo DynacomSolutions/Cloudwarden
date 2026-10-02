@@ -7403,7 +7403,7 @@
     }
   },
   "updateEncryptionKeyWarning": {
-    "message": "Matapos i update ang iyong key sa pag encrypt, kinakailangan kang mag log out at bumalik sa lahat ng mga application ng Cloudwarden na kasalukuyang ginagamit mo (tulad ng mobile app o mga extension ng browser). Ang kabiguan na mag log out at bumalik sa (na nag download ng iyong bagong key ng pag encrypt) ay maaaring magresulta sa pagkasira ng data. Susubukan naming awtomatikong mag log out sa iyo, gayunpaman, maaari itong maantala."
+    "message": "Matapos i update ang iyong key sa pag encrypt, kinakailangan kang mag log out at bumalik sa lahat ng mga application ng Bitwarden na kasalukuyang ginagamit mo (tulad ng mobile app o mga extension ng browser). Ang kabiguan na mag log out at bumalik sa (na nag download ng iyong bagong key ng pag encrypt) ay maaaring magresulta sa pagkasira ng data. Susubukan naming awtomatikong mag log out sa iyo, gayunpaman, maaari itong maantala."
   },
   "updateEncryptionKeyAccountExportWarning": {
     "message": "Any account restricted exports you have saved will become invalid."

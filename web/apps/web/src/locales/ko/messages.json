@@ -2222,7 +2222,7 @@
     "message": "기기로 로그인"
   },
   "loginWithDeviceEnabledNote": {
-    "message": "기기로 로그인은 Cloudwarden 앱 설정에서 구성돼야 합니다. 다른 방식이 필요하신가요?"
+    "message": "기기로 로그인은 Bitwarden 앱 설정에서 구성돼야 합니다. 다른 방식이 필요하신가요?"
   },
   "needAnotherOptionV1": {
     "message": "다른 옵션이 필요하신가요?"
@@ -3162,7 +3162,7 @@
     "message": "요청 보류 중"
   },
   "logBackInOthersToo": {
-    "message": "다시 로그인해 주세요. 다른 Cloudwarden 앱을 사용 중인 경우 해당 앱에서도 다시 로그인해야 합니다."
+    "message": "다시 로그인해 주세요. 다른 Bitwarden 앱을 사용 중인 경우 해당 앱에서도 다시 로그인해야 합니다."
   },
   "changeMasterPassword": {
     "message": "마스터 비밀번호 변경"

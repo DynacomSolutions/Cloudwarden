@@ -5454,7 +5454,7 @@
     "message": "Meghívás"
   },
   "inviteUserDesc": {
-    "message": "Új felhasználó meghívása a szervezetéhez a Cloudwarden fiók e-mail címének megadásával. Ha még nem rendelkezik Bitwarden-fiókkal, felkérjük új fiók létrehozására.\n"
+    "message": "Új felhasználó meghívása a szervezetéhez a Cloudwarden fiók e-mail címének megadásával. Ha még nem rendelkezik Cloudwarden-fiókkal, felkérjük új fiók létrehozására.\n"
   },
   "inviteUserDescription": {
     "message": "Új felhasználók meghívása a szervezetbe az email cím megadásával lentebb."
@@ -8457,7 +8457,7 @@
     "message": "Sürgősségi kapcsolat szerkesztése"
   },
   "inviteEmergencyContactDesc": {
-    "message": "Új felhasználó meghívása sürgősségi kapcsolatként a Cloudwarden fiók email címének megadásával. Ha még nem rendelkezik Bitwarden-fiókkal, felkérjük új fiók létrehozására."
+    "message": "Új felhasználó meghívása sürgősségi kapcsolatként a Cloudwarden fiók email címének megadásával. Ha még nem rendelkezik Cloudwarden-fiókkal, felkérjük új fiók létrehozására."
   },
   "emergencyAccessRecoveryInitiated": {
     "message": "A sürgősségi hozzáférés kezdeményezésre került."

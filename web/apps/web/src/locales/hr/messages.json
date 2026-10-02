@@ -2222,7 +2222,7 @@
     "message": "Prijava uređajem"
   },
   "loginWithDeviceEnabledNote": {
-    "message": "Prijava uređajem mora biti namještena u postavka Cloudwarden mobilne aplikacije. Trebaš drugu opciju?"
+    "message": "Prijava uređajem mora biti namještena u postavka Bitwarden mobilne aplikacije. Trebaš drugu opciju?"
   },
   "needAnotherOptionV1": {
     "message": "Trebaš drugu opciju?"
@@ -2387,7 +2387,7 @@
     "message": "Što je uređaj?"
   },
   "aDeviceIs": {
-    "message": "Uređaj je jedinstvena instalacija Cloudwarden aplikacije gdje si prijavljen/a. Ponovna instalacija, brisanje podataka aplikacije ili kolačića može rezultirati višestrukim prikazom uređaja."
+    "message": "Uređaj je jedinstvena instalacija Bitwarden aplikacije gdje si prijavljen/a. Ponovna instalacija, brisanje podataka aplikacije ili kolačića može rezultirati višestrukim prikazom uređaja."
   },
   "logInInitiated": {
     "message": "Pokrenuta prijava"
@@ -2779,7 +2779,7 @@
     "message": "Autentifikatorska aplikacija"
   },
   "authenticatorAppDescV2": {
-    "message": "Unesi kôd generiran autentifikatorskom aplikacijom kao npr. Cloudwarden Authenticatorom.",
+    "message": "Unesi kôd generiran autentifikatorskom aplikacijom kao npr. Bitwarden Authenticatorom.",
     "description": "'Bitwarden Authenticator' is a product name and should not be translated."
   },
   "yubiKeyTitleV2": {
@@ -3162,7 +3162,7 @@
     "message": "Zahtjev u tijeku"
   },
   "logBackInOthersToo": {
-    "message": "Molimo, ponovno se prijavi. Ako koristiš druge aplikacije Cloudwarden i u njima napravi odjavu/prijavu."
+    "message": "Molimo, ponovno se prijavi. Ako koristiš druge aplikacije Bitwarden i u njima napravi odjavu/prijavu."
   },
   "changeMasterPassword": {
     "message": "Promjeni glavnu lozinku"
@@ -4059,7 +4059,7 @@
     "message": "Spremite obrazac."
   },
   "twoFactorYubikeyWarning": {
-    "message": "Zbog platformskih ograničenja, YubiKey nije moguće koristiti s Cloudwarden aplikacijama na svim platformama. Za pristup računu kada nije moguće koristiti YubiKey, trebalo bi uključiti drugog pružatelja prijave dvostrukom autentifikacijom. Platforme na kojima je YubiKey podržan:"
+    "message": "Zbog platformskih ograničenja, YubiKey nije moguće koristiti s Bitwarden aplikacijama na svim platformama. Za pristup računu kada nije moguće koristiti YubiKey, trebalo bi uključiti drugog pružatelja prijave dvostrukom autentifikacijom. Platforme na kojima je YubiKey podržan:"
   },
   "twoFactorYubikeySupportUsb": {
     "message": "Web trezor, desktop aplikacija, CLI i sva proširenja preglednika na uređajima s USB priključkom na koji se može spojiti tvoj YubiKey."
@@ -4110,7 +4110,7 @@
     "message": "Onemogući sve ključeve"
   },
   "twoFactorDuoDesc": {
-    "message": "Unesi podatke o Cloudwarden aplikaciji iz svoje Duo Admin ploče."
+    "message": "Unesi podatke o Bitwarden aplikaciji iz svoje Duo Admin ploče."
   },
   "twoFactorDuoClientId": {
     "message": "ID klijenta"
@@ -4161,7 +4161,7 @@
     "message": "Spremi obrazac."
   },
   "twoFactorU2fWarning": {
-    "message": "Zbog platformskih ograničenja, FIDO U2F nije moguće koristiti s Cloudwarden aplikacijama na svim platformama. Za pristup računu kada nije moguće koristiti FIDO U2F trebalo bi uključiti drugog pružatelja prijave dvostrukom autentifikacijom. Platforme na kojima je FIDO U2F podržan:"
+    "message": "Zbog platformskih ograničenja, FIDO U2F nije moguće koristiti s Bitwarden aplikacijama na svim platformama. Za pristup računu kada nije moguće koristiti FIDO U2F trebalo bi uključiti drugog pružatelja prijave dvostrukom autentifikacijom. Platforme na kojima je FIDO U2F podržan:"
   },
   "twoFactorU2fSupportWeb": {
     "message": "Web trezor i proširenja preglednika na stolnim/prijenosnim računalima s U2F podržanim preglednikom (npr. Chrome, Opera, Vivaldi ili Firefox s omogućenim FIDO U2F)."
@@ -7403,7 +7403,7 @@
     }
   },
   "updateEncryptionKeyWarning": {
-    "message": "Nakon ažuriranja svojeg ključa za šifriranje, obavezno se trebaš odjaviti i ponovno prijaviti u sve Cloudwarden aplikacije koje trenutno koristiš (npr. mobilna aplikacija, proširenje preglednika, ...). Ako se ne odjaviš i ponovno prijaviš (čime se preuzima tvoj novi ključ za šifriranje) može doći do oštećenja spremljenih podataka. Pokušati ćemo te automatski odjaviti, no, to bi možda moglo potrajati."
+    "message": "Nakon ažuriranja svojeg ključa za šifriranje, obavezno se trebaš odjaviti i ponovno prijaviti u sve Bitwarden aplikacije koje trenutno koristiš (npr. mobilna aplikacija, proširenje preglednika, ...). Ako se ne odjaviš i ponovno prijaviš (čime se preuzima tvoj novi ključ za šifriranje) može doći do oštećenja spremljenih podataka. Pokušati ćemo te automatski odjaviti, no, to bi možda moglo potrajati."
   },
   "updateEncryptionKeyAccountExportWarning": {
     "message": "Svi prethodni izvozi ograničeni ovim računom postati će nevažeći."

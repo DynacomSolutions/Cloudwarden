@@ -236,7 +236,7 @@
     "message": "Komandanızdakı irəliləyişləri izləyin"
   },
   "membersAreAutomaticallyNotified": {
-    "message": "Üzvlərə Cloudwarden uzantılarındakı riskli parollar barədə bildirişlər avtomatik olaraq göndərilir. Təqib etməyə ehtiyac yoxdur."
+    "message": "Üzvlərə Bitwarden uzantılarındakı riskli parollar barədə bildirişlər avtomatik olaraq göndərilir. Təqib etməyə ehtiyac yoxdur."
   },
   "importYourOrgDataToGetStarted": {
     "message": "Başlamaq üçün təşkilat verilərinizi daxilə köçürün"
@@ -2339,7 +2339,7 @@
     "message": "Hesab yarat"
   },
   "newToBitwarden": {
-    "message": "Bitwarden-də yenisiniz?"
+    "message": "Cloudwarden-də yenisiniz?"
   },
   "setAStrongPassword": {
     "message": "Güclü bir parol təyin et"
@@ -2357,7 +2357,7 @@
     "message": "Giriş et"
   },
   "loginPageEmailEntryScreenTitle": {
-    "message": "Bitwarden-ə giriş et"
+    "message": "Cloudwarden-ə giriş et"
   },
   "enterTheCodeSentToYourEmail": {
     "message": "E-poçtunuza göndərilən kodu daxil edin"
@@ -2718,7 +2718,7 @@
     "message": "Təsdiqləməzdən əvvəl Barmaq izi ifadəsinin aşağıdakı ifadə ilə uyuşduğuna əmin olun."
   },
   "notificationSentDeviceComplete": {
-    "message": "Cihazınızda Bitwarden-in kilidini açın. Təsdiqləməzdən əvvəl Barmaq izi ifadəsinin aşağıdakı ifadə ilə uyuşduğuna əmin olun."
+    "message": "Cihazınızda Cloudwarden-in kilidini açın. Təsdiqləməzdən əvvəl Barmaq izi ifadəsinin aşağıdakı ifadə ilə uyuşduğuna əmin olun."
   },
   "aNotificationWasSentToYourDevice": {
     "message": "Cihazınıza bir bildiriş göndərildi"
@@ -3244,7 +3244,7 @@
     "message": "Yeni bir cihazdan giriş etdiyiniz zaman Cloudwarden göndərən doğrulama e-poçtlarını dayandırmaq üçün aşağıdakı addımları izləyin."
   },
   "turnOnNewDeviceLoginProtectionModalDesc": {
-    "message": "Yeni bir cihazdan giriş etdiyiniz zaman Bitwarden-in sizə doğrulama e-poçtlarını göndərməsi üçün aşağıdakı addımları izləyin."
+    "message": "Yeni bir cihazdan giriş etdiyiniz zaman Cloudwarden-in sizə doğrulama e-poçtlarını göndərməsi üçün aşağıdakı addımları izləyin."
   },
   "turnOffNewDeviceLoginProtectionWarning": {
     "message": "Yeni cihaz girişi qorumasını söndürsəniz, ana parolunuzu bilən hər kəs, istənilən cihazdan hesabınıza erişə bilər. Hesabınızı doğrulama e-poçtları olmadan qorumaq üçün iki addımlı girişi qurun."
@@ -3694,7 +3694,7 @@
     "description": "Followed by a literal filename (my_passwords.json) rendered as code."
   },
   "importGnomeInstructionsFileHere": {
-    "message": "Bitwarden-ə yüklə.",
+    "message": "Cloudwarden-ə yüklə.",
     "description": "Follows the my_passwords.json filename."
   },
   "importPasswordagentInstructions": {
@@ -4011,7 +4011,7 @@
     }
   },
   "continueToExternalUrlDesc": {
-    "message": "Bitwarden-i tərk edirsiniz və yeni bir pəncərədə xarici bir veb sayt açırsınız."
+    "message": "Cloudwarden-i tərk edirsiniz və yeni bir pəncərədə xarici bir veb sayt açırsınız."
   },
   "twoStepContinueToBitwardenUrlTitle": {
     "message": "bitwarden.com ilə davam edilsin?"
@@ -4266,7 +4266,7 @@
     "message": "və "
   },
   "passkeyLoginReportHowToUse": {
-    "message": "Bitwarden-də necə istifadə olunur."
+    "message": "Cloudwarden-də necə istifadə olunur."
   },
   "passkeyLoginFound": {
     "message": "Keçid açarlarını dəstəkləyən girişlər"
@@ -5249,7 +5249,7 @@
     }
   },
   "trialThankYou": {
-    "message": "$PLAN$ qarşılığında Bitwarden-də qeydiyyatdan keçdiyiniz üçün təşəkkürlər!",
+    "message": "$PLAN$ qarşılığında Cloudwarden-də qeydiyyatdan keçdiyiniz üçün təşəkkürlər!",
     "placeholders": {
       "plan": {
         "content": "$1",
@@ -8682,7 +8682,7 @@
     "message": "Avtomatik istifadəçi təsdiqi necə işə salınır"
   },
   "autoConfirmExtension1": {
-    "message": "Cloudwarden uzantınızı açın"
+    "message": "Bitwarden uzantınızı açın"
   },
   "autoConfirmExtension2": {
     "message": "Seç:",
@@ -8906,7 +8906,7 @@
     "description": "VFO1 terminology variant of 'uriMatchDetectionPolicyDesc', shown in the policies list"
   },
   "uriMatchDetectionPolicyDescV2": {
-    "message": "Avtodoldurma zamanı Bitwarden-in giriş məlumatlarını təklif etməsi üçün veb-sayt ünvanının (URI) ilkin olaraq hansı hissələrinin uyuşmalı olduğunu təyin edin. Bu siyasət, sahiblərə və adminlərə tətbiq olunmur."
+    "message": "Avtodoldurma zamanı Cloudwarden-in giriş məlumatlarını təklif etməsi üçün veb-sayt ünvanının (URI) ilkin olaraq hansı hissələrinin uyuşmalı olduğunu təyin edin. Bu siyasət, sahiblərə və adminlərə tətbiq olunmur."
   },
   "uriMatchDetectionOptionsLabel": {
     "message": "İlkin URI uyuşma aşkarlaması"
@@ -8926,7 +8926,7 @@
     "message": "Özəl avto-doldurma qayda dəsti"
   },
   "fillAssistRulesUrlHint": {
-    "message": "İlkin olaraq, avto-doldurma Bitwarden-nin düzənlədiyi qayda dəstini istifadə edir. Bunu öz qayda dəstinizlə əvəz etmək üçün buraya URL-ni daxil edin."
+    "message": "İlkin olaraq, avto-doldurma Cloudwarden-nin düzənlədiyi qayda dəstini istifadə edir. Bunu öz qayda dəstinizlə əvəz etmək üçün buraya URL-ni daxil edin."
   },
   "invalidFillAssistRulesUrl": {
     "message": "Yararlı bir URL daxil edin",
@@ -9105,7 +9105,7 @@
     "message": "Cloudwarden Sirr Meneceri"
   },
   "moreProductsFromBitwarden": {
-    "message": "Bitwarden-dən daha çox məhsul"
+    "message": "Cloudwarden-dən daha çox məhsul"
   },
   "requestAccessToSecretsManager": {
     "message": "\"Sirr Meneceri\"nə erişim tələb et"
@@ -13291,7 +13291,7 @@
     "message": "Seyfinizi istifadə etməyə başlayın"
   },
   "onboardingChecklistSubtitle": {
-    "message": "Fərdi verilərinizi qorumaq və Bitwarden-dən maksimum faydalanmaq üçün bu addımları tamamlayın"
+    "message": "Fərdi verilərinizi qorumaq və Cloudwarden-dən maksimum faydalanmaq üçün bu addımları tamamlayın"
   },
   "dismissThisChecklist": {
     "message": "Bu siyahını bağla"
@@ -13388,7 +13388,7 @@
     "description": "Label indicating the most common import formats"
   },
   "uriMatchDefaultStrategyHint": {
-    "message": "URI uyuşma aşkarlaması, Bitwarden-in avto-doldurma təkliflərini necə müəyyən etdiyini göstərir.",
+    "message": "URI uyuşma aşkarlaması, Cloudwarden-in avto-doldurma təkliflərini necə müəyyən etdiyini göstərir.",
     "description": "Explains to the user that URI match detection determines how Bitwarden suggests autofill options, and clarifies that this default strategy applies when no specific match detection is set for a login item."
   },
   "regExAdvancedOptionWarning": {
@@ -13438,7 +13438,7 @@
     "message": "E-poçtunuza bir təsdiq məktubu göndərdik "
   },
   "sorryToSeeYouGo": {
-    "message": "Getməyinizə məyus olduq! Nə üçün ləğv etdiyinizi paylaşmaqla Bitwarden-i təkmilləşdirməyə kömək edin.",
+    "message": "Getməyinizə məyus olduq! Nə üçün ləğv etdiyinizi paylaşmaqla Cloudwarden-i təkmilləşdirməyə kömək edin.",
     "description": "A message shown to users as part of an offboarding survey asking them to provide more information on their subscription cancelation."
   },
   "selectCancellationReason": {
@@ -14027,7 +14027,7 @@
     "description": "This represents the beginning of a sentence, broken up to include links. The full sentence will be 'Configure SCIM (System for Cross-domain Identity Management) to automatically provision users and groups to Bitwarden using the implementation guide for your Identity Provider"
   },
   "scimIntegrationDescEnd": {
-    "message": "Kimlik Provayderinizin icra bələdçisini istifadə edərək istifadəçiləri və qrupları Bitwarden-ə avtomatik olaraq təmin etmək üçün (System for Cross-domain Identity Management).",
+    "message": "Kimlik Provayderinizin icra bələdçisini istifadə edərək istifadəçiləri və qrupları Cloudwarden-ə avtomatik olaraq təmin etmək üçün (System for Cross-domain Identity Management).",
     "description": "This represents the end of a sentence, broken up to include links. The full sentence will be 'Configure SCIM (System for Cross-domain Identity Management) to automatically provision users and groups to Bitwarden using the implementation guide for your Identity Provider"
   },
   "bwdc": {
@@ -14265,7 +14265,7 @@
     "message": "Fakturanı \"Provayder Portalı\"ndan idarə et"
   },
   "continueSettingUp": {
-    "message": "Bitwarden-i qurmağa davam edin"
+    "message": "Cloudwarden-i qurmağa davam edin"
   },
   "continueSettingUpFreeTrial": {
     "message": "Ödənişsiz Cloudwarden sınağınızı qurmağa davam edin"
@@ -14681,7 +14681,7 @@
     "message": "CVV nömrəsi nədir?"
   },
   "learnMoreAboutApi": {
-    "message": "Bitwarden-nin API-si haqqında daha ətraflı"
+    "message": "Cloudwarden-nin API-si haqqında daha ətraflı"
   },
   "fileSends": {
     "message": "Fayl \"Send\"ləri"
@@ -14936,7 +14936,7 @@
     "description": "This represents the beginning of a sentence. The full sentence will be 'Manage subscription from the Provider Portal', but 'Provider Portal' will be a link and thus cannot be included in the translation file."
   },
   "toHostBitwardenOnYourOwnServer": {
-    "message": "Bitwarden-i öz serverinizdə quraşdırmaq üçün lisenziya faylınızı yükləməlisiniz. Self-hosted təşkilatınız üçün Ödənişsiz Ailələr planlarını və qabaqcıl faktura imkanlarını dəstəkləmək üçün, self-hosted təşkilatınızda avto-sinxronlaşdırmanı qurmalısınız."
+    "message": "Cloudwarden-i öz serverinizdə quraşdırmaq üçün lisenziya faylınızı yükləməlisiniz. Self-hosted təşkilatınız üçün Ödənişsiz Ailələr planlarını və qabaqcıl faktura imkanlarını dəstəkləmək üçün, self-hosted təşkilatınızda avto-sinxronlaşdırmanı qurmalısınız."
   },
   "selfHostingTitleProper": {
     "message": "Self-Hosting"
@@ -15745,19 +15745,19 @@
     "message": "Veb tətbiqinə keç"
   },
   "bitwardenExtensionInstalled": {
-    "message": "Cloudwarden uzantısı quraşdırıldı!"
+    "message": "Bitwarden uzantısı quraşdırıldı!"
   },
   "bitwardenExtensionIsInstalled": {
-    "message": "Cloudwarden uzantısı quraşdırıldı!"
+    "message": "Bitwarden uzantısı quraşdırıldı!"
   },
   "openExtensionToAutofill": {
     "message": "Giriş etmək üçün uzantını aç və avto-doldurmağa başla."
   },
   "openBitwardenExtension": {
-    "message": "Cloudwarden uzantısını aç"
+    "message": "Bitwarden uzantısını aç"
   },
   "gettingStartedWithBitwardenPart1": {
-    "message": "Bitwarden-i öyrənmək üçün ziyarət edin:",
+    "message": "Cloudwarden-i öyrənmək üçün ziyarət edin:",
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'For tips on getting started with Bitwarden visit the Learning Center and Help Center'"
   },
   "gettingStartedWithBitwardenPart2": {
@@ -15765,7 +15765,7 @@
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'For tips on getting started with Bitwarden visit the Learning Center and Help Center'"
   },
   "openExtensionFromToolbarPart1": {
-    "message": "Uzantı açılmasa, alət çubuğundakı ikondan Bitwarden-i açmağınız ",
+    "message": "Uzantı açılmasa, alət çubuğundakı ikondan Cloudwarden-i açmağınız ",
     "description": "This will be used as part of a larger sentence, broken up to include the Bitwarden icon. The full sentence will read 'If the extension didn't open, you may need to open Bitwarden from the icon [Bitwarden Icon] on the toolbar.'"
   },
   "openExtensionFromToolbarPart2": {
@@ -16181,7 +16181,7 @@
     "message": "Yerləşməniz üçün vergi hesablanması zamanı xəta baş verdi. Lütfən yenidən sınayın."
   },
   "individualUpgradeWelcomeMessage": {
-    "message": "Bitwarden-ə xoş gəlmisiniz"
+    "message": "Cloudwarden-ə xoş gəlmisiniz"
   },
   "individualUpgradeDescriptionMessage": {
     "message": "Premium ilə daha çox təhlükəsizlik özəlliklərinin kilidini açın və ya Ailələr ilə elementləri paylaşmağa başlayın"
@@ -16229,7 +16229,7 @@
     "message": "Alqoritm"
   },
   "encryptionKeySettingsHowShouldWeEncryptYourData": {
-    "message": "Bitwarden-in seyf verilərinizi necə şifrələyəcəyini seçin. Bütün seçimlər güvənlidir, ancaq daha güclü üsullar, xüsusən də brute-force hücumlarına qarşı daha yaxşı qoruma təklif edir. Cloudwarden, əksər istifadəçilər üçün ilkin ayarı tövsiyə edir."
+    "message": "Cloudwarden-in seyf verilərinizi necə şifrələyəcəyini seçin. Bütün seçimlər güvənlidir, ancaq daha güclü üsullar, xüsusən də brute-force hücumlarına qarşı daha yaxşı qoruma təklif edir. Cloudwarden, əksər istifadəçilər üçün ilkin ayarı tövsiyə edir."
   },
   "encryptionKeySettingsIncreaseImproveSecurity": {
     "message": "İlkin dəyərdən yuxarı dəyərin təyin edilməsi, təhlükəsizliyi artırır, ancaq bu, seyfinizin kilidini açma prosesini uzada bilər."
@@ -16301,7 +16301,7 @@
     }
   },
   "removeMasterPasswordForOrgUserKeyConnector": {
-    "message": "Təşkilatınız, artıq Bitwarden-ə giriş etmək üçün ana parol istifadə etmir. Davam etmək üçün təşkilatı və domeni doğrulayın."
+    "message": "Təşkilatınız, artıq Cloudwarden-ə giriş etmək üçün ana parol istifadə etmir. Davam etmək üçün təşkilatı və domeni doğrulayın."
   },
   "continueWithLogIn": {
     "message": "Giriş etməyə davam"
@@ -16635,10 +16635,10 @@
     "message": "Seyfə asan erişmək üçün uzantını əldə et"
   },
   "extensionPromptBody": {
-    "message": "Brauzer uzantısını quraşdırsanız, Bitwarden-i onlayn olaraq hər yerdə istifadə edə biləcəksiniz. Parollarınızı avtomatik dolduracaq, beləliklə tək bir kliklə hesablarınıza giriş edə biləcəksiniz."
+    "message": "Brauzer uzantısını quraşdırsanız, Cloudwarden-i onlayn olaraq hər yerdə istifadə edə biləcəksiniz. Parollarınızı avtomatik dolduracaq, beləliklə tək bir kliklə hesablarınıza giriş edə biləcəksiniz."
   },
   "extensionPromptImageAlt": {
-    "message": "Hazırkı veb səhifə üçün avto-doldurma elementlərini ehtiva edən Cloudwarden uzantısını göstərən veb brauzer."
+    "message": "Hazırkı veb səhifə üçün avto-doldurma elementlərini ehtiva edən Bitwarden uzantısını göstərən veb brauzer."
   },
   "skip": {
     "message": "Ötür"
@@ -16686,7 +16686,7 @@
     "message": "Yararsız Send parolu"
   },
   "vaultWelcomeDialogTitle": {
-    "message": "Buyurun! Bitwarden-ə xoş gəlmisiniz"
+    "message": "Buyurun! Cloudwarden-ə xoş gəlmisiniz"
   },
   "vaultWelcomeDialogDescription": {
     "message": "Bütün parollarınızı və fərdi məlumatlarınızı Cloudwarden seyfinizdə saxlaya bilərsiniz. Gəlin sizə ətrafı göstərək."
@@ -16923,7 +16923,7 @@
     "message": "Üzvlərin təkmilləşməsinə kömək et"
   },
   "aiCoachmarkHelpMembersDescription": {
-    "message": "Kritik tətbiqləri seçdikdən sonra, üzvlərdən riskli parolları dəyişdirməsini istəyin. Üzvlər öz Cloudwarden uzantılarında bir mesaj alacaqlar."
+    "message": "Kritik tətbiqləri seçdikdən sonra, üzvlərdən riskli parolları dəyişdirməsini istəyin. Üzvlər öz Bitwarden uzantılarında bir mesaj alacaqlar."
   },
   "aiCoachmarkRunReportTitle": {
     "message": "Yeni risklərdən xəbərdar olun"
@@ -17689,7 +17689,7 @@
     "message": "Ödəniş uğurludur"
   },
   "paymentSuccessfulProcessingMessage": {
-    "message": "Yüksəltməniz emal olunur. Bitwarden-də Premium özəllikləri görməyiniz bir neçə dəqiqə çəkə bilər."
+    "message": "Yüksəltməniz emal olunur. Cloudwarden-də Premium özəllikləri görməyiniz bir neçə dəqiqə çəkə bilər."
   },
   "planPurchased": {
     "message": "Plan satın alındı"

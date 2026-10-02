@@ -2222,7 +2222,7 @@
     "message": "Zaloguj się za pomocą urządzenia"
   },
   "loginWithDeviceEnabledNote": {
-    "message": "Logowanie za pomocą urządzenia musi być włączone w ustawieniach aplikacji Cloudwarden. Potrzebujesz innej opcji?"
+    "message": "Logowanie za pomocą urządzenia musi być włączone w ustawieniach aplikacji Bitwarden. Potrzebujesz innej opcji?"
   },
   "needAnotherOptionV1": {
     "message": "Potrzebujesz innego sposobu?"
@@ -2387,7 +2387,7 @@
     "message": "Czym jest urządzenie?"
   },
   "aDeviceIs": {
-    "message": "Urządzenie to unikalna instalacja aplikacji Cloudwarden, w której się zalogowano. Ponowna instalacja, wyczyszczenie danych aplikacji lub usunięcie plików cookie może spowodować, że urządzenie pojawi się wielokrotnie."
+    "message": "Urządzenie to unikalna instalacja aplikacji Bitwarden, w której się zalogowano. Ponowna instalacja, wyczyszczenie danych aplikacji lub usunięcie plików cookie może spowodować, że urządzenie pojawi się wielokrotnie."
   },
   "logInInitiated": {
     "message": "Logowanie rozpoczęte"
@@ -3162,7 +3162,7 @@
     "message": "Zapytanie oczekuje"
   },
   "logBackInOthersToo": {
-    "message": "Zaloguj się ponownie. Jeśli używasz innych aplikacji Cloudwarden, wyloguj się i zaloguj ponownie również w nich."
+    "message": "Zaloguj się ponownie. Jeśli używasz innych aplikacji Bitwarden, wyloguj się i zaloguj ponownie również w nich."
   },
   "changeMasterPassword": {
     "message": "Zmień hasło główne"
@@ -4059,7 +4059,7 @@
     "message": "Zapisz formularz."
   },
   "twoFactorYubikeyWarning": {
-    "message": "Z powodu ograniczeń platformy, klucze YubiKey nie mogą być używane we wszystkich aplikacjach Cloudwarden. Musisz włączyć inną metodę logowania dwustopniowego, aby zachować dostęp do konta w pozostałych sytuacjach. Wspierane platformy:"
+    "message": "Z powodu ograniczeń platformy, klucze YubiKey nie mogą być używane we wszystkich aplikacjach Bitwarden. Musisz włączyć inną metodę logowania dwustopniowego, aby zachować dostęp do konta w pozostałych sytuacjach. Wspierane platformy:"
   },
   "twoFactorYubikeySupportUsb": {
     "message": "Sejf internetowy, aplikacja desktopowa, wiersz poleceń i rozszerzenia dla wszystkich przeglądarek na urządzeniu posiadającym port USB akceptujący Twój klucz YubiKey."
@@ -4110,7 +4110,7 @@
     "message": "Wyłącz wszystkie klucze"
   },
   "twoFactorDuoDesc": {
-    "message": "Wpisz informacje o aplikacji Cloudwarden z panelu administracyjnego Duo."
+    "message": "Wpisz informacje o aplikacji Bitwarden z panelu administracyjnego Duo."
   },
   "twoFactorDuoClientId": {
     "message": "Id klienta"
@@ -4161,7 +4161,7 @@
     "message": "Zapisz formularz."
   },
   "twoFactorU2fWarning": {
-    "message": "Z powodu ograniczeń platformy, klucze FIDO U2F nie mogą być używane we wszystkich aplikacjach Cloudwarden. Musisz włączyć inną metodę logowania dwustopniowego, aby zachować dostęp do konta w pozostałych sytuacjach. Wspierane platformy:"
+    "message": "Z powodu ograniczeń platformy, klucze FIDO U2F nie mogą być używane we wszystkich aplikacjach Bitwarden. Musisz włączyć inną metodę logowania dwustopniowego, aby zachować dostęp do konta w pozostałych sytuacjach. Wspierane platformy:"
   },
   "twoFactorU2fSupportWeb": {
     "message": "Sejf internetowy i rozszerzenia przeglądarki na komputerze/laptopie z przeglądarką obsługującą U2F (Chrome, Opera, Vivaldi lub Firefox z włączoną obsługą FIDO U2F)."
@@ -7403,7 +7403,7 @@
     }
   },
   "updateEncryptionKeyWarning": {
-    "message": "Po zaktualizowaniu klucza szyfrowania, musisz ponownie zalogować się do wszystkich aplikacji Cloudwarden, z których obecnie korzystasz (na przykład aplikacje mobilne lub rozszerzenia przeglądarki). Niepowodzenie logowania (podczas którego pobierany jest nowy klucz szyfrowania) może spowodować uszkodzenie danych. Postaramy się wylogować Ciebie automatycznie, jednak może to chwilę potrwać."
+    "message": "Po zaktualizowaniu klucza szyfrowania, musisz ponownie zalogować się do wszystkich aplikacji Bitwarden, z których obecnie korzystasz (na przykład aplikacje mobilne lub rozszerzenia przeglądarki). Niepowodzenie logowania (podczas którego pobierany jest nowy klucz szyfrowania) może spowodować uszkodzenie danych. Postaramy się wylogować Ciebie automatycznie, jednak może to chwilę potrwać."
   },
   "updateEncryptionKeyAccountExportWarning": {
     "message": "Wszystkie zapisane eksporty objęte ograniczeniami konta zostaną unieważnione."
@@ -15321,7 +15321,7 @@
     "message": "Otwórz rozszerzenie"
   },
   "doNotHaveExtension": {
-    "message": "Nie masz rozszerzenia Cloudwarden do przeglądarki?"
+    "message": "Nie masz rozszerzenia Bitwarden do przeglądarki?"
   },
   "installExtension": {
     "message": "Zainstaluj rozszerzenie"
@@ -15745,7 +15745,7 @@
     "message": "Pomiń do aplikacji internetowej"
   },
   "bitwardenExtensionInstalled": {
-    "message": "Rozszerzenie Cloudwarden zainstalowane!"
+    "message": "Rozszerzenie Bitwarden zainstalowane!"
   },
   "bitwardenExtensionIsInstalled": {
     "message": "Bitwarden extension is installed!"
@@ -15754,7 +15754,7 @@
     "message": "Otwórz rozszerzenie, aby zalogować się i rozpocząć autouzupełnianie."
   },
   "openBitwardenExtension": {
-    "message": "Otwórz rozszerzenie Cloudwarden"
+    "message": "Otwórz rozszerzenie Bitwarden"
   },
   "gettingStartedWithBitwardenPart1": {
     "message": "Aby uzyskać wskazówki na temat rozpoczęcia z Cloudwarden, odwiedź",

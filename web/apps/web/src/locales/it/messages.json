@@ -399,7 +399,7 @@
     }
   },
   "membersWillReceiveSecurityTask": {
-    "message": "I membri della tua organizzazione dovranno cambiare le password vulnerabili. Riceveranno una notifica all'interno dell'estensione Cloudwarden del loro browser."
+    "message": "I membri della tua organizzazione dovranno cambiare le password vulnerabili. Riceveranno una notifica all'interno dell'estensione Bitwarden del loro browser."
   },
   "membersAtRiskCount": {
     "message": "$COUNT$ membri a rischio",
@@ -2222,7 +2222,7 @@
     "message": "Accedi con dispositivo"
   },
   "loginWithDeviceEnabledNote": {
-    "message": "L'accesso con dispositivo deve essere abilitato nelle impostazioni dell'app Cloudwarden. Ti serve un'altra opzione?"
+    "message": "L'accesso con dispositivo deve essere abilitato nelle impostazioni dell'app Bitwarden. Ti serve un'altra opzione?"
   },
   "needAnotherOptionV1": {
     "message": "Ti serve un'alternativa?"
@@ -2387,7 +2387,7 @@
     "message": "Cos'è un dispositivo?"
   },
   "aDeviceIs": {
-    "message": "Un dispositivo è un'installazione unica dell'app Cloudwarden con la quale hai effettuato l'accesso. Reinstallazione, eliminazione dei dati dell'app o cancellazione dei cookie potrebbero causare la comparsa di un dispositivo più volte."
+    "message": "Un dispositivo è un'installazione unica dell'app Bitwarden con la quale hai effettuato l'accesso. Reinstallazione, eliminazione dei dati dell'app o cancellazione dei cookie potrebbero causare la comparsa di un dispositivo più volte."
   },
   "logInInitiated": {
     "message": "Login avviato"
@@ -4059,7 +4059,7 @@
     "message": "Salva il modulo."
   },
   "twoFactorYubikeyWarning": {
-    "message": "A causa di limitazioni della piattaforma, YubiKey non può essere usato su tutte le app di Cloudwarden. Abilita un altro metodo di verifica in due passaggi per poter accedere al tuo account anche quando YubiKey non può essere usato. Piattaforme supportate:"
+    "message": "A causa di limitazioni della piattaforma, YubiKey non può essere usato su tutte le app di Bitwarden. Abilita un altro metodo di verifica in due passaggi per poter accedere al tuo account anche quando YubiKey non può essere usato. Piattaforme supportate:"
   },
   "twoFactorYubikeySupportUsb": {
     "message": "La cassaforte web, l'app desktop, la CLI e tutte le estensioni per browser su un dispositivo con una porta USB in grado di accettare la tua YubiKey."
@@ -4110,7 +4110,7 @@
     "message": "Disattiva tutti le chiavi"
   },
   "twoFactorDuoDesc": {
-    "message": "Inserisci le informazioni dell'app Cloudwarden dal tuo pannello di amministrazione Duo."
+    "message": "Inserisci le informazioni dell'app Bitwarden dal tuo pannello di amministrazione Duo."
   },
   "twoFactorDuoClientId": {
     "message": "ID cliente"
@@ -4161,7 +4161,7 @@
     "message": "Salva il modulo."
   },
   "twoFactorU2fWarning": {
-    "message": "A causa di limitazioni della piattaforma, FIDO U2F non può essere usato su tutte le app di Cloudwarden. Abilita un altro metodo di verifica in due passaggi per poter accedere al tuo account anche quando FIDO U2F non può essere usato. Piattaforme supportate:"
+    "message": "A causa di limitazioni della piattaforma, FIDO U2F non può essere usato su tutte le app di Bitwarden. Abilita un altro metodo di verifica in due passaggi per poter accedere al tuo account anche quando FIDO U2F non può essere usato. Piattaforme supportate:"
   },
   "twoFactorU2fSupportWeb": {
     "message": "Cassaforte web ed estensione per il browser desktop/laptop con un U2F browser abilitato U2F (Chrome, Opera, Vivaldi o Firefox con FIDO U2F attivato)."
@@ -7403,7 +7403,7 @@
     }
   },
   "updateEncryptionKeyWarning": {
-    "message": "Dopo aver aggiornato la tua chiave di crittografia, devi uscire ed entrare di nuovo in tutte le app Cloudwarden che stai usando (come l'app mobile o l'estensione del browser). Se non si esce e rientra (per scaricare la nuova chiave di crittografia) i dati della tua cassaforte potrebbero essere danneggiati. Cercheremo di farti uscire automaticamente, ma potrebbe esserci un ritardo."
+    "message": "Dopo aver aggiornato la tua chiave di crittografia, devi uscire ed entrare di nuovo in tutte le app Bitwarden che stai usando (come l'app mobile o l'estensione del browser). Se non si esce e rientra (per scaricare la nuova chiave di crittografia) i dati della tua cassaforte potrebbero essere danneggiati. Cercheremo di farti uscire automaticamente, ma potrebbe esserci un ritardo."
   },
   "updateEncryptionKeyAccountExportWarning": {
     "message": "Qualsiasi esportazione effettuata da un account limitato non sarà valida."
@@ -8682,7 +8682,7 @@
     "message": "Come attivare la conferma automatica dell'utente"
   },
   "autoConfirmExtension1": {
-    "message": "Apri l'estensione di Cloudwarden"
+    "message": "Apri l'estensione di Bitwarden"
   },
   "autoConfirmExtension2": {
     "message": "Seleziona",
@@ -15315,13 +15315,13 @@
     "message": "Si è verificato un problema..."
   },
   "openingExtensionError": {
-    "message": "Non è stato possibile aprire l'estensione di Cloudwarden. Riprova cliccando sul pulsante."
+    "message": "Non è stato possibile aprire l'estensione di Bitwarden. Riprova cliccando sul pulsante."
   },
   "openExtension": {
     "message": "Apri estensione"
   },
   "doNotHaveExtension": {
-    "message": "Non hai l'estensione di Cloudwarden installata nel tuo browser?"
+    "message": "Non hai l'estensione di Bitwarden installata nel tuo browser?"
   },
   "installExtension": {
     "message": "Installa estensione"
@@ -15330,7 +15330,7 @@
     "message": "Estensione avviata"
   },
   "openedExtensionViewAtRiskPasswords": {
-    "message": "L'estensione di Cloudwarden è installata e funzionante. Ora è possibile avere una panoramica delle password a rischio."
+    "message": "L'estensione di Bitwarden è installata e funzionante. Ora è possibile avere una panoramica delle password a rischio."
   },
   "resellerRenewalWarningMsg": {
     "message": "Il tuo abbonamento sarà rinnovato a breve. Per assicurarti un servizio continuativo, contatta $RESELLER$ e conferma il tuo rinnovo prima del $RENEWAL_DATE$.",
@@ -15727,7 +15727,7 @@
     "message": "Riempi automaticamente i campi password con un clic"
   },
   "setupExtensionPageDescription": {
-    "message": "Installa l'estensione Cloudwarden e goditi l'auto-compilazione"
+    "message": "Installa l'estensione Bitwarden e goditi l'auto-compilazione"
   },
   "getTheExtension": {
     "message": "Installa l'estensione"
@@ -15745,16 +15745,16 @@
     "message": "Vai a Cloudwarden Web"
   },
   "bitwardenExtensionInstalled": {
-    "message": "Estensione di Cloudwarden installata!"
+    "message": "Estensione di Bitwarden installata!"
   },
   "bitwardenExtensionIsInstalled": {
-    "message": "Estensione di Cloudwarden installata!"
+    "message": "Estensione di Bitwarden installata!"
   },
   "openExtensionToAutofill": {
     "message": "Apri l'estensione cliccando sul tasto della barra degli strumenti e accedi con i tuoi dati per attivare il riempimento automatico."
   },
   "openBitwardenExtension": {
-    "message": "Apri l'estensione di Cloudwarden"
+    "message": "Apri l'estensione di Bitwarden"
   },
   "gettingStartedWithBitwardenPart1": {
     "message": "Per suggerimenti su come muovere i primi passi con Cloudwarden, visita la",
@@ -15777,7 +15777,7 @@
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'For tips on getting started with Bitwarden visit the Learning Center and Help Center'"
   },
   "setupExtensionContentAlt": {
-    "message": "Con l'estensione di Cloudwarden puoi salvare facilmente nuovi login, avere sempre a disposizione quelli salvati e accedere rapidamente ai servizi Web grazie al riempimento automatico."
+    "message": "Con l'estensione di Bitwarden puoi salvare facilmente nuovi login, avere sempre a disposizione quelli salvati e accedere rapidamente ai servizi Web grazie al riempimento automatico."
   },
   "restart": {
     "message": "Riavvia"

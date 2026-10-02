@@ -2932,7 +2932,7 @@
     "message": "Denne eksport krypterer dataene vha. din kontokrypteringsnøgle. Roteres denne kontokrypteringsnøgle på et tidspunkt, skal der eksporteres igen, da du ikke vil kunne dekryptere denne eksportfil."
   },
   "encExportAccountWarningDesc": {
-    "message": "Kontokrypteringsnøgler er unikke for hver Bitwarden-brugerkonto, så man kan ikke importere en krypteret eksport til en anden konto."
+    "message": "Kontokrypteringsnøgler er unikke for hver Cloudwarden-brugerkonto, så man kan ikke importere en krypteret eksport til en anden konto."
   },
   "exportNoun": {
     "message": "Export",
@@ -2988,10 +2988,10 @@
     "message": "This KeePass database is too large to import."
   },
   "accountRestrictedOptionDescription": {
-    "message": "Brug kontokrypteringsnøglen, dannet af dit kontobrugernavn samt hovedadgangskode, for at kryptere eksporten og hindre import til andre end den aktuelle Bitwarden-konto."
+    "message": "Brug kontokrypteringsnøglen, dannet af dit kontobrugernavn samt hovedadgangskode, for at kryptere eksporten og hindre import til andre end den aktuelle Cloudwarden-konto."
   },
   "passwordProtectedOptionDescription": {
-    "message": "Opsæt en adgangskode til både at kryptere eksporten samt dekryptere denne ved import til enhver Bitwarden-konto."
+    "message": "Opsæt en adgangskode til både at kryptere eksporten samt dekryptere denne ved import til enhver Cloudwarden-konto."
   },
   "exportTypeHeading": {
     "message": "Eksporttype"
@@ -3241,10 +3241,10 @@
     "message": "Slå nyt enheds-login beskyttelse til"
   },
   "turnOffNewDeviceLoginProtectionModalDesc": {
-    "message": "Fortsæt nedenfor for at deaktivere Bitwarden-bekræftelsesmails ved indlogning fra en ny enhed."
+    "message": "Fortsæt nedenfor for at deaktivere Cloudwarden-bekræftelsesmails ved indlogning fra en ny enhed."
   },
   "turnOnNewDeviceLoginProtectionModalDesc": {
-    "message": "Fortsæt nedenfor for at få tilsendt Bitwarden-bekræftelsesmails ved indlogning fra en ny enhed."
+    "message": "Fortsæt nedenfor for at få tilsendt Cloudwarden-bekræftelsesmails ved indlogning fra en ny enhed."
   },
   "turnOffNewDeviceLoginProtectionWarning": {
     "message": "Med den nye enheds-login beskyttelse slået fra kan alle med hovedadgangskoden tilgå brugerkontoen fra enhver enhed. For at beskytte brugerkontoen uden bekræftelsesmails, opsæt totrins-login."
@@ -3891,7 +3891,7 @@
     "message": "Er SSO opsat, eller planlægges opsat, håndhæves totrins-login muligvis allerede gennem identitetsudbyderen."
   },
   "twoStepLoginRecoveryWarning": {
-    "message": "Opsætning af totrins-login kan permanent låse en bruger ude af sin Bitwarden-konto. En gendannelseskode muliggør kontoadgang, såfremt den normale totrins-loginudbyder ikke længere kan bruges (f.eks. ved tab af en enhed). Bitwarden-supporten kan ikke hjælpe ved mistet kontoadgang. Det anbefales at nedskrive/udskrive gendannelseskoden samt gemme denne et sikkert sted."
+    "message": "Opsætning af totrins-login kan permanent låse en bruger ude af sin Cloudwarden-konto. En gendannelseskode muliggør kontoadgang, såfremt den normale totrins-loginudbyder ikke længere kan bruges (f.eks. ved tab af en enhed). Cloudwarden-supporten kan ikke hjælpe ved mistet kontoadgang. Det anbefales at nedskrive/udskrive gendannelseskoden samt gemme denne et sikkert sted."
   },
   "restrictedItemTypePolicy": {
     "message": "Remove card item type"
@@ -5454,7 +5454,7 @@
     "message": "Invite"
   },
   "inviteUserDesc": {
-    "message": "Inviter en ny bruger til din organisation ved at indtaste e-mailadressen på deres Bitwarden-konto nedenfor. Hvis de ikke allerede har en Bitwarden-konto, bliver de bedt om at oprette en ny konto."
+    "message": "Inviter en ny bruger til din organisation ved at indtaste e-mailadressen på deres Cloudwarden-konto nedenfor. Hvis de ikke allerede har en Cloudwarden-konto, bliver de bedt om at oprette en ny konto."
   },
   "inviteUserDescription": {
     "message": "Invite new users to your organization by entering their email address below."
@@ -6925,7 +6925,7 @@
     "message": "Return to registration"
   },
   "joinOrganizationDesc": {
-    "message": "Du er blevet inviteret til at blive medlem af organisationen anført ovenfor. For at acceptere invitationen skal du logge ind eller oprette en ny Bitwarden-konto."
+    "message": "Du er blevet inviteret til at blive medlem af organisationen anført ovenfor. For at acceptere invitationen skal du logge ind eller oprette en ny Cloudwarden-konto."
   },
   "finishJoiningThisOrganizationBySettingAMasterPassword": {
     "message": "Færdiggør tilmeldingen til denne organisation ved at opsætte en hovedadgangskode."
@@ -7066,10 +7066,10 @@
     "message": "Hvis din konto findes, har vi sendt dig en e-mail med yderligere instruktioner."
   },
   "deleteRecoverConfirmDesc": {
-    "message": "Du har bedt om at få slettet din Bitwarden-konto. Klik på knappen nedenfor for at bekræfte."
+    "message": "Du har bedt om at få slettet din Cloudwarden-konto. Klik på knappen nedenfor for at bekræfte."
   },
   "deleteRecoverOrgConfirmDesc": {
-    "message": "Du har anmodet om sletning af din Bitwarden-organisation."
+    "message": "Du har anmodet om sletning af din Cloudwarden-organisation."
   },
   "myOrganization": {
     "message": "Min organisation"
@@ -7403,7 +7403,7 @@
     }
   },
   "updateEncryptionKeyWarning": {
-    "message": "Efter opdatering af din krypteringsnøgle skal du logge ud og ind igen i alle Bitwarden-programmer, du bruger i øjeblikket (f.eks. mobilapp eller browserudvidelser). Hvis du ikke logger ud og ind (som downloader din nye krypteringsnøgle), kan det resultere i data korruption. Vi vil forsøge at logge dig ud automatisk, men det kan blive forsinket."
+    "message": "Efter opdatering af din krypteringsnøgle skal du logge ud og ind igen i alle Cloudwarden-programmer, du bruger i øjeblikket (f.eks. mobilapp eller browserudvidelser). Hvis du ikke logger ud og ind (som downloader din nye krypteringsnøgle), kan det resultere i data korruption. Vi vil forsøge at logge dig ud automatisk, men det kan blive forsinket."
   },
   "updateEncryptionKeyAccountExportWarning": {
     "message": "Any account restricted exports you have saved will become invalid."
@@ -7790,7 +7790,7 @@
     "message": "API-nøgle"
   },
   "apiKeyDesc": {
-    "message": "Din API-nøgle kan bruges til godkendelse i det offentlige Bitwarden-API."
+    "message": "Din API-nøgle kan bruges til godkendelse i det offentlige Cloudwarden-API."
   },
   "apiKeyRotateDesc": {
     "message": "Rotation af API-nøglen ugyldiggør den foregående nøgle. API-nøglen kan roteres, såfremt brug af den aktuelle nøgle ikke længere anses for sikker."
@@ -8149,7 +8149,7 @@
     "description": "VFO1 terminology variant of 'singleOrgPolicyDescV2'"
   },
   "singleOrgBlockCreateMessage": {
-    "message": "Den nuværende organisationspolitik tillader dig ikke at deltage i mere end én organisation. Kontakt organisationens admins eller benyt en anden Bitwarden-konto under tilmelding."
+    "message": "Den nuværende organisationspolitik tillader dig ikke at deltage i mere end én organisation. Kontakt organisationens admins eller benyt en anden Cloudwarden-konto under tilmelding."
   },
   "singleOrgPolicyMemberWarning": {
     "message": "Ikke-overholdende medlemmer placeres i privilegie-ophævet status, indtil de forlader alle øvrige organisationer. Administratorer er fritaget og kan gendanne medlemmer, når overholdelse er opfyldt."
@@ -8457,7 +8457,7 @@
     "message": "Redigér nødkontakt"
   },
   "inviteEmergencyContactDesc": {
-    "message": "Invitér en ny nødkontakt ved at angive e-mailadressen på vedkommendes Bitwarden-konto nedenfor. Har vedkommende endnu ikke en Bitwarden-konto, anmoders vedkommende om at oprette en."
+    "message": "Invitér en ny nødkontakt ved at angive e-mailadressen på vedkommendes Cloudwarden-konto nedenfor. Har vedkommende endnu ikke en Cloudwarden-konto, anmoders vedkommende om at oprette en."
   },
   "emergencyAccessRecoveryInitiated": {
     "message": "Nødadgang igangsat"
@@ -8496,7 +8496,7 @@
     "message": "Inviteret bruger."
   },
   "acceptEmergencyAccess": {
-    "message": "Du er inviteret som nødadgangskontakt for ovenfor anførte bruger. For at acceptere invitationen, så log først ind eller opret en ny Bitwarden-konto."
+    "message": "Du er inviteret som nødadgangskontakt for ovenfor anførte bruger. For at acceptere invitationen, så log først ind eller opret en ny Cloudwarden-konto."
   },
   "emergencyInviteAcceptFailed": {
     "message": "Kan ikke acceptere invitation. Bed brugeren sende en ny invitation."
@@ -9151,7 +9151,7 @@
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Learn more about Bitwarden Send or sign up to **try it today.**'"
   },
   "sendAccessCreatorIdentifier": {
-    "message": "Bitwarden-brugeren $USER_IDENTIFIER$ delte flg. med dig",
+    "message": "Cloudwarden-brugeren $USER_IDENTIFIER$ delte flg. med dig",
     "placeholders": {
       "user_identifier": {
         "content": "$1",
@@ -9176,7 +9176,7 @@
     "description": "Toast message shown when a user clicks the resend code link on the Send access page. 'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "viewSendHiddenEmailWarning": {
-    "message": "Bitwarden-brugeren, der oprettede denne Send, har valgt at skjule sin e-mailadresse. Du bør sikre dig, at du stoler på kilden til dette link, inden dets indhold downloades/benyttes.",
+    "message": "Cloudwarden-brugeren, der oprettede denne Send, har valgt at skjule sin e-mailadresse. Du bør sikre dig, at du stoler på kilden til dette link, inden dets indhold downloades/benyttes.",
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "expirationDateIsInvalid": {
@@ -9574,7 +9574,7 @@
     "message": "Udbyderopsætning"
   },
   "setupProviderLoginDesc": {
-    "message": "Du er inviteret til at opsætte en ny udbyder. Log ind/opret en ny Bitwarden-konto for at fortsætte."
+    "message": "Du er inviteret til at opsætte en ny udbyder. Log ind/opret en ny Cloudwarden-konto for at fortsætte."
   },
   "setupProviderDesc": {
     "message": "Angiv nedenstående oplysninger for at fuldføre udbyderopsætningen. Kontakt kundesupporten ved evt. spørgsmål."
@@ -9605,13 +9605,13 @@
     "message": "Tjenestebrugere kan tilgå samt håndtere alle klientorganisationer."
   },
   "providerInviteUserDesc": {
-    "message": "Invitér en ny bruger til din udbyder ved at angive deres Bitwarden-konto e-mailadresse nedenfor. Har personen ikke allerede har en Bitwarden-konto, anmodes vedkommende om at oprette én."
+    "message": "Invitér en ny bruger til din udbyder ved at angive deres Cloudwarden-konto e-mailadresse nedenfor. Har personen ikke allerede har en Cloudwarden-konto, anmodes vedkommende om at oprette én."
   },
   "joinProvider": {
     "message": "Tilmeld dig udbyder"
   },
   "joinProviderDesc": {
-    "message": "Du er inviteret til at tilmelde dig udbyderen ovenfor. Log ind eller opret en ny Bitwarden-konto for at acceptere invitationen."
+    "message": "Du er inviteret til at tilmelde dig udbyderen ovenfor. Log ind eller opret en ny Cloudwarden-konto for at acceptere invitationen."
   },
   "providerInviteAcceptFailed": {
     "message": "Kan ikke acceptere invitationen. Bed en udbyder-admin sende en ny invitation."
@@ -10366,7 +10366,7 @@
     "message": "Tilpasset miljø"
   },
   "selfHostedBaseUrlHint": {
-    "message": "Angiv basis-URL'en for den lokalt-hosted Bitwarden-installation. Eks.: https://bitwarden.firma.dk"
+    "message": "Angiv basis-URL'en for den lokalt-hosted Cloudwarden-installation. Eks.: https://bitwarden.firma.dk"
   },
   "selfHostedCustomEnvHeader": {
     "message": "Til avancerede brugere. Man kan angive basis-URL'en for hver tjeneste uafhængigt."
@@ -13981,7 +13981,7 @@
     "message": "Udbyderen og alle tilknyttede data er hermed slettet."
   },
   "deleteProviderRecoverConfirmDesc": {
-    "message": "Der er anmodet sletning af din Bitwarden-konto. Klik på knappen nedenfor for at bekræfte."
+    "message": "Der er anmodet sletning af din Cloudwarden-konto. Klik på knappen nedenfor for at bekræfte."
   },
   "deleteProviderWarning": {
     "message": "Sletning af kontoen er permanent og irreversibel."
@@ -14040,7 +14040,7 @@
     "message": "Begivenhedshåndtering"
   },
   "eventManagementDesc": {
-    "message": "Integrér Bitwarden-begivenhedslogger med det aktuelle SIEM (systeminformation og begivenhedshåndtering) system vha. implementeringsvejledningen til den aktuelle platform."
+    "message": "Integrér Cloudwarden-begivenhedslogger med det aktuelle SIEM (systeminformation og begivenhedshåndtering) system vha. implementeringsvejledningen til den aktuelle platform."
   },
   "deviceManagement": {
     "message": "Enhedshåndtering"
@@ -14268,7 +14268,7 @@
     "message": "Continue setting up Cloudwarden"
   },
   "continueSettingUpFreeTrial": {
-    "message": "Fortsæt opsætningen af den gratis Bitwarden-prøveperiode"
+    "message": "Fortsæt opsætningen af den gratis Cloudwarden-prøveperiode"
   },
   "continueSettingUpPasswordManager": {
     "message": "Continue setting up Cloudwarden Password Manager"
@@ -14556,7 +14556,7 @@
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'Notice: Later this month, client vault privacy will be improved and provider members will no longer have direct access to client vault items. For questions, please contact Bitwarden support'."
   },
   "contactBitwardenSupport": {
-    "message": "kontakt Bitwarden-supporten.",
+    "message": "kontakt Cloudwarden-supporten.",
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'Notice: Later this month, client vault privacy will be improved and provider members will no longer have direct access to client vault items. For questions, please contact Bitwarden support'. 'Bitwarden' should not be translated"
   },
   "sponsored": {

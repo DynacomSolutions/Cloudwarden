@@ -399,7 +399,7 @@
     }
   },
   "membersWillReceiveSecurityTask": {
-    "message": "Medlemmar i din organisation kommer att tilldelas en uppgift att ändra sårbara lösenord. De kommer att få ett meddelande i deras Bitwarden-webbläsartillägg."
+    "message": "Medlemmar i din organisation kommer att tilldelas en uppgift att ändra sårbara lösenord. De kommer att få ett meddelande i deras Cloudwarden-webbläsartillägg."
   },
   "membersAtRiskCount": {
     "message": "$COUNT$ medlemmar i riskzonen",
@@ -2932,7 +2932,7 @@
     "message": "Denna export krypterar dina data med kontots krypteringsnyckel. Om du någonsin roterar kontots krypteringsnyckel bör du exportera igen eftersom du inte kommer att kunna dekryptera denna exportfil."
   },
   "encExportAccountWarningDesc": {
-    "message": "Kypteringsnycklar är unika för varje Bitwarden-konto, så du kan inte importera en krypterad export till ett annat konto."
+    "message": "Kypteringsnycklar är unika för varje Cloudwarden-konto, så du kan inte importera en krypterad export till ett annat konto."
   },
   "exportNoun": {
     "message": "Export",
@@ -2988,10 +2988,10 @@
     "message": "This KeePass database is too large to import."
   },
   "accountRestrictedOptionDescription": {
-    "message": "Använd ditt kontos krypteringsnyckel, som härrör från ditt kontos användarnamn och huvudlösenord, för att kryptera exporten och begränsa importen till endast det aktuella Bitwarden-kontot."
+    "message": "Använd ditt kontos krypteringsnyckel, som härrör från ditt kontos användarnamn och huvudlösenord, för att kryptera exporten och begränsa importen till endast det aktuella Cloudwarden-kontot."
   },
   "passwordProtectedOptionDescription": {
-    "message": "Välj ett fillösenord för att kryptera exportfilen. Filen kan sedan importeras till valfritt Bitwarden-konto med hjälp av fillösenordet."
+    "message": "Välj ett fillösenord för att kryptera exportfilen. Filen kan sedan importeras till valfritt Cloudwarden-konto med hjälp av fillösenordet."
   },
   "exportTypeHeading": {
     "message": "Exportera typ"
@@ -3891,7 +3891,7 @@
     "message": "Om du har konfigurerat SSO eller planerar att göra det, kan tvåstegsverifiering redan krävas av din ID-leverantör."
   },
   "twoStepLoginRecoveryWarning": {
-    "message": "Att aktivera tvåstegsverifiering kan låsa ute dig från ditt Bitwarden-konto permanent. En återställningskod låter dig komma åt ditt konto om du inte längre kan använda din vanliga metod för tvåstegsverifiering (t.ex. om du förlorar din enhet). Bitwardens kundservice kommer inte att kunna hjälpa dig om du förlorar åtkomst till ditt konto. Vi rekommenderar att du skriver ner eller skriver ut återställningskoden och förvarar den på ett säkert ställe."
+    "message": "Att aktivera tvåstegsverifiering kan låsa ute dig från ditt Cloudwarden-konto permanent. En återställningskod låter dig komma åt ditt konto om du inte längre kan använda din vanliga metod för tvåstegsverifiering (t.ex. om du förlorar din enhet). Bitwardens kundservice kommer inte att kunna hjälpa dig om du förlorar åtkomst till ditt konto. Vi rekommenderar att du skriver ner eller skriver ut återställningskoden och förvarar den på ett säkert ställe."
   },
   "restrictedItemTypePolicy": {
     "message": "Ta bort kortets artikeltyp"
@@ -5454,7 +5454,7 @@
     "message": "Invite"
   },
   "inviteUserDesc": {
-    "message": "Bjud in en ny användare till din organisation genom att ange e-postadressen som tillhör deras Bitwarden-konto nedan. Om de inte redan har ett Bitwarden-konto kommer de uppmanas att skapa ett."
+    "message": "Bjud in en ny användare till din organisation genom att ange e-postadressen som tillhör deras Cloudwarden-konto nedan. Om de inte redan har ett Cloudwarden-konto kommer de uppmanas att skapa ett."
   },
   "inviteUserDescription": {
     "message": "Invite new users to your organization by entering their email address below."
@@ -6925,7 +6925,7 @@
     "message": "Return to registration"
   },
   "joinOrganizationDesc": {
-    "message": "Du har bjudits in att gå med i organisationen ovan. För att acceptera inbjudan måste du logga in eller skapa ett nytt Bitwarden-konto."
+    "message": "Du har bjudits in att gå med i organisationen ovan. För att acceptera inbjudan måste du logga in eller skapa ett nytt Cloudwarden-konto."
   },
   "finishJoiningThisOrganizationBySettingAMasterPassword": {
     "message": "Avsluta anslutningen till denna organisation genom att ange ett huvudlösenord."
@@ -7066,10 +7066,10 @@
     "message": "Om ditt konto finns så har vi skickat ett e-postmeddelande till dig med vidare instruktioner."
   },
   "deleteRecoverConfirmDesc": {
-    "message": "Du har begärt att radera ditt Bitwarden-konto. Klicka på knappen nedan för att bekräfta."
+    "message": "Du har begärt att radera ditt Cloudwarden-konto. Klicka på knappen nedan för att bekräfta."
   },
   "deleteRecoverOrgConfirmDesc": {
-    "message": "Du har begärt att få radera din Bitwarden-organisation."
+    "message": "Du har begärt att få radera din Cloudwarden-organisation."
   },
   "myOrganization": {
     "message": "Min organisation"
@@ -7403,7 +7403,7 @@
     }
   },
   "updateEncryptionKeyWarning": {
-    "message": "Efter att ha uppdaterat din krypteringsnyckel, måste du logga ut och in igen i alla Bitwarden-program som du använder (t.ex. mobilappen och webbläsartillägget). Att inte logga ut och in igen (vilket hämtar din nya krypteringsnyckel) kan resultera i datakorruption. Vi kommer försöka logga ut dig automatiskt, men det kan vara fördröjt."
+    "message": "Efter att ha uppdaterat din krypteringsnyckel, måste du logga ut och in igen i alla Cloudwarden-program som du använder (t.ex. mobilappen och webbläsartillägget). Att inte logga ut och in igen (vilket hämtar din nya krypteringsnyckel) kan resultera i datakorruption. Vi kommer försöka logga ut dig automatiskt, men det kan vara fördröjt."
   },
   "updateEncryptionKeyAccountExportWarning": {
     "message": "Alla kontobegränsade exporter som du har sparat kommer att bli ogiltiga."
@@ -7725,7 +7725,7 @@
     "message": "Svagt huvudlösenord"
   },
   "weakMasterPasswordDesc": {
-    "message": "Huvudlösenordet du har valt är svagt. Du bör använda ett starkt huvudlösenord (eller en lösenordsfras) för att skydda ditt Bitwarden-konto ordentligt. Är du säker på att du vill använda detta huvudlösenord?"
+    "message": "Huvudlösenordet du har valt är svagt. Du bör använda ett starkt huvudlösenord (eller en lösenordsfras) för att skydda ditt Cloudwarden-konto ordentligt. Är du säker på att du vill använda detta huvudlösenord?"
   },
   "rotateAccountEncKey": {
     "message": "Rotera även mitt kontos krypteringsnyckel"
@@ -8149,7 +8149,7 @@
     "description": "VFO1 terminology variant of 'singleOrgPolicyDescV2'"
   },
   "singleOrgBlockCreateMessage": {
-    "message": "Din nuvarande organisation har en policy som hindrar dig från att gå med i fler än en organisation. Vänligen kontakta din organisations administratörer eller registrera ett annat Bitwarden-konto."
+    "message": "Din nuvarande organisation har en policy som hindrar dig från att gå med i fler än en organisation. Vänligen kontakta din organisations administratörer eller registrera ett annat Cloudwarden-konto."
   },
   "singleOrgPolicyMemberWarning": {
     "message": "Medlemmar som inte uppfyller kraven kommer att få statusen återkallad tills de lämnar alla andra organisationer. Administratörer är undantagna och kan återställa medlemmar när efterlevnaden är uppfylld."
@@ -8457,7 +8457,7 @@
     "message": "Redigera nödkontakt"
   },
   "inviteEmergencyContactDesc": {
-    "message": "Bjud in en nödkontakt genom att ange e-postadressen som tillhör deras Bitwarden-konto nedan. Om de inte redan har ett Bitwarden-konto kommer de uppmanas att skapa ett."
+    "message": "Bjud in en nödkontakt genom att ange e-postadressen som tillhör deras Cloudwarden-konto nedan. Om de inte redan har ett Cloudwarden-konto kommer de uppmanas att skapa ett."
   },
   "emergencyAccessRecoveryInitiated": {
     "message": "Nödåtkomst initierad"
@@ -8496,7 +8496,7 @@
     "message": "Bjöd in användare."
   },
   "acceptEmergencyAccess": {
-    "message": "Du har blivit inbjuden att bli nödkontakt åt användaren ovan. För att acceptera inbjudan måste du logga in eller skapa ett nytt Bitwarden-konto."
+    "message": "Du har blivit inbjuden att bli nödkontakt åt användaren ovan. För att acceptera inbjudan måste du logga in eller skapa ett nytt Cloudwarden-konto."
   },
   "emergencyInviteAcceptFailed": {
     "message": "Det gick inte att acceptera inbjudan. Be användaren att skicka en ny inbjudan."
@@ -8693,7 +8693,7 @@
     "description": "This is a fragment of a larger sencence. The whole sentence will read: 'Select Turn on'"
   },
   "autoConfirmExtensionOpened": {
-    "message": "Lyckades öppna Bitwarden-webbläsartillägg. Du kan nu aktivera inställningen för automatisk bekräftelse av användaren."
+    "message": "Lyckades öppna Cloudwarden-webbläsartillägg. Du kan nu aktivera inställningen för automatisk bekräftelse av användaren."
   },
   "autoConfirmPolicyEditDescription": {
     "message": "Nya användare som bjuds in till organisationen kommer automatiskt att bekräftas när en administratörs enhet är upplåst. Innan du aktiverar denna policy, granska och godkänn följande: ",
@@ -9151,7 +9151,7 @@
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Learn more about Bitwarden Send or sign up to **try it today.**'"
   },
   "sendAccessCreatorIdentifier": {
-    "message": "Bitwarden-medlemmen $USER_IDENTIFIER$ delade med sig av följande till dig",
+    "message": "Cloudwarden-medlemmen $USER_IDENTIFIER$ delade med sig av följande till dig",
     "placeholders": {
       "user_identifier": {
         "content": "$1",
@@ -9176,7 +9176,7 @@
     "description": "Toast message shown when a user clicks the resend code link on the Send access page. 'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "viewSendHiddenEmailWarning": {
-    "message": "Bitwarden-användaren som skapade denna Send har valt att dölja sin e-postadress. Du bör se till att du litar på källan till denna länk innan du använder eller hämtar innehållet.",
+    "message": "Cloudwarden-användaren som skapade denna Send har valt att dölja sin e-postadress. Du bör se till att du litar på källan till denna länk innan du använder eller hämtar innehållet.",
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "expirationDateIsInvalid": {
@@ -9574,7 +9574,7 @@
     "message": "Inställning av leverantör"
   },
   "setupProviderLoginDesc": {
-    "message": "Du har blivit inbjuden att skapa en ny Provider. För att fortsätta måste du logga in eller skapa ett nytt Bitwarden-konto."
+    "message": "Du har blivit inbjuden att skapa en ny Provider. För att fortsätta måste du logga in eller skapa ett nytt Cloudwarden-konto."
   },
   "setupProviderDesc": {
     "message": "Fyll i uppgifterna nedan för att slutföra Provider-inställningen. Kontakta kundtjänst om du har några frågor."
@@ -9605,13 +9605,13 @@
     "message": "Tjänstanvändare kan komma åt och hantera alla klientorganisationer."
   },
   "providerInviteUserDesc": {
-    "message": "Bjud in en ny användare till din Provider genom att ange e-postadressen till deras Bitwarden-konto nedan. Om de inte redan har ett Bitwarden-konto kommer de att uppmanas att skapa ett nytt konto."
+    "message": "Bjud in en ny användare till din Provider genom att ange e-postadressen till deras Cloudwarden-konto nedan. Om de inte redan har ett Cloudwarden-konto kommer de att uppmanas att skapa ett nytt konto."
   },
   "joinProvider": {
     "message": "Anslut leverantör"
   },
   "joinProviderDesc": {
-    "message": "Du har blivit inbjuden att gå med i den leverantör som anges ovan. För att acceptera inbjudan måste du logga in eller skapa ett nytt Bitwarden-konto."
+    "message": "Du har blivit inbjuden att gå med i den leverantör som anges ovan. För att acceptera inbjudan måste du logga in eller skapa ett nytt Cloudwarden-konto."
   },
   "providerInviteAcceptFailed": {
     "message": "Det går inte att acceptera inbjudan. Be en Provider-administratör att skicka en ny inbjudan."
@@ -10039,7 +10039,7 @@
     "message": "No non-members have redeemed the Sponsored Family Plan."
   },
   "sponsorshipFreeBitwardenFamilies": {
-    "message": "Medlemmar i din organisation är berättigade till Free Cloudwarden Families. Du kan sponsra Free Cloudwarden Families för anställda som inte är medlemmar i din Bitwarden-organisation. För att sponsra en icke-medlem krävs en ledig plats inom din organisation."
+    "message": "Medlemmar i din organisation är berättigade till Free Cloudwarden Families. Du kan sponsra Free Cloudwarden Families för anställda som inte är medlemmar i din Cloudwarden-organisation. För att sponsra en icke-medlem krävs en ledig plats inom din organisation."
   },
   "sponsorshipFreeBitwardenFamiliesV2": {
     "message": "Your members are eligible to redeem a Sponsored Families Plan. You can sponsor a Families plan for employees who are not members of your Cloudwarden organization, but this will require available seats within your organization."
@@ -10366,7 +10366,7 @@
     "message": "Anpassad miljö"
   },
   "selfHostedBaseUrlHint": {
-    "message": "Ange bas-URL:en för din lokala Bitwarden-installation. Exempel: https://bitwarden.company.com"
+    "message": "Ange bas-URL:en för din lokala Cloudwarden-installation. Exempel: https://bitwarden.company.com"
   },
   "selfHostedCustomEnvHeader": {
     "message": "För avancerad konfiguration kan du ange bas-URL:en för varje tjänst separat."
@@ -15546,7 +15546,7 @@
     "message": "Uppgradera för att se händelseloggar från din organisation."
   },
   "upgradeEventLogMessage": {
-    "message": "Dessa händelser är endast exempel och återspeglar inte verkliga händelser inom din Bitwarden-organisation."
+    "message": "Dessa händelser är endast exempel och återspeglar inte verkliga händelser inom din Cloudwarden-organisation."
   },
   "viewEvents": {
     "message": "Visa händelser"
@@ -16543,7 +16543,7 @@
     "message": "Har du redan ett abonnemang?"
   },
   "alreadyHaveSubscriptionSelfHostedMessage": {
-    "message": "Öppna prenumerationssidan på ditt Bitwarden-molnkonto och ladda ner din licensfil. Återvänd sedan till den här skärmen och ladda upp den nedan."
+    "message": "Öppna prenumerationssidan på ditt Cloudwarden-molnkonto och ladda ner din licensfil. Återvänd sedan till den här skärmen och ladda upp den nedan."
   },
   "alreadyHaveSubscriptionSelfHostedMessageV2": {
     "message": "Open the subscription page on your Cloudwarden account and download your license file. Then return to this screen and upload it below."

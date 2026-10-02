@@ -399,7 +399,7 @@
     }
   },
   "membersWillReceiveSecurityTask": {
-    "message": "Учасникам вашої організації буде присвоєно завдання зі зміни вразливих паролів. Вони отримають сповіщення у розширенні браузера Cloudwarden."
+    "message": "Учасникам вашої організації буде присвоєно завдання зі зміни вразливих паролів. Вони отримають сповіщення у розширенні браузера Bitwarden."
   },
   "membersAtRiskCount": {
     "message": "$COUNT$ учасників з ризиком",
@@ -8682,7 +8682,7 @@
     "message": "Як увімкнути автоматичне підтвердження користувачів"
   },
   "autoConfirmExtension1": {
-    "message": "Відкрийте своє розширення Cloudwarden"
+    "message": "Відкрийте своє розширення Bitwarden"
   },
   "autoConfirmExtension2": {
     "message": "Виберіть",
@@ -15309,19 +15309,19 @@
     "message": "Копіювати закритий ключ"
   },
   "openingExtension": {
-    "message": "Відкриття розширення браузера Cloudwarden"
+    "message": "Відкриття розширення браузера Bitwarden"
   },
   "somethingWentWrong": {
     "message": "Щось пішло не так..."
   },
   "openingExtensionError": {
-    "message": "Виникли проблеми з відкриттям розширення браузера Cloudwarden. Натисніть кнопку, щоб відкрити його зараз."
+    "message": "Виникли проблеми з відкриттям розширення браузера Bitwarden. Натисніть кнопку, щоб відкрити його зараз."
   },
   "openExtension": {
     "message": "Відкрити розширення"
   },
   "doNotHaveExtension": {
-    "message": "Не встановлено розширення браузера Cloudwarden?"
+    "message": "Не встановлено розширення браузера Bitwarden?"
   },
   "installExtension": {
     "message": "Встановити розширення"
@@ -15330,7 +15330,7 @@
     "message": "Відкрито розширення браузера"
   },
   "openedExtensionViewAtRiskPasswords": {
-    "message": "Розширення браузера Cloudwarden успішно відкрито. Тепер ви можете переглянути свої ризиковані паролі."
+    "message": "Розширення браузера Bitwarden успішно відкрито. Тепер ви можете переглянути свої ризиковані паролі."
   },
   "resellerRenewalWarningMsg": {
     "message": "Ваша передплата невдовзі поновиться. Щоб забезпечити безперебійну роботу, зверніться до $RESELLER$ для підтвердження поновлення до $RENEWAL_DATE$.",
@@ -15745,7 +15745,7 @@
     "message": "Перейти до вебпрограми"
   },
   "bitwardenExtensionInstalled": {
-    "message": "Розширення Cloudwarden встановлено!"
+    "message": "Розширення Bitwarden встановлено!"
   },
   "bitwardenExtensionIsInstalled": {
     "message": "Bitwarden extension is installed!"
@@ -15754,7 +15754,7 @@
     "message": "Відкрийте розширення, щоб увійти й користуватися автозаповненням."
   },
   "openBitwardenExtension": {
-    "message": "Відкрити розширення Cloudwarden"
+    "message": "Відкрити розширення Bitwarden"
   },
   "gettingStartedWithBitwardenPart1": {
     "message": "Щоб переглянути поради щодо початку роботи з Cloudwarden, відвідайте",

@@ -21,7 +21,7 @@
     "message": "Alle kritischen Apps"
   },
   "appLogoLabel": {
-    "message": "Bitwarden-Logo"
+    "message": "Cloudwarden-Logo"
   },
   "criticalApplications": {
     "message": "Kritische Anwendungen"
@@ -399,7 +399,7 @@
     }
   },
   "membersWillReceiveSecurityTask": {
-    "message": "Den Mitgliedern deiner Organisation wird die Aufgabe zugewiesen, sensible Passwörter zu ändern. Sie erhalten eine Benachrichtigung innerhalb ihrer Cloudwarden Browser-Erweiterung."
+    "message": "Den Mitgliedern deiner Organisation wird die Aufgabe zugewiesen, sensible Passwörter zu ändern. Sie erhalten eine Benachrichtigung innerhalb ihrer Bitwarden Browser-Erweiterung."
   },
   "membersAtRiskCount": {
     "message": "$COUNT$ gefährdete Mitglieder",
@@ -2222,7 +2222,7 @@
     "message": "Mit Gerät anmelden"
   },
   "loginWithDeviceEnabledNote": {
-    "message": "Die Anmeldung über ein Gerät muss in den Einstellungen der Cloudwarden App eingerichtet werden. Benötigst du eine andere Option?"
+    "message": "Die Anmeldung über ein Gerät muss in den Einstellungen der Bitwarden App eingerichtet werden. Benötigst du eine andere Option?"
   },
   "needAnotherOptionV1": {
     "message": "Brauchst du eine andere Option?"
@@ -2932,7 +2932,7 @@
     "message": "Dieser Export verschlüsselt deine Daten mit dem Verschlüsselungscode deines Kontos. Falls du deinen Verschlüsselungscode erneuerst, solltest du den Export erneut durchführen, da du die zuvor erstellte Datei ansonsten nicht mehr entschlüsseln kannst."
   },
   "encExportAccountWarningDesc": {
-    "message": "Die Verschlüsselungscodes eines Kontos sind für jedes Bitwarden-Benutzerkonto einzigartig, deshalb kannst du keinen verschlüsselten Export in ein anderes Konto importieren."
+    "message": "Die Verschlüsselungscodes eines Kontos sind für jedes Cloudwarden-Benutzerkonto einzigartig, deshalb kannst du keinen verschlüsselten Export in ein anderes Konto importieren."
   },
   "exportNoun": {
     "message": "Export",
@@ -2988,10 +2988,10 @@
     "message": "Diese KeePass-Datenbank ist zu groß, um sie zu importieren."
   },
   "accountRestrictedOptionDescription": {
-    "message": "Verwende den Verschlüsselungscode deines Kontos, abgeleitet vom Benutzernamen und Master-Passwort, um den Export zu verschlüsseln und den Import auf das aktuelle Bitwarden-Konto zu beschränken."
+    "message": "Verwende den Verschlüsselungscode deines Kontos, abgeleitet vom Benutzernamen und Master-Passwort, um den Export zu verschlüsseln und den Import auf das aktuelle Cloudwarden-Konto zu beschränken."
   },
   "passwordProtectedOptionDescription": {
-    "message": "Lege ein Dateipasswort fest, um den Export zu verschlüsseln und importiere ihn in ein beliebiges Bitwarden-Konto, wobei das Passwort zum Entschlüsseln genutzt wird."
+    "message": "Lege ein Dateipasswort fest, um den Export zu verschlüsseln und importiere ihn in ein beliebiges Cloudwarden-Konto, wobei das Passwort zum Entschlüsseln genutzt wird."
   },
   "exportTypeHeading": {
     "message": "Exporttyp"
@@ -3891,7 +3891,7 @@
     "message": "Wenn SSO eingerichtet oder dies geplant ist, wird die Zwei-Faktor-Authentifizierung möglicherweise bereits über den Identitätsanbieter erzwungen."
   },
   "twoStepLoginRecoveryWarning": {
-    "message": "Durch die Aktivierung der Zwei-Faktor-Authentifizierung kannst du dich dauerhaft aus deinem Bitwarden-Konto aussperren. Ein Wiederherstellungscode ermöglicht es dir, auf dein Konto zuzugreifen, falls du deinen normalen Zwei-Faktor-Anbieter nicht mehr verwenden kannst (z.B. wenn du dein Gerät verlierst). Der Bitwarden-Support kann dir nicht helfen, wenn du den Zugang zu deinem Konto verlierst. Wir empfehlen dir, den Wiederherstellungscode aufzuschreiben oder auszudrucken und an einem sicheren Ort aufzubewahren."
+    "message": "Durch die Aktivierung der Zwei-Faktor-Authentifizierung kannst du dich dauerhaft aus deinem Cloudwarden-Konto aussperren. Ein Wiederherstellungscode ermöglicht es dir, auf dein Konto zuzugreifen, falls du deinen normalen Zwei-Faktor-Anbieter nicht mehr verwenden kannst (z.B. wenn du dein Gerät verlierst). Der Cloudwarden-Support kann dir nicht helfen, wenn du den Zugang zu deinem Konto verlierst. Wir empfehlen dir, den Wiederherstellungscode aufzuschreiben oder auszudrucken und an einem sicheren Ort aufzubewahren."
   },
   "restrictedItemTypePolicy": {
     "message": "Karten-Eintragstyp entfernen"
@@ -4738,7 +4738,7 @@
     }
   },
   "churnOfferDiscountBody": {
-    "message": "Als Dankeschön dafür, dass du schon so lange Bitwarden-Kunde bist, möchten wir dir einen Rabatt in Höhe von $DISCOUNT$ für eine Dauer von $DURATION$ anbieten.",
+    "message": "Als Dankeschön dafür, dass du schon so lange Cloudwarden-Kunde bist, möchten wir dir einen Rabatt in Höhe von $DISCOUNT$ für eine Dauer von $DURATION$ anbieten.",
     "description": "Body copy on the churn-mitigation offer card. DISCOUNT = discount amount; DURATION = service duration (e.g. 'year' or '6 months')",
     "placeholders": {
       "discount": {
@@ -4800,7 +4800,7 @@
     }
   },
   "churnOfferDiscountBodyRecurringAmount": {
-    "message": "Als Dankeschön, dass du schon so lange Bitwarden-Kunde bist, bieten wir dir für die nächsten $DURATION$ einen Rabatt von $AMOUNT$ auf jedes $INTERVAL$ an.",
+    "message": "Als Dankeschön, dass du schon so lange Cloudwarden-Kunde bist, bieten wir dir für die nächsten $DURATION$ einen Rabatt von $AMOUNT$ auf jedes $INTERVAL$ an.",
     "description": "Body copy on the churn-mitigation offer card for a fixed-amount discount that repeats each billing period. AMOUNT = discount amount (e.g. '$15.00'); INTERVAL = billing interval unit (e.g. 'month'); DURATION = discount duration (e.g. 'year' or '6 months')",
     "placeholders": {
       "amount": {
@@ -5454,13 +5454,13 @@
     "message": "Einladen"
   },
   "inviteUserDesc": {
-    "message": "Lade einen neuen Benutzer zu deinem Anbieter ein, indem du die E-Mail-Adresse seines Bitwarden-Kontos unten einträgst. Falls dieser noch kein Bitwarden-Konto besitzt, wird er/sie zur Erstellung eines neuen Kontos aufgefordert."
+    "message": "Lade einen neuen Benutzer zu deinem Anbieter ein, indem du die E-Mail-Adresse seines Cloudwarden-Kontos unten einträgst. Falls dieser noch kein Cloudwarden-Konto besitzt, wird er/sie zur Erstellung eines neuen Kontos aufgefordert."
   },
   "inviteUserDescription": {
     "message": "Lade neue Benutzer in deine Organisation ein, indem du unten deren E-Mail-Adresse eingibst."
   },
   "inviteUserDescSharedFolders": {
-    "message": "Lade einen neuen Benutzer zu deinem Organisations-Tresor ein, indem du deren Cloudwarden Konto-E-Mail-Adresse unten eingibst. Falls dieser noch kein Bitwarden-Konto besitzt, wird er zur Erstellung eines neuen Kontos aufgefordert.",
+    "message": "Lade einen neuen Benutzer zu deinem Organisations-Tresor ein, indem du deren Cloudwarden Konto-E-Mail-Adresse unten eingibst. Falls dieser noch kein Cloudwarden-Konto besitzt, wird er zur Erstellung eines neuen Kontos aufgefordert.",
     "description": "VFO1 (shared folder terminology) variant of inviteUserDesc, shown when the vfo1-foundation flag is enabled."
   },
   "inviteMultipleEmailDesc": {
@@ -6925,7 +6925,7 @@
     "message": "Zurück zur Registrierung"
   },
   "joinOrganizationDesc": {
-    "message": "Du wurdest eingeladen, dem oben genannten Organisation beizutreten. Um die Einladung anzunehmen, musst du ein Bitwarden-Konto erstellen oder dich mit deinem bestehenden Bitwarden-Konto anmelden."
+    "message": "Du wurdest eingeladen, dem oben genannten Organisation beizutreten. Um die Einladung anzunehmen, musst du ein Cloudwarden-Konto erstellen oder dich mit deinem bestehenden Cloudwarden-Konto anmelden."
   },
   "finishJoiningThisOrganizationBySettingAMasterPassword": {
     "message": "Schließe den Beitritt zu dieser Organisation ab, indem du ein Master-Passwort festlegst."
@@ -7066,10 +7066,10 @@
     "message": "Wir haben Ihnen eine E-Mail mit weiteren Anweisungen gesendet, sofern Ihr Konto existiert."
   },
   "deleteRecoverConfirmDesc": {
-    "message": "Du hast die Löschung deines Bitwarden-Kontos angefragt. Benutze den Button unten, um die Löschung zu bestätigen."
+    "message": "Du hast die Löschung deines Cloudwarden-Kontos angefragt. Benutze den Button unten, um die Löschung zu bestätigen."
   },
   "deleteRecoverOrgConfirmDesc": {
-    "message": "Du hast die Löschung deiner Bitwarden-Organisation angefragt."
+    "message": "Du hast die Löschung deiner Cloudwarden-Organisation angefragt."
   },
   "myOrganization": {
     "message": "Meine Organisation"
@@ -7790,7 +7790,7 @@
     "message": "API-Schlüssel"
   },
   "apiKeyDesc": {
-    "message": "Dein API-Schlüssel kann zur Authentifizierung für die öffentliche Bitwarden-API benutzt werden."
+    "message": "Dein API-Schlüssel kann zur Authentifizierung für die öffentliche Cloudwarden-API benutzt werden."
   },
   "apiKeyRotateDesc": {
     "message": "Mit der Erneuerung des API-Schlüssels wird der bisherige Schlüssel ungültig. Du kannst deinen API-Schlüssel erneuern, wenn du denkst, dass die sichere Verwendung deines aktuellen Schlüssel nicht mehr gewährleistet ist."
@@ -8149,7 +8149,7 @@
     "description": "VFO1 terminology variant of 'singleOrgPolicyDescV2'"
   },
   "singleOrgBlockCreateMessage": {
-    "message": "Deine aktuelle Organisation hat eine Richtlinie, die es dir nicht erlaubt, mehr als einer Organisation beizutreten. Bitte kontaktiere die Administratoren deiner Organisation oder melden dich mit einem anderen Bitwarden-Konto an."
+    "message": "Deine aktuelle Organisation hat eine Richtlinie, die es dir nicht erlaubt, mehr als einer Organisation beizutreten. Bitte kontaktiere die Administratoren deiner Organisation oder melden dich mit einem anderen Cloudwarden-Konto an."
   },
   "singleOrgPolicyMemberWarning": {
     "message": "Nicht-konforme Mitglieder werden in den Widerrufen-Status versetzt, bis sie alle anderen Organisationen verlassen. Administratoren sind ausgenommen und können Mitglieder wieder aufnehmen, sobald die Anforderungen erfüllt sind."
@@ -8457,7 +8457,7 @@
     "message": "Notfallkontakt bearbeiten"
   },
   "inviteEmergencyContactDesc": {
-    "message": "Lade einen neuen Notfallkontakt ein, indem du die E-Mail-Adresse seines Bitwarden-Kontos unten einträgst. Falls dieser noch kein Bitwarden-Konto besitzt, wird er/sie zur Erstellung eines neuen Kontos aufgefordert."
+    "message": "Lade einen neuen Notfallkontakt ein, indem du die E-Mail-Adresse seines Cloudwarden-Kontos unten einträgst. Falls dieser noch kein Cloudwarden-Konto besitzt, wird er/sie zur Erstellung eines neuen Kontos aufgefordert."
   },
   "emergencyAccessRecoveryInitiated": {
     "message": "Notfallzugriff ausgelöst"
@@ -8496,7 +8496,7 @@
     "message": "Benutzer eingeladen."
   },
   "acceptEmergencyAccess": {
-    "message": "Du wurdest eingeladen, ein Notfallkontakt für den oben genannten Benutzer zu werden. Um die Einladung anzunehmen, musst du dich anmelden oder ein neues Bitwarden-Konto erstellen."
+    "message": "Du wurdest eingeladen, ein Notfallkontakt für den oben genannten Benutzer zu werden. Um die Einladung anzunehmen, musst du dich anmelden oder ein neues Cloudwarden-Konto erstellen."
   },
   "emergencyInviteAcceptFailed": {
     "message": "Die Einladung konnte nicht angenommen werden. Bitte den Benutzer, eine neue Einladung zu versenden."
@@ -8693,7 +8693,7 @@
     "description": "This is a fragment of a larger sencence. The whole sentence will read: 'Select Turn on'"
   },
   "autoConfirmExtensionOpened": {
-    "message": "Die Cloudwarden Browser-Erweiterung wurde erfolgreich geöffnet. Du kannst nun die automatische Benutzerbestätigung aktivieren."
+    "message": "Die Bitwarden Browser-Erweiterung wurde erfolgreich geöffnet. Du kannst nun die automatische Benutzerbestätigung aktivieren."
   },
   "autoConfirmPolicyEditDescription": {
     "message": "Neue Benutzer, die zur Organisation eingeladen werden, werden automatisch bestätigt, wenn das Gerät eines Administrators entsperrt wird. Bevor du diese Richtlinie aktivierst, lies bitte Folgendes durch und stimme zu: ",
@@ -9151,7 +9151,7 @@
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Learn more about Bitwarden Send or sign up to **try it today.**'"
   },
   "sendAccessCreatorIdentifier": {
-    "message": "Bitwarden-Mitglied $USER_IDENTIFIER$ hat Folgendes mit dir geteilt",
+    "message": "Cloudwarden-Mitglied $USER_IDENTIFIER$ hat Folgendes mit dir geteilt",
     "placeholders": {
       "user_identifier": {
         "content": "$1",
@@ -9574,7 +9574,7 @@
     "message": "Anbieter-Einrichtung"
   },
   "setupProviderLoginDesc": {
-    "message": "Du wurdest eingeladen, einen neuen Anbieter einzurichten. Um fortzufahren, musst du dich anmelden oder ein neues Bitwarden-Konto erstellen."
+    "message": "Du wurdest eingeladen, einen neuen Anbieter einzurichten. Um fortzufahren, musst du dich anmelden oder ein neues Cloudwarden-Konto erstellen."
   },
   "setupProviderDesc": {
     "message": "Bitte gib die nachstehenden Daten ein, um die Einrichtung des Anbieters abzuschließen. Wende dich an den Kundensupport, wenn du Fragen hast."
@@ -9605,13 +9605,13 @@
     "message": "Dienstbenutzer können auf alle Kunden-Organisationen zugreifen und sie verwalten."
   },
   "providerInviteUserDesc": {
-    "message": "Lade einen neuen Benutzer zu deinem Anbieter ein, indem du die E-Mail-Adresse seines Bitwarden-Kontos unten einträgst. Falls dieser noch kein Bitwarden-Konto besitzt, wird er/sie zur Erstellung eines neuen Kontos aufgefordert."
+    "message": "Lade einen neuen Benutzer zu deinem Anbieter ein, indem du die E-Mail-Adresse seines Cloudwarden-Kontos unten einträgst. Falls dieser noch kein Cloudwarden-Konto besitzt, wird er/sie zur Erstellung eines neuen Kontos aufgefordert."
   },
   "joinProvider": {
     "message": "Anbieter beitreten"
   },
   "joinProviderDesc": {
-    "message": "Du wurdest eingeladen, dem oben genannten Anbieter beizutreten. Um die Einladung anzunehmen, musst du ein Bitwarden-Konto erstellen, oder dich mit deinem bestehenden Bitwarden-Konto anmelden."
+    "message": "Du wurdest eingeladen, dem oben genannten Anbieter beizutreten. Um die Einladung anzunehmen, musst du ein Cloudwarden-Konto erstellen, oder dich mit deinem bestehenden Cloudwarden-Konto anmelden."
   },
   "providerInviteAcceptFailed": {
     "message": "Einladung konnte nicht angenommen werden. Bitte einen Anbieter-Administrator darum, eine neue Einladung zu versenden."
@@ -9763,7 +9763,7 @@
     "message": "Aktion bei Sitzungs-Timeout"
   },
   "sessionTimeoutSuppressedByConnectedDevice": {
-    "message": "Verwaltet von der Cloudwarden Browser-Erweiterungsapp. Öffne die Browser-App zum Bearbeiten."
+    "message": "Verwaltet von der Bitwarden Browser-Erweiterungsapp. Öffne die Browser-App zum Bearbeiten."
   },
   "immediately": {
     "message": "Sofort"
@@ -10042,7 +10042,7 @@
     "message": "Mitglieder deiner Organisation sind für den kostenlosen Cloudwarden Families-Tarif berechtigt. Du kannst kostenlose Cloudwarden Families-Tarife für Mitarbeiter sponsern, die kein Mitglied deiner Cloudwarden Organisation sind. Das Sponsoring eines Nicht-Mitglieds erfordert einen verfügbaren Benutzerplatz in deiner Organisation."
   },
   "sponsorshipFreeBitwardenFamiliesV2": {
-    "message": "Deine Mitglieder sind berechtigt, einen gesponserten Families-Tarif in Anspruch zu nehmen. Du kannst einen Families-Tarif für Mitarbeiter sponsern, die keine Mitglieder deiner Bitwarden-Organisation sind. Hierfür müssen jedoch freie Benutzerplätze in deiner Organisation verfügbar sein."
+    "message": "Deine Mitglieder sind berechtigt, einen gesponserten Families-Tarif in Anspruch zu nehmen. Du kannst einen Families-Tarif für Mitarbeiter sponsern, die keine Mitglieder deiner Cloudwarden-Organisation sind. Hierfür müssen jedoch freie Benutzerplätze in deiner Organisation verfügbar sein."
   },
   "sponsoredFamiliesRemoveActiveSponsorship": {
     "message": "Wenn du ein aktives Sponsoring entfernst, steht dir nach dem Verlängerungsdatum der gesponserten Organisation ein Benutzerplatz in deiner Organisation zur Verfügung."
@@ -10051,7 +10051,7 @@
     "message": "Du und deine Familie haben Anspruch auf Free Cloudwarden Families. Mit deiner persönlichen E-Mail-Adresse einlösen, um deine Daten zu schützen, auch wenn du nicht am Arbeitsplatz bist."
   },
   "sponsoredFamiliesEligibleV2": {
-    "message": "Du und deine Familie haben Anspruch auf einen gesponserten Families-Tarif, der für dich mit keinen zusätzlichen Kosten verbunden ist. Löse diesen Tarif mit deiner privaten E-Mail-Adresse ein, um deine Daten sicher und getrennt von deinem Bitwarden-Arbeitskonto aufzubewahren."
+    "message": "Du und deine Familie haben Anspruch auf einen gesponserten Families-Tarif, der für dich mit keinen zusätzlichen Kosten verbunden ist. Löse diesen Tarif mit deiner privaten E-Mail-Adresse ein, um deine Daten sicher und getrennt von deinem Cloudwarden-Arbeitskonto aufzubewahren."
   },
   "sponsoredFamiliesEligibleCard": {
     "message": "Löse deinen Free Cloudwarden Families-Tarif heute ein, um deine Daten zu schützen, auch wenn du nicht am Arbeitsplatz bist."
@@ -10366,7 +10366,7 @@
     "message": "Benutzerdefinierte Umgebung"
   },
   "selfHostedBaseUrlHint": {
-    "message": "Gib die Basis-URL deiner vor Ort gehosteten Bitwarden-Installation an. Beispiel: https://bitwarden.company.com"
+    "message": "Gib die Basis-URL deiner vor Ort gehosteten Cloudwarden-Installation an. Beispiel: https://bitwarden.company.com"
   },
   "selfHostedCustomEnvHeader": {
     "message": "Für eine erweiterte Konfiguration kannst du die Basis-URL jedes Dienstes unabhängig voneinander angeben."
@@ -15330,7 +15330,7 @@
     "message": "Browser-Erweiterung geöffnet"
   },
   "openedExtensionViewAtRiskPasswords": {
-    "message": "Die Cloudwarden Browser-Erweiterung wurde erfolgreich geöffnet. Du kannst jetzt deine gefährdeten Passwörter überprüfen."
+    "message": "Die Bitwarden Browser-Erweiterung wurde erfolgreich geöffnet. Du kannst jetzt deine gefährdeten Passwörter überprüfen."
   },
   "resellerRenewalWarningMsg": {
     "message": "Dein Abonnement wird bald verlängert. Um einen ununterbrochenen Betrieb zu gewährleisten, kontaktiere $RESELLER$ um deine Verlängerung vor dem $RENEWAL_DATE$ zu bestätigen.",
@@ -15346,7 +15346,7 @@
     }
   },
   "resellerRenewalWarningMsgV2": {
-    "message": "Dein Abonnement wird sich in Kürze erneuern. Um eine unterbrechungsfreie Nutzung zu gewährleisten, wende dich bitte vor dem $RENEWAL_DATE$ an deinen Bitwarden-Anbieter, um die Verlängerung zu bestätigen.",
+    "message": "Dein Abonnement wird sich in Kürze erneuern. Um eine unterbrechungsfreie Nutzung zu gewährleisten, wende dich bitte vor dem $RENEWAL_DATE$ an deinen Cloudwarden-Anbieter, um die Verlängerung zu bestätigen.",
     "placeholders": {
       "renewal_date": {
         "content": "$1",
@@ -15385,7 +15385,7 @@
     }
   },
   "resellerPastDueWarningMsgV2": {
-    "message": "Die Rechnung für dein Abonnement wurde nicht bezahlt. Um eine unterbrechungsfreie Nutzung zu gewährleisten, kontaktiere deinen Bitwarden-Anbieter vor dem $GRACE_PERIOD_END$.",
+    "message": "Die Rechnung für dein Abonnement wurde nicht bezahlt. Um eine unterbrechungsfreie Nutzung zu gewährleisten, kontaktiere deinen Cloudwarden-Anbieter vor dem $GRACE_PERIOD_END$.",
     "placeholders": {
       "grace_period_end": {
         "content": "$1",
@@ -15546,7 +15546,7 @@
     "message": "Upgrade, um Ereignisprotokolle von deiner Organisation zu sehen."
   },
   "upgradeEventLogMessage": {
-    "message": "Diese Ereignisse sind nur Beispiele und spiegeln keine realen Ereignisse in deiner Bitwarden-Organisation wider."
+    "message": "Diese Ereignisse sind nur Beispiele und spiegeln keine realen Ereignisse in deiner Cloudwarden-Organisation wider."
   },
   "viewEvents": {
     "message": "Ereignisse anzeigen"
@@ -15727,7 +15727,7 @@
     "message": "Fülle deine Passwörter sicher mit einem Klick automatisch aus"
   },
   "setupExtensionPageDescription": {
-    "message": "Lade dir die Cloudwarden Browser-Erweiterung herunter und nutze Auto-Ausfüllen noch heute"
+    "message": "Lade dir die Bitwarden Browser-Erweiterung herunter und nutze Auto-Ausfüllen noch heute"
   },
   "getTheExtension": {
     "message": "Erweiterung herunterladen"
@@ -15777,7 +15777,7 @@
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'For tips on getting started with Bitwarden visit the Learning Center and Help Center'"
   },
   "setupExtensionContentAlt": {
-    "message": "Mit der Cloudwarden Browser-Erweiterung kannst du ganz einfach neue Zugangsdaten erstellen, auf deine gespeicherten Zugangsdaten direkt von deiner Browser-Symbolleiste aus zugreifen und dich schnell mit Cloudwarden Auto-Ausfüllen bei Konten anmelden."
+    "message": "Mit der Bitwarden Browser-Erweiterung kannst du ganz einfach neue Zugangsdaten erstellen, auf deine gespeicherten Zugangsdaten direkt von deiner Browser-Symbolleiste aus zugreifen und dich schnell mit Cloudwarden Auto-Ausfüllen bei Konten anmelden."
   },
   "restart": {
     "message": "Neustarten"
@@ -16260,10 +16260,10 @@
     "description": "VFO1 terminology variant of 'blockClaimedDomainAccountCreationDesc', shown in the policies list"
   },
   "blockClaimedDomainAccountCreationDescV2": {
-    "message": "Verhindere, dass Mitglieder deine beanspruchte Domain verwenden, um Bitwarden-Konten außerhalb deiner Organisation anzulegen."
+    "message": "Verhindere, dass Mitglieder deine beanspruchte Domain verwenden, um Cloudwarden-Konten außerhalb deiner Organisation anzulegen."
   },
   "blockClaimedDomainAccountCreationDescV2Vfo1": {
-    "message": "Verhindere, dass Mitglieder deine beanspruchte Domain verwenden, um Bitwarden-Konten außerhalb deines Organisationstresors anzulegen.",
+    "message": "Verhindere, dass Mitglieder deine beanspruchte Domain verwenden, um Cloudwarden-Konten außerhalb deines Organisationstresors anzulegen.",
     "description": "VFO1 terminology variant of 'blockClaimedDomainAccountCreationDescV2'"
   },
   "blockClaimedDomainAccountCreationPrerequisiteV2": {
@@ -16546,10 +16546,10 @@
     "message": "Öffne die Abonnementseite in deinem Cloudwarden Cloud-Konto und lade deine Lizenzdatei herunter. Gehe dann zu dieser Seite zurück und lade sie unten hoch."
   },
   "alreadyHaveSubscriptionSelfHostedMessageV2": {
-    "message": "Öffne die Abonnementseite in deinem Bitwarden-Konto und lade deine Lizenzdatei herunter. Gehe dann zu dieser Seite zurück und lade sie unten hoch."
+    "message": "Öffne die Abonnementseite in deinem Cloudwarden-Konto und lade deine Lizenzdatei herunter. Gehe dann zu dieser Seite zurück und lade sie unten hoch."
   },
   "alreadyHaveSubscriptionSelfHostedMessageV3": {
-    "message": "Melde dich in deiner Cloud-Umgebung bei deinem Bitwarden-Konto an, öffne die Abonnementseite und lade deine Lizenzdatei herunter. Kehre anschließend zu dieser Seite zurück und lade die Datei hoch."
+    "message": "Melde dich in deiner Cloud-Umgebung bei deinem Cloudwarden-Konto an, öffne die Abonnementseite und lade deine Lizenzdatei herunter. Kehre anschließend zu dieser Seite zurück und lade die Datei hoch."
   },
   "viewAllPlans": {
     "message": "Alle Tarife anzeigen"
@@ -16635,7 +16635,7 @@
     "message": "Lade dir die Erweiterung für einfachen Zugriff auf den Tresor herunter"
   },
   "extensionPromptBody": {
-    "message": "Mit der installierten Browser-Erweiterung kannst du Cloudwarden überall online nutzen. Es füllt Passwörter aus, sodass du dich mit einem einzigen Klick bei deinen Konten anmelden kannst."
+    "message": "Mit der installierten Browser-Erweiterung kannst du Bitwarden überall online nutzen. Es füllt Passwörter aus, sodass du dich mit einem einzigen Klick bei deinen Konten anmelden kannst."
   },
   "extensionPromptImageAlt": {
     "message": "Ein Web-Browser, der die Bitwarden-Erweiterung mit Einträgen zum Auto-Ausfüllen für die aktuelle Website anzeigt."
@@ -16689,7 +16689,7 @@
     "message": "Du bist dabei! Willkommen bei Cloudwarden"
   },
   "vaultWelcomeDialogDescription": {
-    "message": "Speichere alle deine Passwörter und persönlichen Daten in deinem Bitwarden-Tresor. Wir zeigen dir alles."
+    "message": "Speichere alle deine Passwörter und persönlichen Daten in deinem Cloudwarden-Tresor. Wir zeigen dir alles."
   },
   "vaultWelcomeDialogPrimaryCta": {
     "message": "Tour starten"

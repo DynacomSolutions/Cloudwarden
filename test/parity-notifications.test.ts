@@ -1,5 +1,5 @@
 // Notification centre, security tasks and Secrets Manager access requests (TASKS #231).
-import { beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { withEnv } from './helpers'
 import { type Actor, actor, addMember, createOrg, loginCipher, mailbox } from './org-helpers'
 
@@ -44,6 +44,9 @@ beforeAll(async () => {
     mb,
   )
 })
+
+// Pushes are sent after the response; let them finish before the worker is torn down.
+afterAll(() => new Promise((done) => setTimeout(done, 1000)))
 
 describe('notification centre', () => {
   let personal: string

@@ -214,7 +214,9 @@ export function memberJson(
   m: Member,
   user:
     | (Pick<UserRow, 'name' | 'email'> &
-        Partial<Pick<UserRow, 'passwordHash' | 'usesKeyConnector'>> & { avatarColor?: string | null })
+        Partial<Pick<UserRow, 'passwordHash' | 'usesKeyConnector'>> & {
+          avatarColor?: string | null
+        })
     | null,
   lists: MemberLists | null,
   detailed = false,

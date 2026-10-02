@@ -87,11 +87,11 @@ for (const path of [
   app.use(path, secretsRevisionOnMemberChange)
 }
 app.route('/', publicPolicies)
+// Before the other organisation routers: its public invite-link routes skip their `authOnce`.
+app.route('/', orgSettings)
 // Anonymous SSO discovery by email must run before the authenticated organisation routers.
 app.route('/', publicSso)
 app.route('/', ssoAdmin)
-// Before the other organisation routers: its public invite-link routes skip their `authOnce`.
-app.route('/', orgSettings)
 app.route('/', orgApiKeys)
 app.route('/', orgIntegrations)
 // Billing, licence and sponsorship answers for a self-hosted server, and the absent Provider

@@ -32,6 +32,7 @@ import {
   toastError,
   toastSuccess,
 } from "./sm-dialogs";
+import { SmEventsComponent } from "./sm-events.component";
 import { SmPeopleAccessComponent } from "./sm-people-access.component";
 import { SmTokenDialogComponent } from "./sm-token-dialog.component";
 
@@ -45,6 +46,7 @@ import { SmTokenDialogComponent } from "./sm-token-dialog.component";
     DatePipe,
     FormsModule,
     SmPeopleAccessComponent,
+    SmEventsComponent,
   ],
   template: `
     <app-header [title]="account()?.name ?? ''">
@@ -212,6 +214,9 @@ import { SmTokenDialogComponent } from "./sm-token-dialog.component";
                 </ng-template>
               </bit-table>
             }
+          </bit-tab>
+          <bit-tab [label]="'cwSmEvents' | i18n">
+            <cw-sm-events [machineAccountId]="a.id"></cw-sm-events>
           </bit-tab>
         </bit-tab-group>
       }

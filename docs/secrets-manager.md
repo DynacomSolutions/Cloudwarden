@@ -206,10 +206,47 @@ Encryption uses the client's own `KeyService` (organisation key) and `EncryptSer
 EncStrings). The token helpers (`sm-crypto.ts`) are checked by Jest against the `bitwarden-core`
 vector and by running `e2e/sm-client.mjs`'s parser and decryptor over a UI-built token.
 
+## Secret versions, import and export (TASKS #224)
+
+Shapes come from `apis/secret_versions_api.rs`, `apis/secrets_manager_porting_api.rs` and the
+`SecretVersionResponseModel`, `RestoreSecretVersionRequestModel`, `SmExportResponseModel` and
+`SmImportRequestModel` models of the same `bitwarden-api-api` crate (GPL-3.0).
+
+- A change that alters the stored value records the value it replaces (`sm_secret_versions`,
+  migration `0018`) with the time of the change and the editor: a member (name read live from the
+  account) or a machine account (its EncString name). The stored value decides, `valueChanged` is
+  only accepted. At most 50 versions are kept per secret, the oldest are dropped. The current value
+  is not a version. Restoring sets the secret to the version and records the value it replaced.
+- `GET /secrets/{id}/versions` (newest first), `GET /secret-versions/{id}`,
+  `POST /secret-versions/get-by-ids`, `POST /secret-versions/delete` (all-or-nothing, empty
+  response) and `PUT /secrets/{id}/versions/restore`. Reading needs read access to the secret,
+  restoring and deleting need write access; no access is a 404. Machine accounts may call them.
+  `get-by-ids` takes at most 100 ids. History is not scoped to who made a change: anyone who gains
+  read access to a secret later (a project grant, say) can read all its earlier values, so rotate a
+  secret rather than relying on old versions being hidden, and delete versions that must go.
+- `GET /sm/{organizationId}/export` returns the projects and secrets the caller can read (admins:
+  all) as encrypted fields; `POST /sm/{organizationId}/import` creates them. Both are for members,
+  not machine accounts. Ids in a file only link secrets to projects; every object is created under
+  a fresh id, so an import cannot overwrite or claim existing data. Importers get creator access
+  to the projects they create, and only owners and admins may import secrets without a project.
+  Imports above 400 statements are written in several batches (D1 limit), projects first; a project
+  and its creator access policy always share a batch. A failure part way keeps what was written (a
+  partial import, to be retried or cleaned up) and the secrets revision is bumped regardless, so
+  clients resync what exists.
+- Web client (TASKS #230): the secret dialog has a "Version history" button (list with date and
+  editor, reveal and copy a value, restore, delete; the last two only with write access). The
+  Secrets page has Export, which downloads a JSON file of decrypted projects and secrets (not
+  encrypted: store it safely), and Import, which reads such a file in the browser, validates it
+  (ids, sizes, at most one project per secret, links inside the file, at most 5000 of each),
+  shows a summary, encrypts with the organisation key and posts it. Loose secrets are blocked
+  for non-admins before sending. The secret dialog also has an "Access" section: direct policies of
+  members, groups and machine accounts on that secret (read from `GET /secrets/{id}/access-policies`,
+  written with the secret through `accessPoliciesRequests`, as the contract does; there is no
+  separate write endpoint). A machine account page has an "Events" tab listing
+  `GET /sm/events/service-accounts/{id}` with paging. Specs: `sm-access-events.spec.ts`, `sm-import.spec.ts`,
+  `sm-secret-versions-dialog.component.spec.ts`, `sm-secrets-page.spec.ts`.
+
 ## Not implemented (deferred)
 
-- Secret versions (`/secret-versions/*`, `/secrets/{id}/versions`): `valueChanged` is accepted and
-  ignored (TASKS #224).
-- Import and export (`/sm/{organizationId}/import`, `/export`) (TASKS #224).
 - Machine account token refresh: tokens are re-issued by logging in again, as the SDK does.
 - Seat or machine account limits: none apply on a self-hosted server.

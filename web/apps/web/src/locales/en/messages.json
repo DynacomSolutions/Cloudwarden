@@ -18609,5 +18609,142 @@
   },
   "cwPushErrBadResponse": {
     "message": "the relay answered unexpectedly"
+  },
+  "cwSmVersionHistory": {
+    "message": "Version history"
+  },
+  "cwSmNoVersions": {
+    "message": "This secret has no earlier values."
+  },
+  "cwSmChangedBy": {
+    "message": "Changed by"
+  },
+  "cwSmUnknownEditor": {
+    "message": "Unknown"
+  },
+  "cwSmRestoreVersion": {
+    "message": "Restore this value"
+  },
+  "cwSmRestoreDesc": {
+    "message": "The secret gets this value. The value it has now is kept as a version."
+  },
+  "cwSmVersionRestored": {
+    "message": "Value restored"
+  },
+  "cwSmDeleteVersionTitle": {
+    "message": "Delete this version"
+  },
+  "cwSmDeleteVersionDesc": {
+    "message": "This earlier value is removed permanently."
+  },
+  "cwSmImport": {
+    "message": "Import"
+  },
+  "cwSmExport": {
+    "message": "Export"
+  },
+  "cwSmImportTitle": {
+    "message": "Import projects and secrets"
+  },
+  "cwSmImportDesc": {
+    "message": "Choose a JSON file written by Export. It is read in your browser and encrypted before it is sent. Everything is created as new; nothing existing is changed."
+  },
+  "cwSmImportSummary": {
+    "message": "$PROJECTS$ projects and $SECRETS$ secrets are ready to import.",
+    "placeholders": {
+      "projects": {
+        "content": "$1"
+      },
+      "secrets": {
+        "content": "$2"
+      }
+    }
+  },
+  "cwSmImportLoose": {
+    "message": "$COUNT$ secrets belong to no project. Only owners and admins can import those.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "cwSmImportDone": {
+    "message": "Imported $PROJECTS$ projects and $SECRETS$ secrets.",
+    "placeholders": {
+      "projects": {
+        "content": "$1"
+      },
+      "secrets": {
+        "content": "$2"
+      }
+    }
+  },
+  "cwSmExportDone": {
+    "message": "Exported $COUNT$ secrets. The file is not encrypted: store it safely.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "cwSmSecretAccess": {
+    "message": "Access"
+  },
+  "cwSmSecretAccessDesc": {
+    "message": "Members, groups and machine accounts with access to this secret directly. Access through its project applies as well."
+  },
+  "cwSmNoSecretAccess": {
+    "message": "No direct access is set. Only owners, admins and people with access through the project can see this secret."
+  },
+  "cwSmNoEvents": {
+    "message": "No activity recorded for this machine account."
+  },
+  "cwSmEventTarget": {
+    "message": "Item"
+  },
+  "cwSmEventSecretRetrieved": {
+    "message": "Secret read"
+  },
+  "cwSmEventSecretCreated": {
+    "message": "Secret created"
+  },
+  "cwSmEventSecretEdited": {
+    "message": "Secret edited"
+  },
+  "cwSmEventSecretDeleted": {
+    "message": "Secret deleted"
+  },
+  "cwSmEventProjectCreated": {
+    "message": "Project created"
+  },
+  "cwSmEventProjectEdited": {
+    "message": "Project edited"
+  },
+  "cwSmEventProjectDeleted": {
+    "message": "Project deleted"
+  },
+  "cwSmEventUserAdded": {
+    "message": "Member added to the machine account"
+  },
+  "cwSmEventUserRemoved": {
+    "message": "Member removed from the machine account"
+  },
+  "cwSmEventGroupAdded": {
+    "message": "Group added to the machine account"
+  },
+  "cwSmEventGroupRemoved": {
+    "message": "Group removed from the machine account"
+  },
+  "cwSmEventMachineCreated": {
+    "message": "Machine account created"
+  },
+  "cwSmEventMachineDeleted": {
+    "message": "Machine account deleted"
+  },
+  "cwSmEventOther": {
+    "message": "Other activity"
+  },
+  "cwSmEvents": {
+    "message": "Events"
   }
 }

@@ -681,6 +681,31 @@ export const smSecretsProjects = sqliteTable(
   ],
 )
 
+/**
+ * Earlier values of a secret (TASKS #224). A row keeps the EncString value that a change replaced;
+ * `versionDate` is when it was replaced. Editors are kept as references and read live.
+ */
+export const smSecretVersions = sqliteTable(
+  'sm_secret_versions',
+  {
+    uuid: id(),
+    secretUuid: text('secret_uuid')
+      .notNull()
+      .references(() => smSecrets.uuid, { onDelete: 'cascade' }),
+    value: text('value').notNull(),
+    versionDate: integer('version_date').notNull(),
+    editorServiceAccountUuid: text('editor_service_account_uuid').references(
+      () => smServiceAccounts.uuid,
+      { onDelete: 'set null' },
+    ),
+    editorOrganizationUserUuid: text('editor_organization_user_uuid').references(
+      () => usersOrganizations.uuid,
+      { onDelete: 'set null' },
+    ),
+  },
+  (t) => [index('sm_secret_versions_secret_idx').on(t.secretUuid, t.versionDate)],
+)
+
 /** Machine accounts (`service-accounts` on the wire). */
 export const smServiceAccounts = sqliteTable(
   'sm_service_accounts',

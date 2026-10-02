@@ -213,7 +213,7 @@ Shapes come from `apis/secret_versions_api.rs`, `apis/secrets_manager_porting_ap
 `SmImportRequestModel` models of the same `bitwarden-api-api` crate (GPL-3.0).
 
 - A change that alters the stored value records the value it replaces (`sm_secret_versions`,
-  migration `0015`) with the time of the change and the editor: a member (name read live from the
+  migration `0018`) with the time of the change and the editor: a member (name read live from the
   account) or a machine account (its EncString name). The stored value decides, `valueChanged` is
   only accepted. At most 50 versions are kept per secret, the oldest are dropped. The current value
   is not a version. Restoring sets the secret to the version and records the value it replaced.

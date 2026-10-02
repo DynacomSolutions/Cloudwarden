@@ -305,6 +305,7 @@ async function main() {
           maxAccessCount: null,
           disabled: false,
           hideEmail: false,
+          authType: 1,
           password: 's3cret-pass',
         }),
         ...S,

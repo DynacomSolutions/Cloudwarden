@@ -22,3 +22,4 @@ docs/api/build/
 # devdeploy chart: its values hold hostnames, keep it in a private repository (docs/local-dev.md)
 /chart/
 /k8s/
+e2e/.cache/

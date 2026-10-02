@@ -26,7 +26,7 @@ Instructions for AI coding agents working in this repository. Human contributors
 | `pnpm lint` / `pnpm format` | Biome check / fix |
 | `pnpm typecheck` | TypeScript |
 | `pnpm test` | Vitest inside workerd |
-| `pnpm e2e` | End-to-end run of the official Bitwarden CLI against a local dev server (`e2e/`, about 2 minutes, needs `openssl`) |
+| `pnpm e2e` | End-to-end run of the official Bitwarden CLI and the pinned `bws` Secrets Manager CLI (downloaded, needs network) against a local dev server (`e2e/`, about 2 minutes, needs `openssl`) |
 | `pnpm check:identifiers` | Identifier guard over tracked files |
 | `pnpm db:generate` | Generate a migration from `src/db/schema.ts` |
 

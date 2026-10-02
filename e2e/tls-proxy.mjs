@@ -1,39 +1,46 @@
 // The official CLI refuses non-HTTPS server URLs (a hard-coded production build check), so the
-// local dev server is fronted by a throwaway self-signed TLS proxy that the CLI trusts through
-// NODE_EXTRA_CA_CERTS.
+// local dev server is fronted by a throwaway TLS proxy (own throwaway CA) that the CLI trusts through
+// NODE_EXTRA_CA_CERTS (or SSL_CERT_FILE for `bws`).
 import { spawnSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { request } from 'node:http'
 import { createServer } from 'node:https'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+/**
+ * Creates a throwaway CA and a server certificate for 127.0.0.1 signed by it. Clients trust `ca`
+ * (NODE_EXTRA_CA_CERTS, SSL_CERT_FILE); rustls-based clients such as `bws` reject a self-signed
+ * certificate that is also the trust anchor ("CA used as end entity"), hence two certificates.
+ */
 export function makeCert(dir) {
   const key = join(dir, 'key.pem')
   const cert = join(dir, 'cert.pem')
-  const res = spawnSync(
-    'openssl',
-    [
-      'req',
-      '-x509',
-      '-newkey',
-      'rsa:2048',
-      '-nodes',
-      '-keyout',
-      key,
-      '-out',
-      cert,
-      '-days',
-      '1',
-      '-subj',
-      '/CN=127.0.0.1',
-      '-addext',
-      'subjectAltName=IP:127.0.0.1',
-    ],
-    { encoding: 'utf8' },
+  const ca = join(dir, 'ca.pem')
+  const caKey = join(dir, 'ca-key.pem')
+  const csr = join(dir, 'server.csr')
+  const ext = join(dir, 'server.ext')
+  writeFileSync(
+    ext,
+    'subjectAltName=IP:127.0.0.1\nbasicConstraints=CA:FALSE\nextendedKeyUsage=serverAuth\n',
   )
-  if (res.status !== 0) throw new Error(`openssl failed: ${res.stderr}`)
-  return { key, cert }
+  const openssl = (...args) => {
+    const res = spawnSync('openssl', args, { encoding: 'utf8' })
+    if (res.status !== 0) throw new Error(`openssl ${args[0]} failed: ${res.stderr}`)
+  }
+  openssl(
+    ...['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-keyout', caKey, '-out', ca],
+    ...['-days', '1', '-subj', '/CN=Cloudwarden e2e CA'],
+  )
+  openssl(
+    ...['req', '-newkey', 'rsa:2048', '-nodes', '-keyout', key, '-out', csr],
+    ...['-subj', '/CN=127.0.0.1'],
+  )
+  openssl(
+    ...['x509', '-req', '-in', csr, '-CA', ca, '-CAkey', caKey, '-CAcreateserial', '-out', cert],
+    ...['-days', '1', '-extfile', ext],
+  )
+  return { key, cert, ca }
 }
 
 // Runs as its own process (`node tls-proxy.mjs <dir> <port> <target>`): the runner blocks its

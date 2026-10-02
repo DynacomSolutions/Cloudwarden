@@ -327,3 +327,17 @@ it('reinvites with a fresh email and rejects duplicate invitations', async () =>
     (await owner.call(`/api/organizations/${id}/users/${orgUserId}/revoke`, 'PUT')).status,
   ).toBe(400)
 })
+
+it('serves self-host billing metadata for the member dialogs to member managers only', async () => {
+  const owner = await actor('meta-owner@example.com')
+  const user = await actor('meta-user@example.com')
+  const { id } = await createOrg(owner, 'Meta')
+  await addMember(owner, id, user)
+  const path = `/api/organizations/${id}/billing/vnext/self-host/metadata`
+  expect(await owner.json(path)).toEqual({
+    object: 'organizationBillingMetadata',
+    isOnSecretsManagerStandalone: false,
+    organizationOccupiedSeats: 2,
+  })
+  expect((await user.call(path)).status).toBe(403)
+})

@@ -101,6 +101,25 @@ const listMembers = async (c: Ctx, mini: boolean) => {
 orgUsers.get('/api/organizations/:orgId/users', (c) => listMembers(c, false))
 orgUsers.get('/api/organizations/:orgId/users/mini-details', (c) => listMembers(c, true))
 
+// Billing metadata the Admin Console awaits before opening the member dialogs (TASKS #229). There
+// is no billing on this server: never Secrets Manager standalone; occupied seats are the members
+// who are not revoked.
+orgUsers.get('/api/organizations/:orgId/billing/vnext/self-host/metadata', async (c) => {
+  const orgUuid = org(c)
+  const db = createDb(c.env.DB)
+  const actor = await requireMember(db, c.var.user.uuid, orgUuid)
+  if (!canListMembers(actor)) throw new ApiError(403, 'You do not have permission to do this.')
+  const members = await db
+    .select({ status: schema.usersOrganizations.status })
+    .from(schema.usersOrganizations)
+    .where(eq(schema.usersOrganizations.organizationUuid, orgUuid))
+  return c.json({
+    object: 'organizationBillingMetadata',
+    isOnSecretsManagerStandalone: false,
+    organizationOccupiedSeats: members.filter((m) => m.status !== Status.Revoked).length,
+  })
+})
+
 // ----- invitation -----
 
 const inviteSchema = z.object({

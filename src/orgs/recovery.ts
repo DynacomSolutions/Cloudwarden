@@ -1,7 +1,8 @@
-import { and, eq, inArray, isNotNull } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, ne } from 'drizzle-orm'
 import type { Db } from '../db'
 import { schema } from '../db'
 import { ApiError } from '../errors'
+import { isStandInUser } from '../federation/standin'
 import { can, type Member, requireMember } from './access'
 import { PolicyType, Role, Status } from './constants'
 import { parseData } from './policies'
@@ -13,8 +14,8 @@ import { parseData } from './policies'
  * server only ever stores encrypted with the organisation key. The server never sees a plain key.
  */
 
-/** Statuses whose members can be recovered: the same set the official Admin Console offers. */
-export const RECOVERABLE_STATUSES: number[] = [Status.Accepted, Status.Confirmed, Status.Revoked]
+/** Only confirmed members can be recovered, as upstream: others hold no organisation-wrapped key. */
+export const RECOVERABLE_STATUSES: number[] = [Status.Confirmed]
 
 export interface ResetPasswordPolicy {
   enabled: boolean
@@ -80,6 +81,58 @@ export function assertRecoverable(target: Member): asserts target is Member & {
   }
   if (!target.resetPasswordKey) {
     throw new ApiError(400, 'This member is not enrolled in account recovery.')
+  }
+}
+
+/**
+ * Targets an organisation must never recover (account takeover guards): federated members and
+ * their stand-in accounts (their credentials live on the home instance), and accounts that also
+ * belong to another organisation (the administrator would reach data they do not govern; revoked
+ * memberships do not count). Returns the uuids of the blocked members.
+ */
+export async function unrecoverableMembers(
+  db: Db,
+  rows: { m: Member; u: Pick<UserRow, 'passwordHash'> }[],
+): Promise<Set<string>> {
+  const blocked = new Set<string>()
+  if (rows.length === 0) return blocked
+  for (const { m, u } of rows) if (isStandInUser(u)) blocked.add(m.uuid)
+  const federated = await db
+    .select({ id: schema.federationMembers.organizationUserUuid })
+    .from(schema.federationMembers)
+    .where(
+      inArray(
+        schema.federationMembers.organizationUserUuid,
+        rows.map((r) => r.m.uuid),
+      ),
+    )
+  for (const f of federated) blocked.add(f.id)
+  const userIds = [...new Set(rows.flatMap((r) => (r.m.userUuid ? [r.m.userUuid] : [])))]
+  if (userIds.length) {
+    const others = await db
+      .select({
+        userUuid: schema.usersOrganizations.userUuid,
+        orgUuid: schema.usersOrganizations.organizationUuid,
+      })
+      .from(schema.usersOrganizations)
+      .where(
+        and(
+          inArray(schema.usersOrganizations.userUuid, userIds),
+          ne(schema.usersOrganizations.status, Status.Revoked),
+        ),
+      )
+    for (const { m } of rows) {
+      if (others.some((o) => o.userUuid === m.userUuid && o.orgUuid !== m.organizationUuid)) {
+        blocked.add(m.uuid)
+      }
+    }
+  }
+  return blocked
+}
+
+export async function assertNotUnrecoverable(db: Db, m: Member, u: Pick<UserRow, 'passwordHash'>) {
+  if ((await unrecoverableMembers(db, [{ m, u }])).has(m.uuid)) {
+    throw new ApiError(400, 'This member cannot be recovered.')
   }
 }
 

@@ -1,6 +1,7 @@
-import { and, desc, eq, gt, inArray, isNotNull, isNull, lt, ne, or } from 'drizzle-orm'
+import { and, desc, eq, gt, isNotNull, isNull, lt, ne, notInArray, or } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { z } from 'zod'
+import { rateLimit as d1Window } from '../admin/security'
 import { safeEqualStrings, sha256B64u } from '../auth/crypto'
 import { requireAuth } from '../auth/middleware'
 import { findUserByEmail, normalizeEmail } from '../auth/users'
@@ -8,13 +9,15 @@ import { createDb, schema } from '../db'
 import { createEmailTransport, genericEmail } from '../email'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
+import { isStandInUser } from '../federation/standin'
 import { PushType, pushAuthRequestResponse, pushUserUpdate } from '../notifications/publish'
 import { can } from '../orgs/access'
 import { EventType, PolicyType, Status } from '../orgs/constants'
 import { eventStatement } from '../orgs/events'
 import { defer } from '../orgs/notify'
 import { batch } from '../orgs/util'
-import { rateLimit } from '../ratelimit'
+import { rateLimit, tooManyRequests } from '../ratelimit'
+import { MemberDecryptionType, parseConfigData } from '../sso/config'
 import { parseBody } from '../validation'
 
 /** Login-with-device: a new device asks an already signed-in device to approve it. */
@@ -176,25 +179,47 @@ authRequests.get('/api/auth-requests/pending', requireAuth, listPending)
 authRequests.get('/api/auth-requests', requireAuth, listPending)
 authRequests.get('/api/auth-requests/', requireAuth, listPending)
 
+/**
+ * An approved admin approval key is delivered once: the first read marks the row redeemed
+ * (`authenticatedAt`) and every later read gets the answer without the key. The conditional
+ * update makes two concurrent readers race for it, and only the winner receives the key.
+ */
+async function deliverOnce(db: ReturnType<typeof createDb>, row: AuthRequestRow) {
+  if (row.type !== AuthRequestType.AdminApproval || row.approved !== true) return row
+  if (row.authenticatedAt !== null || row.key === null) {
+    return { ...row, key: null, masterPasswordHash: null }
+  }
+  const result = await db
+    .update(schema.authRequests)
+    .set({ authenticatedAt: Date.now() })
+    .where(and(eq(schema.authRequests.uuid, row.uuid), isNull(schema.authRequests.authenticatedAt)))
+  return result.meta.changes === 1 ? row : { ...row, key: null, masterPasswordHash: null }
+}
+
 // Polled by the waiting device (no auth): the access code proves it created the request.
 authRequests.get('/api/auth-requests/:id/response', rateLimit('auth-request'), async (c) => {
-  const [row] = await createDb(c.env.DB)
+  const db = createDb(c.env.DB)
+  const [row] = await db
     .select()
     .from(schema.authRequests)
     .where(eq(schema.authRequests.uuid, c.req.param('id')))
     .limit(1)
   const code = c.req.query('code') ?? ''
-  if (!row || !safeEqualStrings(row.accessCodeHash, await sha256B64u(code))) throw NOT_FOUND()
+  if (!row || !safeEqualStrings(row.accessCodeHash, await sha256B64u(code)) || isExpired(row)) {
+    throw NOT_FOUND()
+  }
   // Once redeemed the wrapped key is no longer served.
+  const served = await deliverOnce(db, row)
   return c.json(
     requestJson(
-      row.authenticatedAt === null ? row : { ...row, key: null, masterPasswordHash: null },
+      served.authenticatedAt === null ? served : { ...served, key: null, masterPasswordHash: null },
     ),
   )
 })
 
 authRequests.get('/api/auth-requests/:id', requireAuth, async (c) => {
-  const [row] = await createDb(c.env.DB)
+  const db = createDb(c.env.DB)
+  const [row] = await db
     .select()
     .from(schema.authRequests)
     .where(
@@ -204,8 +229,8 @@ authRequests.get('/api/auth-requests/:id', requireAuth, async (c) => {
       ),
     )
     .limit(1)
-  if (!row) throw NOT_FOUND()
-  return c.json(requestJson(row))
+  if (!row || isExpired(row)) throw NOT_FOUND()
+  return c.json(requestJson(await deliverOnce(db, row)))
 })
 
 const answerSchema = z.object({
@@ -296,6 +321,12 @@ authRequests.post('/api/auth-requests/admin-request', requireAuth, async (c) => 
     throw new ApiError(400, 'Only admin approval requests are accepted here.')
   }
   if (normalizeEmail(body.email) !== user.email) throw new ApiError(400, 'Invalid email.')
+  // Federation stand-ins have no vault key here; their home instance answers for them.
+  if (isStandInUser(user)) throw new ApiError(400, 'Federated accounts cannot request approval.')
+  // Each request emails the administrators, so cap how often one account can raise them.
+  if (!(await d1Window(c.env.DB, `admin-request:${user.uuid}`, 5, 3600_000, Date.now()))) {
+    return tooManyRequests(c)
+  }
   const db = createDb(c.env.DB)
   const orgs = await approvalOrganizations(db, user.uuid)
   if (orgs.length === 0) {
@@ -325,6 +356,15 @@ authRequests.post('/api/auth-requests/admin-request', requireAuth, async (c) => 
   }
   await purgeExpired(db, now)
   await batch(db, [
+    // One open admin request per user: a new one replaces any earlier one.
+    db
+      .delete(schema.authRequests)
+      .where(
+        and(
+          eq(schema.authRequests.userUuid, user.uuid),
+          eq(schema.authRequests.type, AuthRequestType.AdminApproval),
+        ),
+      ),
     db.insert(schema.authRequests).values(row),
     ...orgs.map((o) =>
       eventStatement(db, c, {
@@ -339,11 +379,20 @@ authRequests.post('/api/auth-requests/admin-request', requireAuth, async (c) => 
   return c.json(requestJson(row))
 })
 
-/** Organisations whose administrators may approve the user's devices. */
+/**
+ * Organisations whose administrators may approve the user's devices: an enrolled, confirmed,
+ * non-federated membership, the recovery policy on, and SSO enabled with trusted device
+ * decryption (the upstream context for admin approval).
+ */
 async function approvalOrganizations(db: ReturnType<typeof createDb>, userUuid: string) {
   const uo = schema.usersOrganizations
   const rows = await db
-    .select({ orgUuid: uo.organizationUuid, member: uo.uuid, name: schema.organizations.name })
+    .select({
+      orgUuid: uo.organizationUuid,
+      member: uo.uuid,
+      name: schema.organizations.name,
+      sso: schema.ssoConfigs,
+    })
     .from(uo)
     .innerJoin(schema.organizations, eq(schema.organizations.uuid, uo.organizationUuid))
     .innerJoin(
@@ -354,14 +403,30 @@ async function approvalOrganizations(db: ReturnType<typeof createDb>, userUuid: 
         eq(schema.policies.enabled, true),
       ),
     )
+    .innerJoin(
+      schema.ssoConfigs,
+      and(
+        eq(schema.ssoConfigs.organizationUuid, uo.organizationUuid),
+        eq(schema.ssoConfigs.enabled, true),
+      ),
+    )
     .where(
       and(
         eq(uo.userUuid, userUuid),
-        inArray(uo.status, [Status.Accepted, Status.Confirmed]),
+        eq(uo.status, Status.Confirmed),
         isNotNull(uo.resetPasswordKey),
+        notInArray(
+          uo.uuid,
+          db
+            .select({ id: schema.federationMembers.organizationUserUuid })
+            .from(schema.federationMembers),
+        ),
       ),
     )
-  return rows
+  return rows.filter(
+    (r) =>
+      parseConfigData(r.sso).memberDecryptionType === MemberDecryptionType.TrustedDeviceEncryption,
+  )
 }
 
 /** Emails the members who can approve devices (owners, admins, custom with account recovery). */
@@ -379,7 +444,12 @@ async function notifyApprovers(
       .select({ m: schema.usersOrganizations, email: schema.users.email })
       .from(schema.usersOrganizations)
       .innerJoin(schema.users, eq(schema.users.uuid, schema.usersOrganizations.userUuid))
-      .where(eq(schema.usersOrganizations.organizationUuid, o.orgUuid))
+      .where(
+        and(
+          eq(schema.usersOrganizations.organizationUuid, o.orgUuid),
+          eq(schema.usersOrganizations.status, Status.Confirmed),
+        ),
+      )
     for (const r of members.filter((x) => can(x.m, 'manageResetPassword'))) {
       const lines = [
         `${requester} asked to sign in on a new device and needs approval from an administrator of ${o.name}.`,

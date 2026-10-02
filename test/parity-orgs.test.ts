@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { json } from './helpers'
-import { actor, addMember, createOrg, linkParams, loginCipher, mail } from './org-helpers'
+import {
+  actor,
+  addMember,
+  createOrg,
+  enableRecoveryPolicy,
+  linkParams,
+  loginCipher,
+  mail,
+} from './org-helpers'
 
 const orgCipher = async (owner: Awaited<ReturnType<typeof actor>>, orgId: string, col: string) =>
   owner.json('/api/ciphers/create', 'POST', {
@@ -466,10 +474,7 @@ describe('joining through an invite link', () => {
       allowedDomains: ['example.com'],
       invite: 'i',
     })
-    await owner.call(`/api/organizations/${id}/policies/8`, 'PUT', {
-      enabled: true,
-      data: { autoEnrollEnabled: true },
-    })
+    await enableRecoveryPolicy(owner, id, true)
     const user = await actor('jl-reset-user@example.com')
     const path = '/api/organizations/users/invite-link/accept'
     expect((await user.call(path, 'POST', join(id, link.code))).status).toBe(400)

@@ -1,7 +1,24 @@
 import { env } from 'cloudflare:workers'
 import { expect, it } from 'vitest'
+import { createDb, schema } from '../src/db'
 import { json } from './helpers'
-import { type Actor, actor, addMember, createOrg, mail } from './org-helpers'
+import { type Actor, actor, addMember, createOrg, enableRecoveryPolicy, mail } from './org-helpers'
+
+/** Enables SSO with trusted device decryption for an organisation (the admin approval context). */
+const enableTde = (orgId: string, memberDecryptionType = 2) =>
+  createDb(env.DB)
+    .insert(schema.ssoConfigs)
+    .values({
+      organizationUuid: orgId,
+      enabled: true,
+      data: JSON.stringify({ memberDecryptionType }),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    })
+    .onConflictDoUpdate({
+      target: schema.ssoConfigs.organizationUuid,
+      set: { enabled: true, data: JSON.stringify({ memberDecryptionType }) },
+    })
 
 const adminRequest = (a: Actor, deviceIdentifier = 'tde-device', email = a.email) =>
   a.call('/api/auth-requests/admin-request', 'POST', {
@@ -30,9 +47,8 @@ async function setup(prefix: string) {
 
 async function enrolled(prefix: string) {
   const s = await setup(prefix)
-  await s.owner.json(`/api/organizations/${s.orgId}/policies/8`, 'PUT', {
-    policy: { enabled: true, data: { autoEnrollEnabled: false } },
-  })
+  await enableRecoveryPolicy(s.owner, s.orgId)
+  await enableTde(s.orgId)
   const r = await s.member.call(
     `/api/organizations/${s.orgId}/users/${s.member.uuid}/reset-password-enrollment`,
     'PUT',
@@ -136,9 +152,19 @@ it('lists, approves and delivers an admin approval request', async () => {
 
 it('denies in bulk and answers through the bulk endpoint', async () => {
   const { owner, member, orgId } = await enrolled('da-bulk')
+  // One open admin request per user, so three requests need three enrolled members.
+  const m2 = await actor('da-bulk-m2@example.com')
+  const m3 = await actor('da-bulk-m3@example.com')
+  for (const m of [m2, m3]) {
+    await addMember(owner, orgId, m, { type: 2 })
+    await m.call(`/api/organizations/${orgId}/users/${m.uuid}/reset-password-enrollment`, 'PUT', {
+      resetPasswordKey: '4.recovery',
+      masterPasswordHash: 'client-derived-hash',
+    })
+  }
   const a = (await (await adminRequest(member, 'd1')).json()) as { id: string }
-  const b = (await (await adminRequest(member, 'd2')).json()) as { id: string }
-  const c = (await (await adminRequest(member, 'd3')).json()) as { id: string }
+  const b = (await (await adminRequest(m2, 'd2')).json()) as { id: string }
+  const c = (await (await adminRequest(m3, 'd3')).json()) as { id: string }
   expect(
     (await owner.call(`/api/organizations/${orgId}/auth-requests/deny`, 'POST', { ids: [a.id] }))
       .status,
@@ -154,7 +180,7 @@ it('denies in bulk and answers through the bulk endpoint', async () => {
     { id: c.id, error: 'An encrypted user key is required to approve.' },
     { id: '00000000-0000-4000-8000-000000000000', error: 'Auth request not found.' },
   ])
-  expect((await member.json(`/api/auth-requests/${b.id}`)).key).toBe('4.k')
+  expect((await m2.json(`/api/auth-requests/${b.id}`)).key).toBe('4.k')
   expect((await owner.json(`/api/organizations/${orgId}/auth-requests`)).data).toHaveLength(1)
   const events = await owner.json(`/api/organizations/${orgId}/events`)
   expect(events.data.map((e: { type: number }) => e.type)).toContain(1514)
@@ -179,9 +205,7 @@ it('keeps device approvals to authorised administrators of the right organisatio
   })
   // The other organisation has no recovery policy, and the request is not its member's anyway.
   expect([400, 404]).toContain(cross.status)
-  await other.json(`/api/organizations/${otherOrg}/policies/8`, 'PUT', {
-    policy: { enabled: true, data: {} },
-  })
+  await enableRecoveryPolicy(other, otherOrg)
   const cross2 = await other.call(
     `/api/organizations/${otherOrg}/auth-requests/${req.id}`,
     'POST',
@@ -263,5 +287,116 @@ it('expires admin requests after seven days, not fifteen minutes', async () => {
     encryptedUserKey: '4.k',
   })
   expect(late.status).toBe(404)
-  expect((await member.json(`/api/auth-requests/${req.id}`)).isExpired).toBe(true)
+  // Expired requests are gone for the requester too: nothing is delivered after expiry.
+  expect((await member.call(`/api/auth-requests/${req.id}`)).status).toBe(404)
+})
+
+it('delivers an approved admin approval key once and never after expiry', async () => {
+  const { owner, member, orgId } = await enrolled('da-once')
+  const created = (await (await adminRequest(member)).json()) as { id: string }
+  await owner.call(`/api/organizations/${orgId}/auth-requests/${created.id}`, 'POST', {
+    requestApproved: true,
+    encryptedUserKey: '4.userKeyForDevice',
+  })
+  const first = await member.json(`/api/auth-requests/${created.id}`)
+  expect(first.key).toBe('4.userKeyForDevice')
+  const second = await member.json(`/api/auth-requests/${created.id}`)
+  expect(second).toMatchObject({ requestApproved: true, key: null })
+  // The anonymous poll with the access code cannot fetch it again either.
+  const polled = await json(
+    `/api/auth-requests/${created.id}/response?code=access-code`,
+    undefined,
+    {
+      method: 'GET',
+    },
+  )
+  expect(((await polled.json()) as { key: unknown }).key).toBeNull()
+
+  // An approved but unread request is not served once expired.
+  const m2 = await actor('da-once-m2@example.com')
+  await addMember(owner, orgId, m2, { type: 2 })
+  await m2.call(`/api/organizations/${orgId}/users/${m2.uuid}/reset-password-enrollment`, 'PUT', {
+    resetPasswordKey: '4.recovery',
+    masterPasswordHash: 'client-derived-hash',
+  })
+  const r2 = (await (await adminRequest(m2)).json()) as { id: string }
+  await owner.call(`/api/organizations/${orgId}/auth-requests/${r2.id}`, 'POST', {
+    requestApproved: true,
+    encryptedUserKey: '4.k2',
+  })
+  await env.DB.prepare('UPDATE auth_requests SET created_at = ?1 WHERE uuid = ?2')
+    .bind(Date.now() - 8 * 24 * 3600 * 1000, r2.id)
+    .run()
+  expect((await m2.call(`/api/auth-requests/${r2.id}`)).status).toBe(404)
+  const late = await json(`/api/auth-requests/${r2.id}/response?code=access-code`, undefined, {
+    method: 'GET',
+  })
+  expect(late.status).toBe(404)
+})
+
+it('limits admin requests per user and keeps one open request', async () => {
+  const { owner, member, orgId } = await enrolled('da-limit')
+  const ids: string[] = []
+  for (let i = 0; i < 5; i++) {
+    const r = await adminRequest(member, `dev-${i}`)
+    expect(r.status).toBe(200)
+    ids.push(((await r.json()) as { id: string }).id)
+  }
+  expect((await adminRequest(member, 'dev-6')).status).toBe(429)
+  // Only the latest request stays open; earlier ones were replaced.
+  const list = await owner.json(`/api/organizations/${orgId}/auth-requests`)
+  expect(list.data.map((r: { id: string }) => r.id)).toEqual([ids[4]])
+  expect((await member.call(`/api/auth-requests/${ids[0]}`)).status).toBe(404)
+})
+
+it('needs trusted device decryption SSO, and refuses federated members', async () => {
+  const noTde = await setup('da-notde')
+  await enableRecoveryPolicy(noTde.owner, noTde.orgId)
+  await noTde.member.call(
+    `/api/organizations/${noTde.orgId}/users/${noTde.member.uuid}/reset-password-enrollment`,
+    'PUT',
+    { resetPasswordKey: '4.recovery', masterPasswordHash: 'client-derived-hash' },
+  )
+  // No SSO at all, then SSO with another decryption type: both refused.
+  expect((await adminRequest(noTde.member)).status).toBe(400)
+  await enableTde(noTde.orgId, 0)
+  expect((await adminRequest(noTde.member)).status).toBe(400)
+  await enableTde(noTde.orgId, 2)
+  expect((await adminRequest(noTde.member)).status).toBe(200)
+
+  // A federated membership or a stand-in account never asks for approval.
+  const fed = await enrolled('da-fed')
+  const now = Date.now()
+  const peer = crypto.randomUUID()
+  await env.DB.prepare(
+    `INSERT INTO federation_peers (uuid, instance_id, domain, public_key, fingerprint, protocol_version, status, local_approved, remote_approved, created_at, updated_at)
+     VALUES (?1, ?1, ?2, 'k', 'f', 1, 'active', 1, 1, ?3, ?3)`,
+  )
+    .bind(peer, `${peer}.example.com`, now)
+    .run()
+  await env.DB.prepare(
+    `INSERT INTO federation_members (organization_user_uuid, peer_uuid, remote_email, created_at) VALUES (?1, ?2, 'r@example.com', ?3)`,
+  )
+    .bind(fed.memberId, peer, now)
+    .run()
+  expect((await adminRequest(fed.member)).status).toBe(400)
+  const standIn = await enrolled('da-standin')
+  await env.DB.prepare("UPDATE users SET password_hash = '!federated.x' WHERE uuid = ?1")
+    .bind(standIn.member.uuid)
+    .run()
+  // The auth layer already turns stand-in accounts away from user routes.
+  expect([400, 401]).toContain((await adminRequest(standIn.member)).status)
+})
+
+it('emails only confirmed approvers', async () => {
+  const { owner, member, orgId } = await enrolled('da-mail')
+  const pending = await actor('da-mail-pending@example.com')
+  const pendingId = await addMember(owner, orgId, pending, { type: 1 })
+  await env.DB.prepare('UPDATE users_organizations SET status = 1 WHERE uuid = ?1')
+    .bind(pendingId)
+    .run()
+  const before = mail.sent.length
+  expect((await adminRequest(member)).status).toBe(200)
+  await mailTo(owner.email, before)
+  expect(mail.sent.slice(before).some((m) => m.to === pending.email)).toBe(false)
 })

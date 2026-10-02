@@ -1,16 +1,21 @@
 import { env } from 'cloudflare:workers'
 import { expect, it } from 'vitest'
 import { authed, login } from './helpers'
-import { type Actor, actor, addMember, createOrg, linkParams, mail } from './org-helpers'
+import {
+  type Actor,
+  actor,
+  addMember,
+  createOrg,
+  enableRecoveryPolicy,
+  linkParams,
+  mail,
+} from './org-helpers'
 
 const PASSWORD = 'client-derived-hash'
 const RECOVERY_KEY = '4.recoveryKeyWrappedForOrg'
 
 const enablePolicy = (owner: Actor, orgId: string, autoEnrollEnabled = false) =>
-  owner.json(`/api/organizations/${orgId}/policies/8`, 'PUT', {
-    policy: { enabled: true, data: { autoEnrollEnabled } },
-    metadata: {},
-  })
+  enableRecoveryPolicy(owner, orgId, autoEnrollEnabled)
 
 const enroll = (m: Actor, orgId: string, key: string | null = RECOVERY_KEY, hash = PASSWORD) =>
   m.call(`/api/organizations/${orgId}/users/${m.uuid}/reset-password-enrollment`, 'PUT', {

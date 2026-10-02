@@ -279,6 +279,10 @@ accounts.put('/api/accounts/update-temp-password', requireAuth, async (c) => {
     throw new ApiError(400, 'User does not have a temporary password to update.')
   }
   const change = resolveChange({ masterPasswordHash: '', ...body }, user.email)
+  // The temporary password is known to the administrator, so it cannot be kept.
+  if (await verifyMasterPassword(user, change.newHash)) {
+    throw new ApiError(400, 'Choose a master password different from the temporary one.')
+  }
   const db = createDb(c.env.DB)
   await runBatch(db, [
     db
@@ -314,6 +318,7 @@ accounts.post('/api/accounts/kdf', requireAuth, async (c) => {
         ...(await hashMasterPassword(change.newHash)),
         akey: change.key,
         ...kdfColumns(change.kdf),
+        forcePasswordReset: false,
       })
       .where(eq(schema.users.uuid, user.uuid)),
     ...stampRotationStatements(db, user.uuid),
@@ -676,6 +681,8 @@ async function applyRotation(c: Ctx, user: User, body: RotationInput) {
               ...(await hashMasterPassword(body.credentials.hash)),
               ...kdfColumns(body.credentials.kdf),
               passwordHint: body.credentials.hint,
+              // A new master password replaces any temporary one set by an account recovery.
+              forcePasswordReset: false,
             }
           : {}),
         updatedAt: now,

@@ -9,6 +9,7 @@ import { createDb, type Db, schema } from '../db'
 import { createEmailTransport, genericEmail } from '../email'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
+import { isStandInUser } from '../federation/standin'
 import { pushLogOut } from '../notifications/publish'
 import { getMember, requireOrg } from '../orgs/access'
 import { EventType, Status } from '../orgs/constants'
@@ -17,6 +18,7 @@ import { getTarget } from '../orgs/members'
 import { defer } from '../orgs/notify'
 import {
   assertCanRecover,
+  assertNotUnrecoverable,
   assertOrgKeys,
   assertPolicyEnabled,
   assertRecoverable,
@@ -25,8 +27,10 @@ import {
   recoveryDetailsJson,
   requireRecoveryAdmin,
   resetPasswordPolicy,
+  unrecoverableMembers,
 } from '../orgs/recovery'
 import { authOnce, batch } from '../orgs/util'
+import { overLimit, rateLimit, tooManyRequests } from '../ratelimit'
 import { kdfProblem, parseBody } from '../validation'
 
 /**
@@ -69,12 +73,24 @@ accountRecovery.put(
     const policy = await resetPasswordPolicy(db, orgUuid)
     const key = body.resetPasswordKey || null
     if (key) {
+      // Federated members keep their credentials on the home instance: no recovery key here.
+      const [federated] = await db
+        .select({ id: schema.federationMembers.organizationUserUuid })
+        .from(schema.federationMembers)
+        .where(eq(schema.federationMembers.organizationUserUuid, member.uuid))
+        .limit(1)
+      if (federated || isStandInUser(user)) {
+        throw new ApiError(400, 'Federated members cannot enrol in account recovery.')
+      }
       if (!policy.enabled) {
         throw new ApiError(400, 'Organization does not have the account recovery policy enabled.')
       }
       assertOrgKeys(await requireOrg(db, orgUuid))
       // Enrolling hands the organisation a way into the vault, so it needs the master password.
       // Accounts without one (trusted device encryption) are enrolled by their client on first login.
+      if (hasMasterPassword(user) && (await overLimit(c, 'recovery-enroll', user.uuid))) {
+        return tooManyRequests(c)
+      }
       if (
         hasMasterPassword(user) &&
         !(await verifyMasterPassword(user, body.masterPasswordHash ?? ''))
@@ -120,35 +136,46 @@ async function loadTarget(c: Ctx, db: Db, id: string) {
   assertRecoverable(target)
   const [u] = await db.select().from(schema.users).where(eq(schema.users.uuid, target.userUuid))
   if (!u) throw new ApiError(404, 'User not found.')
+  await assertNotUnrecoverable(db, target, u)
   return { actor, orgRow, target, user: u }
 }
 
-accountRecovery.get('/api/organizations/:orgId/users/:id/reset-password-details', async (c) => {
-  const db = createDb(c.env.DB)
-  const { orgRow, target, user } = await loadTarget(c, db, c.req.param('id'))
-  return c.json(recoveryDetailsJson(target, user, orgRow))
-})
+accountRecovery.get(
+  '/api/organizations/:orgId/users/:id/reset-password-details',
+  rateLimit('org-recovery', 30),
+  async (c) => {
+    const db = createDb(c.env.DB)
+    const { orgRow, target, user } = await loadTarget(c, db, c.req.param('id'))
+    return c.json(recoveryDetailsJson(target, user, orgRow))
+  },
+)
 
-accountRecovery.post('/api/organizations/:orgId/users/account-recovery-details', async (c) => {
-  const { ids } = await parseBody(c, z.object({ ids: z.array(z.string()).max(500).default([]) }))
-  const db = createDb(c.env.DB)
-  const orgUuid = org(c)
-  const actor = await requireRecoveryAdmin(db, c.var.user.uuid, orgUuid)
-  await assertPolicyEnabled(db, orgUuid)
-  const orgRow = await requireOrg(db, orgUuid)
-  assertOrgKeys(orgRow)
-  const rows = await enrolledMembers(db, orgUuid, [...new Set(ids)])
-  const data = rows.flatMap(({ m, u }) => {
-    try {
-      assertCanRecover(actor, m)
-      assertRecoverable(m)
-      return [recoveryDetailsJson(m, u, orgRow)]
-    } catch {
-      return []
-    }
-  })
-  return c.json({ object: 'list', data, continuationToken: null })
-})
+accountRecovery.post(
+  '/api/organizations/:orgId/users/account-recovery-details',
+  rateLimit('org-recovery', 30),
+  async (c) => {
+    const { ids } = await parseBody(c, z.object({ ids: z.array(z.string()).max(500).default([]) }))
+    const db = createDb(c.env.DB)
+    const orgUuid = org(c)
+    const actor = await requireRecoveryAdmin(db, c.var.user.uuid, orgUuid)
+    await assertPolicyEnabled(db, orgUuid)
+    const orgRow = await requireOrg(db, orgUuid)
+    assertOrgKeys(orgRow)
+    const rows = await enrolledMembers(db, orgUuid, [...new Set(ids)])
+    const blocked = await unrecoverableMembers(db, rows)
+    const data = rows.flatMap(({ m, u }) => {
+      try {
+        assertCanRecover(actor, m)
+        assertRecoverable(m)
+        if (blocked.has(m.uuid)) return []
+        return [recoveryDetailsJson(m, u, orgRow)]
+      } catch {
+        return []
+      }
+    })
+    return c.json({ object: 'list', data, continuationToken: null })
+  },
+)
 
 // ----- administrator: reset -----
 
@@ -235,6 +262,8 @@ async function recover(
           eventStatement(db, c, { type: EventType.OrganizationUserAdminResetTwoFactor, ...base }),
         ]
       : []),
+    // Requests made with the old credentials, answered or not, must not outlive the recovery.
+    db.delete(schema.authRequests).where(eq(schema.authRequests.userUuid, user.uuid)),
     // Every session of the recovered account ends: its old credentials no longer apply.
     ...stampRotationStatements(db, user.uuid),
   ])
@@ -276,38 +305,46 @@ async function notifyRecovered(
   }
 }
 
-accountRecovery.put('/api/organizations/:orgId/users/:id/reset-password', async (c) => {
-  const body = await parseBody(c, legacyReset)
-  return recover(c, () => ({ hash: body.newMasterPasswordHash, key: body.key, kdf: null }), false)
-})
+accountRecovery.put(
+  '/api/organizations/:orgId/users/:id/reset-password',
+  rateLimit('org-recovery', 30),
+  async (c) => {
+    const body = await parseBody(c, legacyReset)
+    return recover(c, () => ({ hash: body.newMasterPasswordHash, key: body.key, kdf: null }), false)
+  },
+)
 
-accountRecovery.put('/api/organizations/:orgId/users/:id/recover-account', async (c) => {
-  const body = await parseBody(c, recoverSchema)
-  const auth = body.authenticationData
-  const unlock = body.unlockData
-  return recover(
-    c,
-    (user) => {
-      if (body.resetMasterPassword === false) return null
-      if (auth && unlock) {
-        if (!encString.safeParse(unlock.masterKeyWrappedUserKey).success) {
-          throw new ApiError(400, 'Invalid encrypted key.')
+accountRecovery.put(
+  '/api/organizations/:orgId/users/:id/recover-account',
+  rateLimit('org-recovery', 30),
+  async (c) => {
+    const body = await parseBody(c, recoverSchema)
+    const auth = body.authenticationData
+    const unlock = body.unlockData
+    return recover(
+      c,
+      (user) => {
+        if (body.resetMasterPassword === false) return null
+        if (auth && unlock) {
+          if (!encString.safeParse(unlock.masterKeyWrappedUserKey).success) {
+            throw new ApiError(400, 'Invalid encrypted key.')
+          }
+          return {
+            hash: auth.masterPasswordAuthenticationHash,
+            key: unlock.masterKeyWrappedUserKey,
+            // The salt must be the target's email, as for a password change.
+            kdf: checkNested(auth, unlock, user.email),
+          }
         }
-        return {
-          hash: auth.masterPasswordAuthenticationHash,
-          key: unlock.masterKeyWrappedUserKey,
-          // The salt must be the target's email, as for a password change.
-          kdf: checkNested(auth, unlock, user.email),
+        if (body.newMasterPasswordHash && body.key) {
+          return { hash: body.newMasterPasswordHash, key: body.key, kdf: null }
         }
-      }
-      if (body.newMasterPasswordHash && body.key) {
-        return { hash: body.newMasterPasswordHash, key: body.key, kdf: null }
-      }
-      if (body.resetMasterPassword === true) {
-        throw new ApiError(400, 'The new master password is required.')
-      }
-      return null
-    },
-    body.resetTwoFactor === true,
-  )
-})
+        if (body.resetMasterPassword === true) {
+          throw new ApiError(400, 'The new master password is required.')
+        }
+        return null
+      },
+      body.resetTwoFactor === true,
+    )
+  },
+)

@@ -16,6 +16,7 @@ import {
   assertOrgKeys,
   assertPolicyEnabled,
   requireRecoveryAdmin,
+  unrecoverableMembers,
 } from '../orgs/recovery'
 import { authOnce, batch } from '../orgs/util'
 import { parseBody } from '../validation'
@@ -51,7 +52,7 @@ async function pendingRequests(db: Db, orgUuid: string, ids?: string[]) {
   const uo = schema.usersOrganizations
   const ar = schema.authRequests
   const rows = await db
-    .select({ r: ar, m: uo, email: schema.users.email })
+    .select({ r: ar, m: uo, email: schema.users.email, u: schema.users })
     .from(ar)
     .innerJoin(uo, and(eq(uo.userUuid, ar.userUuid), eq(uo.organizationUuid, orgUuid)))
     .innerJoin(schema.users, eq(schema.users.uuid, ar.userUuid))
@@ -60,12 +61,17 @@ async function pendingRequests(db: Db, orgUuid: string, ids?: string[]) {
         eq(ar.type, AuthRequestType.AdminApproval),
         isNull(ar.approved),
         isNotNull(uo.resetPasswordKey),
-        inArray(uo.status, [Status.Accepted, Status.Confirmed]),
+        eq(uo.status, Status.Confirmed),
         ...(ids ? [inArray(ar.uuid, ids)] : []),
       ),
     )
     .orderBy(desc(ar.createdAt))
-  return rows.filter((x) => !isExpired(x.r))
+  // Federated members and members of other organisations are never approvable from here.
+  const blocked = await unrecoverableMembers(
+    db,
+    rows.map((x) => ({ m: x.m, u: x.u })),
+  )
+  return rows.filter((x) => !isExpired(x.r) && !blocked.has(x.m.uuid))
 }
 
 const outranked = (actor: Member, target: Member) => {
@@ -133,8 +139,8 @@ async function answer(c: Ctx, answers: Answer[]) {
     ).map((x) => [x.r.uuid, x]),
   )
   const now = Date.now()
-  const statements: unknown[] = []
   const done: { id: string; userUuid: string }[] = []
+  const events: unknown[] = []
   const errors = new Map<string, string>()
   for (const a of unique) {
     const x = found.get(a.id)
@@ -146,15 +152,16 @@ async function answer(c: Ctx, answers: Answer[]) {
       errors.set(a.id, 'An encrypted user key is required to approve.')
       continue
     }
-    statements.push(
-      db
-        .update(schema.authRequests)
-        .set({
-          approved: a.approved,
-          key: a.approved ? a.key : null,
-          responseDate: now,
-        })
-        .where(and(eq(schema.authRequests.uuid, a.id), isNull(schema.authRequests.approved))),
+    const result = await db
+      .update(schema.authRequests)
+      .set({ approved: a.approved, key: a.approved ? a.key : null, responseDate: now })
+      .where(and(eq(schema.authRequests.uuid, a.id), isNull(schema.authRequests.approved)))
+    // Lost a race with another administrator: nothing changed, so nothing is logged or pushed.
+    if (result.meta.changes === 0) {
+      errors.set(a.id, 'Auth request not found.')
+      continue
+    }
+    events.push(
       eventStatement(db, c, {
         type: a.approved
           ? EventType.OrganizationUserApprovedAuthRequest
@@ -166,7 +173,7 @@ async function answer(c: Ctx, answers: Answer[]) {
     )
     done.push({ id: a.id, userUuid: x.r.userUuid })
   }
-  if (statements.length) await batch(db, statements)
+  if (events.length) await batch(db, events)
   defer(
     c,
     Promise.all(

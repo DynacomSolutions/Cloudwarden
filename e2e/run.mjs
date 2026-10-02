@@ -139,6 +139,41 @@ async function main() {
     assert.equal(reg.status, 200, await reg.text())
     pass('register via HTTP')
 
+    // New device verification (TASKS #260): the dev server has a mail binding, so a second device
+    // needs an emailed code. The simulated mailbox is unreadable here, so opt out with the master
+    // password, as a user may, and check the client-visible answer on the way.
+    const deviceLogin = (identifier) =>
+      fetch(`${direct}/identity/connect/token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'password',
+          username: EMAIL,
+          password: acct.masterPasswordHash,
+          scope: 'api offline_access',
+          client_id: 'cli',
+          deviceType: '8',
+          deviceName: 'e2e',
+          deviceIdentifier: identifier,
+        }),
+      })
+    const first = await deviceLogin(crypto.randomUUID())
+    assert.equal(first.status, 200, await first.clone().text())
+    const gated = await deviceLogin(crypto.randomUUID())
+    assert.equal(gated.status, 400)
+    assert.equal((await gated.json()).ErrorModel.Message, 'new device verification required')
+    const optOut = await fetch(`${direct}/api/accounts/verify-devices`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${(await first.json()).access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ masterPasswordHash: acct.masterPasswordHash, verifyDevices: false }),
+    })
+    assert.equal(optOut.status, 200, await optOut.clone().text())
+    assert.equal((await deviceLogin(crypto.randomUUID())).status, 200)
+    pass('new device verification gates a second device until the account opts out')
+
     let session = bwOut(['login', EMAIL, '--passwordenv', 'BW_PASSWORD', '--raw'])
     assert.ok(session.length > 20)
     const status = () => JSON.parse(bwOut(['status', '--session', session]))

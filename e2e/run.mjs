@@ -719,7 +719,6 @@ async function main() {
       (await sweep(`/api/organizations/${smOrg.id}/export`)).object,
       'organizationExport',
     )
-    assert.equal((await sweep(`/api/organizations/${smOrg.id}/two-factor`)).object, 'list')
     await sweep(`/api/organizations/${smOrg.id}/invite-link`, 404)
     for (const path of [
       '/api/plans/premium',

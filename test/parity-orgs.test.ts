@@ -226,21 +226,6 @@ describe('invite links', () => {
   })
 })
 
-describe('organisation two-step login providers', () => {
-  it('lists none for admins and refuses members', async () => {
-    const owner = await actor('o2f-owner@example.com')
-    const user = await actor('o2f-user@example.com')
-    const { id } = await createOrg(owner)
-    await addMember(owner, id, user)
-    expect(await owner.json(`/api/organizations/${id}/two-factor`)).toEqual({
-      object: 'list',
-      data: [],
-      continuationToken: null,
-    })
-    expect((await user.call(`/api/organizations/${id}/two-factor`)).status).toBe(403)
-  })
-})
-
 describe('organisation creation without payment', () => {
   it('creates an organisation owned by the caller', async () => {
     const owner = await actor('nopay@example.com')

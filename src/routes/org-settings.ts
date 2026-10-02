@@ -30,7 +30,7 @@ import { rateLimit } from '../ratelimit'
 import { parseBody } from '../validation'
 
 /**
- * Organisation settings, export, two-step login providers and invite links (TASKS #231). Mounted
+ * Organisation settings, export and invite links (TASKS #231). Mounted
  * before the other organisation routers: the public invite-link routes must not meet their
  * `authOnce` middleware.
  */
@@ -124,7 +124,6 @@ orgSettings.post('/api/organizations/invite-link/validate-email-domain', publicL
 for (const path of [
   '/api/organizations/:orgId/collection-management',
   '/api/organizations/:orgId/export',
-  '/api/organizations/:orgId/two-factor',
   '/api/organizations/:orgId/invite-link',
   '/api/organizations/:orgId/invite-link/*',
   '/api/organizations/users/invite-link/*',
@@ -208,14 +207,6 @@ orgSettings.get('/api/organizations/:orgId/export', async (c) => {
       }),
     ),
   })
-})
-
-// Organisation-level two-step login providers. Organisation Duo is the only such provider and is
-// configured elsewhere (TASKS #231 workstream D); until one is stored the list is empty, which the
-// Admin Console renders as "not configured".
-orgSettings.get('/api/organizations/:orgId/two-factor', async (c) => {
-  await requireAdmin(c)
-  return c.json(list([]))
 })
 
 // ----- invite links (managed by members who manage users) -----

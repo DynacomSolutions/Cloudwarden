@@ -5,6 +5,7 @@ import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { zstdDecompressSync } from 'node:zlib'
 import { extractEntry } from './bws.mjs'
 
 const here = import.meta.dirname
@@ -12,7 +13,7 @@ const lock = JSON.parse(readFileSync(join(here, 'bwdc.lock.json'), 'utf8'))
 
 /**
  * The binary links against `libatomic.so.1`, which slim runner images lack. When the loader cannot
- * find it, the pinned Debian package (e2e/bwdc.lock.json, sha256 checked) is unpacked next to the
+ * find it, the pinned Ubuntu package (e2e/bwdc.lock.json, sha256 checked) is unpacked next to the
  * binary without root, and the returned environment points `LD_LIBRARY_PATH` at it.
  */
 async function libatomicEnv(dir) {
@@ -42,11 +43,21 @@ async function libatomicEnv(dir) {
       p += 60 + size + (size % 2)
     }
     if (!data) throw new Error('libatomic1 package has no data archive')
-    mkdirSync(libs, { recursive: true })
-    const tarball = join(libs, name)
-    writeFileSync(tarball, data)
-    const x = spawnSync('tar', ['-xf', tarball, '-C', libs], { encoding: 'utf8' })
-    if (x.status !== 0) throw new Error(`tar failed: ${x.stderr}`)
+    if (!name.endsWith('.zst')) throw new Error(`unexpected package data ${name}`)
+    // Node decompresses zstd itself, and a ustar archive is simple to walk: no tar or xz needed.
+    const tar = zstdDecompressSync(data)
+    mkdirSync(so, { recursive: true })
+    for (let q = 0; q + 512 <= tar.length; ) {
+      const entry = tar.toString('utf8', q, q + 100).replace(/\0.*$/s, '')
+      if (!entry) break
+      const size = Number.parseInt(tar.toString('ascii', q + 124, q + 136).replace(/\0.*$/s, '').trim() || '0', 8)
+      const type = String.fromCharCode(tar[q + 156])
+      if (type === '0' && /libatomic\.so\.1\.\d/.test(entry)) {
+        writeFileSync(join(so, 'libatomic.so.1'), tar.subarray(q + 512, q + 512 + size))
+      }
+      q += 512 + Math.ceil(size / 512) * 512
+    }
+    if (!existsSync(join(so, 'libatomic.so.1'))) throw new Error('libatomic.so.1 not in package')
   }
   return { LD_LIBRARY_PATH: [so, process.env.LD_LIBRARY_PATH].filter(Boolean).join(':') }
 }

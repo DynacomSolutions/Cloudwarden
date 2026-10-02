@@ -41,4 +41,4 @@
 datadoghq\.(com|eu)|ddog-gov\.com
 login\.microsoftonline\.com|monitor\.azure\.com|cloudflare-dns\.com
 # Pinned libatomic1 package for the bwdc e2e steps (TASKS #272)
-deb\.debian\.org
+archive\.ubuntu\.com

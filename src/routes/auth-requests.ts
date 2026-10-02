@@ -1,13 +1,19 @@
-import { and, desc, eq, gt, isNull, lt } from 'drizzle-orm'
+import { and, desc, eq, gt, inArray, isNotNull, isNull, lt, ne, or } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { z } from 'zod'
 import { safeEqualStrings, sha256B64u } from '../auth/crypto'
 import { requireAuth } from '../auth/middleware'
-import { findUserByEmail } from '../auth/users'
+import { findUserByEmail, normalizeEmail } from '../auth/users'
 import { createDb, schema } from '../db'
+import { createEmailTransport, genericEmail } from '../email'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
 import { PushType, pushAuthRequestResponse, pushUserUpdate } from '../notifications/publish'
+import { can } from '../orgs/access'
+import { EventType, PolicyType, Status } from '../orgs/constants'
+import { eventStatement } from '../orgs/events'
+import { defer } from '../orgs/notify'
+import { batch } from '../orgs/util'
 import { rateLimit } from '../ratelimit'
 import { parseBody } from '../validation'
 
@@ -17,11 +23,32 @@ export const authRequests = new Hono<Env>()
 type AuthRequestRow = typeof schema.authRequests.$inferSelect
 
 export const AUTH_REQUEST_TTL_MS = 15 * 60 * 1000
+/** Admin approval requests wait for an administrator, so they live longer (TASKS #241). */
+export const ADMIN_AUTH_REQUEST_TTL_MS = 7 * 24 * 3600 * 1000
+
+/** Auth request types: 0 authenticate and unlock, 1 unlock, 2 admin approval. */
+export const AuthRequestType = { AuthenticateAndUnlock: 0, Unlock: 1, AdminApproval: 2 } as const
 
 const NOT_FOUND = () => new ApiError(404, 'Auth request not found.')
-const isExpired = (r: AuthRequestRow) => Date.now() - r.createdAt >= AUTH_REQUEST_TTL_MS
+export const authRequestTtl = (type: number) =>
+  type === AuthRequestType.AdminApproval ? ADMIN_AUTH_REQUEST_TTL_MS : AUTH_REQUEST_TTL_MS
+export const isExpired = (r: AuthRequestRow) => Date.now() - r.createdAt >= authRequestTtl(r.type)
 
-const requestJson = (r: AuthRequestRow) => ({
+/** Deletes expired requests of every type. */
+export const purgeExpired = (db: ReturnType<typeof createDb>, now: number) =>
+  db
+    .delete(schema.authRequests)
+    .where(
+      or(
+        and(
+          ne(schema.authRequests.type, AuthRequestType.AdminApproval),
+          lt(schema.authRequests.createdAt, now - AUTH_REQUEST_TTL_MS),
+        ),
+        lt(schema.authRequests.createdAt, now - ADMIN_AUTH_REQUEST_TTL_MS),
+      ),
+    )
+
+export const requestJson = (r: AuthRequestRow) => ({
   id: r.uuid,
   publicKey: r.publicKey,
   requestDeviceType: deviceTypeName(r.requestDeviceType),
@@ -39,7 +66,7 @@ const requestJson = (r: AuthRequestRow) => ({
   object: 'auth-request',
 })
 
-const deviceTypeName = (type: number) =>
+export const deviceTypeName = (type: number) =>
   ({
     0: 'Android',
     1: 'iOS',
@@ -80,7 +107,10 @@ const createSchema = z.object({
 const createRequest = async (c: import('hono').Context<Env>) => {
   const body = await parseBody(c, createSchema)
   const type = body.type ?? 0
-  if (type !== 0 && type !== 1) throw new ApiError(400, 'Unsupported auth request type.')
+  // Admin approval requests are created signed in, through `/auth-requests/admin-request`.
+  if (type !== AuthRequestType.AuthenticateAndUnlock && type !== AuthRequestType.Unlock) {
+    throw new ApiError(400, 'Use the admin request endpoint for admin approval requests.')
+  }
   const db = createDb(c.env.DB)
   const deviceType = Number.parseInt(c.req.header('Device-Type') ?? '', 10)
   const now = Date.now()
@@ -107,9 +137,7 @@ const createRequest = async (c: import('hono').Context<Env>) => {
   // poll endpoint and the anonymous hub behave identically and emails cannot be probed.
   const real = user?.enabled ? user : null
   row.userUuid = real?.uuid ?? null
-  await db
-    .delete(schema.authRequests)
-    .where(lt(schema.authRequests.createdAt, now - AUTH_REQUEST_TTL_MS))
+  await purgeExpired(db, now)
   await db.insert(schema.authRequests).values(row)
   if (!real) return c.json(requestJson(row))
   c.executionCtx.waitUntil(
@@ -138,7 +166,10 @@ const listPending = async (c: import('hono').Context<Env>) => {
       ),
     )
     .orderBy(desc(schema.authRequests.createdAt))
-  const pending = rows.filter((r) => r.approved === null)
+  // Admin approval requests are answered by an organisation, never by the user's own devices.
+  const pending = rows.filter(
+    (r) => r.approved === null && r.type !== AuthRequestType.AdminApproval,
+  )
   return c.json({ data: pending.map(requestJson), object: 'list', continuationToken: null })
 }
 authRequests.get('/api/auth-requests/pending', requireAuth, listPending)
@@ -198,7 +229,7 @@ authRequests.put('/api/auth-requests/:id', requireAuth, async (c) => {
       ),
     )
     .limit(1)
-  if (!row || isExpired(row)) throw NOT_FOUND()
+  if (!row || isExpired(row) || row.type === AuthRequestType.AdminApproval) throw NOT_FOUND()
   if (row.approved !== null) throw new ApiError(400, 'This request has already been answered.')
   if (body.requestApproved && !body.key) throw new ApiError(400, 'A key is required to approve.')
 
@@ -248,3 +279,120 @@ authRequests.put('/api/auth-requests/:id', requireAuth, async (c) => {
   )
   return c.json(requestJson(updated))
 })
+
+// ----- admin approval (type 2), TASKS #241 -----
+
+/**
+ * A signed-in device without the user key (trusted device encryption, or any account enrolled in
+ * account recovery) asks the organisation to approve it. An administrator of an organisation
+ * where the user is an enrolled, active member unwraps the recovery key and answers through
+ * `/api/organizations/:orgId/auth-requests` (`src/routes/org-auth-requests.ts`). The requesting
+ * device polls `GET /api/auth-requests/:id` and hears `AuthRequestResponse` on its user hub.
+ */
+authRequests.post('/api/auth-requests/admin-request', requireAuth, async (c) => {
+  const body = await parseBody(c, createSchema)
+  const user = c.var.user
+  if (body.type !== AuthRequestType.AdminApproval) {
+    throw new ApiError(400, 'Only admin approval requests are accepted here.')
+  }
+  if (normalizeEmail(body.email) !== user.email) throw new ApiError(400, 'Invalid email.')
+  const db = createDb(c.env.DB)
+  const orgs = await approvalOrganizations(db, user.uuid)
+  if (orgs.length === 0) {
+    throw new ApiError(
+      400,
+      'User does not belong to any organizations that support admin approval of devices.',
+    )
+  }
+  const deviceType = Number.parseInt(c.req.header('Device-Type') ?? '', 10)
+  const now = Date.now()
+  const row: AuthRequestRow = {
+    uuid: crypto.randomUUID(),
+    userUuid: user.uuid,
+    type: AuthRequestType.AdminApproval,
+    requestDeviceIdentifier: body.deviceIdentifier,
+    requestDeviceType: Number.isFinite(deviceType) ? deviceType : 14,
+    requestIp: c.req.header('CF-Connecting-IP') ?? null,
+    publicKey: body.publicKey,
+    accessCodeHash: await sha256B64u(body.accessCode),
+    approved: null,
+    key: null,
+    masterPasswordHash: null,
+    responseDeviceUuid: null,
+    responseDate: null,
+    authenticatedAt: null,
+    createdAt: now,
+  }
+  await purgeExpired(db, now)
+  await batch(db, [
+    db.insert(schema.authRequests).values(row),
+    ...orgs.map((o) =>
+      eventStatement(db, c, {
+        type: EventType.UserRequestedDeviceApproval,
+        userUuid: user.uuid,
+        organizationUuid: o.org,
+        organizationUserUuid: o.member,
+      }),
+    ),
+  ])
+  defer(c, notifyApprovers(c, orgs, user.email))
+  return c.json(requestJson(row))
+})
+
+/** Organisations whose administrators may approve the user's devices. */
+async function approvalOrganizations(db: ReturnType<typeof createDb>, userUuid: string) {
+  const uo = schema.usersOrganizations
+  const rows = await db
+    .select({ org: uo.organizationUuid, member: uo.uuid, name: schema.organizations.name })
+    .from(uo)
+    .innerJoin(schema.organizations, eq(schema.organizations.uuid, uo.organizationUuid))
+    .innerJoin(
+      schema.policies,
+      and(
+        eq(schema.policies.organizationUuid, uo.organizationUuid),
+        eq(schema.policies.atype, PolicyType.ResetPassword),
+        eq(schema.policies.enabled, true),
+      ),
+    )
+    .where(
+      and(
+        eq(uo.userUuid, userUuid),
+        inArray(uo.status, [Status.Accepted, Status.Confirmed]),
+        isNotNull(uo.resetPasswordKey),
+      ),
+    )
+  return rows
+}
+
+/** Emails the members who can approve devices (owners, admins, custom with account recovery). */
+async function notifyApprovers(
+  c: import('hono').Context<Env>,
+  orgs: { org: string; name: string }[],
+  requester: string,
+) {
+  const transport = createEmailTransport(c.env)
+  if (!transport.configured) return
+  const db = createDb(c.env.DB)
+  const link = `${c.env.DOMAIN.replace(/\/+$/, '')}/#/organizations`
+  for (const o of orgs) {
+    const members = await db
+      .select({ m: schema.usersOrganizations, email: schema.users.email })
+      .from(schema.usersOrganizations)
+      .innerJoin(schema.users, eq(schema.users.uuid, schema.usersOrganizations.userUuid))
+      .where(eq(schema.usersOrganizations.organizationUuid, o.org))
+    for (const r of members.filter((x) => can(x.m, 'manageResetPassword'))) {
+      const lines = [
+        `${requester} asked to sign in on a new device and needs approval from an administrator of ${o.name}.`,
+        'Review the request under Admin Console, Settings, Device approvals. It expires in seven days.',
+      ]
+      try {
+        await transport.send({
+          to: r.email,
+          ...genericEmail('Device approval requested', [...lines, link]),
+        })
+      } catch {
+        // Best effort; the request is listed for the administrators either way.
+      }
+    }
+  }
+}

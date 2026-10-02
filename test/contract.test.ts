@@ -500,6 +500,48 @@ const cases: Case[] = [
     status: 400,
     run: () => json('/identity/accounts/register', { email: 'not-an-email' }),
   },
+  // Account recovery and device approvals (TASKS #240, #241): refusals without a policy.
+  {
+    op: 'PUT /api/accounts/update-temp-password',
+    status: 400,
+    run: () =>
+      call('/api/accounts/update-temp-password', 'PUT', {
+        newMasterPasswordHash: 'x',
+        key: '2.x',
+      }),
+  },
+  {
+    op: 'POST /api/auth-requests/admin-request',
+    status: 400,
+    run: () =>
+      call('/api/auth-requests/admin-request', 'POST', {
+        email: state.email,
+        deviceIdentifier: 'contract-device',
+        publicKey: 'pub',
+        type: 2,
+        accessCode: 'code',
+      }),
+  },
+  {
+    op: 'GET /api/organizations/{organizationId}/auth-requests',
+    status: 400,
+    run: () => call(`/api/organizations/${sm.orgId}/auth-requests`),
+  },
+  {
+    op: 'PUT /api/organizations/{organizationId}/users/{userId}/reset-password-enrollment',
+    status: 400,
+    run: async () => {
+      const me = (await (await call('/api/accounts/profile')).json()) as Json
+      return call(
+        `/api/organizations/${sm.orgId}/users/${me.id}/reset-password-enrollment`,
+        'PUT',
+        {
+          resetPasswordKey: '4.key',
+          masterPasswordHash: state.passwordHash,
+        },
+      )
+    },
+  },
 ]
 
 /**
@@ -508,8 +550,6 @@ const cases: Case[] = [
  * gets updated and the operation can join the curated set above.
  */
 const UNIMPLEMENTED = [
-  'PUT /api/accounts/update-temp-password',
-  'POST /api/auth-requests/admin-request',
   'POST /api/devices/identifier/{deviceIdentifier}/web-push-auth',
 ]
 

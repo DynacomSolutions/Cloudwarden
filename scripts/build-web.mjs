@@ -41,7 +41,8 @@ const CSP = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
-  "connect-src 'self' wss: https://api.pwnedpasswords.com",
+  // 'self' also covers same-origin ws: and wss: (the notifications hub) in current browsers.
+  "connect-src 'self' https://api.pwnedpasswords.com",
   "frame-src 'self' https://*.duosecurity.com https://*.duofederatedsecurity.com",
   "worker-src 'self' blob:",
   "object-src 'none'",

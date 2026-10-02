@@ -88,6 +88,12 @@ export function checkServerUrl(value, label) {
   return url.origin
 }
 
+export class NewDeviceRequired extends Error {
+  constructor() {
+    super('The server wants a code emailed to the account for this new device')
+  }
+}
+
 async function request(base, path, { method = 'GET', token, json, form } = {}) {
   checkServerUrl(base, 'Server URL')
   const headers = { ...HEADERS }
@@ -138,8 +144,9 @@ export async function loginAndUnlock(base, email, password, twoFactor = {}) {
     client_id: 'cli',
     deviceType: '24',
     deviceName: 'cloudwarden-import',
-    deviceIdentifier: randomUUID(),
+    deviceIdentifier: twoFactor.deviceIdentifier ?? randomUUID(),
   }
+  if (twoFactor.newDeviceOtp) form.newDeviceOtp = twoFactor.newDeviceOtp
   if (twoFactor.token) {
     form.twoFactorToken = twoFactor.token
     form.twoFactorProvider = String(twoFactor.provider ?? 0)
@@ -149,6 +156,9 @@ export async function loginAndUnlock(base, email, password, twoFactor = {}) {
   if (res.status !== 200) {
     const providers = res.data?.TwoFactorProviders ?? res.data?.twoFactorProviders
     if (providers) throw new TwoFactorRequired(providers)
+    if (/new device verification/i.test(JSON.stringify(res.data ?? ''))) {
+      throw new NewDeviceRequired()
+    }
     throw apiError('login', res)
   }
   const wrapped = res.data.Key ?? res.data.key
@@ -349,6 +359,7 @@ const USAGE = `Usage: node scripts/import-from-server.mjs --source URL --source-
   --skip-errors               Skip items that cannot be converted instead of stopping
   --source-2fa-provider N     Two-factor provider type of the source account (default: first offered)
   --target-2fa-provider N     The same for an existing target account
+  --device-id ID              Fixed device identifier for both logins (avoids repeated new device codes)
   Two-factor codes come from SOURCE_2FA_TOKEN / TARGET_2FA_TOKEN or a prompt, never from arguments.
 
 Servers must be https (http only for localhost). Passwords: SOURCE_PASSWORD and TARGET_PASSWORD (defaults to the source password with --register),
@@ -376,19 +387,34 @@ async function password(envName, label, fallback) {
 }
 
 /** Logs in; when two-factor is required, takes the code from the environment or a prompt. */
-async function loginWithTwoFactor(base, email, password, label, envPrefix, providerArg) {
-  const attempt = { provider: providerArg, token: process.env[`${envPrefix}_2FA_TOKEN`] }
-  try {
-    return await loginAndUnlock(base, email, password, attempt)
-  } catch (err) {
-    if (!(err instanceof TwoFactorRequired) || attempt.token) throw err
-    if (!process.stdin.isTTY) {
-      throw new Error(`${err.message}. Set ${envPrefix}_2FA_TOKEN (no terminal to prompt on).`)
-    }
-    const provider = providerArg ?? err.providers[0]
-    const token = await prompt(`${label} two-factor code (provider ${provider}): `)
-    return loginAndUnlock(base, email, password, { provider, token })
+async function loginWithTwoFactor(base, email, password, label, envPrefix, providerArg, device) {
+  const attempt = {
+    provider: providerArg,
+    token: process.env[`${envPrefix}_2FA_TOKEN`],
+    newDeviceOtp: process.env[`${envPrefix}_NEW_DEVICE_CODE`],
+    deviceIdentifier: device,
   }
+  // A second factor or an emailed new device code may be asked for in turn; each is read from
+  // the environment or prompted for once.
+  for (let round = 0; round < 3; round++) {
+    try {
+      return await loginAndUnlock(base, email, password, attempt)
+    } catch (err) {
+      const twoFactor = err instanceof TwoFactorRequired && !attempt.token
+      const newDevice = err instanceof NewDeviceRequired && !attempt.newDeviceOtp
+      if (!twoFactor && !newDevice) throw err
+      const name = twoFactor ? `${envPrefix}_2FA_TOKEN` : `${envPrefix}_NEW_DEVICE_CODE`
+      if (!process.stdin.isTTY)
+        throw new Error(`${err.message}. Set ${name} (no terminal to prompt on).`)
+      if (twoFactor) {
+        attempt.provider = providerArg ?? err.providers[0]
+        attempt.token = await prompt(`${label} two-factor code (provider ${attempt.provider}): `)
+      } else {
+        attempt.newDeviceOtp = await prompt(`${label} emailed new device code: `)
+      }
+    }
+  }
+  throw new Error('Login did not complete.')
 }
 
 export async function main(argv, log = console.log) {
@@ -408,6 +434,7 @@ export async function main(argv, log = console.log) {
     'Source',
     'SOURCE',
     args['source-2fa-provider'],
+    args['device-id'],
   )
   const sync = await request(args.source, '/api/sync?excludeDomains=true', {
     token: source.accessToken,
@@ -440,6 +467,7 @@ export async function main(argv, log = console.log) {
       'Target',
       'TARGET',
       args['target-2fa-provider'],
+      args['device-id'],
     )
   }
   const built = await buildImport(sync.data, source.userKey, target.userKey, {

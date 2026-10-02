@@ -547,7 +547,9 @@ async function main() {
     // on the same server, through the public API only, then check the copy decrypts identically.
     const copyEmail = `import-${Date.now()}@example.com`
     const copyEnv = { ...env, SOURCE_PASSWORD: PASSWORD }
-    const importer = await loginAndUnlock(direct, EMAIL, PASSWORD)
+    const importer = await loginAndUnlock(direct, EMAIL, PASSWORD, {
+      deviceIdentifier: 'e2e-importer-device',
+    })
     const sealed = async (text) => encType2(Buffer.from(text), importer.userKey)
     const post = async (path, body) =>
       fetchRetry(`${direct}${path}`, {
@@ -581,12 +583,15 @@ async function main() {
         '--target-email',
         copyEmail,
         '--register',
+        '--device-id',
+        'e2e-importer-device',
       ],
       { env: copyEnv },
     )
     assert.match(imported.stdout, /Import finished/)
-    const from = await loginAndUnlock(direct, EMAIL, PASSWORD)
-    const to = await loginAndUnlock(direct, copyEmail, PASSWORD)
+    const device = { deviceIdentifier: 'e2e-importer-device' }
+    const from = await loginAndUnlock(direct, EMAIL, PASSWORD, device)
+    const to = await loginAndUnlock(direct, copyEmail, PASSWORD, device)
     const syncOf = async (session) =>
       await (
         await fetchRetry(`${direct}/api/sync`, {

@@ -39,6 +39,12 @@ async function fakeServer(state) {
       if (state.twoFactor && form.get('twoFactorToken') !== state.twoFactor) {
         return send(400, { error: 'invalid_grant', TwoFactorProviders: ['0'] })
       }
+      if (state.newDevice && form.get('newDeviceOtp') !== state.newDevice) {
+        return send(400, {
+          error: 'invalid_grant',
+          error_description: 'new device verification required',
+        })
+      }
       const account = state.account
       if (!account || form.get('password') !== account.masterPasswordHash) {
         return send(400, { error: 'invalid_grant', error_description: 'bad credentials' })
@@ -329,6 +335,33 @@ test('two-factor codes come from the environment, not arguments', async () => {
   } finally {
     delete process.env.SOURCE_PASSWORD
     delete process.env.SOURCE_2FA_TOKEN
+    source.close()
+  }
+})
+
+test('asks for the emailed new device code and sends a fixed device id', async () => {
+  const { source } = await setup()
+  source.newDevice = '777777'
+  process.env.SOURCE_PASSWORD = PASSWORD
+  const args = [
+    '--source',
+    source.url,
+    '--source-email',
+    EMAIL,
+    '--target',
+    'http://127.0.0.1:1',
+    '--dry-run',
+  ]
+  try {
+    await assert.rejects(
+      main(args, () => {}),
+      /SOURCE_NEW_DEVICE_CODE/,
+    )
+    process.env.SOURCE_NEW_DEVICE_CODE = '777777'
+    assert.equal(await main([...args, '--device-id', 'fixed-device'], () => {}), 0)
+  } finally {
+    delete process.env.SOURCE_PASSWORD
+    delete process.env.SOURCE_NEW_DEVICE_CODE
     source.close()
   }
 })

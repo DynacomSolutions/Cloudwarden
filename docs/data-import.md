@@ -63,6 +63,9 @@ SOURCE_PASSWORD=... pnpm import:server \
   `--source-2fa-provider` and `--target-2fa-provider` pick a provider type (default: the first one
   offered). Email codes can be requested from the source's own client first. `--dry-run` decrypts
   and counts without touching the target; `--skip-errors` skips an item that cannot be converted.
+- A server that wants an emailed new device code is handled the same way (`SOURCE_NEW_DEVICE_CODE`,
+  `TARGET_NEW_DEVICE_CODE` or a prompt); `--device-id` fixes the device identifier of both logins so
+  a repeat run is not a new device.
 - Both server URLs must be https; plain http is accepted for localhost only, because the master
   password hash and tokens are sent. Redirects are refused.
 - Copied: logins (including passkeys and URIs), cards, identities, secure notes, SSH keys, custom

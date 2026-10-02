@@ -12,3 +12,5 @@ k8s
 docs/api/build
 web-vault.tmp
 *.log
+web/node_modules
+web/apps/web/build

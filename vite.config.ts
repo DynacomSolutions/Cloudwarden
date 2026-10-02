@@ -9,7 +9,7 @@ const allowedHosts =
 
 export default defineConfig({
   server: { allowedHosts },
-  // Static web vault (gitignored, created by `pnpm web-vault:fetch`). Absent in CI: that is fine.
+  // Static web client (gitignored, created by `pnpm web:build`). Absent in CI: that is fine.
   publicDir: 'web-vault',
   plugins: [cloudflare()],
 })

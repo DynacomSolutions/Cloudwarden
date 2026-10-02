@@ -13,7 +13,7 @@ coverage/
 # Private identifier denylist (never commit)
 .identifiers-deny.local
 
-# Official web vault, created by `pnpm web-vault:fetch` (TASKS #143)
+# Built web client, created by `pnpm web:build` (TASKS #210)
 web-vault/
 web-vault.tmp/
 # Generated API docs (pnpm api:build)

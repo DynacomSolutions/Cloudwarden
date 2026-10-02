@@ -12,7 +12,7 @@ Cloudwarden is a single Cloudflare Worker that implements the Bitwarden server A
 |  /notifications/*   WebSocket upgrade -> NotificationHub DO      |
 |  /icons/*           optional favicon proxy                       |
 |  /admin/*           optional admin UI (ADMIN_ENABLED)            |
-|  /                  optional web vault static assets             |
+|  /                  optional web client static assets            |
 +-------+------------------+-------------------+-------------------+
         |                  |                   |
         v                  v                   v

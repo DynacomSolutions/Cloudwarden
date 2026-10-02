@@ -111,7 +111,8 @@ async function removeMany(c: Ctx, ids: string[] | null) {
     .where(eq(schema.folders.userUuid, user.uuid))
   const owned = (await mine).map((f) => f.id)
   const targets = ids === null ? owned : [...new Set(ids)]
-  if (targets.length > MAX_BULK) throw new ApiError(400, 'Too many folders in one request.')
+  if (ids !== null && targets.length > MAX_BULK)
+    throw new ApiError(400, 'Too many folders in one request.')
   const own = new Set(owned)
   if (targets.some((id) => !own.has(id))) throw new ApiError(404, 'Folder not found.')
   const now = Date.now()

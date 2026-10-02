@@ -355,7 +355,7 @@ async function sendAccessGrant(c: Ctx, form: Form) {
       if (!(await requestSendCode(c, db, send, email))) return tooManyRequests(c)
       return needCode()
     }
-    if (!(await verifySendCode(db, send, email, otp))) return needCode()
+    if (!(await verifySendCode(c, db, send, email, otp))) return needCode()
   }
   return c.json({
     access_token: await signSendAccessToken(c.env, send),

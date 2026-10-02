@@ -114,7 +114,7 @@ async function checkLegacyAccess(
     if (!(await requestSendCode(c, db, send, email))) throw new ApiError(429, 'Too many requests.')
     throw new ApiError(401, 'Email and verification code required.')
   }
-  if (!(await verifySendCode(db, send, email, otp))) {
+  if (!(await verifySendCode(c, db, send, email, otp))) {
     throw new ApiError(401, 'Email and verification code required.')
   }
 }

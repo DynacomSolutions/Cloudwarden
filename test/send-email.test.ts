@@ -1,6 +1,6 @@
 import { env } from 'cloudflare:workers'
 import { expect, it } from 'vitest'
-import { authed, BASE, createSession } from './helpers'
+import { authed, BASE, createSession, form } from './helpers'
 import { actor, type Mailbox, mailbox } from './org-helpers'
 
 const day = 86_400_000
@@ -24,16 +24,26 @@ interface SendOut {
 }
 
 /** Anonymous requests with a recording mail transport bound. */
-async function anon(mb: Mailbox, path: string, init: RequestInit) {
+let nextIp = 1
+async function anon(mb: Mailbox, path: string, init: RequestInit, ip?: string) {
   const { default: app } = await import('../src/index')
-  return app.fetch(new Request(`${BASE}${path}`, init), {
+  // A fresh client address per call, so only the limit under test is hit.
+  const headers = new Headers(init.headers)
+  headers.set('CF-Connecting-IP', ip ?? `10.1.${Math.floor(nextIp / 250)}.${nextIp++ % 250}`)
+  return app.fetch(new Request(`${BASE}${path}`, { ...init, headers }), {
     ...env,
     EMAIL: mb.EMAIL,
     MAIL_FROM: mb.MAIL_FROM,
   })
 }
 
-const grant = (mb: Mailbox, accessId: string, extra: Record<string, string> = {}) =>
+const grant = async (mb: Mailbox, accessId: string, extra: Record<string, string> = {}) => {
+  const res = await grantNow(mb, accessId, extra)
+  await settle()
+  return res
+}
+
+const grantNow = (mb: Mailbox, accessId: string, extra: Record<string, string> = {}) =>
   anon(mb, '/identity/connect/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -45,7 +55,10 @@ const grant = (mb: Mailbox, accessId: string, extra: Record<string, string> = {}
     }).toString(),
   })
 
-const codeIn = (m: { text: string } | undefined) => /\b(\d{6})\b/.exec(m?.text ?? '')?.[1] ?? ''
+/** The mail is sent in the background, so let it land before reading the mailbox. */
+const settle = () => new Promise((r) => setTimeout(r, 20))
+
+const codeIn = (m: { text: string } | undefined) => /\b(\d{8})\b/.exec(m?.text ?? '')?.[1] ?? ''
 
 const setup = async (email: string, mb: Mailbox, emails = 'Alice@Example.com, bob@example.com') => {
   const owner = await actor(email, mb)
@@ -109,7 +122,7 @@ it('walks the send_access grant through email, code and token', async () => {
   expect(mb.sent).toHaveLength(1)
   expect(mb.sent[0]?.to).toBe('alice@example.com')
   const code = codeIn(mb.sent[0])
-  expect(code).toMatch(/^\d{6}$/)
+  expect(code).toMatch(/^\d{8}$/)
 
   // Asking again straight away does not mail a second code.
   await grant(mb, made.accessId, { email: 'alice@example.com' })
@@ -262,4 +275,97 @@ it('does not let a stale token outlive an authentication change', async () => {
     headers: { Authorization: `Bearer ${token}` },
   })
   expect(res.status).toBe(401)
+})
+
+it('treats listed and unlisted addresses alike: same limits, same answers', async () => {
+  const mb = mailbox()
+  const { made } = await setup('se-enum@example.com', mb)
+  const statuses = async (email: string) => {
+    const out: number[] = []
+    for (let i = 0; i < 7; i++) out.push((await grant(mb, made.accessId, { email })).status)
+    return out
+  }
+  // Each address gets the same run of 400s and then the same 429s.
+  const listed = await statuses('alice@example.com')
+  const unlisted = await statuses('mallory@example.com')
+  expect(unlisted).toEqual(listed)
+  expect(listed).toContain(429)
+  expect(listed[0]).toBe(400)
+})
+
+it('caps the codes mailed to one address per day and one address cannot lock out another', async () => {
+  const mb = mailbox()
+  const { made } = await setup('se-cap@example.com', mb)
+  // Someone hammering one address does not stop a different recipient getting a code.
+  for (let i = 0; i < 8; i++) await grant(mb, made.accessId, { email: 'alice@example.com' })
+  await env.DB.prepare('delete from admin_rate_limits where key like ?').bind('send-otp-ip:%').run()
+  const bob = await grant(mb, made.accessId, { email: 'bob@example.com' })
+  expect(bob.status).toBe(400)
+  expect(mb.sent.some((m) => m.to === 'bob@example.com')).toBe(true)
+  // Alice's per-address window is spent: no further mail even after the resend window.
+  const before = mb.sent.length
+  await env.DB.prepare('update send_email_codes set sent_at = 0').run()
+  await env.DB.prepare('delete from admin_rate_limits where key like ?').bind('send-otp-ip:%').run()
+  const more = await grant(mb, made.accessId, { email: 'alice@example.com' })
+  expect(more.status).toBe(429)
+  expect(mb.sent.length).toBe(before)
+})
+
+it('stops guessing after too many tries across codes', async () => {
+  const mb = mailbox()
+  const { made } = await setup('se-try@example.com', mb)
+  await grant(mb, made.accessId, { email: 'alice@example.com' })
+  const code = codeIn(mb.sent[0])
+  for (let i = 0; i < 40; i++) {
+    await env.DB.prepare('delete from admin_rate_limits where key like ?')
+      .bind('send-otp-try-ip:%')
+      .run()
+    await grant(mb, made.accessId, { email: 'alice@example.com', otp: '00000000' })
+    await env.DB.prepare('update send_email_codes set attempts = 0').run()
+  }
+  await env.DB.prepare('delete from admin_rate_limits where key like ?')
+    .bind('send-otp-try-ip:%')
+    .run()
+  const late = await grant(mb, made.accessId, { email: 'alice@example.com', otp: code })
+  expect(late.status).toBe(400)
+})
+
+it('answers a code request the same way for any address when mail is not configured', async () => {
+  const mb = mailbox()
+  const { made } = await setup('se-nomailgrant@example.com', mb)
+  for (const email of ['alice@example.com', 'mallory@example.com']) {
+    const res = await form('/identity/connect/token', {
+      grant_type: 'send_access',
+      client_id: 'send',
+      send_id: made.accessId,
+      email,
+    })
+    expect(res.status).toBe(400)
+    expect(await res.json()).toMatchObject({ message: expect.stringContaining('not configured') })
+  }
+})
+
+it('limits requests per client address across Sends and addresses', async () => {
+  const mb = mailbox()
+  const { made } = await setup('se-ip@example.com', mb)
+  const ask = (email: string) =>
+    anon(
+      mb,
+      '/identity/connect/token',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'send_access',
+          client_id: 'send',
+          send_id: made.accessId,
+          email,
+        }).toString(),
+      },
+      '203.0.113.9',
+    )
+  const out: number[] = []
+  for (let i = 0; i < 12; i++) out.push((await ask(`user${i}@example.com`)).status)
+  expect(out.slice(0, 10).every((x) => x === 400)).toBe(true)
+  expect(out.slice(10)).toEqual([429, 429])
 })

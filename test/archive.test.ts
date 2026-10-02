@@ -1,4 +1,5 @@
 import { SELF } from 'cloudflare:test'
+import { env } from 'cloudflare:workers'
 import { expect, it } from 'vitest'
 import { authed, BASE, createSession } from './helpers'
 import { actor, addMember, createOrg, loginCipher } from './org-helpers'
@@ -219,4 +220,36 @@ it('deletes folders in bulk and all at once', async () => {
   expect((await authed('/api/folders/all', s.access_token, 'DELETE')).status).toBe(200)
   const none = (await (await authed('/api/folders', s.access_token)).json()) as { data: unknown[] }
   expect(none.data).toEqual([])
+})
+
+it('refuses to archive trashed items and cleans member state when a member leaves', async () => {
+  const owner = await actor('arc-clean-owner@example.com')
+  const member = await actor('arc-clean-member@example.com')
+  const { id: orgId, defaultCollectionId } = await createOrg(owner)
+  await addMember(owner, orgId, member, {
+    type: 2,
+    collections: [
+      { id: defaultCollectionId, readOnly: false, hidePasswords: false, manage: false },
+    ],
+  })
+  const item = await owner.json('/api/ciphers/create', 'POST', {
+    cipher: loginCipher('2.shared', { organizationId: orgId }),
+    collectionIds: [defaultCollectionId],
+  })
+  await member.json(`/api/ciphers/${item.id}/archive`, 'PUT')
+  await member.json(`/api/ciphers/${item.id}/partial`, 'PUT', { favorite: true, folderId: null })
+
+  const mine = await owner.json('/api/ciphers', 'POST', loginCipher('2.mine'))
+  await owner.call(`/api/ciphers/${mine.id}/delete`, 'PUT')
+  expect((await owner.call(`/api/ciphers/${mine.id}/archive`, 'PUT')).status).toBe(400)
+
+  const rows = async () =>
+    (
+      await env.DB.prepare('select count(*) n from cipher_user_state where cipher_uuid = ?')
+        .bind(item.id)
+        .first<{ n: number }>()
+    )?.n
+  expect(await rows()).toBe(1)
+  expect((await member.call(`/api/organizations/${orgId}/leave`, 'POST')).status).toBe(200)
+  expect(await rows()).toBe(0)
 })

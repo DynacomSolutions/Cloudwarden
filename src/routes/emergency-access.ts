@@ -1,4 +1,4 @@
-import { and, eq, inArray, ne } from 'drizzle-orm'
+import { and, eq, inArray, ne, sql } from 'drizzle-orm'
 import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { z } from 'zod'
@@ -19,6 +19,7 @@ import {
 import { later, sendNotice } from '../email/send'
 import type { Env, User } from '../env'
 import { ApiError } from '../errors'
+import { dropMemberStateStatements } from '../orgs/ciphers'
 import { PolicyType, Role } from '../orgs/constants'
 import { listUserPolicies, policyJson } from '../orgs/policies'
 import { authOnce, batch } from '../orgs/util'
@@ -505,6 +506,11 @@ emergencyAccess.post('/api/emergency-access/:id/password', async (c) => {
     db.delete(schema.twofactor).where(eq(schema.twofactor.userUuid, grantor.uuid)),
     // The grantee must not inherit organisation roles beyond what the owner holds: the grantor
     // stays only in organisations they own.
+    ...dropMemberStateStatements(
+      db,
+      grantor.uuid,
+      sql`(select organization_uuid from users_organizations where user_uuid = ${grantor.uuid} and atype != ${Role.Owner})`,
+    ),
     db
       .delete(schema.usersOrganizations)
       .where(

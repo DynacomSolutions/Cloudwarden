@@ -8,12 +8,12 @@ Behaviour the official clients rely on (TASKS #250 to #254).
 |---|---|---|
 | 2 (none) | nothing | |
 | 1 (password) | the client-hashed password (`password_hash_b64`) | |
-| 0 (email) | a six digit code mailed to an address on the Send's list | `EMAIL` binding and `MAIL_FROM` |
+| 0 (email) | an eight digit code mailed to an address on the Send's list | `EMAIL` binding and `MAIL_FROM` |
 
 - Creating or editing a Send with `authType` 0 is refused with 400 when no mail transport is bound.
 - `emails` is the comma separated list the clients send. It is stored lowercase, deduplicated, at most 100 addresses.
 - Editing with `authType` 1 and no new password keeps the stored password. `authType` 2 clears the password and the list. `PUT /api/sends/:id/remove-password` clears the password; `PUT /api/sends/:id/remove-auth` clears the password and the list.
-- The deletion date has no upper bound (clients offer a custom date); a past date is refused on create.
+- The deletion date has no upper bound (clients offer a custom date); a past date is refused on create. The official clients set no maximum, so none is imposed beyond 100 years.
 
 ### Email code flow (`send_access` grant)
 
@@ -21,7 +21,9 @@ Behaviour the official clients rely on (TASKS #250 to #254).
 2. `email` only: if the address is on the list a code is mailed; the answer is always `400 invalid_request`, `email_and_otp_required`, so the list cannot be probed.
 3. `email` and `otp`: a correct code returns the usual send access token; a wrong or expired one repeats `email_and_otp_required`.
 
-A code lives 10 minutes, allows 5 guesses, works once, and is stored only as a hash. Asking again within 30 seconds does not mail a second code. Requests for addresses on the list are also limited per Send. The token is bound to the Send's current authentication and revision, so editing the Send revokes tokens already issued.
+Limits (all counted in D1, and spent identically by listed and unlisted addresses): 10 requests per client address per 10 minutes, 5 per Send and address per 10 minutes and 8 per day, 300 per Send per hour as a ceiling, and 40 guesses per Send and address per day plus 30 per client address per 10 minutes. The mail is sent in the background and only for listed addresses.
+
+A code lives 10 minutes, allows 5 guesses, works once, and is stored only as a hash. Asking again within 30 seconds does not mail a second code. The token is bound to the Send's current authentication and revision, so editing the Send revokes tokens already issued.
 
 Legacy clients (`POST /api/sends/access/:accessId` and `POST /api/sends/:accessId/access/file/:fileId`) pass `email`, then `email` with `otp`, in the JSON body; each file download needs its own code.
 

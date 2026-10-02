@@ -1,5 +1,6 @@
 import { and, eq, sql } from 'drizzle-orm'
 import type { Context } from 'hono'
+import { rateLimit as d1Window } from '../admin/security'
 import { safeEqualStrings, sha256B64u } from '../auth/crypto'
 import { signJwt, verifyJwt } from '../auth/jwt'
 import { type StoredPassword, verifyMasterPassword } from '../auth/passwords'
@@ -8,7 +9,7 @@ import { schema } from '../db'
 import { createEmailTransport, sendCodeEmail } from '../email'
 import type { Bindings, Env } from '../env'
 import { ApiError } from '../errors'
-import { overLimit } from '../ratelimit'
+import { errorKind, log } from '../log'
 import { baseUrl, signBlobToken, signingKeyFor, verificationKeysFor } from './blobs'
 import {
   allowedEmails,
@@ -44,22 +45,53 @@ export const OTP_TTL_MS = 10 * 60_000
 export const OTP_MAX_ATTEMPTS = 5
 /** Asking again inside this window does not mail another code. */
 export const OTP_RESEND_MS = 30_000
+export const OTP_DIGITS = 8
+
+/** Request limits (D1 windows). Every address, listed or not, consumes the same ones. */
+const LIMITS = {
+  ipAsk: { limit: 10, windowMs: 10 * 60_000 },
+  addressAsk: { limit: 5, windowMs: 10 * 60_000 },
+  addressDay: { limit: 8, windowMs: 24 * 3600_000 },
+  /** High ceiling per Send; the per-address limits are what stop a lock-out of one recipient. */
+  sendAsk: { limit: 300, windowMs: 3600_000 },
+  ipTry: { limit: 30, windowMs: 10 * 60_000 },
+  /** Cumulative guesses per address and day, across every code mailed in it. */
+  addressTry: { limit: 40, windowMs: 24 * 3600_000 },
+}
 
 const otpHash = (sendUuid: string, email: string, code: string) =>
   sha256B64u(`send-otp:${sendUuid}:${email}:${code}`)
 
-/** A uniformly random six digit code. */
+/** A uniformly random code of `OTP_DIGITS` digits. */
 function newCode(): string {
-  const limit = 4_294_000_000 // largest multiple of 1e6 below 2^32, so the modulo is unbiased
+  const space = 10 ** OTP_DIGITS
+  const limit = Math.floor(2 ** 32 / space) * space
   const buf = new Uint32Array(1)
+  if (limit === 0) throw new Error('code space too large')
   do crypto.getRandomValues(buf)
   while ((buf[0] as number) >= limit)
-  return String((buf[0] as number) % 1_000_000).padStart(6, '0')
+  return String((buf[0] as number) % space).padStart(OTP_DIGITS, '0')
+}
+
+const clientIp = (c: Context<Env>) => c.req.header('CF-Connecting-IP') ?? 'unknown'
+
+/** True when every named limit still has room; all of them are counted even after one is full. */
+async function within(
+  c: Context<Env>,
+  checks: [key: string, limit: { limit: number; windowMs: number }][],
+  now: number,
+): Promise<boolean> {
+  let ok = true
+  for (const [key, l] of checks) {
+    if (!(await d1Window(c.env.DB, key, l.limit, l.windowMs, now))) ok = false
+  }
+  return ok
 }
 
 /**
- * Mails a fresh code to a recipient of an email-protected Send. Addresses outside the list get
- * nothing and no different response, so the list cannot be probed. Returns false when the
+ * Mails a fresh code to a recipient of an email-protected Send. The limits and the work done are
+ * the same for an address on the list and one that is not (the mail alone is sent in the
+ * background and only for listed ones), so the list cannot be probed. Returns false when the
  * request was rate limited.
  */
 export async function requestSendCode(
@@ -69,8 +101,21 @@ export async function requestSendCode(
   email: string,
   now = Date.now(),
 ): Promise<boolean> {
-  if (!allowedEmails(send).includes(email)) return true
-  if (await overLimit(c, 'send-otp', send.uuid)) return false
+  const transport = createEmailTransport(c.env)
+  if (!transport.configured) throw new ApiError(400, 'Email delivery is not configured.')
+  const who = await sha256B64u(`${send.uuid}:${email}`)
+  const ok = await within(
+    c,
+    [
+      [`send-otp-ip:${clientIp(c)}`, LIMITS.ipAsk],
+      [`send-otp-addr:${who}`, LIMITS.addressAsk],
+      [`send-otp-day:${who}`, LIMITS.addressDay],
+      [`send-otp-send:${send.uuid}`, LIMITS.sendAsk],
+    ],
+    now,
+  )
+  if (!ok) return false
+  const listed = allowedEmails(send).includes(email)
   const [prior] = await db
     .select({ sentAt: schema.sendEmailCodes.sentAt })
     .from(schema.sendEmailCodes)
@@ -79,8 +124,6 @@ export async function requestSendCode(
     )
     .limit(1)
   if (prior && now - prior.sentAt < OTP_RESEND_MS) return true
-  const transport = createEmailTransport(c.env)
-  if (!transport.configured) throw new ApiError(400, 'Email delivery is not configured.')
   const code = newCode()
   const row = {
     codeHash: await otpHash(send.uuid, email, code),
@@ -95,19 +138,38 @@ export async function requestSendCode(
       target: [schema.sendEmailCodes.sendUuid, schema.sendEmailCodes.email],
       set: row,
     })
-  await transport.send({ to: email, ...sendCodeEmail(code, OTP_TTL_MS / 60_000) })
+  if (listed) {
+    const work = transport
+      .send({ to: email, ...sendCodeEmail(code, OTP_TTL_MS / 60_000) })
+      .catch((e) => log('error', 'send_code_mail_failed', { errorKind: errorKind(e) }, c.env))
+    try {
+      c.executionCtx.waitUntil(work)
+    } catch {
+      void work
+    }
+  }
   return true
 }
 
 /** Checks a mailed code. Every try counts, and a correct code works once. */
 export async function verifySendCode(
+  c: Context<Env>,
   db: Db,
   send: SendRow,
   email: string,
   code: string,
   now = Date.now(),
 ): Promise<boolean> {
-  if (!allowedEmails(send).includes(email)) return false
+  const who = await sha256B64u(`${send.uuid}:${email}`)
+  const roomy = await within(
+    c,
+    [
+      [`send-otp-try-ip:${clientIp(c)}`, LIMITS.ipTry],
+      [`send-otp-try:${who}`, LIMITS.addressTry],
+    ],
+    now,
+  )
+  if (!roomy || !allowedEmails(send).includes(email)) return false
   const key = and(
     eq(schema.sendEmailCodes.sendUuid, send.uuid),
     eq(schema.sendEmailCodes.email, email),

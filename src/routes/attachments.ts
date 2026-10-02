@@ -293,6 +293,10 @@ export function registerAttachmentRoutes(r: Hono<Env>) {
     const attachmentId = c.req.param('attachmentId') ?? ''
     const db = createDb(c.env.DB)
     const loaded = await authorise(c, cipherId, true)
+    // Re-uploading on an item that already belongs to an organisation needs manage permission.
+    if (loaded.cipher.organizationUuid && !loaded.access?.manage) {
+      throw new ApiError(403, 'You do not have permission to do this.')
+    }
     const orgId = c.req.query('organizationId')
     if (!orgId) throw new ApiError(400, 'An organization is required.')
     if (loaded.cipher.organizationUuid ? loaded.cipher.organizationUuid !== orgId : false) {
@@ -352,7 +356,11 @@ export function registerAttachmentRoutes(r: Hono<Env>) {
   const remove = async (c: Ctx) => {
     const cipherId = c.req.param('id') ?? ''
     const db = createDb(c.env.DB)
-    const loaded = await authorise(c, cipherId, true, isAdmin(c))
+    // Deleting follows the item's delete permission (edit or manage), not edit alone.
+    const loaded = await authorise(c, cipherId, false, isAdmin(c))
+    if (loaded.access && !(loaded.access.edit || loaded.access.manage)) {
+      throw new ApiError(403, 'You do not have permission to edit this item.')
+    }
     const att = await requireAttachment(db, cipherId, c.req.param('attachmentId') ?? '')
     const now = Date.now()
     await runBatch(db, [

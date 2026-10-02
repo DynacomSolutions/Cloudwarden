@@ -1,4 +1,4 @@
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import type { Db } from '../db'
 import { schema } from '../db'
 import { ApiError } from '../errors'
@@ -315,3 +315,34 @@ export function userFolderStatements(
     ? [unlink, db.insert(schema.foldersCiphers).values({ cipherUuid, folderUuid: folderId })]
     : [unlink]
 }
+
+/**
+ * Drops a member's favourites, archive dates and folder links for the items of the organisations
+ * they leave. `orgs` is a subquery of organisation ids, evaluated when the statement runs, so
+ * put it before the statement that removes the membership.
+ */
+export function dropMemberStateStatements(db: Db, userUuid: string, orgs: ReturnType<typeof sql>) {
+  const items = sql`(select uuid from ciphers where organization_uuid in ${orgs})`
+  return [
+    db
+      .delete(schema.cipherUserState)
+      .where(
+        and(
+          eq(schema.cipherUserState.userUuid, userUuid),
+          sql`${schema.cipherUserState.cipherUuid} in ${items}`,
+        ),
+      ),
+    db
+      .delete(schema.foldersCiphers)
+      .where(
+        and(
+          sql`${schema.foldersCiphers.cipherUuid} in ${items}`,
+          sql`${schema.foldersCiphers.folderUuid} in (select uuid from folders where user_uuid = ${userUuid})`,
+        ),
+      ),
+  ]
+}
+
+/** The statements for leaving one organisation. */
+export const dropMemberStateFor = (db: Db, userUuid: string, orgUuid: string) =>
+  dropMemberStateStatements(db, userUuid, sql`(select ${orgUuid})`)

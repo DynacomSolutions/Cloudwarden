@@ -16,6 +16,7 @@ import {
   requireOrg,
   requirePermission,
 } from '../orgs/access'
+import { dropMemberStateFor } from '../orgs/ciphers'
 import { EventType, Role, Status } from '../orgs/constants'
 import { eventStatement } from '../orgs/events'
 import {
@@ -533,6 +534,7 @@ const removeOp: Op = async (c, db, actor, target) => {
   return [
     // Bumped before the delete: afterwards the member is no longer in the organisation.
     bumpOrgRevision(db, target.organizationUuid, now),
+    ...(target.userUuid ? dropMemberStateFor(db, target.userUuid, target.organizationUuid) : []),
     db.delete(schema.usersOrganizations).where(eq(schema.usersOrganizations.uuid, target.uuid)),
     eventStatement(db, c, {
       type: EventType.OrganizationUserRemoved,

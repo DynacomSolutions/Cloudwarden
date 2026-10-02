@@ -9,9 +9,9 @@ import { PushType } from '../notifications/publish'
 import { notifyCiphers } from '../notifications/vault-events'
 import { loadUserAccess } from '../orgs/access'
 import {
-  accessToCipher,
   folderLinks,
   type ItemAccess,
+  itemAccess,
   orgCipherJson,
   setUserStateStatement,
   userCipherStates,
@@ -52,9 +52,20 @@ async function reachable(c: Ctx, db: Db, ids: string[]): Promise<Reachable[]> {
     rows.push(...(await db.select().from(schema.ciphers).where(inArray(schema.ciphers.uuid, part))))
   }
   if (rows.length !== unique.length) throw new ApiError(404, 'Cipher not found.')
-  const ua = rows.some((r) => r.organizationUuid)
-    ? await loadUserAccess(db, c.var.user.uuid)
-    : undefined
+  const orgRows = rows.filter((r) => r.organizationUuid)
+  const ua = orgRows.length ? await loadUserAccess(db, c.var.user.uuid) : undefined
+  // One query for the collection links of every organisation item in the request.
+  const links = new Map<string, string[]>()
+  for (const part of chunk(orgRows.map((r) => r.uuid))) {
+    const found = await db
+      .select({
+        cipher: schema.ciphersCollections.cipherUuid,
+        collection: schema.ciphersCollections.collectionUuid,
+      })
+      .from(schema.ciphersCollections)
+      .where(inArray(schema.ciphersCollections.cipherUuid, part))
+    for (const l of found) links.set(l.cipher, [...(links.get(l.cipher) ?? []), l.collection])
+  }
   const out: Reachable[] = []
   for (const cipher of rows) {
     if (!cipher.organizationUuid) {
@@ -62,7 +73,7 @@ async function reachable(c: Ctx, db: Db, ids: string[]): Promise<Reachable[]> {
       out.push({ cipher, access: null })
       continue
     }
-    const access = await accessToCipher(db, c.var.user.uuid, cipher, ua)
+    const access = ua && itemAccess(ua, cipher.organizationUuid, links.get(cipher.uuid) ?? [])
     if (!access) throw new ApiError(404, 'Cipher not found.')
     out.push({ cipher, access })
   }
@@ -73,6 +84,9 @@ async function setArchived(c: Ctx, ids: string[], archived: boolean): Promise<un
   const db = createDb(c.env.DB)
   const user = c.var.user
   const items = await reachable(c, db, ids)
+  if (archived && items.some((i) => i.cipher.deletedAt != null)) {
+    throw new ApiError(400, 'Items in the trash cannot be archived.')
+  }
   const now = Date.now()
   const personal = items.filter((i) => !i.access).map((i) => i.cipher.uuid)
   await batch(db, [
@@ -102,11 +116,21 @@ async function setArchived(c: Ctx, ids: string[], archived: boolean): Promise<un
     bumpRevision(db, user.uuid, now),
   ])
   notifyCiphers(c, PushType.SyncCipherUpdate, [...new Set(ids)], now)
-  return respondItems(c, db, [...new Set(ids)])
+  return respondItems(c, db, items)
 }
 
-async function respondItems(c: Ctx, db: Db, ids: string[]): Promise<unknown[]> {
-  const items = await reachable(c, db, ids)
+async function respondItems(c: Ctx, db: Db, resolved: Reachable[]): Promise<unknown[]> {
+  // Access was resolved before the write; the rows themselves are read again for the new state.
+  const fresh = new Map<string, CipherRecord>()
+  for (const part of chunk(resolved.map((i) => i.cipher.uuid))) {
+    for (const r of await db
+      .select()
+      .from(schema.ciphers)
+      .where(inArray(schema.ciphers.uuid, part))) {
+      fresh.set(r.uuid, r)
+    }
+  }
+  const items = resolved.map((i) => ({ ...i, cipher: fresh.get(i.cipher.uuid) ?? i.cipher }))
   const [folders, states, attachments] = await Promise.all([
     folderLinks(db, c.var.user.uuid),
     userCipherStates(db, c.var.user.uuid),

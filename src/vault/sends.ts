@@ -17,6 +17,7 @@ export const SEND_AUTH_EMAIL = 0
 export const SEND_AUTH_PASSWORD = 1
 export const SEND_AUTH_NONE = 2
 export const SEND_FILE_AUD = 'send-file'
+const MAX_DELETION_YEARS = 100
 /** Most addresses one email-protected Send may name. */
 export const MAX_SEND_EMAILS = 100
 const EMAIL_SHAPE = /^[^\s@,]+@[^\s@,]+\.[^\s@,]+$/
@@ -156,6 +157,10 @@ function parseDate(value: string, field: string): number {
  */
 export function sendValues(body: SendBody, now: number, creating = false) {
   const deletionDate = parseDate(body.deletionDate, 'deletionDate')
+  // The clients set no maximum (custom dates are free); only absurd values are refused.
+  if (deletionDate > now + MAX_DELETION_YEARS * 365 * 86_400_000) {
+    throw invalid('deletionDate', 'The deletion date is too far in the future.')
+  }
   if (creating && deletionDate < now - 300_000)
     throw invalid('deletionDate', 'The deletion date is in the past.')
   const expirationDate = body.expirationDate

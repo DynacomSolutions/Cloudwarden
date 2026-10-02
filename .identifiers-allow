@@ -7,3 +7,32 @@
 
 # Public domains in the built-in equivalent domain list (TASKS #44)
 ^(youtube|google|gmail|apple|icloud)\.com$
+
+# Vendored web client (TASKS #210): upstream placeholders in locale strings and files we edited.
+# Example addresses and domains shown as input hints in the upstream translations
+^(acme|organization|website|mydomain|email|domain|omeudominio|mondomaine|mojadomena|mijndomein|meudominio|ilmiodominio)\.com$
+^sub\.domain\.com$
+^bitwarden\.(company|compagnie|sirketiniz)\.com$
+^(sponsored@organization|example@gmail|address\+subaddress@email)\.com$
+^[a-z]+@(acme|bitwarden)\.com$
+^korisnik@primjer\.hr$
+^(vault\.zoho\.com|vault\.passky\.org|www\.google\.com|twofactorauth\.org)$
+^10\.0\.0\.0$
+^00:00:00$
+# Upstream issue tracker links in code comments and the package author
+^bitwarden\.atlassian\.net$
+^hello@bitwarden\.com$
+# Logo image names that look like addresses
+^logo-(dark|primary|white)@2x\.png$
+# Numbers in inline SVG path data of the loading spinner
+^15\.135\.131\.223$
+# webpack config: upstream CSP sources for payment, breach and forwarder integrations, docs
+^(js|q|api)\.stripe\.com$
+^(js|assets|api|api\.sandbox|client-analytics)\.braintreegateway\.com$
+^www\.paypal(objects)?\.com$
+^(logos\.haveibeenpwned\.com|quack\.duckduckgo\.com|app\.simplelogin\.io|app\.addy\.io|api\.fastmail\.com|api\.forwardemail\.net|webpack\.js\.org)$
+^192\.168\.1\.9$
+# Property accesses and file names that look like domains
+^(params\.app|envConfig\.dev|tsconfig\.app)$
+# Upstream file name listed in web/UPSTREAM-BLOBS.txt
+^entrypoint\.sh$

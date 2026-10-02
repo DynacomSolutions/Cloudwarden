@@ -7,6 +7,7 @@
  */
 
 import { execSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { relative, resolve, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -121,13 +122,47 @@ const SKIP_BASENAMES = new Set([
 const SKIP_SEGMENTS = new Set(['.git', 'node_modules'])
 
 // Vendored upstream web client (TASKS #210, docs/web-client.md). Upstream code carries the
-// upstream project's own domains, emails, test UUIDs and IPs, so it is not scanned. Files that
-// Cloudwarden adds or owns there (any `cloudwarden/` directory, the NOTICE and build scripts) are.
+// upstream project's own domains, emails, test UUIDs and IPs, so files whose content is still
+// byte-identical to the vendored upstream blob (web/UPSTREAM-BLOBS.txt) are not scanned. Anything
+// Cloudwarden changed or added under web/ is scanned, and so are files that are easy places to
+// leak deployment details: any `cloudwarden/` directory, NOTICE, build scripts, the self-hosted
+// config, index.html and the locale files.
 const VENDORED_PREFIX = 'web/'
-const VENDORED_SCANNED = [/(^|\/)cloudwarden(\/|$)/, /^web\/NOTICE\.md$/, /^web\/scripts\//]
-export const isVendoredUpstream = (filePath) =>
-  filePath.replaceAll('\\', '/').startsWith(VENDORED_PREFIX) &&
-  !VENDORED_SCANNED.some((re) => re.test(filePath.replaceAll('\\', '/')))
+const UPSTREAM_MANIFEST = 'web/UPSTREAM-BLOBS.txt'
+const ALWAYS_SCANNED = [
+  /(^|\/)cloudwarden(\/|$)/,
+  /^web\/NOTICE\.md$/,
+  /^web\/scripts\//,
+  /^web\/apps\/web\/config\/selfhosted\.json$/,
+  /^web\/apps\/web\/src\/index\.html$/,
+  /^web\/apps\/web\/src\/locales\//,
+]
+
+/** Git blob id of some content (same as `git hash-object`). */
+export const gitBlobId = (content) => {
+  const body = Buffer.isBuffer(content) ? content : Buffer.from(content, 'utf8')
+  return createHash('sha1')
+    .update(Buffer.concat([Buffer.from(`blob ${body.length}\0`), body]))
+    .digest('hex')
+}
+
+/** Parses web/UPSTREAM-BLOBS.txt into a path to blob id map. */
+export const parseUpstreamManifest = (text) => {
+  const map = new Map()
+  for (const line of text.split('\n')) {
+    const m = /^([0-9a-f]{40}) {2}(.+)$/.exec(line)
+    if (m) map.set(`${VENDORED_PREFIX}${m[2]}`, m[1])
+  }
+  return map
+}
+
+/** True when `filePath` is unmodified vendored upstream code and may be skipped. */
+export const isVendoredUpstream = (filePath, content, manifest) => {
+  const p = filePath.replaceAll('\\', '/')
+  if (!p.startsWith(VENDORED_PREFIX) || ALWAYS_SCANNED.some((re) => re.test(p))) return false
+  const expected = manifest.get(p)
+  return expected !== undefined && content !== undefined && gitBlobId(content) === expected
+}
 
 export class IdentifierChecker {
   constructor(cwd = process.cwd()) {
@@ -326,6 +361,11 @@ export class IdentifierChecker {
       'ico',
       'woff',
       'woff2',
+      'mp4',
+      'webm',
+      'webp',
+      'avif',
+      'wasm',
       'ttf',
       'eot',
       'zip',
@@ -344,18 +384,28 @@ export class IdentifierChecker {
     return binaryExtensions.has(ext)
   }
 
+  upstreamManifest() {
+    if (!this.manifest) {
+      const file = resolve(this.cwd, UPSTREAM_MANIFEST)
+      this.manifest = existsSync(file)
+        ? parseUpstreamManifest(readFileSync(file, 'utf8'))
+        : new Map()
+    }
+    return this.manifest
+  }
+
   shouldSkipFile(filePath) {
     const segments = filePath.split(/[\\/]/)
     const base = segments[segments.length - 1]
     if (SKIP_BASENAMES.has(base)) return true
     if (segments.some((seg) => SKIP_SEGMENTS.has(seg))) return true
-    if (isVendoredUpstream(filePath)) return true
     if (/\.test\.(?:mjs|ts)$/.test(base)) return true
     return this.isBinaryFile(filePath)
   }
 
   /** Scan text for a repo-relative path (also used for staged content). */
   scanText(content, relPath) {
+    if (isVendoredUpstream(relPath, content, this.upstreamManifest())) return
     const lines = content.split('\n')
     lines.forEach((line, index) => {
       this.detectIdentifiers(line, index + 1, relPath)
@@ -365,7 +415,10 @@ export class IdentifierChecker {
   scanFile(relPath) {
     if (this.shouldSkipFile(relPath)) return
     try {
-      this.scanText(readFileSync(resolve(this.cwd, relPath), 'utf8'), relPath)
+      const raw = readFileSync(resolve(this.cwd, relPath))
+      // Hash the raw bytes: decoding non-UTF-8 content first would change its blob id.
+      if (isVendoredUpstream(relPath, raw, this.upstreamManifest())) return
+      this.scanText(raw.toString('utf8'), relPath)
     } catch {
       // Skip unreadable files
     }

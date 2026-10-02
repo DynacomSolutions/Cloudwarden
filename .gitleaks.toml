@@ -9,20 +9,47 @@ paths = ['pnpm-lock\.yaml']
 description = "test fixtures"
 paths = ['test/fixtures/.*']
 
-# Vendored upstream web client (TASKS #210). Upstream unit test fixtures and spec data hold
-# throwaway keys and tokens; the build configs hold upstream's public payment sandbox keys; the
-# remaining files match the generic rule on identifiers that are not secrets. Cloudwarden's own
-# files under web/ (cloudwarden/ directories) are still scanned.
+
+# Vendored web client (TASKS #210): the individual upstream files whose unit test fixtures, spec
+# data or public sandbox configuration match generic rules. Listed one by one so that nothing
+# Cloudwarden adds under web/ (cloudwarden/ directories included) is ever allowlisted.
 [[allowlists]]
-description = "vendored web client: upstream test fixtures and public config"
+description = "vendored web client: named upstream fixture and config files"
 paths = [
-  '''^web/.*\.spec\.ts$''',
-  '''^web/libs/importer/src/importers/spec-data/''',
-  '''^web/apps/web/config/[^/]+\.json$''',
+  '''^web/apps/web/config/base\.json$''',
+  '''^web/apps/web/config/cloud\.json$''',
+  '''^web/apps/web/config/euprd\.json$''',
   '''^web/apps/web/src/app-id\.json$''',
+  '''^web/apps/web/src/app/billing/services/stripe\.service\.spec\.ts$''',
   '''^web/apps/web/src/app/billing/shared/offboarding-survey\.component\.ts$''',
+  '''^web/apps/web/src/app/key-management/key-rotation/user-key-rotation\.service\.spec\.ts$''',
+  '''^web/libs/auth/src/common/utilities/decode-jwt-token-to-json\.utility\.spec\.ts$''',
+  '''^web/libs/common/src/auth/send-access/services/default-send-token\.service\.spec\.ts$''',
+  '''^web/libs/common/src/auth/services/token\.service\.spec\.ts$''',
+  '''^web/libs/common/src/billing/services/subscription-pricing\.service\.spec\.ts$''',
   '''^web/libs/common/src/enums/feature-flag\.enum\.ts$''',
+  '''^web/libs/common/src/key-management/device-trust/services/device-trust\.service\.spec\.ts$''',
+  '''^web/libs/common/src/key-management/key-connector/services/key-connector\.service\.spec\.ts$''',
+  '''^web/libs/common/src/platform/sync/default-sync\.service\.spec\.ts$''',
+  '''^web/libs/common/src/tools/send/models/domain/send\.sdk\.spec\.ts$''',
+  '''^web/libs/importer/src/importers/chrome-csv-importer\.spec\.ts$''',
+  '''^web/libs/importer/src/importers/keepassx-csv-importer\.spec\.ts$''',
+  '''^web/libs/importer/src/importers/onepassword/onepassword-1pux-importer\.spec\.ts$''',
+  '''^web/libs/importer/src/importers/psono/psono-json-importer\.spec\.ts$''',
+  '''^web/libs/importer/src/importers/spec-data/keepassx-csv/testdata\.csv\.ts$''',
+  '''^web/libs/importer/src/importers/spec-data/keeper-direct/sync-down-fixture\.json$''',
+  '''^web/libs/importer/src/importers/spec-data/keeper-json/testdata\.json\.ts$''',
+  '''^web/libs/importer/src/importers/spec-data/onepassword-1pux/ssh-key\.ts$''',
+  '''^web/libs/importer/src/importers/spec-data/onepassword-csv/multiple-items\.windows\.csv\.ts$''',
+  '''^web/libs/importer/src/importers/spec-data/passky-json/passky-encrypted\.json\.ts$''',
+  '''^web/libs/importer/src/importers/spec-data/psono-json/gpg\.ts$''',
+  '''^web/libs/importer/src/importers/spec-data/zohovault/sample-zohovault-data\.csv\.ts$''',
+  '''^web/libs/importer/src/importers/zohovault-csv-importer\.spec\.ts$''',
+  '''^web/libs/legacy-crypto/src/dangerous/dangerous_duckduckgo_crypto\.spec\.ts$''',
+  '''^web/libs/legacy-crypto/src/models/enc-string\.spec\.ts$''',
+  '''^web/libs/legacy-crypto/src/models/symmetric-crypto-key\.spec\.ts$''',
   '''^web/libs/legacy-crypto/src/models/symmetric-crypto-key\.ts$''',
+  '''^web/libs/legacy-crypto/src/node/node-crypto-function\.service\.spec\.ts$''',
+  '''^web/libs/legacy-crypto/src/services/web-crypto-function\.service\.spec\.ts$''',
   '''^web/package-lock\.json$''',
-  '''(^|/)node_modules/''',
 ]

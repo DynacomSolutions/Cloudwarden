@@ -124,11 +124,11 @@ the requesting device), then rewraps the key in the browser.
 
 ## Notes for SSO and trusted device encryption
 
-The admin approval contract above does not depend on SSO. The SSO workstream only needs to:
+The admin approval contract above does not depend on SSO. With SSO and trusted devices (`docs/sso.md`) in place:
 
-- issue access tokens to devices without the user key and set the organisation's member
-  decryption type, so the official clients offer "Request admin approval";
-- look up `GET /api/organizations/{identifier}/auto-enroll-status` by SSO identifier as well
-  (it currently takes the organisation id);
-- leave `users.password_hash` empty for accounts without a master password, which makes
-  enrolment skip the password check (`hasMasterPassword` in `src/orgs/recovery.ts`).
+- devices signed in with SSO but without the user key are offered "Request admin approval"
+  (`HasAdminApproval` in the trusted device decryption option is true for enrolled members);
+- `GET /api/organizations/{identifier}/auto-enroll-status` (served by `src/routes/sso-admin.ts`)
+  accepts the SSO identifier or the organisation id;
+- accounts without a master password have an empty `users.password_hash`, so enrolment skips
+  the password check (`hasMasterPassword` from `src/sso/decryption.ts`).

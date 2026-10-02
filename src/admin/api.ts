@@ -1,11 +1,14 @@
 // JSON admin API for the native admin pages in the web vault (TASKS #150).
 // Bearer auth (the vault's own access token) plus an admin check; never cookie based.
 import { type Context, Hono } from 'hono'
+import { z } from 'zod'
 import { authenticateAccessToken, requireAuth } from '../auth/middleware'
 import type { EmailTransport } from '../email'
 import type { Bindings, Env } from '../env'
 import { ApiError, errorBody } from '../errors'
 import { relayStatus } from '../notifications/relay'
+import { createNotification, notificationJson } from '../notifications/center'
+import { parseBody } from '../validation'
 import { isAdminUser, isPlausibleEmail, normaliseEmail, rateLimit } from './security'
 import {
   type Audit,
@@ -40,6 +43,14 @@ export interface AdminApiDeps {
   /** Override the email transport (tests inject a fake). */
   emailTransport?: (env: Bindings) => EmailTransport
 }
+
+const adminNotificationSchema = z.object({
+  title: z.string().min(1).max(256),
+  body: z.string().min(1).max(3000),
+  priority: z.number().int().min(0).max(3).nullish(),
+  userId: z.string().nullish(),
+  organizationId: z.string().nullish(),
+})
 
 const notFound = (what: string) => new ApiError(404, `${what} not found`)
 
@@ -236,6 +247,13 @@ export function createAdminApi(deps: AdminApiDeps = {}) {
       throw notFound('Organization')
     }
     return c.body(null, 204)
+  })
+
+  // Notification centre (TASKS #231) -----------------------------------
+  api.post(`${PREFIX}/notifications`, async (c) => {
+    const body = await parseBody(c, adminNotificationSchema)
+    const n = await createNotification(c, body)
+    return c.json(notificationJson(n, null), 201)
   })
 
   return api

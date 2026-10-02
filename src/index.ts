@@ -22,6 +22,7 @@ import { events } from './routes/events'
 import { folders } from './routes/folders'
 import { groupsRouter } from './routes/groups'
 import { icons } from './routes/icons'
+import { notificationCenter } from './routes/notification-center'
 import { notifications } from './routes/notifications'
 import { orgApiKeys } from './routes/org-api-keys'
 import { orgCiphers } from './routes/org-ciphers'
@@ -111,6 +112,7 @@ app.route('/', settings)
 app.route('/', twofactor)
 app.route('/', webauthn)
 app.route('/', authRequests)
+app.route('/', notificationCenter)
 app.route('/', notifications)
 app.route('/', adminApi)
 

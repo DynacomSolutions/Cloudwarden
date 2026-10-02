@@ -1,6 +1,6 @@
 // Secrets Manager row loading and wire shapes (TASKS #220). Shapes follow the generated API models
 // of the GPL-licensed `bitwarden-api-api` crate (docs/secrets-manager.md).
-import { eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, isNull } from 'drizzle-orm'
 import { type Db, schema } from '../db'
 import { ApiError } from '../errors'
 import type { Rw } from './access'
@@ -30,8 +30,12 @@ export async function findProject(db: Db, uuid: string): Promise<Project> {
   return p
 }
 
+/** Secrets in the trash are not found (use `trashed` for the trash routes). */
 export async function findSecret(db: Db, uuid: string): Promise<Secret> {
-  const [s] = await db.select().from(schema.smSecrets).where(eq(schema.smSecrets.uuid, uuid))
+  const [s] = await db
+    .select()
+    .from(schema.smSecrets)
+    .where(and(eq(schema.smSecrets.uuid, uuid), isNull(schema.smSecrets.deletedAt)))
   if (!s) throw new ApiError(404, 'Secret not found.')
   return s
 }

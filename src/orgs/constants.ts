@@ -47,6 +47,8 @@ export const EventType = {
   SecretCreated: 2101,
   SecretEdited: 2102,
   SecretDeleted: 2103,
+  SecretPermanentlyDeleted: 2104,
+  SecretRestored: 2105,
   ProjectCreated: 2201,
   ProjectEdited: 2202,
   ProjectDeleted: 2203,

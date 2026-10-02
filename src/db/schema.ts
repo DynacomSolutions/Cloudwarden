@@ -622,6 +622,8 @@ export const smSecrets = sqliteTable(
     note: text('note').notNull(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
+    /** Set when the secret is in the trash (soft deleted); trashed secrets are hidden from reads. */
+    deletedAt: integer('deleted_at'),
   },
   (t) => [index('sm_secrets_organization_idx').on(t.organizationUuid)],
 )
@@ -778,6 +780,70 @@ export const orgIntegrations = sqliteTable(
     updatedAt: updatedAt(),
   },
   (t) => [index('org_integrations_organization_idx').on(t.organizationUuid)],
+// ----- Notification centre and security tasks (TASKS #231) -----
+
+/**
+ * End user notifications. `userUuid` targets one user; otherwise `organizationUuid` targets the
+ * confirmed members of that organisation, and with both null the notification is global.
+ */
+export const notifications = sqliteTable(
+  'notifications',
+  {
+    uuid: id(),
+    userUuid: text('user_uuid').references(() => users.uuid, { onDelete: 'cascade' }),
+    organizationUuid: text('organization_uuid').references(() => organizations.uuid, {
+      onDelete: 'cascade',
+    }),
+    taskUuid: text('task_uuid').references(() => securityTasks.uuid, { onDelete: 'cascade' }),
+    priority: integer('priority').notNull().default(0),
+    title: text('title'),
+    body: text('body'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index('notifications_user_idx').on(t.userUuid),
+    index('notifications_organization_idx').on(t.organizationUuid),
+  ],
+)
+
+/** Per user read and deleted state of a notification. */
+export const notificationStatus = sqliteTable(
+  'notification_status',
+  {
+    notificationUuid: text('notification_uuid')
+      .notNull()
+      .references(() => notifications.uuid, { onDelete: 'cascade' }),
+    userUuid: text('user_uuid')
+      .notNull()
+      .references(() => users.uuid, { onDelete: 'cascade' }),
+    readAt: integer('read_at'),
+    deletedAt: integer('deleted_at'),
+  },
+  (t) => [
+    primaryKey({ columns: [t.notificationUuid, t.userUuid] }),
+    index('notification_status_user_idx').on(t.userUuid),
+  ],
+)
+
+/** Security tasks raised by organisation admins, such as changing an at-risk password. */
+export const securityTasks = sqliteTable(
+  'security_tasks',
+  {
+    uuid: id(),
+    organizationUuid: text('organization_uuid')
+      .notNull()
+      .references(() => organizations.uuid, { onDelete: 'cascade' }),
+    cipherUuid: text('cipher_uuid').references(() => ciphers.uuid, { onDelete: 'cascade' }),
+    type: integer('type').notNull().default(0),
+    status: integer('status').notNull().default(0),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index('security_tasks_organization_idx').on(t.organizationUuid),
+    index('security_tasks_cipher_idx').on(t.cipherUuid),
+  ],
 )
 
 // ----- Single sign-on, trusted devices and claimed domains (TASKS #280 to #289) -----

@@ -95,11 +95,42 @@ serves members whose organisation left trusted devices.
 and admins keep their password), `GET /api/accounts/key-connector/confirmation-details/{identifier}`.
 The client talks to the Key Connector directly (`GET/POST {url}/user-keys`, `GET {url}/alive`).
 
-Bitwarden's Key Connector (github.com/bitwarden/key-connector) is under the Bitwarden License, not
-GPL or AGPL, so Cloudwarden does not ship, test against or read it. A Key Connector must accept
-Cloudwarden access tokens; Cloudwarden signs them with HS256 and publishes no JWKS, so a
-deployment needs a Key Connector that validates tokens through Cloudwarden or shares the secret.
-This is a known interoperability gap (TASKS #285).
+### Token signing for a Key Connector
+
+A Key Connector validates the bearer token the client sends it, so it must be able to verify
+Cloudwarden access tokens:
+
+- Set the Worker secret `JWT_SIGNING_KEY` to a P-256 private key (PKCS#8, base64 DER or PEM):
+
+  ```sh
+  openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 \
+    | openssl pkcs8 -topk8 -nocrypt -outform DER | base64 -w0
+  ```
+
+  Access tokens are then signed ES256 with a `kid`. Without the secret they stay HS256.
+- Discovery: `GET {DOMAIN}/identity/.well-known/openid-configuration` (issuer is `{DOMAIN}`),
+  keys at `GET {DOMAIN}/identity/.well-known/openid-configuration/jwks`.
+- Rotation: move the old value to `JWT_SIGNING_KEY_PREVIOUS` (still published and accepted) and
+  set a new `JWT_SIGNING_KEY`; drop the previous key after the access token lifetime (1 hour).
+  HS256 tokens issued before the switch stay valid until they expire.
+
+### Running the official Key Connector
+
+Bitwarden's Key Connector is under the Bitwarden License (not GPL or AGPL). Users may run it under
+that licence; Cloudwarden does not ship it, and its source was not read for this work. To use it:
+
+1. Set `JWT_SIGNING_KEY` as above and deploy.
+2. Run the Key Connector over https on a host your clients reach, following Bitwarden's
+   documentation, and point its identity server and web vault settings at your Cloudwarden
+   `DOMAIN` (identity at `{DOMAIN}/identity`). Its token validation uses the discovery document
+   and JWKS above.
+3. In the organisation's SSO settings choose Key Connector and enter its URL; use the Test
+   button to check `GET {url}/alive` from the browser (the Key Connector must allow your vault
+   origin for CORS).
+
+This setup has not been tested end to end against the official Key Connector (it would require
+running Bitwarden-licensed software in CI). The client side of the protocol (`GET`/`POST
+{url}/user-keys`) is covered by Cloudwarden's tests of the server endpoints (TASKS #285).
 
 ## Claimed domains
 

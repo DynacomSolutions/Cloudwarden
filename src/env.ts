@@ -35,6 +35,13 @@ export interface Bindings {
   JWT_SECRET?: string
   /** Previous signing secret, accepted for verification only while rotating. */
   JWT_SECRET_PREVIOUS?: string
+  /**
+   * P-256 private key (PKCS#8, base64 DER or PEM) for ES256 access tokens and the published JWKS
+   * (TASKS #285). Optional: without it access tokens stay HS256.
+   */
+  JWT_SIGNING_KEY?: string
+  /** Previous ES256 key, published and accepted for verification only while rotating. */
+  JWT_SIGNING_KEY_PREVIOUS?: string
   /** Bitwarden push relay installation id and key (https://bitwarden.com/host), TASKS #262. */
   PUSH_INSTALLATION_ID?: string
   PUSH_INSTALLATION_KEY?: string

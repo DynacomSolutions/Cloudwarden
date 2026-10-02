@@ -1,7 +1,8 @@
 import { bindings, defineConfig, exports, triggers } from 'cf/config'
 
 // Secrets (set with `cf workers secrets update`, never committed): JWT_SECRET (32+ characters),
-// JWT_SECRET_PREVIOUS (only while rotating), ADMIN_EMAILS, DATA_ENCRYPTION_KEY (32+ characters). Deploy-time values
+// JWT_SECRET_PREVIOUS (only while rotating), JWT_SIGNING_KEY and JWT_SIGNING_KEY_PREVIOUS (optional
+// ES256 access tokens, docs/sso.md), ADMIN_EMAILS, DATA_ENCRYPTION_KEY (32+ characters). Deploy-time values
 // come from the environment (see docs/deploy.md); the committed defaults are placeholders.
 const env = process.env
 const domain = env.DEPLOY_DOMAIN || undefined

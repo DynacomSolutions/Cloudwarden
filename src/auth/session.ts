@@ -6,8 +6,8 @@ import { ApiError } from '../errors'
 import { isStandInUser } from '../federation/standin'
 import { masterPasswordPolicyFor } from '../orgs/policies'
 import { decryptionOptions, hasMasterPassword } from '../sso/decryption'
+import { signAccessJwt } from './access-keys'
 import { randomB64u, sha256B64u } from './crypto'
-import { signingSecret, signJwt } from './jwt'
 import { issuerFor } from './middleware'
 import type { prfOptionJson } from './passkeys'
 
@@ -76,7 +76,7 @@ export async function signAccessToken(
     amr: ['Application'],
     ...(clientId ? { client_id: clientId } : {}),
   }
-  return signJwt(claims, signingSecret(env))
+  return signAccessJwt(env, claims)
 }
 
 /**

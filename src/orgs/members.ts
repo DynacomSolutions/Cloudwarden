@@ -214,7 +214,7 @@ export function memberJson(
   m: Member,
   user:
     | (Pick<UserRow, 'name' | 'email'> &
-        Partial<Pick<UserRow, 'passwordHash' | 'usesKeyConnector'>>)
+        Partial<Pick<UserRow, 'passwordHash' | 'usesKeyConnector'>> & { avatarColor?: string | null })
     | null,
   lists: MemberLists | null,
   detailed = false,
@@ -225,7 +225,7 @@ export function memberJson(
     userId: m.userUuid,
     name: user?.name ?? null,
     email: user?.email ?? m.email ?? '',
-    avatarColor: null,
+    avatarColor: user?.avatarColor ?? null,
     type: m.atype,
     status: m.status,
     accessAll: m.accessAll,
@@ -241,7 +241,7 @@ export function memberJson(
       m.status >= Status.Accepted &&
       (lists?.claimedDomains.has(emailDomain(user?.email ?? '')) ?? false),
     accessSecretsManager: m.accessSecretsManager,
-    accessPam: false,
+    accessPam: m.accessPam,
     revocationReason: null,
     ...(lists
       ? {

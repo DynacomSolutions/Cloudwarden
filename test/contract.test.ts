@@ -309,6 +309,30 @@ const cases: Case[] = [
   },
   { op: 'GET /api/accounts/profile', status: 200, run: () => call('/api/accounts/profile') },
   {
+    op: 'PUT /api/accounts/avatar',
+    status: 200,
+    run: () => call('/api/accounts/avatar', 'PUT', { avatarColor: '#123456' }),
+  },
+  { op: 'GET /api/accounts/keys', status: 200, run: () => call('/api/accounts/keys') },
+  {
+    op: 'GET /api/accounts/organizations',
+    status: 200,
+    run: () => call('/api/accounts/organizations'),
+  },
+  { op: 'GET /api/organizations', status: 200, run: () => call('/api/organizations') },
+  {
+    op: 'GET /api/ciphers/has-unassigned-ciphers',
+    status: 200,
+    run: () => call('/api/ciphers/has-unassigned-ciphers'),
+  },
+  { op: 'GET /identity/alive', status: 200, run: () => call('/identity/alive') },
+  {
+    op: 'POST /api/devices',
+    status: 200,
+    run: () =>
+      call('/api/devices', 'POST', { type: 8, name: 'cli', identifier: crypto.randomUUID() }),
+  },
+  {
     op: 'GET /api/accounts/revision-date',
     status: 200,
     run: () => call('/api/accounts/revision-date'),
@@ -484,7 +508,6 @@ const cases: Case[] = [
  * gets updated and the operation can join the curated set above.
  */
 const UNIMPLEMENTED = [
-  'PUT /api/accounts/avatar',
   'PUT /api/accounts/update-temp-password',
   'POST /api/auth-requests/admin-request',
   'POST /api/devices/identifier/{deviceIdentifier}/web-push-auth',

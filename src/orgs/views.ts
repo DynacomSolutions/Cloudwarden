@@ -21,16 +21,24 @@ const FEATURES = {
   // Secrets Manager API (TASKS #220); members still need `accessSecretsManager`.
   useSecretsManager: true,
   usePasswordManager: true,
-  usePam: false,
+  usePam: true,
   useRiskInsights: false,
   usePhishingBlocker: false,
   useMyItems: false,
-  useInviteLinks: false,
+  useInviteLinks: true,
   // Single sign-on, key connector and claimed domains (TASKS #280 to #286).
   useSso: true,
   useKeyConnector: true,
   useOrganizationDomains: true,
 }
+
+/** The four collection management settings (TASKS #231). */
+export const collectionManagement = (o: OrgRow) => ({
+  limitCollectionCreation: o.limitCollectionCreation,
+  limitCollectionDeletion: o.limitCollectionDeletion,
+  limitItemDeletion: o.limitItemDeletion,
+  allowAdminAccessToAllCollectionItems: o.allowAdminAccessToAllCollectionItems,
+})
 
 export const orgJson = (o: OrgRow) => ({
   object: 'organization',
@@ -50,10 +58,7 @@ export const orgJson = (o: OrgRow) => ({
   maxStorageGb: null,
   ...FEATURES,
   hasPublicAndPrivateKeys: Boolean(o.publicKey && o.privateKey),
-  limitCollectionCreation: true,
-  limitCollectionDeletion: true,
-  limitItemDeletion: false,
-  allowAdminAccessToAllCollectionItems: true,
+  ...collectionManagement(o),
   identifier: o.identifier,
 })
 
@@ -84,7 +89,7 @@ export const profileOrgJson = (o: OrgRow, m: Member, sso: ProfileSso = NO_SSO) =
   useScim: true,
   useCustomPermissions: true,
   useActivateAutofillPolicy: true,
-  useAutomaticUserConfirmation: false,
+  useAutomaticUserConfirmation: true,
   useAdminSponsoredFamilies: false,
   useDisableSMAdsForUsers: false,
   selfHost: true,
@@ -117,10 +122,7 @@ export const profileOrgJson = (o: OrgRow, m: Member, sso: ProfileSso = NO_SSO) =
   familySponsorshipValidUntil: null,
   familySponsorshipToDelete: null,
   accessSecretsManager: m.accessSecretsManager,
-  limitCollectionCreation: true,
-  limitCollectionDeletion: true,
-  limitItemDeletion: false,
-  allowAdminAccessToAllCollectionItems: true,
+  ...collectionManagement(o),
   userIsClaimedByOrganization: sso.claimed,
   isAdminInitiated: false,
 })

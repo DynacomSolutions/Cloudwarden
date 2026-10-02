@@ -16,6 +16,7 @@ export const PolicyType = {
   ResetPassword: 8,
   MaximumVaultTimeout: 9,
   DisablePersonalVaultExport: 10,
+  AutomaticUserConfirmation: 18,
 } as const
 
 /** Event codes used on the wire by the official clients. */
@@ -23,6 +24,7 @@ export const EventType = {
   CipherCreated: 1100,
   CipherUpdated: 1101,
   CipherDeleted: 1102,
+  CipherAttachmentDeleted: 1104,
   CipherShared: 1105,
   CipherUpdatedCollections: 1106,
   CipherSoftDeleted: 1115,

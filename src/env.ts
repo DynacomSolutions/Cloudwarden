@@ -54,6 +54,8 @@ export interface Bindings {
   YUBICO_SECRET_KEY?: string
   /** Optional validation endpoint (https URL) replacing YubiCloud, such as a self-hosted server. */
   YUBICO_SERVER?: string
+  /** Have I Been Pwned API key for the breach report. Without it the report is unavailable. */
+  HIBP_API_KEY?: string
 }
 
 export type User = typeof users.$inferSelect

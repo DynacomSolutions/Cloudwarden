@@ -1,4 +1,4 @@
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm'
 import type { Context, Next } from 'hono'
 import { Hono } from 'hono'
 import { z } from 'zod'
@@ -10,9 +10,10 @@ import { PushType } from '../notifications/publish'
 import { notifyCiphers } from '../notifications/vault-events'
 import {
   bumpOrgRevision,
-  canManageAllCiphers,
+  limitsItemDeletion,
   loadUserAccess,
   type Member,
+  manageAll,
   requireMember,
   requireOwner,
   requirePermission,
@@ -33,7 +34,7 @@ import {
   userCipherStates,
   userFolderStatements,
 } from '../orgs/ciphers'
-import { EventType } from '../orgs/constants'
+import { EventType, Status } from '../orgs/constants'
 import { eventStatement } from '../orgs/events'
 import {
   activeMemberIds,
@@ -86,7 +87,7 @@ async function resolve(c: Ctx, id: string, admin: boolean): Promise<Resolved | n
   if (!cipher?.organizationUuid) return null
   if (admin) {
     const member = await requireMember(db, c.var.user.uuid, cipher.organizationUuid)
-    if (!canManageAllCiphers(member))
+    if (!(await manageAll(db, member)))
       throw new ApiError(403, 'You do not have permission to do this.')
     return { cipher, access: await adminItemAccess(db, cipher), member }
   }
@@ -109,7 +110,8 @@ async function respond(c: Ctx, id: string, admin: boolean) {
   return c.json(orgCipherJson({ cipher: r.cipher, folderId, access: r.access, state }))
 }
 
-const canDelete = (a: ItemAccess) => a.edit || a.manage
+/** With "limit item deletion" on, only Manage access deletes or restores items (TASKS #231). */
+const canDelete = (a: ItemAccess, limited: boolean) => (limited ? a.manage : a.edit || a.manage)
 
 // ----- create -----
 
@@ -118,7 +120,7 @@ async function createOrgCipher(c: Ctx, body: CipherBody, collectionIds: string[]
   const user = c.var.user
   const orgUuid = body.organizationId as string
   const member = await requireMember(db, user.uuid, orgUuid)
-  const manager = canManageAllCiphers(member)
+  const manager = await manageAll(db, member)
   if (admin && !manager) throw new ApiError(403, 'You do not have permission to do this.')
   if (!admin && collectionIds.length === 0 && !manager && !member.accessAll) {
     throw new ApiError(400, 'You must select at least one collection.')
@@ -260,11 +262,37 @@ orgCiphers.post('/api/ciphers/import-organization', async (c) => {
 
 // ----- organisation listings -----
 
+// True when an organisation the caller can manage fully holds a live item in no collection.
+orgCiphers.get('/api/ciphers/has-unassigned-ciphers', async (c) => {
+  const db = createDb(c.env.DB)
+  const memberships = await db
+    .select()
+    .from(schema.usersOrganizations)
+    .where(eq(schema.usersOrganizations.userUuid, c.var.user.uuid))
+  const orgs: string[] = []
+  for (const m of memberships) {
+    if (m.status === Status.Confirmed && (await manageAll(db, m))) orgs.push(m.organizationUuid)
+  }
+  if (orgs.length === 0) return c.json(false)
+  const [row] = await db
+    .select({ uuid: schema.ciphers.uuid })
+    .from(schema.ciphers)
+    .where(
+      and(
+        inArray(schema.ciphers.organizationUuid, orgs),
+        isNull(schema.ciphers.deletedAt),
+        sql`not exists (select 1 from ciphers_collections cc where cc.cipher_uuid = ${schema.ciphers.uuid})`,
+      ),
+    )
+    .limit(1)
+  return c.json(row !== undefined)
+})
+
 orgCiphers.get('/api/ciphers/organization-details', async (c) => {
   const db = createDb(c.env.DB)
   const orgUuid = c.req.query('organizationId') ?? ''
   const member = await requireMember(db, c.var.user.uuid, orgUuid)
-  if (!canManageAllCiphers(member))
+  if (!(await manageAll(db, member)))
     throw new ApiError(403, 'You do not have permission to do this.')
   const [rows, links, folders, states] = await Promise.all([
     db.select().from(schema.ciphers).where(eq(schema.ciphers.organizationUuid, orgUuid)),
@@ -478,7 +506,7 @@ function bulk(op: BulkOp, admin: boolean, respondList: boolean) {
     if (admin) {
       if (!body.organizationId) throw new ApiError(400, 'An organization is required.')
       adminMember = await requireMember(db, user.uuid, body.organizationId)
-      if (!canManageAllCiphers(adminMember))
+      if (!(await manageAll(db, adminMember)))
         throw new ApiError(403, 'You do not have permission to do this.')
     }
     const ua = admin ? null : await loadUserAccess(db, user.uuid)
@@ -492,7 +520,8 @@ function bulk(op: BulkOp, admin: boolean, respondList: boolean) {
       } else {
         const a = ua && itemAccess(ua, row.organizationUuid, await linkedCollections(db, row.uuid))
         if (!a) throw NOT_FOUND()
-        if (!canDelete(a)) throw new ApiError(403, 'You do not have permission to do this.')
+        if (!canDelete(a, await limitsItemDeletion(db, row.organizationUuid)))
+          throw new ApiError(403, 'You do not have permission to do this.')
       }
       orgs.add(row.organizationUuid as string)
     }
@@ -623,11 +652,12 @@ orgCiphers.post('/api/ciphers/bulk-collections', async (c) => {
   await assertWritableCollections(db, user.uuid, member, body.organizationId, body.collectionIds)
   const rows = await loadMany(db, body.cipherIds)
   const ua = await loadUserAccess(db, user.uuid)
+  const manager = await manageAll(db, member)
   for (const row of rows) {
     if (row.organizationUuid !== body.organizationId) throw NOT_FOUND()
     const a = itemAccess(ua, body.organizationId, await linkedCollections(db, row.uuid))
-    if (!a && !canManageAllCiphers(member)) throw NOT_FOUND()
-    if (a && !a.manage && !canManageAllCiphers(member))
+    if (!a && !manager) throw NOT_FOUND()
+    if (a && !a.manage && !manager)
       throw new ApiError(403, 'You do not have permission to do this.')
   }
   const now = Date.now()
@@ -750,9 +780,10 @@ function single(op: BulkOp, admin: boolean, respondItem: boolean) {
     const id = idParam(c)
     const r = await resolve(c, id, admin)
     if (!r) return next()
-    if (!canDelete(r.access)) throw new ApiError(403, 'You do not have permission to do this.')
     const db = createDb(c.env.DB)
     const orgUuid = r.cipher.organizationUuid as string
+    if (!canDelete(r.access, await limitsItemDeletion(db, orgUuid)))
+      throw new ApiError(403, 'You do not have permission to do this.')
     const now = Date.now()
     // Recipients are read first: a hard delete removes the links that decide who can see the item.
     const before = op === 'restore' ? [] : await cipherRecipients(db, r.cipher)
@@ -804,7 +835,7 @@ const setCollections = (admin: boolean, v2: boolean) => async (c: Ctx, next: Nex
   const user = c.var.user
   const orgUuid = r.cipher.organizationUuid as string
   const member = r.member ?? (await requireMember(db, user.uuid, orgUuid))
-  const manager = canManageAllCiphers(member)
+  const manager = await manageAll(db, member)
   if (!r.access.manage && !manager) {
     throw new ApiError(403, 'You need manage access to change the collections of an item.')
   }

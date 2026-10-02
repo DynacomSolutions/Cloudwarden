@@ -55,6 +55,8 @@ export const users = sqliteTable(
     otpPurpose: text('otp_purpose'),
     otpExpiresAt: integer('otp_expires_at'),
     otpAttempts: integer('otp_attempts').notNull().default(0),
+    // Profile avatar colour (TASKS #231).
+    avatarColor: text('avatar_color'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -145,6 +147,19 @@ export const organizations = sqliteTable(
     secretsRevisionDate: integer('secrets_revision_date'),
     // SSO identifier members type on the login page (TASKS #280); unique ignoring case.
     identifier: text('identifier'),
+    // Collection management settings (TASKS #231), defaults match a newly created organisation.
+    limitCollectionCreation: integer('limit_collection_creation', { mode: 'boolean' })
+      .notNull()
+      .default(true),
+    limitCollectionDeletion: integer('limit_collection_deletion', { mode: 'boolean' })
+      .notNull()
+      .default(true),
+    limitItemDeletion: integer('limit_item_deletion', { mode: 'boolean' }).notNull().default(false),
+    allowAdminAccessToAllCollectionItems: integer('allow_admin_access_all_items', {
+      mode: 'boolean',
+    })
+      .notNull()
+      .default(true),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -260,6 +275,8 @@ export const usersOrganizations = sqliteTable(
     accessSecretsManager: integer('access_secrets_manager', { mode: 'boolean' })
       .notNull()
       .default(false),
+    // Privileged access management seat (TASKS #231), toggled by `users/enable-pam`.
+    accessPam: integer('access_pam', { mode: 'boolean' }).notNull().default(false),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -580,6 +597,26 @@ export const adminRateLimits = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.key, t.windowStart] })],
 )
+
+/**
+ * Organisation invite links (TASKS #231). `invite` is opaque client-made key material (JSON) the
+ * server stores and returns; `code` is the public identifier in the join URL.
+ */
+export const orgInviteLinks = sqliteTable('org_invite_links', {
+  uuid: id(),
+  organizationUuid: text('organization_uuid')
+    .notNull()
+    .unique()
+    .references(() => organizations.uuid, { onDelete: 'cascade' }),
+  joinCode: text('code').notNull().unique(),
+  allowedDomains: text('allowed_domains').notNull(),
+  invite: text('invite'),
+  supportsConfirmation: integer('supports_confirmation', { mode: 'boolean' })
+    .notNull()
+    .default(false),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+})
 
 /** Email invitations created by an admin. Registration gating (TASKS #22) consumes these. */
 export const invitations = sqliteTable(

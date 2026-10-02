@@ -11,13 +11,15 @@ import type { Env } from '../env'
 import { ApiError } from '../errors'
 import {
   bumpOrgRevision,
+  getMember,
+  isAdminRole,
   type Member,
   requireMember,
   requireOrg,
   requirePermission,
 } from '../orgs/access'
 import { dropMemberStateFor } from '../orgs/ciphers'
-import { EventType, Role, Status } from '../orgs/constants'
+import { EventType, PolicyType, Role, Status } from '../orgs/constants'
 import { eventStatement } from '../orgs/events'
 import {
   accessOf,
@@ -35,10 +37,14 @@ import {
   VALID_ROLES,
 } from '../orgs/members'
 import { notifyOrgKeys } from '../orgs/notify'
-import { assertTwoFactorCompliant } from '../orgs/policies'
+import {
+  assertAutoConfirmEligible,
+  assertTwoFactorCompliant,
+  enabledPolicy,
+} from '../orgs/policies'
 import { authOnce, batch } from '../orgs/util'
 import { parseBody } from '../validation'
-import { chunk } from '../vault/ciphers'
+import { bumpRevision, chunk } from '../vault/ciphers'
 
 export const orgUsers = new Hono<Env>()
 orgUsers.use('/api/organizations/*', authOnce)
@@ -229,6 +235,7 @@ orgUsers.post('/api/organizations/:orgId/users/invite', async (c) => {
       resetPasswordKey: null,
       externalId: null,
       accessSecretsManager: body.accessSecretsManager === true,
+      accessPam: false,
       createdAt: now,
       updatedAt: now,
     })
@@ -384,6 +391,7 @@ async function confirmStatements(
   actor: Member,
   id: string,
   key: string,
+  auto = false,
 ): Promise<{ error: string } | { statements: unknown[]; userUuid: string }> {
   const target = await getTarget(db, actor.organizationUuid, id).catch(() => null)
   if (!target) return { error: 'User not found.' }
@@ -392,6 +400,14 @@ async function confirmStatements(
   try {
     assertCanAssign(actor, target.atype)
     await assertTwoFactorCompliant(db, target.userUuid, actor.organizationUuid)
+    if (auto) {
+      await assertAutoConfirmEligible(
+        db,
+        actor.organizationUuid,
+        target.userUuid,
+        target.email ?? '',
+      )
+    }
   } catch (e) {
     return { error: (e as ApiError).message }
   }
@@ -486,6 +502,163 @@ orgUsers.post('/api/organizations/:orgId/users/public-keys', async (c) => {
     }
   }
   return c.json({ object: 'list', data, continuationToken: null })
+})
+
+// ----- accept while initialising the organisation, auto-confirm, PAM, self-revocation (TASKS #231) -----
+
+/**
+ * An invited owner of an organisation without keys accepts and, in one step, supplies the
+ * organisation keys, their own organisation key and a first collection; they are confirmed.
+ */
+orgUsers.post('/api/organizations/:orgId/users/:id/accept-init', async (c) => {
+  const orgUuid = org(c)
+  const id = c.req.param('id')
+  const body = await parseBody(
+    c,
+    z.object({
+      token: z.string().min(1),
+      key: z.string().min(1),
+      keys: z.object({ publicKey: z.string().min(1), encryptedPrivateKey: z.string().min(1) }),
+      collectionName: z.string().min(1),
+    }),
+  )
+  const db = createDb(c.env.DB)
+  const user = c.var.user
+  const claims = await verifyPurposeToken(c.env, INVITE_PURPOSE, body.token)
+  const target = await getTarget(db, orgUuid, id).catch(() => null)
+  if (
+    !claims ||
+    !target ||
+    claims.sub !== id ||
+    claims.ref !== orgUuid ||
+    claims.email !== user.email ||
+    (target.userUuid && target.userUuid !== user.uuid)
+  ) {
+    throw new ApiError(400, 'Invalid token.')
+  }
+  if (target.status !== Status.Invited) throw new ApiError(400, 'Invitation already accepted.')
+  if (target.atype !== Role.Owner)
+    throw new ApiError(400, 'Only owners can initialize an organization.')
+  const orgRow = await requireOrg(db, orgUuid)
+  if (orgRow.publicKey) throw new ApiError(400, 'Organization already has keys.')
+  await assertTwoFactorCompliant(db, user.uuid, orgUuid)
+  const now = Date.now()
+  const collectionUuid = crypto.randomUUID()
+  try {
+    await runBatch(db, [
+      db
+        .update(schema.organizations)
+        .set({
+          publicKey: body.keys.publicKey,
+          privateKey: body.keys.encryptedPrivateKey,
+          updatedAt: now,
+        })
+        .where(eq(schema.organizations.uuid, orgUuid)),
+      db
+        .update(schema.usersOrganizations)
+        .set({ userUuid: user.uuid, status: Status.Confirmed, akey: body.key, updatedAt: now })
+        .where(eq(schema.usersOrganizations.uuid, id)),
+      db.insert(schema.collections).values({
+        uuid: collectionUuid,
+        organizationUuid: orgUuid,
+        name: body.collectionName,
+        createdAt: now,
+        updatedAt: now,
+      }),
+      db.insert(schema.usersCollections).values({
+        organizationUserUuid: id,
+        collectionUuid,
+        readOnly: false,
+        hidePasswords: false,
+        manage: true,
+      }),
+      eventStatement(db, c, {
+        type: EventType.OrganizationUserConfirmed,
+        organizationUuid: orgUuid,
+        organizationUserUuid: id,
+        userUuid: user.uuid,
+      }),
+      db.update(schema.users).set({ updatedAt: now }).where(eq(schema.users.uuid, user.uuid)),
+    ])
+  } catch {
+    throw new ApiError(400, 'You are already a member of this organization.')
+  }
+  notifyOrgKeys(c, user.uuid)
+  return c.body(null, 200)
+})
+
+/**
+ * Automatic user confirmation: an administrator's client confirms accepted members without a
+ * manual step. The server checks exactly what a manual confirmation checks (`manageUsers`, target
+ * accepted, two-step login policy), so it grants nothing a manual confirmation would not.
+ */
+/** Automatic confirmation only runs while the organisation's policy for it is on. */
+async function requireAutoConfirmPolicy(db: Db, orgUuid: string) {
+  if (!(await enabledPolicy(db, orgUuid, PolicyType.AutomaticUserConfirmation))) {
+    throw new ApiError(400, 'Automatic user confirmation is not enabled for this organization.')
+  }
+}
+
+orgUsers.get('/api/organizations/:orgId/users/pending-auto-confirm', async (c) => {
+  const db = createDb(c.env.DB)
+  await requirePermission(db, c.var.user.uuid, org(c), 'manageUsers')
+  await requireAutoConfirmPolicy(db, org(c))
+  const rows = await db
+    .select({ id: schema.usersOrganizations.uuid, userId: schema.usersOrganizations.userUuid })
+    .from(schema.usersOrganizations)
+    .where(
+      and(
+        eq(schema.usersOrganizations.organizationUuid, org(c)),
+        eq(schema.usersOrganizations.status, Status.Accepted),
+      ),
+    )
+  return c.json({
+    object: 'list',
+    data: rows
+      .filter((r) => r.userId)
+      .map((r) => ({ object: 'organizationUserPendingAutoConfirm', ...r })),
+    continuationToken: null,
+  })
+})
+
+orgUsers.post('/api/organizations/:orgId/users/bulk-auto-confirm', async (c) => {
+  const body = await parseBody(
+    c,
+    z.object({ keys: z.array(z.object({ id: z.string(), key: z.string().min(1) })).max(MAX_BULK) }),
+  )
+  const db = createDb(c.env.DB)
+  const actor = await requirePermission(db, c.var.user.uuid, org(c), 'manageUsers')
+  await requireAutoConfirmPolicy(db, org(c))
+  const out: { id: string; error: string | null }[] = []
+  const statements: unknown[] = []
+  const confirmed: string[] = []
+  for (const k of body.keys) {
+    const r = await confirmStatements(c, db, actor, k.id, k.key, true)
+    if ('error' in r) out.push({ id: k.id, error: r.error })
+    else {
+      statements.push(...r.statements)
+      confirmed.push(r.userUuid)
+      out.push({ id: k.id, error: null })
+    }
+  }
+  await batch(db, statements)
+  for (const u of confirmed) notifyOrgKeys(c, u)
+  return bulkOk(out, c)
+})
+
+orgUsers.post('/api/organizations/:orgId/users/:id/auto-confirm', async (c) => {
+  const body = await parseBody(
+    c,
+    z.object({ key: z.string().min(1), defaultUserCollectionName: z.string().nullish() }),
+  )
+  const db = createDb(c.env.DB)
+  const actor = await requirePermission(db, c.var.user.uuid, org(c), 'manageUsers')
+  await requireAutoConfirmPolicy(db, org(c))
+  const r = await confirmStatements(c, db, actor, c.req.param('id'), body.key, true)
+  if ('error' in r) throw new ApiError(r.error === 'User not found.' ? 404 : 400, r.error)
+  await batch(db, r.statements)
+  notifyOrgKeys(c, r.userUuid)
+  return c.body(null, 200)
 })
 
 // ----- revoke, restore, remove (bulk first: static paths before `/:id`) -----
@@ -609,6 +782,59 @@ const enableSecretsManagerOp: Op = async (c, db, actor, target) => {
 orgUsers.put('/api/organizations/:orgId/users/enable-secrets-manager', async (c) =>
   bulkOk(await runOps(c, (await parseBody(c, idsSchema)).ids, enableSecretsManagerOp), c),
 )
+/** Grants privileged access management (TASKS #231): owners and admins only, like the client. */
+const enablePamOp: Op = async (c, db, actor, target) => {
+  assertCanAssign(actor, target.atype)
+  if (actor.atype !== Role.Owner && actor.atype !== Role.Admin) {
+    throw new ApiError(403, 'You cannot change privileged access management access.')
+  }
+  return [
+    db
+      .update(schema.usersOrganizations)
+      .set({ accessPam: true, updatedAt: Date.now() })
+      .where(eq(schema.usersOrganizations.uuid, target.uuid)),
+    eventStatement(db, c, {
+      type: EventType.OrganizationUserUpdated,
+      organizationUuid: target.organizationUuid,
+      organizationUserUuid: target.uuid,
+      userUuid: target.userUuid,
+    }),
+  ]
+}
+
+orgUsers.put('/api/organizations/:orgId/users/enable-pam', async (c) =>
+  bulkOk(await runOps(c, (await parseBody(c, idsSchema)).ids, enablePamOp), c),
+)
+
+/**
+ * A member revokes their own membership, as the clients do when the user declines a policy the
+ * organisation requires (TASKS #231). An administrator can restore them later.
+ */
+orgUsers.put('/api/organizations/:orgId/users/revoke-self', async (c) => {
+  const orgUuid = org(c)
+  const db = createDb(c.env.DB)
+  const m = await getMember(db, c.var.user.uuid, orgUuid)
+  if (!m || (m.status !== Status.Accepted && m.status !== Status.Confirmed)) {
+    throw new ApiError(404, 'Organization not found.')
+  }
+  await assertNotLastOwner(db, orgUuid, m)
+  const now = Date.now()
+  await runBatch(db, [
+    db
+      .update(schema.usersOrganizations)
+      .set({ status: Status.Revoked, updatedAt: now })
+      .where(eq(schema.usersOrganizations.uuid, m.uuid)),
+    eventStatement(db, c, {
+      type: EventType.OrganizationUserRevoked,
+      organizationUuid: orgUuid,
+      organizationUserUuid: m.uuid,
+      userUuid: m.userUuid,
+    }),
+    bumpOrgRevision(db, orgUuid, now),
+    bumpRevision(db, c.var.user.uuid, now),
+  ])
+  return c.body(null, 200)
+})
 orgUsers.put('/api/organizations/:orgId/users/revoke', async (c) =>
   bulkOk(await runOps(c, (await parseBody(c, idsSchema)).ids, revokeOp), c),
 )
@@ -648,6 +874,7 @@ const updateSchema = z.object({
   groups: z.array(z.string()).nullish(),
   permissions: permissionsSchema,
   accessSecretsManager: z.boolean().nullish(),
+  accessPam: z.boolean().nullish(),
 })
 const updateMember = async (c: Ctx) => {
   const body = await parseBody(c, updateSchema)
@@ -668,6 +895,9 @@ const updateMember = async (c: Ctx) => {
     body.accessSecretsManager !== target.accessSecretsManager
   ) {
     assertCanGrantSecretsManager(actor, target)
+  }
+  if (body.accessPam != null && body.accessPam !== target.accessPam && !isAdminRole(actor)) {
+    throw new ApiError(403, 'You cannot change privileged access management access.')
   }
   const collections = dedupeSelections(body.collections ?? [])
   const groupIds = [...new Set(body.groups ?? [])]
@@ -691,6 +921,7 @@ const updateMember = async (c: Ctx) => {
         ...(body.accessSecretsManager == null
           ? {}
           : { accessSecretsManager: body.accessSecretsManager }),
+        ...(body.accessPam == null ? {} : { accessPam: body.accessPam }),
         updatedAt: now,
       })
       .where(eq(schema.usersOrganizations.uuid, target.uuid)),

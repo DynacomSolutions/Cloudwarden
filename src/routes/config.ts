@@ -18,6 +18,10 @@ export const SERVER_VERSION = '2026.9.0'
 export const FEATURE_STATES: Record<string, boolean | number | string> = {
   // Passkey directory report: GET /api/reports/passkey-directory.
   'inno-passkey-directory-report': true,
+  // Organisation invite links (accept, confirm and auto-confirm are served, TASKS #231).
+  'pm-32497-generate-invite-link': true,
+  'pm-34429-invite-link-auto-confirm': true,
+  'pm-39601-invite-link-notification': true,
 }
 
 config.get('/api/config', (c) => {

@@ -16,6 +16,7 @@ import {
   loadUserAccess,
   type Member,
   requireMember,
+  requireOrg,
   requirePermission,
 } from '../orgs/access'
 import { EventType } from '../orgs/constants'
@@ -86,6 +87,18 @@ async function requireManage(db: Db, actor: Member, orgUuid: string, id: string)
   const a = await callerAccess(db, actor, id, orgUuid)
   if (!a) throw new ApiError(404, 'Collection not found.')
   if (!a.manage) throw new ApiError(403, 'You do not have permission to manage this collection.')
+}
+
+/**
+ * Deleting collections: members with "delete any collection", or, when the organisation does not
+ * limit deletion to them (TASKS #231), members with Manage access to every collection deleted.
+ */
+async function requireDelete(db: Db, c: Ctx, ids: string[]) {
+  const actor = await requireMember(db, c.var.user.uuid, org(c))
+  if (can(actor, 'deleteAnyCollection')) return
+  const o = await requireOrg(db, org(c))
+  if (o.limitCollectionDeletion) throw new ApiError(403, 'You do not have permission to do this.')
+  for (const id of ids) await requireManage(db, actor, org(c), id)
 }
 
 /** Statements that replace the user and group grants of a collection. */
@@ -279,8 +292,8 @@ collectionsRouter.post('/api/organizations/:orgId/collections/bulk-access', asyn
 collectionsRouter.delete('/api/organizations/:orgId/collections', async (c) => {
   const { ids } = await parseBody(c, z.object({ ids: z.array(z.string()).max(500) }))
   const db = createDb(c.env.DB)
-  await requirePermission(db, c.var.user.uuid, org(c), 'deleteAnyCollection')
   await assertIdsInOrg(db, 'collection', org(c), ids)
+  await requireDelete(db, c, ids)
   await batch(db, [
     bumpOrgRevision(db, org(c), Date.now()),
     ...chunk(ids).map((part) =>
@@ -300,7 +313,10 @@ collectionsRouter.delete('/api/organizations/:orgId/collections', async (c) => {
 collectionsRouter.post('/api/organizations/:orgId/collections', async (c) => {
   const body = await parseBody(c, collectionSchema)
   const db = createDb(c.env.DB)
-  const actor = await requirePermission(db, c.var.user.uuid, org(c), 'createNewCollections')
+  // Any member may create collections unless the organisation limits it (TASKS #231).
+  const actor = (await requireOrg(db, org(c))).limitCollectionCreation
+    ? await requirePermission(db, c.var.user.uuid, org(c), 'createNewCollections')
+    : await requireMember(db, c.var.user.uuid, org(c))
   let users = body.users ? dedupeSelections(body.users) : null
   const groups = body.groups ? dedupeSelections(body.groups) : null
   await checkGrants(db, org(c), users, groups)
@@ -401,9 +417,9 @@ collectionsRouter.post('/api/organizations/:orgId/collections/:id', updateCollec
 
 const deleteCollection = async (c: Ctx) => {
   const db = createDb(c.env.DB)
-  await requirePermission(db, c.var.user.uuid, org(c), 'deleteAnyCollection')
   const id = c.req.param('id') ?? ''
   await loadCollection(db, org(c), id)
+  await requireDelete(db, c, [id])
   await batch(db, [
     bumpOrgRevision(db, org(c), Date.now()),
     db.delete(schema.collections).where(eq(schema.collections.uuid, id)),

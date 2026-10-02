@@ -57,7 +57,7 @@ export async function profileJson(c: Ctx, user: User) {
     forcePasswordReset: false,
     usesKeyConnector: user.usesKeyConnector,
     verifyDevices: user.verifyDevices,
-    avatarColor: null,
+    avatarColor: user.avatarColor,
     creationDate: new Date(user.createdAt).toISOString(),
     organizations: await profileOrganizations(createDb(c.env.DB), user.uuid),
     providers: [],
@@ -109,6 +109,43 @@ const updateProfile = async (c: Ctx) => {
 }
 accounts.put('/api/accounts/profile', requireAuth, updateProfile)
 accounts.post('/api/accounts/profile', requireAuth, updateProfile)
+
+// The avatar colour is a display preference only (a CSS hex colour, or null for the default).
+const avatarSchema = z.object({
+  avatarColor: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .nullish(),
+})
+const updateAvatar = async (c: Ctx) => {
+  const { avatarColor } = await parseBody(c, avatarSchema)
+  await createDb(c.env.DB)
+    .update(schema.users)
+    .set({ avatarColor: avatarColor ?? null, updatedAt: Date.now() })
+    .where(eq(schema.users.uuid, c.var.user.uuid))
+  return c.json(await profileJson(c, await reloadUser(c, c.var.user.uuid)))
+}
+accounts.put('/api/accounts/avatar', requireAuth, updateAvatar)
+accounts.post('/api/accounts/avatar', requireAuth, updateAvatar)
+
+accounts.get('/api/accounts/keys', requireAuth, (c) => {
+  const user = c.var.user
+  return c.json({
+    key: user.akey,
+    publicKey: user.publicKey,
+    privateKey: user.privateKey,
+    accountKeys: accountKeysJson(user),
+    object: 'keys',
+  })
+})
+
+accounts.get('/api/accounts/organizations', requireAuth, async (c) =>
+  c.json({
+    data: await profileOrganizations(createDb(c.env.DB), c.var.user.uuid),
+    object: 'list',
+    continuationToken: null,
+  }),
+)
 
 // Vault writes bump `users.updatedAt` (TASKS #43), so it is the account revision date.
 accounts.get('/api/accounts/revision-date', requireAuth, (c) => c.json(c.var.user.updatedAt))

@@ -244,3 +244,59 @@ devices.post('/api/devices/update-trust', requireAuth, async (c) => {
   }
   return c.body(null, 200)
 })
+
+// SDK DeviceRequestModel. A device registered here holds no session until it logs in.
+const deviceSchema = z.object({
+  type: z.number().int().min(0),
+  name: z.string().min(1).max(50),
+  identifier: z.string().min(1).max(50),
+  pushToken: z.string().nullish(),
+})
+
+devices.post('/api/devices', requireAuth, async (c) => {
+  const body = await parseBody(c, deviceSchema)
+  const db = createDb(c.env.DB)
+  const now = Date.now()
+  await db
+    .insert(schema.devices)
+    .values({
+      uuid: crypto.randomUUID(),
+      identifier: body.identifier,
+      userUuid: c.var.user.uuid,
+      name: body.name,
+      type: body.type,
+      pushToken: body.pushToken ?? null,
+      refreshToken: '',
+      createdAt: now,
+      updatedAt: now,
+    })
+    .onConflictDoUpdate({
+      target: [schema.devices.userUuid, schema.devices.identifier],
+      set: { name: body.name, type: body.type, pushToken: body.pushToken ?? null, updatedAt: now },
+    })
+  return c.json(deviceJson(await ownDevice(c, eq(schema.devices.identifier, body.identifier))))
+})
+
+// Only UUID ids match, so named routes under /api/devices added elsewhere are not shadowed.
+const DEVICE_ID = '/api/devices/:id{[0-9a-fA-F-]{36}}'
+
+devices.get(DEVICE_ID, requireAuth, async (c) =>
+  c.json(deviceJson(await ownDevice(c, eq(schema.devices.uuid, c.req.param('id'))))),
+)
+
+const updateDevice = async (c: import('hono').Context<Env>) => {
+  const body = await parseBody(c, deviceSchema)
+  const row = await ownDevice(c, eq(schema.devices.uuid, c.req.param('id') ?? ''))
+  // The identifier names the installation, so it is never changed by an update.
+  await createDb(c.env.DB)
+    .update(schema.devices)
+    .set({
+      name: body.name,
+      type: body.type,
+      pushToken: body.pushToken ?? null,
+      updatedAt: Date.now(),
+    })
+    .where(eq(schema.devices.uuid, row.uuid))
+  return c.json(deviceJson(await ownDevice(c, eq(schema.devices.uuid, row.uuid))))
+}
+devices.put(DEVICE_ID, requireAuth, updateDevice)

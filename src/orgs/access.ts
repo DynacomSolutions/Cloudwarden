@@ -36,6 +36,32 @@ export const isAdminRole = (m: Member) => m.atype === Role.Owner || m.atype === 
 export const canManageAllCiphers = (m: Member | undefined) =>
   can(m, 'editAnyCollection') || can(m, 'manageCiphers')
 
+/**
+ * `canManageAllCiphers` that honours the organisation's "owners and admins can manage all
+ * collections and items" setting (TASKS #231): when it is off, owners and admins only reach the
+ * items of collections they are assigned; custom members keep their explicit permissions.
+ */
+export async function manageAll(db: Db, m: Member | undefined): Promise<boolean> {
+  if (!canManageAllCiphers(m) || !m) return false
+  if (!isAdminRole(m)) return true
+  const [org] = await db
+    .select({ allow: schema.organizations.allowAdminAccessToAllCollectionItems })
+    .from(schema.organizations)
+    .where(eq(schema.organizations.uuid, m.organizationUuid))
+    .limit(1)
+  return org?.allow ?? true
+}
+
+/** Whether the organisation limits item deletion to members with Manage access (TASKS #231). */
+export async function limitsItemDeletion(db: Db, orgUuid: string): Promise<boolean> {
+  const [org] = await db
+    .select({ limit: schema.organizations.limitItemDeletion })
+    .from(schema.organizations)
+    .where(eq(schema.organizations.uuid, orgUuid))
+    .limit(1)
+  return org?.limit ?? false
+}
+
 export async function getMember(
   db: Db,
   userUuid: string,
@@ -114,6 +140,8 @@ export interface UserAccess {
   accessAllOrgs: Set<string>
   /** Explicit per-collection grants from the user's own rows and their groups. */
   grants: Map<string, Access>
+  /** Organisations that limit deleting and restoring items to members with Manage access. */
+  limitDeletionOrgs: Set<string>
 }
 
 /** Everything that decides which collections a user can reach, in three queries. */
@@ -151,7 +179,22 @@ export async function loadUserAccess(db: Db, userUuid: string): Promise<UserAcce
   for (const { c } of [...direct, ...viaGroups]) {
     grants.set(c.collectionUuid, mergeAccess(grants.get(c.collectionUuid), c))
   }
-  return { members, accessAllOrgs, grants }
+  const limited =
+    members.length === 0
+      ? []
+      : await db
+          .select({ uuid: schema.organizations.uuid })
+          .from(schema.organizations)
+          .where(
+            and(
+              inArray(
+                schema.organizations.uuid,
+                members.map((m) => m.organizationUuid),
+              ),
+              eq(schema.organizations.limitItemDeletion, true),
+            ),
+          )
+  return { members, accessAllOrgs, grants, limitDeletionOrgs: new Set(limited.map((o) => o.uuid)) }
 }
 
 /** Access a user has to one collection of `orgUuid`, or undefined for none. */

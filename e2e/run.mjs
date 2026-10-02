@@ -651,7 +651,7 @@ async function main() {
 
     // The official Directory Connector CLI (TASKS #262, pinned in e2e/bwdc.lock.json) syncing an
     // LDAP directory into the organisation through the organisation API key and the Public API.
-    const bwdcBin = await ensureBwdc()
+    const { bin: bwdcBin, env: bwdcExtraEnv } = await ensureBwdc()
     pass('bwdc: pinned release downloaded and sha256 verified')
     const dn = (rdn) => `${rdn},dc=example,dc=com`
     const person = (uid) => ({
@@ -688,6 +688,7 @@ async function main() {
     const dcDir = join(work, 'bwdc')
     const dcEnv = {
       ...env,
+      ...bwdcExtraEnv,
       BITWARDENCLI_CONNECTOR_APPDATA_DIR: dcDir,
       BITWARDENCLI_CONNECTOR_PLAINTEXT_SECRETS: 'true',
       BW_NOINTERACTION: 'true',

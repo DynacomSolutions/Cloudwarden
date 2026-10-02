@@ -30,8 +30,8 @@ Directory Connector, SCIM, event integrations; G this audit.
 | | Rows |
 |---|---|
 | Distinct method and path pairs | 625 |
-| Implemented (including self-host answers) | 342 |
-| Owned by workstreams A to F, not yet implemented | 84 |
+| Implemented (including self-host answers) | 368 |
+| Owned by workstreams A to F, not yet implemented | 58 |
 | Remaining for G | 107 |
 | Not called by any client (SDK-generated only) | 92 |
 
@@ -83,13 +83,13 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/accounts/billing/invoices` | sdk, web | implemented |  |  |
 | GET | `/api/accounts/billing/transactions` | sdk, web | implemented |  |  |
 | POST | `/api/accounts/cancel` | sdk, web | implemented |  |  |
-| POST | `/api/accounts/convert-to-key-connector` | android, ios, sdk, web | missing | E |  |
+| POST | `/api/accounts/convert-to-key-connector` | android, ios, sdk, web | implemented | E |  |
 | POST | `/api/accounts/delete-recover` | sdk, web | implemented | A |  |
 | POST | `/api/accounts/delete-recover-token` | sdk, web | implemented | A |  |
 | POST | `/api/accounts/email` | sdk, web | implemented |  |  |
 | POST | `/api/accounts/email-token` | sdk, web | implemented |  |  |
 | POST | `/api/accounts/kdf` | android, ios, sdk | implemented |  |  |
-| GET | `/api/accounts/key-connector/confirmation-details/{orgId}` | sdk, web | missing | E |  |
+| GET | `/api/accounts/key-connector/confirmation-details/{orgId}` | sdk, web | implemented | E |  |
 | POST | `/api/accounts/key-connector/enroll` | sdk | missing | E |  |
 | GET | `/api/accounts/key-management/key-rotation-data` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | POST | `/api/accounts/key-management/regenerate-keys` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
@@ -111,12 +111,12 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/accounts/revision-date` | android, ios, sdk, web | implemented |  |  |
 | POST | `/api/accounts/rotate-api-key` | sdk, web | implemented |  |  |
 | POST | `/api/accounts/security-stamp` | sdk, web | implemented |  |  |
-| POST | `/api/accounts/set-key-connector-key` | android, ios, sdk, web | missing | E |  |
-| POST | `/api/accounts/set-password` | android, ios, sdk, web | missing | E |  |
-| DELETE | `/api/accounts/sso/{orgId}` | sdk, web | missing | E |  |
-| GET | `/api/accounts/sso/user-identifier` | sdk, web | missing | E |  |
+| POST | `/api/accounts/set-key-connector-key` | android, ios, sdk, web | implemented | E |  |
+| POST | `/api/accounts/set-password` | android, ios, sdk, web | implemented | E |  |
+| DELETE | `/api/accounts/sso/{orgId}` | sdk, web | implemented | E |  |
+| GET | `/api/accounts/sso/user-identifier` | sdk, web | implemented | E |  |
 | GET | `/api/accounts/subscription` | sdk, web | implemented |  |  |
-| PUT | `/api/accounts/update-tde-offboarding-password` | sdk, web | missing | E |  |
+| PUT | `/api/accounts/update-tde-offboarding-password` | sdk, web | implemented | E |  |
 | PUT | `/api/accounts/update-temp-password` | android, ios, sdk, web | missing | C |  |
 | POST | `/api/accounts/verify-devices` | web | implemented |  |  |
 | PUT | `/api/accounts/verify-devices` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
@@ -210,17 +210,17 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/devices/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | PUT | `/api/devices/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | POST | `/api/devices/{deviceId}/deactivate` | web | implemented |  |  |
-| PUT | `/api/devices/{deviceIdentifier}/keys` | android, ios, sdk, web | missing | E |  |
-| POST | `/api/devices/{deviceIdentifier}/retrieve-keys` | web | missing | E |  |
+| PUT | `/api/devices/{deviceIdentifier}/keys` | android, ios, sdk, web | implemented | E |  |
+| POST | `/api/devices/{deviceIdentifier}/retrieve-keys` | web | implemented | E |  |
 | GET | `/api/devices/identifier/{deviceIdentifier}` | ios, sdk, web | implemented |  |  |
 | PUT | `/api/devices/identifier/{id}/clear-token` | sdk | missing | E |  |
 | PUT | `/api/devices/identifier/{id}/token` | android, ios, sdk | implemented |  |  |
 | POST | `/api/devices/identifier/{getAppId}/web-push-auth` | web | missing | A |  |
 | PUT | `/api/devices/identifier/{id}/web-push-auth` | sdk | missing | A |  |
 | GET | `/api/devices/knowndevice` | android, ios, sdk, web | implemented |  |  |
-| POST | `/api/devices/lost-trust` | sdk, web | missing | E |  |
-| POST | `/api/devices/untrust` | sdk, web | missing | E |  |
-| POST | `/api/devices/update-trust` | sdk, web | missing | E |  |
+| POST | `/api/devices/lost-trust` | sdk, web | implemented | E |  |
+| POST | `/api/devices/untrust` | sdk, web | implemented | E |  |
+| POST | `/api/devices/update-trust` | sdk, web | implemented | E |  |
 | DELETE | `/api/emergency-access/{id}` | sdk, web | implemented |  |  |
 | GET | `/api/emergency-access/{id}` | sdk, web | implemented |  |  |
 | PUT | `/api/emergency-access/{id}` | sdk, web | implemented |  |  |
@@ -323,7 +323,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/api/organizations/{id}/auth-requests` | sdk | missing | C |  |
 | POST | `/api/organizations/{id}/auth-requests/{id}` | sdk | missing | C |  |
 | POST | `/api/organizations/{id}/auth-requests/deny` | sdk | missing | C |  |
-| GET | `/api/organizations/{identifier}/auto-enroll-status` | android, ios, sdk, web | missing | C |  |
+| GET | `/api/organizations/{identifier}/auto-enroll-status` | android, ios, sdk, web | implemented | C |  |
 | GET | `/api/organizations/{id}/billing` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/{orgId}/billing/change-frequency` | sdk, web | missing | G |  |
 | GET | `/api/organizations/{id}/billing/history` | sdk, web | implemented |  |  |
@@ -362,12 +362,12 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/api/organizations/{orgId}/collections/bulk-access` | sdk, web | implemented |  |  |
 | GET | `/api/organizations/{orgId}/collections/details` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/{orgId}/delete-recover-token` | sdk, web | missing | A |  |
-| GET | `/api/organizations/{orgId}/domain` | sdk, web | missing | E |  |
-| POST | `/api/organizations/{orgId}/domain` | sdk, web | missing | E |  |
-| DELETE | `/api/organizations/{orgId}/domain/{orgId}` | sdk, web | missing | E |  |
-| GET | `/api/organizations/{orgId}/domain/{orgId}` | sdk, web | missing | E |  |
-| POST | `/api/organizations/{orgId}/domain/{orgId}/verify` | sdk, web | missing | E |  |
-| GET | `/api/organizations/{orgId}/domain/mini` | sdk, web | missing | E |  |
+| GET | `/api/organizations/{orgId}/domain` | sdk, web | implemented | E |  |
+| POST | `/api/organizations/{orgId}/domain` | sdk, web | implemented | E |  |
+| DELETE | `/api/organizations/{orgId}/domain/{orgId}` | sdk, web | implemented | E |  |
+| GET | `/api/organizations/{orgId}/domain/{orgId}` | sdk, web | implemented | E |  |
+| POST | `/api/organizations/{orgId}/domain/{orgId}/verify` | sdk, web | implemented | E |  |
+| GET | `/api/organizations/{orgId}/domain/mini` | sdk, web | implemented | E |  |
 | GET | `/api/organizations/{orgId}/events` | sdk, web | implemented |  |  |
 | GET | `/api/organizations/{orgId}/export` | sdk, web | implemented |  |  |
 | DELETE | `/api/organizations/{orgId}/groups` | sdk, web | implemented |  |  |
@@ -422,8 +422,8 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/api/organizations/{orgId}/service-accounts` | bws, web | implemented |  |  |
 | GET | `/api/organizations/{id}/sm-counts` | sdk | implemented |  |  |
 | POST | `/api/organizations/{id}/sm-subscription` | sdk, web | missing | G |  |
-| GET | `/api/organizations/{id}/sso` | sdk, web | missing | E |  |
-| POST | `/api/organizations/{id}/sso` | sdk, web | missing | E |  |
+| GET | `/api/organizations/{id}/sso` | sdk, web | implemented | E |  |
+| POST | `/api/organizations/{id}/sso` | sdk, web | implemented | E |  |
 | POST | `/api/organizations/{id}/storage` | sdk, web | missing | G |  |
 | POST | `/api/organizations/{id}/subscribe-secrets-manager` | sdk, web | implemented |  |  |
 | GET | `/api/organizations/{id}/subscription` | sdk, web | implemented |  |  |
@@ -442,7 +442,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/api/organizations/{orgId}/users/{id}/accept-init` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/{orgId}/users/{id}/auto-confirm` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/{orgId}/users/{id}/confirm` | cli, sdk, web | implemented |  |  |
-| DELETE | `/api/organizations/{orgId}/users/{id}/delete-account` | sdk, web | missing | E |  |
+| DELETE | `/api/organizations/{orgId}/users/{id}/delete-account` | sdk, web | implemented | E |  |
 | GET | `/api/organizations/{orgId}/users/{id}/events` | sdk, web | implemented |  |  |
 | PUT | `/api/organizations/{orgId}/users/{id}/recover-account` | sdk, web | missing | C |  |
 | POST | `/api/organizations/{orgId}/users/{id}/reinvite` | sdk, web | implemented |  |  |
@@ -453,7 +453,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/api/organizations/{orgId}/users/account-recovery-details` | sdk, web | missing | C |  |
 | POST | `/api/organizations/{orgId}/users/bulk-auto-confirm` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/{orgId}/users/confirm` | sdk, web | implemented |  |  |
-| DELETE | `/api/organizations/{orgId}/users/delete-account` | sdk, web | missing | E |  |
+| DELETE | `/api/organizations/{orgId}/users/delete-account` | sdk, web | implemented | E |  |
 | PUT | `/api/organizations/{orgId}/users/enable-pam` | sdk, web | implemented |  |  |
 | PUT | `/api/organizations/{orgId}/users/enable-secrets-manager` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/{orgId}/users/invite` | sdk, web | implemented |  |  |
@@ -472,7 +472,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/organizations/connections/{id}/{type}` | sdk, web | missing | F |  |
 | GET | `/api/organizations/connections/enabled` | sdk, web | missing | F |  |
 | POST | `/api/organizations/create-without-payment` | sdk, web | implemented |  |  |
-| POST | `/api/organizations/domain/sso/verified` | android, ios, sdk, web | missing | E |  |
+| POST | `/api/organizations/domain/sso/verified` | android, ios, sdk, web | implemented | E |  |
 | GET | `/api/organizations/integrations/slack/create` | sdk | missing | F |  |
 | GET | `/api/organizations/integrations/teams/create` | sdk | missing | F |  |
 | POST | `/api/organizations/integrations/teams/incoming` | sdk | missing | F |  |
@@ -655,12 +655,12 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/identity/accounts/trial/send-verification-email` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | GET | `/identity/accounts/webauthn/assertion-options` | sdk, web | implemented |  |  |
 | GET | `/identity/alive` | sdk | implemented |  |  |
-| GET | `/identity/connect/authorize` | web | missing | E |  |
+| GET | `/identity/connect/authorize` | web | implemented | E |  |
 | POST | `/identity/connect/token` | android, bws, cli, ios, web | implemented |  |  |
 | GET | `/identity/sso/ExternalCallback` | sdk | missing | E |  |
 | GET | `/identity/sso/ExternalChallenge` | sdk | missing | E |  |
 | GET | `/identity/sso/Login` | sdk | missing | E |  |
-| GET | `/identity/sso/prevalidate` | android, ios, sdk, web | missing | E |  |
+| GET | `/identity/sso/prevalidate` | android, ios, sdk, web | implemented | E |  |
 | GET | `/notifications/anonymous-hub` | web | implemented |  |  |
 | GET | `/notifications/hub` | web | implemented |  |  |
 | POST | `/notifications/hub/negotiate` | web | implemented |  |  |

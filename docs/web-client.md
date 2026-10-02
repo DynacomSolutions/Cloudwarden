@@ -29,6 +29,8 @@ Cloudwarden's own code lives in directories named `cloudwarden/` where practical
 - `web/apps/web/src/app/cloudwarden/organizations/`: the organisation create form.
 - `web/apps/web/src/app/cloudwarden/secrets-manager/`: the Secrets Manager pages at
   `/sm/:organizationId` (see `docs/secrets-manager.md`).
+- `web/apps/web/src/app/cloudwarden/device-approvals/`: the Admin Console device approvals page
+  (see `docs/account-recovery.md`).
 - `web/libs/components/src/cloudwarden/`: theme overrides and the Montserrat font files.
 
 Small edits elsewhere are marked with a `Cloudwarden:` comment so they are easy to find when

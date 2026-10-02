@@ -163,7 +163,8 @@ describe('trusted device encryption', () => {
   it('reports admin approval, approving devices and the manage permission', async () => {
     const { owner, org: o, identifier } = await org(2)
     const admin = await actor(`${unique('admin')}@example.com`)
-    await addMember(owner, o.id, admin, { type: 1 })
+    // Auto-enrolment is on for trusted device organisations, so joining carries the recovery key.
+    await addMember(owner, o.id, admin, { type: 1, resetPasswordKey: '4.recovery' })
     const db = createDb(env.DB)
     const { eq } = await import('drizzle-orm')
     await db

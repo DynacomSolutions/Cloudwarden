@@ -3133,6 +3133,32 @@ paths:
           $ref: '#/components/responses/Forbidden'
       x-source-version: web-v2026.9.1
       x-source-file: libs/common/src/admin-console/services/organization/organization-api.service.ts
+  /api/organizations/{organizationId}/auth-requests:
+    get:
+      tags:
+      - AuthRequests
+      operationId: listOrganizationAuthRequests
+      summary: List organization admin approval requests
+      parameters:
+      - name: organizationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PendingOrgAuthRequestList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      x-source-version: web-v2026.9.1
+      x-source-file: src/routes/org-auth-requests.ts
   /api/organizations/{organizationId}/collections:
     get:
       tags:
@@ -4256,6 +4282,58 @@ paths:
           $ref: '#/components/responses/Forbidden'
       x-source-version: web-v2026.9.1
       x-source-file: libs/admin-console/src/common/organization-user/services/default-organization-user-api.service.ts
+  /api/organizations/{organizationId}/users/{userId}/reset-password-enrollment:
+    put:
+      tags:
+      - OrganizationUsers
+      operationId: setResetPasswordEnrollment
+      summary: Enroll or withdraw from account recovery
+      parameters:
+      - name: organizationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                resetPasswordKey:
+                  oneOf:
+                  - type: string
+                    pattern: '^\d+\.[A-Za-z0-9+/=|_-]+$'
+                    description: Encrypted recovery key, or empty string to withdraw.
+                  - type: 'null'
+                masterPasswordHash:
+                  type:
+                  - string
+                  - 'null'
+                  description: The user's master password hash for verification.
+                otp:
+                  type:
+                  - string
+                  - 'null'
+      responses:
+        '200':
+          description: Success, empty body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: web-v2026.9.1
+      x-source-file: src/routes/account-recovery.ts
   /api/sends:
     get:
       tags:
@@ -17548,6 +17626,70 @@ components:
       - AuthenticateAndUnlock
       - Unlock
       - AdminApproval
+    PendingOrgAuthRequest:
+      type: object
+      description: Organization admin approval request for account recovery or device approval.
+      properties:
+        object:
+          type: string
+          enum:
+          - pending-org-auth-request
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        organizationUserId:
+          type: string
+          format: uuid
+        email:
+          type: string
+        publicKey:
+          type: string
+        requestDeviceIdentifier:
+          type: string
+        requestDeviceType:
+          type: string
+        requestDeviceTypeValue:
+          $ref: '#/components/schemas/DeviceType'
+        requestIpAddress:
+          type: string
+        requestCountryName:
+          type:
+          - string
+          - 'null'
+        creationDate:
+          type: string
+          format: date-time
+        expirationDate:
+          type: string
+          format: date-time
+      required:
+      - object
+      - id
+      - userId
+      - organizationUserId
+      - email
+      - publicKey
+      - creationDate
+      - expirationDate
+    PendingOrgAuthRequestList:
+      type: object
+      description: List envelope. The client reads `data` and `continuationToken` case-insensitively.
+      properties:
+        object:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PendingOrgAuthRequest'
+        continuationToken:
+          type:
+          - string
+          - 'null'
+      required:
+      - data
     BankAccountApi:
       type: object
       properties:

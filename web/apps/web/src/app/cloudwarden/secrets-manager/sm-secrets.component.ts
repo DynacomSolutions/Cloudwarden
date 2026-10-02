@@ -1,9 +1,18 @@
 // Cloudwarden: Secrets Manager secrets list, for the organisation or one project (web/NOTICE.md).
 import { DatePipe } from "@angular/common";
-import { ChangeDetectionStrategy, Component, OnInit, inject, input, signal } from "@angular/core";
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  inject,
+  input,
+  signal,
+  viewChild,
+} from "@angular/core";
 import { ActivatedRoute, RouterModule } from "@angular/router";
 
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
+import { FileDownloadService } from "@bitwarden/common/platform/abstractions/file-download/file-download.service";
 import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
 import { DialogService, ToastService } from "@bitwarden/components";
 
@@ -12,6 +21,7 @@ import { SharedModule } from "../../shared";
 
 import { SmApiService, SmProject, SmSecretListItem } from "./sm-api.service";
 import { confirmDelete, reportBulk, toastError, toastSuccess } from "./sm-dialogs";
+import { SmImportDialogComponent } from "./sm-import-dialog.component";
 import { SmSecretDialogComponent } from "./sm-secret-dialog.component";
 import { SmSelection } from "./sm-selection";
 
@@ -227,13 +237,61 @@ export class SmSecretsListComponent implements OnInit {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [SharedModule, HeaderModule, SmSecretsListComponent],
   template: `
-    <app-header></app-header>
+    <app-header>
+      <button
+        type="button"
+        bitButton
+        buttonType="secondary"
+        (click)="importFile()"
+        data-testid="cw-sm-import"
+      >
+        {{ "cwSmImport" | i18n }}
+      </button>
+      <button
+        type="button"
+        bitButton
+        buttonType="secondary"
+        (click)="exportFile()"
+        data-testid="cw-sm-export"
+      >
+        {{ "cwSmExport" | i18n }}
+      </button>
+    </app-header>
     <bit-container>
-      <cw-sm-secrets-list [organizationId]="organizationId"></cw-sm-secrets-list>
+      <cw-sm-secrets-list #secretsList [organizationId]="organizationId"></cw-sm-secrets-list>
     </bit-container>
   `,
 })
 export class SmSecretsPageComponent {
   protected readonly organizationId =
     inject(ActivatedRoute).parent?.snapshot.paramMap.get("organizationId") ?? "";
+  private readonly api = inject(SmApiService);
+  private readonly dialogs = inject(DialogService);
+  private readonly toast = inject(ToastService);
+  private readonly i18n = inject(I18nService);
+  private readonly download = inject(FileDownloadService);
+  private readonly list = viewChild(SmSecretsListComponent);
+
+  protected async importFile() {
+    const admin = await this.api.isOrgAdmin(this.organizationId);
+    if (await SmImportDialogComponent.open(this.dialogs, { organizationId: this.organizationId, admin })) {
+      await this.list()?.load();
+    }
+  }
+
+  /** Writes the decrypted projects and secrets the caller can read as a JSON file. */
+  protected async exportFile() {
+    try {
+      const file = await this.api.exportAll(this.organizationId);
+      const stamp = new Date().toISOString().slice(0, 10);
+      this.download.download({
+        fileName: `secrets-manager-export-${stamp}.json`,
+        blobData: JSON.stringify(file, null, 2),
+        blobOptions: { type: "application/json" },
+      });
+      toastSuccess(this.toast, this.i18n.t("cwSmExportDone", String(file.secrets.length)));
+    } catch (e) {
+      toastError(this.toast, e);
+    }
+  }
 }

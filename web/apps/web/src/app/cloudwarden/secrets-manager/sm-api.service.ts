@@ -45,6 +45,22 @@ export interface SmSecret extends SmSecretListItem {
   note: string;
 }
 
+export interface SmSecretVersion {
+  id: string;
+  secretId: string;
+  /** Decrypted value this version held. */
+  value: string;
+  versionDate: string;
+  /** Member name or decrypted machine account name; null when the editor is gone. */
+  editor: string | null;
+}
+
+/** Decrypted content of an export file (also what an import reads). */
+export interface SmExportFile {
+  projects: { id: string; name: string }[];
+  secrets: { id: string; key: string; value: string; note: string; projectIds: string[] }[];
+}
+
 export interface SmMachineAccount {
   id: string;
   name: string;
@@ -274,6 +290,88 @@ export class SmApiService {
 
   async deleteSecrets(ids: string[]): Promise<SmBulkResult[]> {
     return (await this.send("POST", "/secrets/delete", ids)).data;
+  }
+
+  // ----- secret versions -----
+
+  async listSecretVersions(orgId: string, secretId: string): Promise<SmSecretVersion[]> {
+    const r = await this.send("GET", `/secrets/${secretId}/versions`);
+    return Promise.all(
+      (r.data as Raw[]).map(async (v) => ({
+        id: v.id,
+        secretId: v.secretId,
+        value: await this.decrypt(orgId, v.value),
+        versionDate: v.versionDate,
+        editor: v.editorOrganizationUserName
+          ? v.editorOrganizationUserName
+          : v.editorServiceAccountName
+            ? await this.decrypt(orgId, v.editorServiceAccountName)
+            : null,
+      })),
+    );
+  }
+
+  async restoreSecretVersion(secretId: string, versionId: string): Promise<void> {
+    await this.send("PUT", `/secrets/${secretId}/versions/restore`, { versionId });
+  }
+
+  async deleteSecretVersions(ids: string[]): Promise<void> {
+    await this.send("POST", "/secret-versions/delete", ids);
+  }
+
+  // ----- import and export -----
+
+  /** Everything the caller can read, decrypted for the export file. */
+  async exportAll(orgId: string): Promise<SmExportFile> {
+    const r = await this.send("GET", `/sm/${orgId}/export`);
+    const file = await this.decryptExport(orgId, r);
+    // A file with unreadable entries would silently lose data on re-import.
+    const unreadable = [
+      ...file.projects.map((p) => p.name),
+      ...file.secrets.flatMap((s) => [s.key, s.value, s.note]),
+    ].some((v) => v === SM_DECRYPT_ERROR);
+    if (unreadable) {
+      throw new Error("Some entries could not be decrypted, so nothing was exported.");
+    }
+    return file;
+  }
+
+  private async decryptExport(orgId: string, r: Raw): Promise<SmExportFile> {
+    return {
+      projects: await Promise.all(
+        (r.projects as Raw[]).map(async (p) => ({
+          id: p.id,
+          name: await this.decrypt(orgId, p.name),
+        })),
+      ),
+      secrets: await Promise.all(
+        (r.secrets as Raw[]).map(async (s) => ({
+          id: s.id,
+          key: await this.decrypt(orgId, s.key),
+          value: await this.decrypt(orgId, s.value),
+          note: await this.decrypt(orgId, s.note),
+          projectIds: (s.projectIds as string[]) ?? [],
+        })),
+      ),
+    };
+  }
+
+  /** Encrypts a validated file with the organisation key and sends it. */
+  async importAll(orgId: string, file: SmExportFile): Promise<void> {
+    await this.send("POST", `/sm/${orgId}/import`, {
+      projects: await Promise.all(
+        file.projects.map(async (p) => ({ id: p.id, name: await this.encrypt(orgId, p.name) })),
+      ),
+      secrets: await Promise.all(
+        file.secrets.map(async (s) => ({
+          id: s.id,
+          key: await this.encrypt(orgId, s.key),
+          value: await this.encrypt(orgId, s.value),
+          note: s.note ? await this.encrypt(orgId, s.note) : "",
+          projectIds: s.projectIds,
+        })),
+      ),
+    });
   }
 
   // ----- machine accounts -----

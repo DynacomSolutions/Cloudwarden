@@ -16,6 +16,7 @@ import { SharedModule } from "../../shared";
 
 import { SmApiService, SmProject } from "./sm-api.service";
 import { toastError, toastSuccess } from "./sm-dialogs";
+import { SmSecretVersionsDialogComponent } from "./sm-secret-versions-dialog.component";
 
 export interface SecretDialogData {
   organizationId: string;
@@ -96,6 +97,17 @@ export interface SecretDialogData {
           }
         </div>
         <ng-container bitDialogFooter>
+          @if (data.secretId) {
+            <button
+              type="button"
+              bitButton
+              buttonType="secondary"
+              (click)="history()"
+              data-testid="cw-sm-secret-history"
+            >
+              {{ "cwSmVersionHistory" | i18n }}
+            </button>
+          }
           @if (canWrite()) {
             <button
               type="submit"
@@ -107,7 +119,7 @@ export interface SecretDialogData {
               {{ "save" | i18n }}
             </button>
           }
-          <button type="button" bitButton buttonType="secondary" (click)="ref.close(false)">
+          <button type="button" bitButton buttonType="secondary" (click)="ref.close(changedByRestore)">
             {{ (canWrite() ? "cancel" : "close") | i18n }}
           </button>
         </ng-container>
@@ -121,6 +133,8 @@ export class SmSecretDialogComponent implements OnInit {
   private readonly api = inject(SmApiService);
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18nService);
+  private readonly dialogs = inject(DialogService);
+  protected changedByRestore = false;
 
   protected readonly loading = signal(!!this.data.secretId);
   protected readonly saving = signal(false);
@@ -175,6 +189,19 @@ export class SmSecretDialogComponent implements OnInit {
       this.ref.close(false);
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  protected async history() {
+    const restored = await SmSecretVersionsDialogComponent.open(this.dialogs, {
+      organizationId: this.data.organizationId,
+      secretId: this.data.secretId as string,
+      canWrite: this.canWrite(),
+    });
+    if (restored) {
+      // The secret changed under this dialog: reload it and tell the list to refresh.
+      this.changedByRestore = true;
+      await this.ngOnInit();
     }
   }
 

@@ -232,8 +232,15 @@ Shapes come from `apis/secret_versions_api.rs`, `apis/secrets_manager_porting_ap
   Imports above 400 statements are written in several batches (D1 limit), projects first; a project
   and its creator access policy always share a batch. A failure part way keeps what was written (a
   partial import, to be retried or cleaned up) and the secrets revision is bumped regardless, so
-  clients resync what exists. The web client's own import and export UI is a
-  follow-up (#230).
+  clients resync what exists.
+- Web client (TASKS #230): the secret dialog has a "Version history" button (list with date and
+  editor, reveal and copy a value, restore, delete; the last two only with write access). The
+  Secrets page has Export, which downloads a JSON file of decrypted projects and secrets (not
+  encrypted: store it safely), and Import, which reads such a file in the browser, validates it
+  (ids, sizes, at most one project per secret, links inside the file, at most 5000 of each),
+  shows a summary, encrypts with the organisation key and posts it. Loose secrets are blocked
+  for non-admins before sending. Specs: `sm-import.spec.ts`,
+  `sm-secret-versions-dialog.component.spec.ts`, `sm-secrets-page.spec.ts`.
 
 ## Not implemented (deferred)
 

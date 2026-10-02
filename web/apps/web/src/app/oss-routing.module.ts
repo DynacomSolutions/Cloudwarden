@@ -855,6 +855,11 @@ const routes: Routes = [
     path: "organizations",
     loadChildren: () =>
       import("./admin-console/organizations/organization.module").then((m) => m.OrganizationModule),
+  },  {
+    // Cloudwarden: native Secrets Manager pages (web/NOTICE.md, docs/secrets-manager.md).
+    path: "sm",
+    canActivate: [authGuard],
+    loadChildren: () => import("./cloudwarden/secrets-manager/sm.routes").then((m) => m.smRoutes),
   },
 ];
 

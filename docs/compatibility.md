@@ -22,7 +22,9 @@ client family and per release line.
 end-to-end suite (TASKS #181) has run it; update this table with the date and the exact client version at that point.
 
 Secrets Manager is served as an API (machine accounts and the SDK wire contract, see
-[secrets-manager.md](secrets-manager.md)); the official `bws` CLI has not been run against it (TASKS #225).
+[secrets-manager.md](secrets-manager.md)). Verified on 2026-10-02 with the official `bws` 2.1.0
+(Linux x64) in `pnpm e2e`: `project list`, `secret list`, `secret get`, `secret create`,
+`secret edit` and `secret delete` with `BWS_ACCESS_TOKEN` and `--server-url` (TASKS #225).
 
 Not supported by design: SSO, SCIM, directory connectors, key connector, and Bitwarden-hosted
 push relay. Clients treat the corresponding config fields as absent.

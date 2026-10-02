@@ -1,7 +1,7 @@
 // Minimal Secrets Manager machine client for the end-to-end run (TASKS #220).
 //
-// It stands in for `bws`, whose source and binaries are under the Bitwarden SDK License (see
-// docs/secrets-manager.md). It follows the wire contract of the GPL-3.0 crates in
+// It complements the official `bws` run in e2e/run.mjs (see docs/secrets-manager.md) with a
+// second, independent reader. It follows the wire contract of the GPL-3.0 crates in
 // github.com/bitwarden/sdk-internal: access token format and key derivation (`bitwarden-core`
 // auth/access_token.rs, `bitwarden-crypto` keys/shareable_key.rs), the token request
 // (auth/api/request/access_token_request.rs) and the API paths (`bitwarden-api-api`).

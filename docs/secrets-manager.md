@@ -21,24 +21,45 @@ Built only from wire contracts observable in GPL-3.0 code, never from Bitwarden 
 | same, `crates/bitwarden-crypto` (`keys/shareable_key.rs`, `util.rs`) | same | Access token key derivation (e2e client only; the server never derives keys) |
 | github.com/bitwarden/clients `web-v2026.9.1` (GPL parts, already vendored under `web/`) | GPL-3.0 | `accessSecretsManager` on member invite and update, `PUT .../users/enable-secrets-manager`, Secrets Manager event codes 2100 to 2305 |
 
-Not used: `github.com/bitwarden/sdk-sm` (home of `bws` and the `bitwarden-sm` crate). Its whole
-repository, including the `bws` source and release binaries, is under the proprietary Bitwarden
-Software Development Kit License Agreement, not GPL or a permissive licence. Only its LICENSE file
-was opened to establish that. The `bitwarden-sm` crate in sdk-internal sits under
-`bitwarden_license/` and was deleted from the local checkout before anything else was read.
+`github.com/bitwarden/sdk-sm` (home of `bws` and the `bitwarden-sm` crate) is under the proprietary
+Bitwarden Software Development Kit License Agreement, not GPL or a permissive licence. None of its
+source is read or used to build Cloudwarden; the `bitwarden-sm` crate in sdk-internal sits under
+`bitwarden_license/` and was deleted from the local checkout before anything else was read. The
+official `bws` release binary is only run, as a client, against Cloudwarden. That is the owner
+decision of 2 October 2026 (TASKS #225): Cloudwarden uses Bitwarden's official interoperable
+clients, including `bws`, against Cloudwarden. The binary is downloaded by `pnpm e2e`, never
+committed or redistributed.
 
 Consequences:
 
-- How `bws` sequences calls (for example whether `secret list` uses `get-by-ids` or `sync`) is not
-  known from source. The server implements the whole generated API surface, so any sequence over
-  those operations works.
-- The end-to-end run does not download `bws`. Its licence limits use to applications that work with
-  Bitwarden's own servers, so running it against Cloudwarden in CI was left as an owner decision
-  (TASKS #225). `pnpm e2e` instead drives `e2e/sm-client.mjs`, a small machine client written from
-  the GPL contract above, through the TLS proxy: parse the access token, derive its key, log in,
-  decrypt the payload to the organisation key, then list, get and sync secrets and decrypt them.
-  Its key derivation is checked against the vector published in `bitwarden-core`
-  (`scripts/sm-client.test.mjs`).
+- How `bws` sequences calls is whatever the official client does; the server implements the whole
+  generated API surface, and `pnpm e2e` proves the `bws` command set below against it.
+- `e2e/sm-client.mjs`, a small machine client written from the GPL contract above, still runs
+  through the TLS proxy next to `bws`: parse the access token, derive its key, log in, decrypt the
+  payload to the organisation key, then list, get and sync secrets. Its key derivation is checked
+  against the vector published in `bitwarden-core` (`scripts/sm-client.test.mjs`).
+
+## Using `bws` with Cloudwarden
+
+Create a machine account and access token (see Machine login), grant the machine account the
+projects it needs, then point `bws` at the server:
+
+```sh
+export BWS_ACCESS_TOKEN='0.<tokenId>.<clientSecret>:<seed>'
+bws --server-url https://vault.example.com project list
+bws --server-url https://vault.example.com secret get <secret-id>
+```
+
+`--server-url` (or `BWS_SERVER_URL`, or `server_url` in the `bws` config file) is the server root,
+without `/api` or `/identity`. `bws` insists on HTTPS and uses the platform trust store; for a
+private CA set `SSL_CERT_FILE` to the CA certificate. `bws secret create` needs a project the
+machine account has write on. Supported and tested: `project list`, `secret list`, `secret get`,
+`secret create`, `secret edit`, `secret delete`.
+
+`pnpm e2e` runs exactly these against a local server through a TLS proxy with a throwaway CA. The
+`bws` release is pinned in `e2e/bws.lock.json` (version, URL, sha256), verified before it is
+extracted or run, and cached in the gitignored `e2e/.cache`. To bump it, change the lock file
+from the release's published checksums and re-run `pnpm e2e` (Linux x64 only).
 
 ## Machine login
 
@@ -157,4 +178,3 @@ M = machine tokens accepted.
 - Import and export (`/sm/{organizationId}/import`, `/export`) (TASKS #224).
 - Machine account token refresh: tokens are re-issued by logging in again, as the SDK does.
 - Seat or machine account limits: none apply on a self-hosted server.
-- Running `bws` itself in CI (TASKS #225, licence decision).

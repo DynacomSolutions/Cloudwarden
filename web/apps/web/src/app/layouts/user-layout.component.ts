@@ -4,7 +4,7 @@ import { CommonModule } from "@angular/common";
 import { Component, computed, inject, OnInit, Signal } from "@angular/core";
 import { toSignal } from "@angular/core/rxjs-interop";
 import { RouterModule } from "@angular/router";
-import { map, Observable, switchMap } from "rxjs";
+import { map, Observable, of, switchMap } from "rxjs";
 
 import { PasswordManagerLogo } from "@bitwarden/assets/svg";
 import {
@@ -23,6 +23,7 @@ import { I18nPipe } from "@bitwarden/ui-common";
 import { VaultManageNavComponent, VaultNavSectionComponent } from "@bitwarden/vault";
 import { PremiumSubscriptionRoutingService } from "@bitwarden/web-vault/app/billing/individual/services/premium-subscription-routing.service";
 
+import { InstanceAdminApiService } from "../cloudwarden/instance-admin/instance-admin-api.service";
 import { BillingFreeFamiliesNavItemComponent } from "../billing/shared/billing-free-families-nav-item.component";
 import { CoachmarkComponent, CoachmarkService } from "../vault/components/coachmark";
 
@@ -48,6 +49,10 @@ import { WebLayoutModule } from "./web-layout.module";
 })
 export class UserLayoutComponent implements OnInit {
   protected readonly logo = PasswordManagerLogo;
+  // Cloudwarden: instance admin entry, shown only to instance admins (web/NOTICE.md).
+  protected readonly isInstanceAdmin = toSignal(inject(InstanceAdminApiService).isAdmin$, {
+    initialValue: false,
+  });
   protected readonly showEmergencyAccess: Signal<boolean>;
   protected readonly sendEnabled$: Observable<boolean> = this.sendPolicyService.disableSend$.pipe(
     map((disableSend) => !disableSend),
@@ -103,7 +108,8 @@ export class UserLayoutComponent implements OnInit {
       ),
     );
 
-    this.subscriptionRoute$ = this.premiumSubscriptionRoutingService.getSubscriptionRoute$();
+    // Cloudwarden: no subscription page; billing is not part of this build (web/NOTICE.md).
+    this.subscriptionRoute$ = of(null);
   }
 
   async ngOnInit() {

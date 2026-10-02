@@ -725,6 +725,14 @@ const routes: Routes = [
         data: { titleId: "requestAccessToSecretsManager" },
       },
       {
+        // Cloudwarden: native instance admin pages (web/NOTICE.md).
+        path: "instance-admin",
+        loadChildren: () =>
+          import("./cloudwarden/instance-admin/instance-admin.routes").then(
+            (m) => m.instanceAdminRoutes,
+          ),
+      },
+      {
         path: "create-organization",
         component: CreateOrganizationComponent,
         canActivate: [addPlanRedirectGuard],

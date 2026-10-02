@@ -118,6 +118,25 @@
         <billing-free-families-nav-item></billing-free-families-nav-item>
       </bit-nav-group>
     }
+  @if (isInstanceAdmin()) {
+    <!-- Cloudwarden: instance admin (web/NOTICE.md) -->
+    <bit-nav-group icon="bwi-dashboard" [text]="'cwInstanceAdmin' | i18n" route="instance-admin">
+      <bit-nav-item [text]="'cwOverview' | i18n" route="instance-admin/overview"></bit-nav-item>
+      <bit-nav-item [text]="'cwUsers' | i18n" route="instance-admin/users"></bit-nav-item>
+      <bit-nav-item
+        [text]="'cwInvitations' | i18n"
+        route="instance-admin/invitations"
+      ></bit-nav-item>
+      <bit-nav-item
+        [text]="'organizations' | i18n"
+        route="instance-admin/organizations"
+      ></bit-nav-item>
+      <bit-nav-item
+        [text]="'cwDiagnostics' | i18n"
+        route="instance-admin/diagnostics"
+      ></bit-nav-item>
+    </bit-nav-group>
+  }
   </app-side-nav>
 
   <router-outlet></router-outlet>

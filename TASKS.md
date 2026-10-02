@@ -99,7 +99,7 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 | 121 | Recovery code | done | agent | `get-recover`, anonymous `recover` (both paths) disables all providers and rotates the code |
 | 122 | WebAuthn / passkeys as second factor | done | agent | ES256 and RS256, attestation not verified (none accepted), counter and one-shot challenge checks, own CBOR decoder |
 | 123 | Email 2FA (needs task 141) | done | agent | 6 digit code, 10 minute expiry, 5 attempts, sent through `src/email`; setup refused without a transport |
-| 124 | Duo (Universal Prompt, user and organisation) and YubiKey OTP (YubiCloud) | done | agent | `src/auth/duo.ts`, `src/auth/yubico.ts`, migration `0011`; fixed-vector and flow tests in `test/duo-yubikey.test.ts`. See `docs/two-factor.md` |
+| 124 | Duo (Universal Prompt, user and organisation) and YubiKey OTP (YubiCloud) | done | agent | `src/auth/duo.ts`, `src/auth/yubico.ts`, migration `0012`; fixed-vector and flow tests in `test/duo-yubikey.test.ts`. See `docs/two-factor.md` |
 | 125 | Login with passkey (passwordless) | deferred | | Needs the `/api/webauthn` credential store with PRF key wrapping and `grant_type=webauthn`; not started. See `docs/two-factor.md` |
 
 ## Phase 7: Optional services

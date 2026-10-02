@@ -90,7 +90,7 @@ id and 40 character client secret.
   extra mandatory step. The wire format has one entry per provider type, so with several
   organisations the challenge offers the first (by organisation id) and verification accepts any
   of them. Pending, accepted and revoked members are not offered it. Configuration lives in
-  `organization_twofactor` (migration `0011`).
+  `organization_twofactor` (migration `0012`).
 - The web client's `frame-src` allows `*.duosecurity.com` and `*.duofederal.com`.
 
 ## YubiKey OTP (#124)

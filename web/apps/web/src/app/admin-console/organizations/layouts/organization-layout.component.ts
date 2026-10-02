@@ -121,7 +121,9 @@ export class OrganizationLayoutComponent {
   );
 
   protected readonly integrationPageEnabled$: Observable<boolean> = this.organization$.pipe(
-    map((org) => org.canAccessIntegrations),
+    // Cloudwarden: integrations hold outside credentials; only owners and admins manage them
+    // (docs/integrations.md), so the entry is hidden from custom members.
+    map((org) => org.canAccessIntegrations && org.isAdmin),
   );
 
   protected readonly showSponsoredFamiliesDropdown$: Observable<boolean> =

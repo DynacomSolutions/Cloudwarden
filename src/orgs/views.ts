@@ -17,7 +17,8 @@ const FEATURES = {
   useTotp: true,
   use2fa: true,
   useApi: true,
-  useResetPassword: false,
+  // Account recovery (TASKS #240).
+  useResetPassword: true,
   // Secrets Manager API (TASKS #220); members still need `accessSecretsManager`.
   useSecretsManager: true,
   usePasswordManager: true,

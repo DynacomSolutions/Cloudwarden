@@ -159,7 +159,7 @@ export async function tokenResponse(
     KdfMemory: user.kdfMemory,
     KdfParallelism: user.kdfParallelism,
     ResetMasterPassword: false,
-    ForcePasswordReset: false,
+    ForcePasswordReset: user.forcePasswordReset,
     MasterPasswordPolicy: await masterPasswordPolicyJson(env, user.uuid),
     ...(user.usesKeyConnector ? { ApiUseKeyConnector: true } : {}),
     UserDecryptionOptions: {

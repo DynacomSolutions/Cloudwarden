@@ -20,7 +20,9 @@ import { ApiError } from '../errors'
 import { federatedProfileOrgs } from '../federation/replica'
 import { pushLogOut } from '../notifications/publish'
 import { relayDeleteDevice } from '../notifications/relay'
+import { EventType } from '../orgs/constants'
 import { assertNotClaimed } from '../orgs/domains'
+import { eventStatement } from '../orgs/events'
 import { assertNotSoleOwner } from '../orgs/members'
 import { profileOrganizations } from '../orgs/views'
 import { type KdfParams, kdfProblem, parseBody } from '../validation'
@@ -55,7 +57,7 @@ export async function profileJson(c: Ctx, user: User) {
     privateKey: user.privateKey,
     accountKeys: accountKeysJson(user),
     securityStamp: user.securityStamp,
-    forcePasswordReset: false,
+    forcePasswordReset: user.forcePasswordReset,
     usesKeyConnector: user.usesKeyConnector,
     verifyDevices: user.verifyDevices,
     avatarColor: user.avatarColor,
@@ -252,8 +254,44 @@ accounts.post('/api/accounts/password', requireAuth, async (c) => {
         ...(await hashMasterPassword(change.newHash)),
         akey: change.key,
         passwordHint: body.masterPasswordHint ?? null,
+        forcePasswordReset: false,
       })
       .where(eq(schema.users.uuid, user.uuid)),
+    ...stampRotationStatements(db, user.uuid),
+  ])
+  c.executionCtx.waitUntil(pushLogOut(c.env, user.uuid, c.var.auth.deviceIdentifier))
+  return c.body(null, 200)
+})
+
+// After an account recovery the user must replace the temporary password the administrator set
+// (TASKS #240). No current password is asked: the client proved it can decrypt the vault with it.
+const tempPasswordSchema = z.object({
+  newMasterPasswordHash: z.string().min(1).nullish(),
+  key: z.string().min(1).nullish(),
+  masterPasswordHint: z.string().max(50).nullish(),
+  authenticationData: authenticationData.nullish(),
+  unlockData: unlockData.nullish(),
+})
+accounts.put('/api/accounts/update-temp-password', requireAuth, async (c) => {
+  const body = await parseBody(c, tempPasswordSchema)
+  const user = c.var.user
+  if (!user.forcePasswordReset) {
+    throw new ApiError(400, 'User does not have a temporary password to update.')
+  }
+  const change = resolveChange({ masterPasswordHash: '', ...body }, user.email)
+  const db = createDb(c.env.DB)
+  await runBatch(db, [
+    db
+      .update(schema.users)
+      .set({
+        ...(await hashMasterPassword(change.newHash)),
+        akey: change.key,
+        passwordHint: body.masterPasswordHint || null,
+        forcePasswordReset: false,
+        ...(change.kdf ? kdfColumns(change.kdf) : {}),
+      })
+      .where(eq(schema.users.uuid, user.uuid)),
+    eventStatement(db, c, { type: EventType.UserUpdatedTempPassword, userUuid: user.uuid }),
     ...stampRotationStatements(db, user.uuid),
   ])
   c.executionCtx.waitUntil(pushLogOut(c.env, user.uuid, c.var.auth.deviceIdentifier))
@@ -450,6 +488,46 @@ type RotationInput = Omit<z.infer<typeof rotateSchema>, 'masterPasswordHash'> & 
   passkeys?: z.infer<typeof passkeyUnlock>
   /** Re-wrapped trusted device keys (TASKS #284); trusted devices left out lose their trust. */
   devices?: z.infer<typeof deviceUnlock>
+  /** Account recovery keys re-wrapped with the new user key (key-management endpoint only). */
+  recovery?: { organizationId: string; resetPasswordKey: string }[]
+}
+
+/**
+ * Account recovery enrolments wrap the user key, so a rotation must re-wrap each one (TASKS #240).
+ * The key-management endpoint must name every enrolled organisation exactly once. The legacy
+ * endpoint carries no recovery data, so enrolments are withdrawn rather than left wrapping a
+ * stale key: an administrator reset with a stale key would lock the user out of their vault.
+ */
+async function recoveryRotation(
+  db: ReturnType<typeof createDb>,
+  userUuid: string,
+  given: RotationInput['recovery'],
+) {
+  const uo = schema.usersOrganizations
+  const enrolled = await db
+    .select({ uuid: uo.uuid, org: uo.organizationUuid })
+    .from(uo)
+    .where(and(eq(uo.userUuid, userUuid), isNotNull(uo.resetPasswordKey)))
+  const now = Date.now()
+  if (given === undefined) {
+    return enrolled.map((m) =>
+      db.update(uo).set({ resetPasswordKey: null, updatedAt: now }).where(eq(uo.uuid, m.uuid)),
+    )
+  }
+  const byOrg = new Map(given.map((g) => [g.organizationId, g.resetPasswordKey]))
+  if (
+    byOrg.size !== given.length ||
+    byOrg.size !== enrolled.length ||
+    enrolled.some((m) => !byOrg.has(m.org))
+  ) {
+    throw new ApiError(400, 'Rotation must include every account recovery enrolment exactly once.')
+  }
+  return enrolled.map((m) =>
+    db
+      .update(uo)
+      .set({ resetPasswordKey: byOrg.get(m.org) as string, updatedAt: now })
+      .where(and(eq(uo.uuid, m.uuid), isNotNull(uo.resetPasswordKey))),
+  )
 }
 
 /**
@@ -579,11 +657,13 @@ async function applyRotation(c: Ctx, user: User, body: RotationInput) {
 
   const passkeyStatements = await passkeyRotation(db, user.uuid, body.passkeys)
   const deviceStatements = await deviceTrustRotation(db, user.uuid, body.devices ?? [])
+  const recoveryStatements = await recoveryRotation(db, user.uuid, body.recovery)
 
   const now = Date.now()
   await runBatch(db, [
     ...passkeyStatements,
     ...deviceStatements,
+    ...recoveryStatements,
     db
       .update(schema.users)
       .set({
@@ -701,6 +781,15 @@ const rotateAccountKeys = z.object({
     }),
     passkeyUnlockData: passkeyUnlock.default([]),
     deviceKeyUnlockData: deviceUnlock.nullish(),
+    organizationAccountRecoveryUnlockData: z
+      .array(
+        z.object({
+          organizationId: z.string().min(1),
+          resetPasswordKey: z.string().min(1).max(10_000),
+        }),
+      )
+      .nullish()
+      .transform((v) => v ?? []),
   }),
   accountKeys: z.object({
     userKeyEncryptedAccountPrivateKey: z.string().min(1),
@@ -739,6 +828,7 @@ accounts.post('/api/accounts/key-management/rotate-user-account-keys', requireAu
     ...body.accountData,
     passkeys: body.accountUnlockData.passkeyUnlockData,
     devices: body.accountUnlockData.deviceKeyUnlockData ?? [],
+    recovery: body.accountUnlockData.organizationAccountRecoveryUnlockData,
     credentials: {
       hash: m.masterKeyAuthenticationHash,
       kdf,

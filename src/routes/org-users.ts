@@ -42,6 +42,7 @@ import {
   assertTwoFactorCompliant,
   enabledPolicy,
 } from '../orgs/policies'
+import { assertOrgKeys, resetPasswordPolicy } from '../orgs/recovery'
 import { authOnce, batch } from '../orgs/util'
 import { parseBody } from '../validation'
 import { bumpRevision, chunk } from '../vault/ciphers'
@@ -314,7 +315,7 @@ orgUsers.post('/api/organizations/:orgId/users/:id/accept', async (c) => {
   const id = c.req.param('id')
   const body = await parseBody(
     c,
-    z.object({ token: z.string().min(1), resetPasswordKey: z.string().nullish() }),
+    z.object({ token: z.string().min(1), resetPasswordKey: z.string().max(10_000).nullish() }),
   )
   const db = createDb(c.env.DB)
   const user = c.var.user
@@ -332,13 +333,36 @@ orgUsers.post('/api/organizations/:orgId/users/:id/accept', async (c) => {
   if (target.status !== Status.Invited) throw new ApiError(400, 'Invitation already accepted.')
   if (target.userUuid && target.userUuid !== user.uuid) throw new ApiError(400, 'Invalid token.')
   await assertTwoFactorCompliant(db, user.uuid, orgUuid)
+  // Account recovery auto-enrolment: the client wraps the user key with the organisation
+  // public key while accepting (TASKS #240).
+  const recovery = await resetPasswordPolicy(db, orgUuid)
+  const resetPasswordKey = recovery.enabled ? body.resetPasswordKey || null : null
+  if (recovery.autoEnrollEnabled && !resetPasswordKey) {
+    throw new ApiError(400, 'Master password reset enrolment is required, but was not provided.')
+  }
+  if (resetPasswordKey) assertOrgKeys(await requireOrg(db, orgUuid))
   const now = Date.now()
   try {
-    await runBatch(db, [
+    await batch(db, [
       db
         .update(schema.usersOrganizations)
-        .set({ userUuid: user.uuid, status: Status.Accepted, updatedAt: now })
+        .set({
+          userUuid: user.uuid,
+          status: Status.Accepted,
+          ...(resetPasswordKey ? { resetPasswordKey } : {}),
+          updatedAt: now,
+        })
         .where(eq(schema.usersOrganizations.uuid, id)),
+      ...(resetPasswordKey
+        ? [
+            eventStatement(db, c, {
+              type: EventType.OrganizationUserResetPasswordEnroll,
+              organizationUuid: orgUuid,
+              organizationUserUuid: id,
+              userUuid: user.uuid,
+            }),
+          ]
+        : []),
     ])
   } catch {
     throw new ApiError(400, 'You are already a member of this organization.')

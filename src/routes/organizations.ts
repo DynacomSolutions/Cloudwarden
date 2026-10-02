@@ -8,6 +8,7 @@ import type { Env } from '../env'
 import { ApiError } from '../errors'
 import {
   bumpOrgRevision,
+  getMember,
   isAdminRole,
   requireMember,
   requireOrg,
@@ -182,15 +183,36 @@ const deleteOrg = async (c: Ctx) => {
 organizations.delete('/api/organizations/:id', deleteOrg)
 organizations.post('/api/organizations/:id/delete', deleteOrg)
 
+/** A pending invitation addressed to `email` that is not yet linked to an account. */
+async function invitedByEmail(db: ReturnType<typeof createDb>, orgUuid: string, email: string) {
+  const [m] = await db
+    .select()
+    .from(schema.usersOrganizations)
+    .where(
+      and(
+        eq(schema.usersOrganizations.organizationUuid, orgUuid),
+        eq(schema.usersOrganizations.email, email),
+        eq(schema.usersOrganizations.status, Status.Invited),
+      ),
+    )
+    .limit(1)
+  return m
+}
+
 organizations.get('/api/organizations/:id/keys', async (c) => {
   const id = c.req.param('id')
   const db = createDb(c.env.DB)
-  await requireMember(db, c.var.user.uuid, id)
+  const member =
+    (await getMember(db, c.var.user.uuid, id)) ?? (await invitedByEmail(db, id, c.var.user.email))
+  // Invited and accepted members need the public key to enrol in account recovery while
+  // joining; only confirmed members receive the (organisation-key encrypted) private key.
+  if (!member || member.status === Status.Revoked)
+    throw new ApiError(404, 'Organization not found.')
   const org = await requireOrg(db, id)
   return c.json({
     object: 'organizationKeys',
     publicKey: org.publicKey,
-    privateKey: org.privateKey,
+    privateKey: member.status === Status.Confirmed ? org.privateKey : null,
   })
 })
 

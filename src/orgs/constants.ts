@@ -21,6 +21,8 @@ export const PolicyType = {
 
 /** Event codes used on the wire by the official clients. */
 export const EventType = {
+  UserUpdatedTempPassword: 1008,
+  UserRequestedDeviceApproval: 1010,
   CipherCreated: 1100,
   CipherUpdated: 1101,
   CipherDeleted: 1102,
@@ -40,8 +42,14 @@ export const EventType = {
   OrganizationUserUpdated: 1502,
   OrganizationUserRemoved: 1503,
   OrganizationUserUpdatedGroups: 1504,
+  OrganizationUserResetPasswordEnroll: 1506,
+  OrganizationUserResetPasswordWithdraw: 1507,
+  OrganizationUserAdminResetPassword: 1508,
   OrganizationUserRevoked: 1511,
   OrganizationUserRestored: 1512,
+  OrganizationUserApprovedAuthRequest: 1513,
+  OrganizationUserRejectedAuthRequest: 1514,
+  OrganizationUserAdminResetTwoFactor: 1519,
   OrganizationUpdated: 1600,
   PolicyUpdated: 1700,
   // Secrets Manager (TASKS #220).

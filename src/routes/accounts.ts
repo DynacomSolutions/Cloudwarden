@@ -57,7 +57,7 @@ export async function profileJson(c: Ctx, user: User) {
     forcePasswordReset: false,
     usesKeyConnector: user.usesKeyConnector,
     verifyDevices: user.verifyDevices,
-    avatarColor: null,
+    avatarColor: user.avatarColor,
     creationDate: new Date(user.createdAt).toISOString(),
     organizations: await profileOrganizations(createDb(c.env.DB), user.uuid),
     providers: [],
@@ -110,12 +110,58 @@ const updateProfile = async (c: Ctx) => {
 accounts.put('/api/accounts/profile', requireAuth, updateProfile)
 accounts.post('/api/accounts/profile', requireAuth, updateProfile)
 
+// The avatar colour is a display preference only (a CSS hex colour, or null for the default).
+const avatarSchema = z.object({
+  avatarColor: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .nullish(),
+})
+const updateAvatar = async (c: Ctx) => {
+  const { avatarColor } = await parseBody(c, avatarSchema)
+  await createDb(c.env.DB)
+    .update(schema.users)
+    .set({ avatarColor: avatarColor ?? null, updatedAt: Date.now() })
+    .where(eq(schema.users.uuid, c.var.user.uuid))
+  return c.json(await profileJson(c, await reloadUser(c, c.var.user.uuid)))
+}
+accounts.put('/api/accounts/avatar', requireAuth, updateAvatar)
+accounts.post('/api/accounts/avatar', requireAuth, updateAvatar)
+
+accounts.get('/api/accounts/keys', requireAuth, (c) => {
+  const user = c.var.user
+  return c.json({
+    key: user.akey,
+    publicKey: user.publicKey,
+    privateKey: user.privateKey,
+    accountKeys: accountKeysJson(user),
+    object: 'keys',
+  })
+})
+
+accounts.get('/api/accounts/organizations', requireAuth, async (c) =>
+  c.json({
+    data: await profileOrganizations(createDb(c.env.DB), c.var.user.uuid),
+    object: 'list',
+    continuationToken: null,
+  }),
+)
+
 // Vault writes bump `users.updatedAt` (TASKS #43), so it is the account revision date.
 accounts.get('/api/accounts/revision-date', requireAuth, (c) => c.json(c.var.user.updatedAt))
 
-// The SDK (2026.x) reports the identifier of the user key after unlock so the server can track key
-// rotation. Nothing here depends on it, so accept the call and store nothing.
-accounts.post('/api/accounts/key-management/user-key-id', requireAuth, (c) => c.body(null, 200))
+// The SDK (2026.x) reports the identifier of the user key after unlock (`SetUserKeyIdRequestModel`).
+// It is returned as `userDecryption.userKeyId` in sync, which stops clients from backfilling it on
+// every sync; key rotation clears it because the new user key has a new id.
+const userKeyIdSchema = z.object({ userKeyId: z.string().min(1).max(200) })
+accounts.post('/api/accounts/key-management/user-key-id', requireAuth, async (c) => {
+  const { userKeyId } = await parseBody(c, userKeyIdSchema)
+  const db = createDb(c.env.DB)
+  await runBatch(db, [
+    db.update(schema.users).set({ userKeyId }).where(eq(schema.users.uuid, c.var.user.uuid)),
+  ])
+  return c.body(null, 200)
+})
 
 accounts.post('/api/accounts/verify-password', requireAuth, async (c) => {
   const { masterPasswordHash } = await parseBody(c, passwordOnly)
@@ -538,6 +584,7 @@ async function applyRotation(c: Ctx, user: User, body: RotationInput) {
       .update(schema.users)
       .set({
         akey: body.key,
+        userKeyId: null,
         privateKey: body.privateKey,
         ...(body.publicKey ? { publicKey: body.publicKey } : {}),
         ...(body.credentials

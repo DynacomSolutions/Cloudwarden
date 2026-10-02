@@ -1,6 +1,12 @@
 import { Hono } from 'hono'
 import type { Env } from '../env'
-import { type Fetcher, type FetchState, fetchIcon } from '../icons/fetch'
+import {
+  type Fetcher,
+  type FetchState,
+  fetchIcon,
+  OVERALL_TIMEOUT_MS,
+  safeGet,
+} from '../icons/fetch'
 import { validateHost } from '../icons/ssrf'
 import { log } from '../log'
 import { rateLimit } from '../ratelimit'
@@ -97,6 +103,65 @@ export function createIcons(fetcher: Fetcher = (u, i) => fetch(u, i)) {
     })
     c.executionCtx.waitUntil(cache.put(key, res.clone()))
     return res
+  })
+
+  // Change-password URL for a login URI (ChangePasswordUriResponse { uri }), found with the
+  // W3C well-known URL for changing passwords. A site counts as supporting it only when
+  // /.well-known/change-password succeeds and a path that cannot exist does not, as the
+  // specification recommends to rule out servers that answer 200 for everything.
+  icons.get('/icons/change-password-uri', async (c) => {
+    if (c.env.ICONS_ENABLED === 'false') {
+      return c.json({ message: 'Not found', validationErrors: null, object: 'error' }, 404)
+    }
+    const raw = c.req.query('uri') ?? ''
+    let host: string
+    try {
+      host = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(raw) ? raw : `https://${raw}`).hostname
+    } catch {
+      return c.json({ uri: null })
+    }
+    const checked = validateHost(host)
+    if (!checked.ok) return c.json({ uri: null })
+
+    const cache = (caches as unknown as { default: Cache }).default
+    const key = new Request(
+      `${new URL(c.req.url).origin}/icons/change-password-uri/${checked.host}`,
+    )
+    const hit = await cache.match(key)
+    if (hit) return c.json(await hit.json())
+
+    let allowed = false
+    const limited = await rateLimit('icons')(c, async () => {
+      allowed = true
+    })
+    if (!allowed) return limited as Response
+
+    const overall = AbortSignal.timeout(OVERALL_TIMEOUT_MS)
+    const origin = `https://${checked.host}`
+    const probe = async (path: string) => {
+      const got = await safeGet(new URL(path, origin), fetcher, '*/*', overall)
+      await got?.res.body?.cancel().catch(() => {})
+      return got !== null
+    }
+    const wellKnown = `${origin}/.well-known/change-password`
+    const supported =
+      (await probe('/.well-known/change-password')) &&
+      !(await probe(
+        '/.well-known/resource-that-should-not-exist-whose-status-code-should-not-be-200',
+      ))
+    const body = { uri: supported ? wellKnown : null }
+    c.executionCtx.waitUntil(
+      cache.put(
+        key,
+        new Response(JSON.stringify(body), {
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': `public, max-age=${NEGATIVE_TTL}`,
+          },
+        }),
+      ),
+    )
+    return c.json(body)
   })
 
   return icons

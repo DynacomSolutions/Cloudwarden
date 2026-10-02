@@ -41,6 +41,7 @@ sync.get('/api/sync', requireAuth, async (c) => {
     userDecryption: {
       masterPasswordUnlock: masterPasswordUnlockJson(user),
       webAuthnPrfOptions: passkeyRows.map(prfOptionJson).filter((o) => o !== null),
+      userKeyId: user.userKeyId ?? null,
     },
     object: 'sync',
   })

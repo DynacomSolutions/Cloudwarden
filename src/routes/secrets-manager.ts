@@ -1,7 +1,7 @@
 // Secrets Manager API (TASKS #220): projects, secrets, machine accounts, access tokens, access
 // policies, counts and events. Paths and shapes are documented under the `secrets-manager` tag in
 // docs/api/openapi.yaml; the access model is in docs/secrets-manager.md.
-import { and, eq, inArray, isNotNull, or } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, isNull, or } from 'drizzle-orm'
 import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { z } from 'zod'
@@ -57,6 +57,7 @@ for (const path of [
   '/api/organizations/:orgId/service-accounts',
   '/api/organizations/:orgId/sm-counts',
   '/api/organizations/:orgId/access-policies/*',
+  '/api/organization/:orgId/*',
   '/api/projects/*',
   '/api/secrets/*',
   '/api/service-accounts/*',
@@ -473,7 +474,7 @@ async function readableSecrets(db: Db, ctx: SmContext, only?: string[]) {
     rows.map((s) => s.uuid),
   )
   return rows
-    .filter((s) => s.organizationUuid === ctx.orgUuid)
+    .filter((s) => s.organizationUuid === ctx.orgUuid && s.deletedAt === null)
     .map((s) => {
       const p = projects.get(s.uuid) ?? []
       return {
@@ -591,7 +592,10 @@ secretsManager.post('/api/secrets/delete', async (c) =>
     await parseBody(c, idList),
     (db, ids) =>
       inChunks(ids, (part) =>
-        db.select().from(schema.smSecrets).where(inArray(schema.smSecrets.uuid, part)),
+        db
+          .select()
+          .from(schema.smSecrets)
+          .where(and(inArray(schema.smSecrets.uuid, part), isNull(schema.smSecrets.deletedAt))),
       ),
     async (ctx, s) => {
       const projects = (await projectsOfSecrets(createDb(c.env.DB), [s.uuid])).get(s.uuid) ?? []
@@ -601,9 +605,13 @@ secretsManager.post('/api/secrets/delete', async (c) =>
         projects.map((p) => p.id),
       ).write
     },
-    (db, ctx, rows) =>
+    (db, ctx, rows, now) =>
+      // Deleting moves the secret to the trash; emptying the trash removes it for good.
       rows.flatMap((s) => [
-        db.delete(schema.smSecrets).where(eq(schema.smSecrets.uuid, s.uuid)),
+        db
+          .update(schema.smSecrets)
+          .set({ deletedAt: now, updatedAt: now })
+          .where(eq(schema.smSecrets.uuid, s.uuid)),
         eventStatement(db, c, {
           type: EventType.SecretDeleted,
           organizationUuid: ctx.orgUuid,
@@ -677,7 +685,7 @@ async function accessToSecrets(db: Db, orgUuid: string, saUuids: string[]) {
     .select({ s: schema.smSecretsProjects.secretUuid, p: schema.smSecretsProjects.projectUuid })
     .from(schema.smSecretsProjects)
     .innerJoin(schema.smSecrets, eq(schema.smSecrets.uuid, schema.smSecretsProjects.secretUuid))
-    .where(eq(schema.smSecrets.organizationUuid, orgUuid))
+    .where(and(eq(schema.smSecrets.organizationUuid, orgUuid), isNull(schema.smSecrets.deletedAt)))
   for (const sa of saUuids) {
     const mine = policies.filter((p) => p.serviceAccountUuid === sa && p.read)
     const projects = new Set(
@@ -1378,4 +1386,155 @@ secretsManager.get('/api/sm/events/service-accounts/:serviceAccountId', async (c
       ),
     ),
   )
+})
+
+/** Events of one Secrets Manager object, scoped to the organisation in the path. */
+async function objectEvents(c: Ctx, orgUuid: string, where: ReturnType<typeof eq>) {
+  return c.json(
+    await listEvents(db_(c), c, and(eq(schema.events.organizationUuid, orgUuid), where)),
+  )
+}
+
+secretsManager.get('/api/organization/:orgId/projects/:id/events', async (c) => {
+  const { p, ctx } = await projectFor(c, db_(c), 'read')
+  if (p.organizationUuid !== param(c, 'orgId')) throw notFound('Project')
+  return objectEvents(c, ctx.orgUuid, eq(schema.events.projectUuid, p.uuid))
+})
+
+secretsManager.get('/api/organization/:orgId/secrets/:id/events', async (c) => {
+  const db = db_(c)
+  // Trashed secrets keep their history, so this looks the row up directly.
+  const [s] = await db
+    .select()
+    .from(schema.smSecrets)
+    .where(
+      and(
+        eq(schema.smSecrets.uuid, param(c, 'id')),
+        eq(schema.smSecrets.organizationUuid, param(c, 'orgId')),
+      ),
+    )
+  if (!s) throw notFound('Secret')
+  const ctx = await ctxFor(c, db, s.organizationUuid)
+  requireUser(ctx)
+  const projects = (await projectsOfSecrets(db, [s.uuid])).get(s.uuid) ?? []
+  check(
+    secretAccess(
+      ctx,
+      s.uuid,
+      projects.map((p) => p.id),
+    ),
+    'read',
+    'Secret',
+  )
+  return objectEvents(c, ctx.orgUuid, eq(schema.events.secretUuid, s.uuid))
+})
+
+secretsManager.get('/api/organization/:orgId/service-account/:id/events', async (c) => {
+  const { sa, ctx } = await serviceAccountFor(c, db_(c), 'read')
+  if (sa.organizationUuid !== param(c, 'orgId')) throw notFound('Service account')
+  return objectEvents(
+    c,
+    ctx.orgUuid,
+    or(
+      eq(schema.events.serviceAccountUuid, sa.uuid),
+      eq(schema.events.grantedServiceAccountUuid, sa.uuid),
+    ) as ReturnType<typeof eq>,
+  )
+})
+
+// ----- trash -----
+
+/** Trashed secrets of the organisation the caller may change, with their projects. Members only. */
+async function trashedSecrets(db: Db, ctx: SmContext) {
+  if (ctx.actor.kind !== 'user') throw forbidden()
+  const rows = await db
+    .select()
+    .from(schema.smSecrets)
+    .where(
+      and(
+        eq(schema.smSecrets.organizationUuid, ctx.orgUuid),
+        isNotNull(schema.smSecrets.deletedAt),
+      ),
+    )
+  const projects = await projectsOfSecrets(
+    db,
+    rows.map((s) => s.uuid),
+  )
+  return rows
+    .map((s) => {
+      const p = projects.get(s.uuid) ?? []
+      return {
+        s,
+        projects: p,
+        rw: secretAccess(
+          ctx,
+          s.uuid,
+          p.map((x) => x.id),
+        ),
+      }
+    })
+    .filter((x) => x.rw.write)
+}
+
+secretsManager.get('/api/secrets/:orgId/trash', async (c) => {
+  const db = db_(c)
+  const ctx = await ctxFor(c, db, param(c, 'orgId'))
+  const rows = await trashedSecrets(db, ctx)
+  return c.json({
+    object: 'SecretsWithProjectsList',
+    secrets: rows.map((r) => secretListJson(r.s, r.projects, r.rw)),
+    projects: [
+      ...new Map(rows.flatMap((r) => r.projects).map((p) => [p.id, p] as const)).values(),
+    ].filter((p) => projectAccess(ctx, p.id).read),
+  })
+})
+
+/** Resolves the requested ids to trashed secrets the caller may change; anything else is a 404. */
+async function trashSelection(c: Ctx) {
+  const ids = await parseBody(c, idList)
+  const db = db_(c)
+  const ctx = await ctxFor(c, db, param(c, 'orgId'))
+  const uuids = [...new Set(ids.map((s) => s.toLowerCase()))]
+  const byId = new Map((await trashedSecrets(db, ctx)).map((r) => [r.s.uuid, r.s]))
+  if (!uuids.every((id) => byId.has(id))) throw notFound('Secret')
+  return { db, ctx, uuids }
+}
+
+secretsManager.post('/api/secrets/:orgId/trash/empty', async (c) => {
+  const { db, ctx, uuids } = await trashSelection(c)
+  const now = Date.now()
+  await batch(db, [
+    ...uuids.flatMap((id) => [
+      db.delete(schema.smSecrets).where(eq(schema.smSecrets.uuid, id)),
+      eventStatement(db, c, {
+        type: EventType.SecretPermanentlyDeleted,
+        organizationUuid: ctx.orgUuid,
+        secretUuid: id,
+        ...actorEventFields(ctx),
+      }),
+    ]),
+    bumpSecretsRevision(db, ctx.orgUuid, now),
+  ])
+  return c.body(null, 200)
+})
+
+secretsManager.post('/api/secrets/:orgId/trash/restore', async (c) => {
+  const { db, ctx, uuids } = await trashSelection(c)
+  const now = Date.now()
+  await batch(db, [
+    ...uuids.flatMap((id) => [
+      db
+        .update(schema.smSecrets)
+        .set({ deletedAt: null, updatedAt: now })
+        .where(eq(schema.smSecrets.uuid, id)),
+      eventStatement(db, c, {
+        type: EventType.SecretRestored,
+        organizationUuid: ctx.orgUuid,
+        secretUuid: id,
+        ...actorEventFields(ctx),
+      }),
+    ]),
+    bumpSecretsRevision(db, ctx.orgUuid, now),
+  ])
+  return c.body(null, 200)
 })

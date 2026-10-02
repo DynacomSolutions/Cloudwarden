@@ -731,3 +731,97 @@ describe('security review fixes', () => {
     expect(((await (await authed(q, t)).json()) as any).hasChanges).toBe(true)
   })
 })
+
+describe('trash (TASKS #231)', () => {
+  it('moves deleted secrets to the trash, restores them and empties it', async () => {
+    const p = await owner.json(`/api/organizations/${orgId}/projects`, 'POST', {
+      name: enc('trash-p'),
+    })
+    const mk = async (label: string) =>
+      (
+        await owner.json(`/api/organizations/${orgId}/secrets`, 'POST', {
+          key: enc(label),
+          value: enc(`${label}-v`),
+          note: '',
+          projectIds: [p.id],
+        })
+      ).id as string
+    const a = await mk('TRASH_A')
+    const b = await mk('TRASH_B')
+    const del = await owner.json('/api/secrets/delete', 'POST', [a, b])
+    expect(del.data.every((r: any) => r.error === null)).toBe(true)
+
+    // Hidden from every normal read.
+    expect((await owner.call(`/api/secrets/${a}`)).status).toBe(404)
+    const listed = await owner.json(`/api/organizations/${orgId}/secrets`)
+    expect(listed.secrets.some((s: any) => [a, b].includes(s.id))).toBe(false)
+    expect((await owner.call('/api/secrets/get-by-ids', 'POST', { ids: [a] })).status).toBe(404)
+    const again = await owner.json('/api/secrets/delete', 'POST', [a])
+    expect(again.data[0].error).not.toBe(null)
+
+    const trash = await owner.json(`/api/secrets/${orgId}/trash`)
+    expect(trash.object).toBe('SecretsWithProjectsList')
+    const ids = trash.secrets.map((s: any) => s.id)
+    expect(ids).toContain(a)
+    expect(ids).toContain(b)
+    expect(trash.projects.map((x: any) => x.id)).toContain(p.id)
+
+    // Outsiders and members without Secrets Manager access cannot see the trash.
+    expect((await outsider.call(`/api/secrets/${orgId}/trash`)).status).toBe(404)
+    expect((await outsider.call(`/api/secrets/${orgId}/trash/restore`, 'POST', [a])).status).toBe(
+      404,
+    )
+    // Unknown or live ids are refused as a whole.
+    expect((await owner.call(`/api/secrets/${orgId}/trash/restore`, 'POST', [a, NIL])).status).toBe(
+      404,
+    )
+
+    expect((await owner.call(`/api/secrets/${orgId}/trash/restore`, 'POST', [a])).status).toBe(200)
+    expect((await owner.json(`/api/secrets/${a}`)).id).toBe(a)
+    expect((await owner.call(`/api/secrets/${orgId}/trash/empty`, 'POST', [b])).status).toBe(200)
+    const left = (await owner.json(`/api/secrets/${orgId}/trash`)).secrets.map((s: any) => s.id)
+    expect(left).not.toContain(a)
+    expect(left).not.toContain(b)
+    const events = await owner.json(`/api/organization/${orgId}/secrets/${a}/events`)
+    const types = events.data.map((e: any) => e.type)
+    expect(types).toContain(2103)
+    expect(types).toContain(2105)
+    const orgEvents = await owner.json(`/api/organizations/${orgId}/events`)
+    expect(orgEvents.data.some((e: any) => e.type === 2104 && e.secretId === b)).toBe(true)
+  })
+})
+
+describe('object events (TASKS #231)', () => {
+  it('lists events of a project, a secret and a machine account', async () => {
+    const p = await owner.json(`/api/organizations/${orgId}/projects`, 'POST', {
+      name: enc('ev-p'),
+    })
+    await owner.json(`/api/projects/${p.id}`, 'PUT', { name: enc('ev-p2') })
+    const s = await owner.json(`/api/organizations/${orgId}/secrets`, 'POST', {
+      key: enc('EV'),
+      value: enc('v'),
+      note: '',
+      projectIds: [p.id],
+    })
+    const sa = await owner.json(`/api/organizations/${orgId}/service-accounts`, 'POST', {
+      name: enc('ev-sa'),
+    })
+    const pe = await owner.json(`/api/organization/${orgId}/projects/${p.id}/events`)
+    expect(pe.object).toBe('list')
+    expect(pe.data.map((e: any) => e.type).sort()).toEqual([2201, 2202])
+    expect(pe.data.every((e: any) => e.projectId === p.id)).toBe(true)
+    const se = await owner.json(`/api/organization/${orgId}/secrets/${s.id}/events`)
+    expect(se.data.map((e: any) => e.type)).toEqual([2101])
+    const sae = await owner.json(`/api/organization/${orgId}/service-account/${sa.id}/events`)
+    expect(sae.data.map((e: any) => e.type)).toEqual([2304])
+
+    // Wrong organisation in the path, outsiders and bad ids are 404.
+    expect((await owner.call(`/api/organization/${NIL}/projects/${p.id}/events`)).status).toBe(404)
+    expect((await outsider.call(`/api/organization/${orgId}/secrets/${s.id}/events`)).status).toBe(
+      404,
+    )
+    expect((await owner.call(`/api/organization/${orgId}/service-account/x/events`)).status).toBe(
+      404,
+    )
+  })
+})

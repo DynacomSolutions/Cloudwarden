@@ -18,6 +18,8 @@ export const users = sqliteTable(
     salt: text('salt').notNull(),
     passwordIterations: integer('password_iterations').notNull(),
     passwordHint: text('password_hint'),
+    /** Identifier of the current user key, reported by clients after unlock; cleared on key rotation. */
+    userKeyId: text('user_key_id'),
     akey: text('akey').notNull(),
     privateKey: text('private_key'),
     publicKey: text('public_key'),
@@ -53,6 +55,8 @@ export const users = sqliteTable(
     otpPurpose: text('otp_purpose'),
     otpExpiresAt: integer('otp_expires_at'),
     otpAttempts: integer('otp_attempts').notNull().default(0),
+    // Profile avatar colour (TASKS #231).
+    avatarColor: text('avatar_color'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -143,6 +147,19 @@ export const organizations = sqliteTable(
     secretsRevisionDate: integer('secrets_revision_date'),
     // SSO identifier members type on the login page (TASKS #280); unique ignoring case.
     identifier: text('identifier'),
+    // Collection management settings (TASKS #231), defaults match a newly created organisation.
+    limitCollectionCreation: integer('limit_collection_creation', { mode: 'boolean' })
+      .notNull()
+      .default(true),
+    limitCollectionDeletion: integer('limit_collection_deletion', { mode: 'boolean' })
+      .notNull()
+      .default(true),
+    limitItemDeletion: integer('limit_item_deletion', { mode: 'boolean' }).notNull().default(false),
+    allowAdminAccessToAllCollectionItems: integer('allow_admin_access_all_items', {
+      mode: 'boolean',
+    })
+      .notNull()
+      .default(true),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -258,6 +275,8 @@ export const usersOrganizations = sqliteTable(
     accessSecretsManager: integer('access_secrets_manager', { mode: 'boolean' })
       .notNull()
       .default(false),
+    // Privileged access management seat (TASKS #231), toggled by `users/enable-pam`.
+    accessPam: integer('access_pam', { mode: 'boolean' }).notNull().default(false),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -579,6 +598,26 @@ export const adminRateLimits = sqliteTable(
   (t) => [primaryKey({ columns: [t.key, t.windowStart] })],
 )
 
+/**
+ * Organisation invite links (TASKS #231). `invite` is opaque client-made key material (JSON) the
+ * server stores and returns; `code` is the public identifier in the join URL.
+ */
+export const orgInviteLinks = sqliteTable('org_invite_links', {
+  uuid: id(),
+  organizationUuid: text('organization_uuid')
+    .notNull()
+    .unique()
+    .references(() => organizations.uuid, { onDelete: 'cascade' }),
+  joinCode: text('code').notNull().unique(),
+  allowedDomains: text('allowed_domains').notNull(),
+  invite: text('invite'),
+  supportsConfirmation: integer('supports_confirmation', { mode: 'boolean' })
+    .notNull()
+    .default(false),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+})
+
 /** Email invitations created by an admin. Registration gating (TASKS #22) consumes these. */
 export const invitations = sqliteTable(
   'invitations',
@@ -620,6 +659,8 @@ export const smSecrets = sqliteTable(
     note: text('note').notNull(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
+    /** Set when the secret is in the trash (soft deleted); trashed secrets are hidden from reads. */
+    deletedAt: integer('deleted_at'),
   },
   (t) => [index('sm_secrets_organization_idx').on(t.organizationUuid)],
 )
@@ -776,6 +817,72 @@ export const orgIntegrations = sqliteTable(
     updatedAt: updatedAt(),
   },
   (t) => [index('org_integrations_organization_idx').on(t.organizationUuid)],
+)
+
+// ----- Notification centre and security tasks (TASKS #231) -----
+
+/**
+ * End user notifications. `userUuid` targets one user; otherwise `organizationUuid` targets the
+ * confirmed members of that organisation, and with both null the notification is global.
+ */
+export const notifications = sqliteTable(
+  'notifications',
+  {
+    uuid: id(),
+    userUuid: text('user_uuid').references(() => users.uuid, { onDelete: 'cascade' }),
+    organizationUuid: text('organization_uuid').references(() => organizations.uuid, {
+      onDelete: 'cascade',
+    }),
+    taskUuid: text('task_uuid').references(() => securityTasks.uuid, { onDelete: 'cascade' }),
+    priority: integer('priority').notNull().default(0),
+    title: text('title'),
+    body: text('body'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index('notifications_user_idx').on(t.userUuid),
+    index('notifications_organization_idx').on(t.organizationUuid),
+  ],
+)
+
+/** Per user read and deleted state of a notification. */
+export const notificationStatus = sqliteTable(
+  'notification_status',
+  {
+    notificationUuid: text('notification_uuid')
+      .notNull()
+      .references(() => notifications.uuid, { onDelete: 'cascade' }),
+    userUuid: text('user_uuid')
+      .notNull()
+      .references(() => users.uuid, { onDelete: 'cascade' }),
+    readAt: integer('read_at'),
+    deletedAt: integer('deleted_at'),
+  },
+  (t) => [
+    primaryKey({ columns: [t.notificationUuid, t.userUuid] }),
+    index('notification_status_user_idx').on(t.userUuid),
+  ],
+)
+
+/** Security tasks raised by organisation admins, such as changing an at-risk password. */
+export const securityTasks = sqliteTable(
+  'security_tasks',
+  {
+    uuid: id(),
+    organizationUuid: text('organization_uuid')
+      .notNull()
+      .references(() => organizations.uuid, { onDelete: 'cascade' }),
+    cipherUuid: text('cipher_uuid').references(() => ciphers.uuid, { onDelete: 'cascade' }),
+    type: integer('type').notNull().default(0),
+    status: integer('status').notNull().default(0),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index('security_tasks_organization_idx').on(t.organizationUuid),
+    index('security_tasks_cipher_idx').on(t.cipherUuid),
+  ],
 )
 
 // ----- Single sign-on, trusted devices and claimed domains (TASKS #280 to #289) -----

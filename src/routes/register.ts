@@ -207,21 +207,28 @@ const clickedSchema = z.object({
 })
 
 // The web vault calls this when the emailed link is opened, before showing the finish form.
+const emailClicked = async (c: import('hono').Context<Env>) => {
+  const body = await parseBody(c, clickedSchema)
+  const email = normalizeEmail(body.email)
+  const claims = await verifyJwt<RegisterClaims>(body.emailVerificationToken, [
+    registerSecret(c.env),
+  ])
+  if (claims?.purpose !== 'register' || claims.email !== email) {
+    throw new ApiError(400, 'Invalid or expired email verification token.')
+  }
+  if (await findUserByEmail(createDb(c.env.DB), email)) {
+    throw new ApiError(400, 'Email is already registered.')
+  }
+  return c.body(null, 200)
+}
 register.post(
   '/identity/accounts/register/verification-email-clicked',
   rateLimit('register'),
-  async (c) => {
-    const body = await parseBody(c, clickedSchema)
-    const email = normalizeEmail(body.email)
-    const claims = await verifyJwt<RegisterClaims>(body.emailVerificationToken, [
-      registerSecret(c.env),
-    ])
-    if (claims?.purpose !== 'register' || claims.email !== email) {
-      throw new ApiError(400, 'Invalid or expired email verification token.')
-    }
-    if (await findUserByEmail(createDb(c.env.DB), email)) {
-      throw new ApiError(400, 'Email is already registered.')
-    }
-    return c.body(null, 200)
-  },
+  emailClicked,
+)
+// The iOS app posts the same request to the API host.
+register.post(
+  '/api/accounts/register/verification-email-clicked',
+  rateLimit('register'),
+  emailClicked,
 )

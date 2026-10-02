@@ -10,6 +10,20 @@ export const config = new Hono<Env>()
  */
 export const SERVER_VERSION = '2026.9.0'
 
+/**
+ * Feature flags sent to clients (`web/libs/common/src/enums/feature-flag.enum.ts`). Flags not listed
+ * keep the client default. A flag is only enabled here when Cloudwarden serves every endpoint the
+ * gated feature calls (TASKS #231).
+ */
+export const FEATURE_STATES: Record<string, boolean | number | string> = {
+  // Passkey directory report: GET /api/reports/passkey-directory.
+  'inno-passkey-directory-report': true,
+  // Organisation invite links (accept, confirm and auto-confirm are served, TASKS #231).
+  'pm-32497-generate-invite-link': true,
+  'pm-34429-invite-link-auto-confirm': true,
+  'pm-39601-invite-link-notification': true,
+}
+
 config.get('/api/config', (c) => {
   const base = c.env.DOMAIN.replace(/\/+$/, '')
   return c.json({
@@ -25,7 +39,7 @@ config.get('/api/config', (c) => {
       notifications: `${base}/notifications`,
       sso: `${base}/sso`,
     },
-    featureStates: {},
+    featureStates: FEATURE_STATES,
     push: { pushTechnology: 0 },
     settings: { disableUserRegistration: c.env.SIGNUPS_ALLOWED !== 'true' },
   })

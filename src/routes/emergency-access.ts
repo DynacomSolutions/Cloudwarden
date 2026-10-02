@@ -24,7 +24,8 @@ import { PolicyType, Role } from '../orgs/constants'
 import { listUserPolicies, policyJson } from '../orgs/policies'
 import { authOnce, batch } from '../orgs/util'
 import { parseBody } from '../validation'
-import { bumpRevision, cipherJson, listCipherRows } from '../vault/ciphers'
+import { attachmentJson, cipherResponses, requireAttachment } from '../vault/attachments'
+import { bumpRevision, listCipherRows, requireCipher } from '../vault/ciphers'
 
 export const emergencyAccess = new Hono<Env>()
 emergencyAccess.use('/api/emergency-access/*', authOnce)
@@ -139,7 +140,7 @@ emergencyAccess.get('/api/emergency-access/trusted', async (c) => {
         status: effectiveStatus(r, now),
         waitTimeDays: r.waitTimeDays,
         creationDate: iso(r.createdAt),
-        avatarColor: null,
+        avatarColor: (r.granteeUuid && users.get(r.granteeUuid)?.avatarColor) || null,
       })),
     ),
   )
@@ -168,7 +169,7 @@ emergencyAccess.get('/api/emergency-access/granted', async (c) => {
         status: effectiveStatus(r, now),
         waitTimeDays: r.waitTimeDays,
         creationDate: iso(r.createdAt),
-        avatarColor: null,
+        avatarColor: users.get(r.grantorUuid)?.avatarColor ?? null,
       })),
     ),
   )
@@ -475,8 +476,18 @@ emergencyAccess.post('/api/emergency-access/:id/view', async (c) => {
   return c.json({
     object: 'emergencyAccessView',
     keyEncrypted: row.keyEncrypted,
-    ciphers: items.map((r) => cipherJson(r)),
+    ciphers: await cipherResponses(c.env, db, items),
   })
+})
+
+// Attachment metadata (with a signed download URL) of one of the grantor's items.
+emergencyAccess.get('/api/emergency-access/:id/:cipherId/attachment/:attachmentId', async (c) => {
+  const { db, grantor } = await approvedFor(c, EmergencyType.View)
+  const cipherId = c.req.param('cipherId')
+  await requireCipher(db, grantor.uuid, cipherId)
+  const att = await requireAttachment(db, cipherId, c.req.param('attachmentId'))
+  if (att.uploadedAt == null) throw new ApiError(404, 'Attachment not found.')
+  return c.json(await attachmentJson(c.env, att))
 })
 
 emergencyAccess.post('/api/emergency-access/:id/takeover', async (c) => {

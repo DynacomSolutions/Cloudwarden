@@ -4,10 +4,10 @@ import { schema } from '../db'
 import { ApiError } from '../errors'
 import { chunk, cipherJson } from '../vault/ciphers'
 import {
-  canManageAllCiphers,
   collectionAccess,
   loadUserAccess,
   type Member,
+  manageAll,
   mergeAccess,
   type UserAccess,
 } from './access'
@@ -20,6 +20,8 @@ export interface ItemAccess {
   viewPassword: boolean
   manage: boolean
   collectionIds: string[]
+  /** The organisation limits deleting and restoring to members with Manage access. */
+  limitDeletion?: boolean
 }
 
 /** A member's own favourite flag and archive date for an organisation item. */
@@ -40,7 +42,7 @@ export function orgCipherJson(
   { cipher, folderId, access, state }: OrgCipherRow,
   attachments: Parameters<typeof cipherJson>[1] = null,
 ) {
-  const canDelete = access.edit || access.manage
+  const canDelete = access.limitDeletion ? access.manage : access.edit || access.manage
   return {
     ...cipherJson({ cipher, folderId }, attachments),
     organizationId: cipher.organizationUuid,
@@ -164,6 +166,7 @@ export function itemAccess(ua: UserAccess, orgUuid: string, linked: string[]): I
     viewPassword: !merged.hidePasswords,
     manage: merged.manage,
     collectionIds: ids,
+    limitDeletion: ua.limitDeletionOrgs.has(orgUuid),
   }
 }
 
@@ -280,7 +283,7 @@ export async function assertWritableCollections(
     found += rows.length
   }
   if (found !== ids.length) throw new ApiError(404, 'Collection not found.')
-  if (canManageAllCiphers(member)) return
+  if (await manageAll(db, member)) return
   const ua = await loadUserAccess(db, userUuid)
   for (const id of ids) {
     const a = collectionAccess(ua, orgUuid, id)

@@ -162,3 +162,59 @@ export async function masterPasswordPolicyFor(db: Db, userUuid: string) {
 }
 
 export const hasKey = (m: Member) => m.akey !== ''
+
+/** The policy row of an organisation when it exists and is enabled. */
+export async function enabledPolicy(db: Db, orgUuid: string, type: number) {
+  const [p] = await db
+    .select()
+    .from(schema.policies)
+    .where(
+      and(
+        eq(schema.policies.organizationUuid, orgUuid),
+        eq(schema.policies.atype, type),
+        eq(schema.policies.enabled, true),
+      ),
+    )
+    .limit(1)
+  return p
+}
+
+/**
+ * Automatic confirmation needs an account that belongs to this organisation only, and it is
+ * refused when another organisation of the account has the policy on (a member of two
+ * organisations cannot have both confirm them blind). `email` is named in the message.
+ */
+export async function assertAutoConfirmEligible(
+  db: Db,
+  orgUuid: string,
+  userUuid: string,
+  email: string,
+) {
+  const others = await db
+    .select({ orgUuid: schema.usersOrganizations.organizationUuid })
+    .from(schema.usersOrganizations)
+    .where(
+      and(
+        eq(schema.usersOrganizations.userUuid, userUuid),
+        inArray(schema.usersOrganizations.status, [Status.Accepted, Status.Confirmed]),
+        sql`${schema.usersOrganizations.organizationUuid} != ${orgUuid}`,
+      ),
+    )
+  if (
+    others.length > 0 &&
+    (await enabledPolicy(db, orgUuid, PolicyType.AutomaticUserConfirmation))
+  ) {
+    throw new ApiError(
+      400,
+      `Cannot confirm ${email} until they leave all other organization vaults.`,
+    )
+  }
+  for (const o of others) {
+    if (await enabledPolicy(db, o.orgUuid, PolicyType.AutomaticUserConfirmation)) {
+      throw new ApiError(
+        400,
+        `Cannot confirm ${email} because they are a member of another organization which forbids it.`,
+      )
+    }
+  }
+}

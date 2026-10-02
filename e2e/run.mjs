@@ -647,6 +647,91 @@ async function main() {
       ).sort()
     assert.deepEqual(await names(after, to.userKey), await names(before, from.userKey))
     pass('importer: personal vault copied to a new account and decrypts identically')
+    // Organisation collections and members through the official `bw` CLI (TASKS #231). The
+    // account owns smOrg, whose key was sealed to its real public key above.
+    session = bwOut(['login', EMAIL, '--passwordenv', 'BW_PASSWORD', '--raw'])
+    bw(['sync', '--session', session])
+    const orgs = JSON.parse(bwOut(['list', 'organizations', '--session', session]))
+    assert.ok(orgs.some((o) => o.id === smOrg.id))
+    const orgArg = ['--organizationid', smOrg.id, '--session', session]
+    const orgCollection = JSON.parse(
+      bwOut([
+        'create',
+        'org-collection',
+        encode({ organizationId: smOrg.id, name: 'e2e collection', externalId: null, groups: [] }),
+        ...orgArg,
+      ]),
+    )
+    assert.equal(orgCollection.name, 'e2e collection')
+    pass('bw create org-collection')
+
+    const listedCollections = JSON.parse(bwOut(['list', 'org-collections', ...orgArg]))
+    assert.ok(
+      listedCollections.some((x) => x.id === orgCollection.id && x.name === 'e2e collection'),
+    )
+    const fetched = JSON.parse(bwOut(['get', 'org-collection', orgCollection.id, ...orgArg]))
+    assert.equal(fetched.name, 'e2e collection')
+    pass('bw list and get org-collection decrypt the name')
+
+    const renamed = JSON.parse(
+      bwOut([
+        'edit',
+        'org-collection',
+        orgCollection.id,
+        encode({ ...fetched, name: 'e2e renamed' }),
+        ...orgArg,
+      ]),
+    )
+    assert.equal(renamed.name, 'e2e renamed')
+    pass('bw edit org-collection')
+
+    const members = JSON.parse(bwOut(['list', 'org-members', ...orgArg]))
+    const self = members.find((m) => m.email === EMAIL)
+    assert.ok(self, 'the owner is listed as a member')
+    assert.equal(self.status, 2)
+    pass('bw list org-members')
+
+    bw(['delete', 'org-collection', orgCollection.id, ...orgArg])
+    const afterDelete = JSON.parse(bwOut(['list', 'org-collections', ...orgArg]))
+    assert.ok(!afterDelete.some((x) => x.id === orgCollection.id))
+    pass('bw delete org-collection')
+    bw(['logout'])
+
+    // Read-only endpoints added for client parity: each answers for a signed-in owner.
+    const sweep = async (path, expected = 200) => {
+      const res = await fetchRetry(`${direct}${path}`, {
+        headers: { Authorization: `Bearer ${owner}` },
+      })
+      const body = await res.text()
+      if (expected === 'ok') assert.ok(res.status < 500, `GET ${path}: ${res.status} ${body}`)
+      else assert.equal(res.status, expected, `GET ${path}: ${res.status} ${body}`)
+      return body ? JSON.parse(body) : null
+    }
+    assert.equal((await fetchRetry(`${direct}/identity/alive`)).status, 200)
+    assert.equal((await sweep('/api/accounts/keys')).object, 'keys')
+    assert.ok((await sweep('/api/accounts/organizations')).data.some((o) => o.id === smOrg.id))
+    assert.ok((await sweep('/api/organizations')).data.some((o) => o.id === smOrg.id))
+    assert.equal(await sweep('/api/ciphers/has-unassigned-ciphers'), false)
+    assert.ok(Array.isArray((await sweep('/api/notifications')).data))
+    assert.ok(Array.isArray((await sweep('/api/tasks')).data))
+    assert.equal((await sweep('/api/plans')).object, 'list')
+    assert.equal(
+      (await sweep(`/api/organizations/${smOrg.id}/export`)).object,
+      'organizationExport',
+    )
+    await sweep(`/api/organizations/${smOrg.id}/invite-link`, 404)
+    for (const path of [
+      '/api/plans/premium',
+      '/api/accounts/subscription',
+      '/api/accounts/billing/history',
+      `/api/organizations/${smOrg.id}/subscription`,
+      `/api/organizations/${smOrg.id}/billing`,
+    ]) {
+      await sweep(path, 'ok')
+    }
+    const cfg = await (await fetchRetry(`${direct}/api/config`)).json()
+    assert.equal(cfg.featureStates['pm-34429-invite-link-auto-confirm'], true)
+    pass('HTTP sweep: parity GET endpoints answer for a signed-in owner')
 
     // The official Directory Connector CLI (TASKS #272, pinned in e2e/bwdc.lock.json) syncing an
     // LDAP directory into the organisation through the organisation API key and the Public API.

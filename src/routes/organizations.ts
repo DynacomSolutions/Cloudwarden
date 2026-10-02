@@ -19,7 +19,7 @@ import { assertNotClaimed } from '../orgs/domains'
 import { eventStatement } from '../orgs/events'
 import { assertNotLastOwner } from '../orgs/members'
 import { authOnce } from '../orgs/util'
-import { orgJson } from '../orgs/views'
+import { orgJson, profileOrganizations } from '../orgs/views'
 import { parseBody } from '../validation'
 import { bumpRevision } from '../vault/ciphers'
 
@@ -43,7 +43,17 @@ const createSchema = z.object({
   planType: z.number().int().nullish(),
 })
 
-organizations.post('/api/organizations', async (c) => {
+// The caller's memberships, shaped like the profile `organizations` array.
+organizations.get('/api/organizations', async (c) =>
+  c.json({
+    data: await profileOrganizations(createDb(c.env.DB), c.var.user.uuid),
+    object: 'list',
+    continuationToken: null,
+  }),
+)
+
+/** Creates an organisation with the caller as its confirmed owner. */
+export const createOrganization = async (c: Ctx) => {
   const body = await parseBody(c, createSchema)
   const db = createDb(c.env.DB)
   const user = c.var.user
@@ -95,7 +105,10 @@ organizations.post('/api/organizations', async (c) => {
     bumpRevision(db, user.uuid, now),
   ])
   return c.json(orgJson(await requireOrg(db, orgUuid)))
-})
+}
+organizations.post('/api/organizations', createOrganization)
+// A self-hosted server takes no payment for any plan, so this is ordinary creation (TASKS #231).
+organizations.post('/api/organizations/create-without-payment', createOrganization)
 
 /** Details, settings and keys need an owner, an admin or a custom member. */
 async function requireManager(c: Ctx, orgUuid: string) {

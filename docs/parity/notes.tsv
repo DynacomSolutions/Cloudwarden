@@ -1,0 +1,2 @@
+METHOD	PATH	STATUS	OWNER	NOTE
+POST	/api/cloudwarden/admin/users/{id}/{action}	implemented		One row per action: disable, enable, deauthorize, remove-2fa

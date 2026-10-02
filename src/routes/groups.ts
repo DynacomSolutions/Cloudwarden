@@ -295,3 +295,40 @@ const deleteGroup = async (c: Ctx) => {
 }
 groupsRouter.delete('/api/organizations/:orgId/groups/:id', deleteGroup)
 groupsRouter.post('/api/organizations/:orgId/groups/:id/delete', deleteGroup)
+
+// Removes one member from a group (TASKS #231); the member keeps their other groups.
+groupsRouter.delete('/api/organizations/:orgId/groups/:id/user/:orgUserId', async (c) => {
+  const actor = await guard(c)
+  const db = createDb(c.env.DB)
+  const g = await loadGroup(db, org(c), c.req.param('id'))
+  if (g.accessAll && !isAdminRole(actor)) throw new ApiError(403, ADMIN_ONLY)
+  const memberUuid = c.req.param('orgUserId')
+  const [link] = await db
+    .select()
+    .from(schema.groupsUsers)
+    .where(
+      and(
+        eq(schema.groupsUsers.groupUuid, g.uuid),
+        eq(schema.groupsUsers.organizationUserUuid, memberUuid),
+      ),
+    )
+    .limit(1)
+  if (!link) throw new ApiError(404, 'User not found in group.')
+  await batch(db, [
+    db
+      .delete(schema.groupsUsers)
+      .where(
+        and(
+          eq(schema.groupsUsers.groupUuid, g.uuid),
+          eq(schema.groupsUsers.organizationUserUuid, memberUuid),
+        ),
+      ),
+    eventStatement(db, c, {
+      type: EventType.OrganizationUserUpdatedGroups,
+      organizationUuid: org(c),
+      organizationUserUuid: memberUuid,
+    }),
+    bumpOrgRevision(db, org(c), Date.now()),
+  ])
+  return c.body(null, 200)
+})

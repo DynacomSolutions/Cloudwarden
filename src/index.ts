@@ -22,17 +22,22 @@ import { events } from './routes/events'
 import { folders } from './routes/folders'
 import { groupsRouter } from './routes/groups'
 import { icons } from './routes/icons'
+import { notificationCenter } from './routes/notification-center'
 import { notifications } from './routes/notifications'
 import { orgApiKeys } from './routes/org-api-keys'
 import { orgCiphers } from './routes/org-ciphers'
 import { orgIntegrations } from './routes/org-integrations'
+import { orgSettings } from './routes/org-settings'
 import { orgUsers } from './routes/org-users'
 import { organizations } from './routes/organizations'
 import { policies, publicPolicies } from './routes/policies'
 import { prelogin } from './routes/prelogin'
+import { providers } from './routes/providers'
 import { publicApi } from './routes/public-api'
 import { register } from './routes/register'
+import { reports } from './routes/reports'
 import { secretsManager } from './routes/secrets-manager'
+import { selfHostBilling } from './routes/self-host-billing'
 import { downloadSendFile, sends } from './routes/sends'
 import { settings } from './routes/settings'
 import { sso } from './routes/sso'
@@ -82,11 +87,17 @@ for (const path of [
   app.use(path, secretsRevisionOnMemberChange)
 }
 app.route('/', publicPolicies)
+// Before the other organisation routers: its public invite-link routes skip their `authOnce`.
+app.route('/', orgSettings)
 // Anonymous SSO discovery by email must run before the authenticated organisation routers.
 app.route('/', publicSso)
 app.route('/', ssoAdmin)
 app.route('/', orgApiKeys)
 app.route('/', orgIntegrations)
+// Billing, licence and sponsorship answers for a self-hosted server, and the absent Provider
+// Portal (TASKS #231). Literal paths only, so the order relative to the organisation routers is free.
+app.route('/', selfHostBilling)
+app.route('/', providers)
 app.route('/', organizations)
 app.route('/', orgUsers)
 app.route('/', collectionsRouter)
@@ -101,10 +112,12 @@ app.route('/', folders)
 app.route('/', sends)
 app.get('/attachments/:cipherId/:attachmentId', downloadAttachment)
 app.get('/send-files/:sendId/:fileId', downloadSendFile)
+app.route('/', reports)
 app.route('/', settings)
 app.route('/', twofactor)
 app.route('/', webauthn)
 app.route('/', authRequests)
+app.route('/', notificationCenter)
 app.route('/', notifications)
 app.route('/', adminApi)
 

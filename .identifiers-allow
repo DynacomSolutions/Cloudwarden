@@ -51,3 +51,6 @@ archive\.ubuntu\.com
 ^0:ac:$
 ^(r|l|row|found)\.org$
 ^form\.code$
+
+# Public APIs proxied by the breach and passkey reports (TASKS #231)
+^haveibeenpwned\.com$

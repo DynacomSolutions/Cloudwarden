@@ -143,7 +143,7 @@ async function main() {
     // needs an emailed code. The simulated mailbox is unreadable here, so opt out with the master
     // password, as a user may, and check the client-visible answer on the way.
     const deviceLogin = (identifier) =>
-      fetch(`${direct}/identity/connect/token`, {
+      fetchRetry(`${direct}/identity/connect/token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
@@ -162,7 +162,7 @@ async function main() {
     const gated = await deviceLogin(crypto.randomUUID())
     assert.equal(gated.status, 400)
     assert.equal((await gated.json()).ErrorModel.Message, 'new device verification required')
-    const optOut = await fetch(`${direct}/api/accounts/verify-devices`, {
+    const optOut = await fetchRetry(`${direct}/api/accounts/verify-devices`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${(await first.json()).access_token}`,
@@ -314,7 +314,7 @@ async function main() {
     pass('bw logout')
 
     // API key re-login (client_credentials). The key is read with the account password hash.
-    const tokenRes = await fetch(`${direct}/identity/connect/token`, {
+    const tokenRes = await fetchRetry(`${direct}/identity/connect/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({

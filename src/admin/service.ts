@@ -82,8 +82,6 @@ export function serverConfig(env: Bindings, transport: EmailTransport) {
     signupsAllowed: env.SIGNUPS_ALLOWED === 'true',
     adminEnabled: env.ADMIN_ENABLED === 'true',
     emailConfigured: transport.configured,
-    magicLinkAdminsConfigured: Boolean(env.ADMIN_EMAILS?.trim()),
-    adminTokenConfigured: Boolean(env.ADMIN_TOKEN_HASH),
     jwtSecretConfigured: Boolean(env.JWT_SECRET),
   }
 }
@@ -142,7 +140,7 @@ export async function listOrganizations(db: D1Database, limit = 200) {
   return results
 }
 
-export async function diagnostics(db: D1Database, now: number) {
+export async function diagnostics(db: D1Database) {
   const started = Date.now()
   const one = async (sql: string, ...args: unknown[]) =>
     (await db
@@ -154,13 +152,11 @@ export async function diagnostics(db: D1Database, now: number) {
   )
   const fileSends = await one('SELECT COUNT(*) AS n FROM sends WHERE r2_key IS NOT NULL')
   const inv = await one('SELECT COUNT(*) AS n FROM invitations')
-  const sess = await one('SELECT COUNT(*) AS n FROM admin_sessions WHERE expires_at > ?1', now)
   return {
     attachments: att.n ?? 0,
     attachmentBytes: att.bytes ?? 0,
     fileSends: fileSends.n ?? 0,
     pendingInvitations: inv.n ?? 0,
-    activeAdminSessions: sess.n ?? 0,
     dbRoundTripMs: Date.now() - started,
   }
 }

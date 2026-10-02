@@ -127,7 +127,9 @@ reviewable.
 `cloudflare.config.ts` sets `assets.runWorkerFirst` so the Worker handles `/api/*`,
 `/identity/*`, `/admin*`, `/notifications/*`, `/icons/*`, `/events/*`, `/attachments/*`,
 `/send-files/*`, `/alive` and `/app-id.json` before any static lookup. Everything else is served
-from assets, with unknown paths falling back to `index.html`.
+from assets, with unknown paths falling back to `index.html`. `/admin*` is kept worker-first on
+purpose: the server-rendered admin no longer exists, so it must return the standard 404 JSON rather
+than fall through to the single-page fallback and render the vault.
 
 The client needs no generated runtime config: its default environment URLs are relative and
 resolve against the page origin. Static responses get their headers from the generated

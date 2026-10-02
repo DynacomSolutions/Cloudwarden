@@ -479,37 +479,7 @@ export const emergencyAccess = sqliteTable(
 // Admin UI and invites (TASKS #140). Kept in one block at the end of the file.
 // ---------------------------------------------------------------------------
 
-/** Single-use magic-link tokens. Only the SHA-256 hash of the token is stored. */
-export const adminLoginTokens = sqliteTable(
-  'admin_login_tokens',
-  {
-    tokenHash: text('token_hash').primaryKey(),
-    email: text('email').notNull(),
-    expiresAt: integer('expires_at').notNull(),
-    usedAt: integer('used_at'),
-    createdAt: createdAt(),
-  },
-  (t) => [index('admin_login_tokens_expires_idx').on(t.expiresAt)],
-)
-
-/** Admin sessions. Only the SHA-256 hash of the cookie value is stored. */
-export const adminSessions = sqliteTable(
-  'admin_sessions',
-  {
-    sessionHash: text('session_hash').primaryKey(),
-    subject: text('subject').notNull(),
-    csrfToken: text('csrf_token').notNull(),
-    /** Set for sessions exchanged from a vault login; null for break-glass recovery sessions. */
-    userUuid: text('user_uuid'),
-    /** The user's security stamp at exchange time; a mismatch ends the session. */
-    securityStamp: text('security_stamp'),
-    expiresAt: integer('expires_at').notNull(),
-    createdAt: createdAt(),
-  },
-  (t) => [index('admin_sessions_expires_idx').on(t.expiresAt)],
-)
-
-/** Fixed-window counters for admin login throttling. */
+/** Fixed-window counters for the D1 rate limit fallback (src/ratelimit.ts, src/admin/security.ts). */
 export const adminRateLimits = sqliteTable(
   'admin_rate_limits',
   {

@@ -11,7 +11,7 @@ Cloudwarden is a single Cloudflare Worker that implements the Bitwarden server A
 |  /api/*             sync, ciphers, folders, sends, orgs, account |
 |  /notifications/*   WebSocket upgrade -> NotificationHub DO      |
 |  /icons/*           optional favicon proxy                       |
-|  /admin/*           optional admin UI (ADMIN_ENABLED)            |
+|  /api/cloudwarden/* JSON admin API (ADMIN_ENABLED)               |
 |  /                  optional web client static assets            |
 +-------+------------------+-------------------+-------------------+
         |                  |                   |
@@ -37,7 +37,7 @@ Cloudwarden is a single Cloudflare Worker that implements the Bitwarden server A
 
 1. **The server never sees plaintext.** Vault data is encrypted client-side. The server stores and returns opaque strings. Never log request bodies.
 2. **Built from the contract.** The Bitwarden API contract (`docs/api/openapi.yaml`, TASKS #14) is the single source of truth. No code or logic is ported from other server implementations.
-3. **Everything optional is off by default.** Signups, admin UI, icon proxy, web vault, email and push are opt-in via configuration.
+3. **Everything optional is off by default.** Signups, the admin API, icon proxy, web vault, email and push are opt-in via configuration.
 4. **No identifying data in the repository.** Real hosts, IDs and secrets live only in deploy-time configuration and secrets. See `CONTRIBUTING.md`.
 
 ## Decisions

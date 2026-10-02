@@ -12348,10 +12348,6 @@ components:
           type: boolean
         emailConfigured:
           type: boolean
-        magicLinkAdminsConfigured:
-          type: boolean
-        adminTokenConfigured:
-          type: boolean
         jwtSecretConfigured:
           type: boolean
       required:
@@ -12360,8 +12356,6 @@ components:
       - signupsAllowed
       - adminEnabled
       - emailConfigured
-      - magicLinkAdminsConfigured
-      - adminTokenConfigured
       - jwtSecretConfigured
     AdminCounts:
       type: object
@@ -12394,10 +12388,6 @@ components:
           type: boolean
         emailConfigured:
           type: boolean
-        magicLinkAdminsConfigured:
-          type: boolean
-        adminTokenConfigured:
-          type: boolean
         jwtSecretConfigured:
           type: boolean
         counts:
@@ -12408,8 +12398,6 @@ components:
       - signupsAllowed
       - adminEnabled
       - emailConfigured
-      - magicLinkAdminsConfigured
-      - adminTokenConfigured
       - jwtSecretConfigured
       - counts
     AdminStorage:
@@ -12442,13 +12430,10 @@ components:
           $ref: '#/components/schemas/AdminServerConfig'
         pendingInvitations:
           type: integer
-        activeAdminSessions:
-          type: integer
       required:
       - storage
       - server
       - pendingInvitations
-      - activeAdminSessions
     AdminTwoFactorProvider:
       type: object
       description: An enabled second factor.

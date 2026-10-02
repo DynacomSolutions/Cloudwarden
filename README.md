@@ -8,7 +8,7 @@ Cloudwarden implements the Bitwarden server API, built from an explicit API cont
 - **D1** (SQLite) for relational data
 - **R2** for attachments and file Sends
 - **Durable Objects** for live sync notifications
-- An **optional admin UI**, off by default
+- An **optional instance admin** (native pages in the web client), off by default
 
 > **Status: early scaffold.** Nothing works yet beyond health and config endpoints. Do not store real passwords in it. See [TASKS.md](TASKS.md) for the roadmap.
 
@@ -35,9 +35,9 @@ Then point a Bitwarden client's self-hosted server URL at the local address `pnp
 |---|---|---|---|
 | `DOMAIN` | var | `https://vault.example.com` | Public base URL |
 | `SIGNUPS_ALLOWED` | var | `false` | Allow open registration |
-| `ADMIN_ENABLED` | var | `false` | Expose the admin UI at `/admin` |
+| `ADMIN_ENABLED` | var | `false` | Enable the admin API behind the web client's Instance admin |
 | `JWT_SECRET` | secret | none | Token signing key |
-| `ADMIN_TOKEN_HASH` | secret | none | Hash of the admin token |
+| `ADMIN_EMAILS` | secret | none | Comma-separated instance admin addresses |
 
 ## Documentation
 

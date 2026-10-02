@@ -35,8 +35,7 @@ export interface Bindings {
   JWT_SECRET?: string
   /** Previous signing secret, accepted for verification only while rotating. */
   JWT_SECRET_PREVIOUS?: string
-  ADMIN_TOKEN_HASH?: string
-  /** Comma-separated admin email addresses allowed to request a magic link. */
+  /** Comma-separated addresses that are instance admins (the account must also be email verified). */
   ADMIN_EMAILS?: string
 }
 

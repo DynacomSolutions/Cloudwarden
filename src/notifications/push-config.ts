@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { createDb, schema } from '../db'
 import type { Bindings } from '../env'
+import { ApiError } from '../errors'
 import { errorKind, log } from '../log'
 import { seal, unseal } from '../orgs/sealed'
 
@@ -32,7 +33,7 @@ export interface StoredPush {
 
 /** Validates an https base URI for a custom relay. Returns the normalised URI or null. */
 export function validateRelayUri(raw: unknown): string | null {
-  if (typeof raw !== 'string' || raw.length > 300) return null
+  if (typeof raw !== 'string' || raw.length > 300 || /[?#]/.test(raw)) return null
   let url: URL
   try {
     url = new URL(raw.trim())
@@ -42,8 +43,17 @@ export function validateRelayUri(raw: unknown): string | null {
   if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash) {
     return null
   }
+  // Only the default https port (the URL parser reports it as empty).
+  if (url.port !== '') return null
   const host = url.hostname
-  if (!host.includes('.') || host === 'localhost' || /^[\d.]+$/.test(host) || host.includes(':')) {
+  if (
+    !host.includes('.') ||
+    host.endsWith('.') ||
+    host === 'localhost' ||
+    /^[\d.]+$/.test(host) ||
+    host.includes(':') ||
+    /\.(local|internal|localhost|lan|home\.arpa)$/.test(host)
+  ) {
     return null
   }
   return url.toString().replace(/\/+$/, '')
@@ -62,7 +72,7 @@ export function deriveUris(
 
 // Short lived per isolate cache. Writes invalidate it in the isolate that handled them; other
 // isolates pick the change up when their entry expires.
-let cache: { at: number; value: StoredPush | null } | null = null
+let cache: { at: number; value: StoredPush | null; unreadable: boolean } | null = null
 export const invalidatePushConfig = () => {
   cache = null
 }
@@ -71,6 +81,7 @@ export const invalidatePushConfig = () => {
 export async function loadStoredPush(env: Bindings): Promise<StoredPush | null> {
   if (cache && Date.now() - cache.at < CACHE_MS) return cache.value
   let value: StoredPush | null = null
+  let unreadable = false
   try {
     const [row] = await createDb(env.DB)
       .select()
@@ -78,6 +89,7 @@ export async function loadStoredPush(env: Bindings): Promise<StoredPush | null> 
       .where(eq(schema.instanceSettings.key, SETTINGS_KEY))
       .limit(1)
     if (row?.sealedSecrets) {
+      unreadable = true
       const c = JSON.parse(row.config) as Partial<StoredPush>
       if (c.installationId && c.region && c.relayUri && c.identityUri) {
         value = {
@@ -88,13 +100,20 @@ export async function loadStoredPush(env: Bindings): Promise<StoredPush | null> 
           identityUri: c.identityUri,
           updatedAt: row.updatedAt,
         }
+        unreadable = false
       }
     }
   } catch (err) {
     log('warn', 'push.settings_read_failed', { errorKind: errorKind(err) }, env)
   }
-  cache = { at: Date.now(), value }
+  cache = { at: Date.now(), value, unreadable }
   return value
+}
+
+/** True when a row is stored but its key cannot be opened (for example the encryption key changed). */
+export async function pushKeyUnreadable(env: Bindings): Promise<boolean> {
+  await loadStoredPush(env)
+  return cache?.unreadable ?? false
 }
 
 export interface PushSettingsWrite {
@@ -116,7 +135,8 @@ export async function savePushStatements(
   const sealed = input.installationKey
     ? await seal(env, KEY_PURPOSE, input.installationKey)
     : await readSealed(env)
-  if (!sealed) throw new Error('missing key')
+  if (!sealed)
+    throw new ApiError(409, 'The stored key changed. Reload the page and enter the key again.')
   const config = JSON.stringify({
     installationId: input.installationId,
     region: input.region,

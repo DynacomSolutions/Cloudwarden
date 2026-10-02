@@ -130,11 +130,16 @@ export function createAdminApi(deps: AdminApiDeps = {}) {
     }
   }
   api.get(`${PREFIX}/push-settings`, async (c) => c.json(await pushSettingsView(c.env)))
-  api.put(`${PREFIX}/push-settings`, async (c) =>
-    c.json(
+  api.put(`${PREFIX}/push-settings`, async (c) => {
+    if (!(await rateLimit(c.env.DB, `pushsave:${c.var.user.uuid}`, 5, 60_000, Date.now()))) {
+      return c.json(errorBody('Too many changes. Try again in a minute.'), 429, {
+        'Retry-After': '60',
+      })
+    }
+    return c.json(
       await savePushSettings(c.env, await c.req.json().catch(() => null), auditOf(c), later(c)),
-    ),
-  )
+    )
+  })
   api.delete(`${PREFIX}/push-settings`, async (c) =>
     c.json(await deletePushSettings(c.env, auditOf(c))),
   )

@@ -19,7 +19,7 @@ import {
 const base: PushSettings = {
   installationId: "",
   keySet: false,
-  keyTail: null,
+  keyUnreadable: false,
   region: "us",
   relayUri: null,
   identityUri: null,
@@ -109,7 +109,6 @@ describe("InstanceAdminPushComponent", () => {
       ...base,
       installationId: "id-1",
       keySet: true,
-      keyTail: "abcd",
       status: {
         ...base.status,
         configured: true,

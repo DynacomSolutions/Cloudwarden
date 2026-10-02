@@ -20993,11 +20993,9 @@ components:
           type: string
         keySet:
           type: boolean
-        keyTail:
-          description: Last four characters of the key, when it is long enough to show them.
-          type:
-          - string
-          - 'null'
+        keyUnreadable:
+          description: A key is stored but cannot be opened, so it must be entered again.
+          type: boolean
         region:
           type: string
           enum:
@@ -21022,7 +21020,7 @@ components:
       required:
       - installationId
       - keySet
-      - keyTail
+      - keyUnreadable
       - region
       - relayUri
       - identityUri
@@ -21081,6 +21079,7 @@ components:
           - configured
           - not configured
           - incomplete
+          - key unreadable
         relayHost:
           type:
           - string

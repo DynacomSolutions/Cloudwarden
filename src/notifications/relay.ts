@@ -1,8 +1,8 @@
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, asc, eq, gt, inArray } from 'drizzle-orm'
 import { createDb, schema } from '../db'
 import type { Bindings } from '../env'
 import { errorKind, log } from '../log'
-import { loadStoredPush } from './push-config'
+import { loadStoredPush, pushKeyUnreadable } from './push-config'
 
 /**
  * Mobile push through the Bitwarden push relay (TASKS #103, #262).
@@ -59,11 +59,18 @@ export async function resolveRelay(
 /** Status for diagnostics. Never includes the key. */
 export async function relayStatus(env: Bindings) {
   const r = await resolveRelay(env)
+  const unreadable = !r && (await pushKeyUnreadable(env))
   const partial =
     Boolean(env.PUSH_INSTALLATION_ID?.trim()) !== Boolean(env.PUSH_INSTALLATION_KEY?.trim())
   return {
     configured: r !== null,
-    state: r ? 'configured' : partial ? 'incomplete' : 'not configured',
+    state: r
+      ? 'configured'
+      : partial
+        ? 'incomplete'
+        : unreadable
+          ? 'key unreadable'
+          : 'not configured',
     source: r?.source ?? null,
     envOverride: relayConfig(env) !== null,
     relayHost: r ? new URL(r.cfg.relayUri).host : null,
@@ -95,6 +102,7 @@ async function accessToken(cfg: RelayConfig, force = false): Promise<string> {
   }
   const res = await fetch(`${cfg.identityUri}/connect/token`, {
     method: 'POST',
+    redirect: 'manual',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
     body: new URLSearchParams({
       grant_type: 'client_credentials',
@@ -126,6 +134,7 @@ async function call(
   const send = async (force: boolean) =>
     fetch(`${cfg.relayUri}${path}`, {
       method,
+      redirect: 'manual',
       headers: {
         Authorization: `Bearer ${await accessToken(cfg, force)}`,
         'Content-Type': 'application/json',
@@ -255,31 +264,70 @@ export async function relaySend(env: Bindings, push: RelayPush): Promise<void> {
   })
 }
 
-/** Registers every mobile device with a push token again, after the credentials changed. */
-export async function relayReregisterAll(env: Bindings, limit = 400): Promise<number> {
+/** Most devices registered again per run: keeps within the Worker subrequest limit of a paid plan. */
+const REREGISTER_MAX = 800
+const PAGE = 100
+let reregistering = false
+let reregisterAgain = false
+
+/**
+ * Registers every mobile device with a push token again, after the credentials changed. Pages
+ * through devices by id, never overlaps another run (a change during a run schedules one more
+ * pass) and logs when more than REREGISTER_MAX devices were left for the next change or app start.
+ */
+export async function relayReregisterAll(env: Bindings): Promise<number> {
+  if (reregistering) {
+    reregisterAgain = true
+    return 0
+  }
+  reregistering = true
+  let total = 0
+  try {
+    do {
+      reregisterAgain = false
+      total += await reregisterPass(env)
+    } while (reregisterAgain)
+  } finally {
+    reregistering = false
+  }
+  return total
+}
+
+async function reregisterPass(env: Bindings): Promise<number> {
   if (!(await resolveRelay(env).catch(() => null))) return 0
   let count = 0
+  let after = ''
   try {
-    const rows = await createDb(env.DB)
-      .select()
-      .from(schema.devices)
-      .where(inArray(schema.devices.type, [...MOBILE_TYPES]))
-      .limit(limit)
-    const withToken = rows.filter((d) => d.pushToken)
-    for (let i = 0; i < withToken.length; i += 10) {
-      await Promise.all(
-        withToken.slice(i, i + 10).map((d) =>
-          relayRegisterDevice(env, {
-            uuid: d.uuid,
-            identifier: d.identifier,
-            type: d.type,
-            pushToken: d.pushToken,
-            userUuid: d.userUuid,
-          }),
-        ),
-      )
+    for (;;) {
+      const rows = await createDb(env.DB)
+        .select()
+        .from(schema.devices)
+        .where(and(inArray(schema.devices.type, [...MOBILE_TYPES]), gt(schema.devices.uuid, after)))
+        .orderBy(asc(schema.devices.uuid))
+        .limit(PAGE)
+      if (rows.length === 0) break
+      after = rows[rows.length - 1]?.uuid ?? ''
+      const withToken = rows.filter((d) => d.pushToken)
+      for (let i = 0; i < withToken.length; i += 10) {
+        await Promise.all(
+          withToken.slice(i, i + 10).map((d) =>
+            relayRegisterDevice(env, {
+              uuid: d.uuid,
+              identifier: d.identifier,
+              type: d.type,
+              pushToken: d.pushToken,
+              userUuid: d.userUuid,
+            }),
+          ),
+        )
+      }
+      count += withToken.length
+      if (count >= REREGISTER_MAX) {
+        log('warn', 'push.reregister_truncated', { registered: count }, env)
+        break
+      }
+      if (rows.length < PAGE) break
     }
-    count = withToken.length
   } catch (err) {
     log('warn', 'push.reregister_failed', { errorKind: errorKind(err) }, env)
   }
@@ -295,6 +343,8 @@ export async function relayTestConnection(env: Bindings): Promise<TestClass> {
   try {
     const res = await fetch(`${r.cfg.identityUri}/connect/token`, {
       method: 'POST',
+      redirect: 'manual',
+      signal: AbortSignal.timeout(5000),
       headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
       body: new URLSearchParams({
         grant_type: 'client_credentials',

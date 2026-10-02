@@ -27,10 +27,17 @@ their normal refresh.
 only; the test is limited to 5 per minute per admin and returns only `ok` or an error class:
 `not_configured`, `rejected`, `unreachable`, `bad_response`). The installation key is write only: it is
 sealed at rest with the same key as other server-held secrets (`DATA_ENCRYPTION_KEY`, falling back to a key
-derived from `JWT_SECRET`, see `docs/integrations.md`) and responses carry only `keySet` and the last four
-characters. Leave the key blank on save to keep the stored one. Region `us` uses `push.bitwarden.com` and
+derived from `JWT_SECRET`, see `docs/integrations.md`) and responses carry only `keySet` (and `keyUnreadable` when a stored key can no
+longer be opened, for example after the encryption key changed, in which case it must be entered again).
+Leave the key blank on save to keep the stored one, except when the region or addresses change: the key
+must then be entered again so a stored key is never sent to a new destination. Saves are limited to 5 per
+minute per admin. Region `us` uses `push.bitwarden.com` and
 `identity.bitwarden.com`, `eu` uses `push.bitwarden.eu` and `identity.bitwarden.eu`, and `custom` takes two
-public https URLs. Saves, removals and tests are recorded as admin events (9009 to 9011).
+public https URLs on the default port, with no trailing dot and not under `.local`, `.internal`,
+`.localhost`, `.lan` or `.home.arpa`. Relay calls never follow redirects (a 3xx counts as a failure) and
+the connection test times out after 5 seconds. Names that resolve to private addresses are not blocked by
+the application: Workers outbound requests cannot reach private networks, which is the mitigation against
+DNS rebinding. Saves, removals and tests are recorded as admin events (9009 to 9011).
 
 ### Optional: Worker secrets (override)
 
@@ -47,7 +54,10 @@ pnpm exec cf workers secrets update PUSH_IDENTITY_URI    # https://identity.bitw
 ```
 
 The defaults are `https://push.bitwarden.com` and `https://identity.bitwarden.com`. Settings changes are
-cached for up to ten seconds per Worker instance.
+cached for up to ten seconds per Worker instance, so another instance may use the old values for that long.
+Re-registration after a change pages through all mobile devices, runs one pass at a time and handles up to
+800 devices per run (a paid plan subrequest budget); beyond that `push.reregister_truncated` is logged and
+the remaining phones register again the next time the app sends its token.
 
 ## How it works
 

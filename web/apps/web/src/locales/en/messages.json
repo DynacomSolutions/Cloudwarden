@@ -18485,17 +18485,8 @@
   "cwPushInstallationKey": {
     "message": "Installation key"
   },
-  "cwPushKeyKeepHint": {
-    "message": "A key is stored (ends in $TAIL$). Leave this blank to keep it.",
-    "placeholders": {
-      "tail": {
-        "content": "$1",
-        "example": "x"
-      }
-    }
-  },
   "cwPushKeyStoredHint": {
-    "message": "A key is stored. Leave this blank to keep it."
+    "message": "A key is stored. Leave this blank to keep it, unless you change the region or addresses."
   },
   "cwPushKeyHint": {
     "message": "Stored encrypted and never shown again."
@@ -18553,6 +18544,12 @@
   },
   "cwPushStatusNotConfigured": {
     "message": "Not configured"
+  },
+  "cwPushStatusUnreadable": {
+    "message": "Stored key unreadable"
+  },
+  "cwPushKeyUnreadable": {
+    "message": "The stored installation key can no longer be opened, for example because the data encryption key changed. Enter the key again and save."
   },
   "cwPushStatusIncomplete": {
     "message": "Incomplete"

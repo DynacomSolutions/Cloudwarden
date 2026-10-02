@@ -75,6 +75,11 @@ export function buildPushInput(v: {
             {{ "cwPushEnvNotice" | i18n }}
           </bit-callout>
         }
+        @if (s.keyUnreadable) {
+          <bit-callout type="warning" data-testid="cw-push-unreadable">
+            {{ "cwPushKeyUnreadable" | i18n }}
+          </bit-callout>
+        }
         <div
           class="tw-mb-6 tw-max-w-3xl tw-rounded-lg tw-border tw-border-solid tw-border-secondary-300 tw-p-4"
           data-testid="cw-push-status"
@@ -213,6 +218,8 @@ export class InstanceAdminPushComponent implements OnInit {
         return "cwPushStatusConfigured";
       case "incomplete":
         return "cwPushStatusIncomplete";
+      case "key unreadable":
+        return "cwPushStatusUnreadable";
       default:
         return "cwPushStatusNotConfigured";
     }
@@ -228,9 +235,7 @@ export class InstanceAdminPushComponent implements OnInit {
     if (!s?.keySet) {
       return this.i18n.t("cwPushKeyHint");
     }
-    return s.keyTail
-      ? this.i18n.t("cwPushKeyKeepHint", s.keyTail)
-      : this.i18n.t("cwPushKeyStoredHint");
+    return this.i18n.t("cwPushKeyStoredHint");
   }
 
   protected lastResultText(): string {

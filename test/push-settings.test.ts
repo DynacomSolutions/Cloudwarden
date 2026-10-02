@@ -89,6 +89,7 @@ describe('region URI derivation and validation', () => {
 
   it('accepts custom https URIs and rejects unsafe ones', () => {
     expect(validateRelayUri('https://push.example.com/')).toBe('https://push.example.com')
+    expect(validateRelayUri('https://push.example.com:443')).toBe('https://push.example.com')
     for (const bad of [
       'http://push.example.com',
       'https://user:pw@push.example.com',
@@ -96,6 +97,14 @@ describe('region URI derivation and validation', () => {
       'https://localhost',
       'https://127.0.0.1',
       'https://[::1]',
+      'https://push.example.com.',
+      'https://push.example.com:8443',
+      'https://push.example.com/x?',
+      'https://relay.local',
+      'https://relay.internal',
+      'https://a.localhost',
+      'https://nas.lan',
+      'https://printer.home.arpa',
       'ftp://push.example.com',
       'not a url',
       42,
@@ -109,6 +118,89 @@ describe('region URI derivation and validation', () => {
         identityUri: 'https://b.example.com',
       }),
     ).toEqual({ relayUri: 'https://a.example.com', identityUri: 'https://b.example.com' })
+  })
+})
+
+describe('relay hardening', () => {
+  it('does not follow redirects and reports them as a rejected test', async () => {
+    const admin = await person(true)
+    await save(admin)
+    const calls: RequestInit[] = []
+    const inner = globalThis.fetch
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith('/connect/token')) {
+        calls.push(init ?? {})
+        return new Response(null, {
+          status: 302,
+          headers: { Location: 'https://evil.example.com' },
+        })
+      }
+      return inner(input, init)
+    }) as typeof fetch
+    const res = await admin.call(`${P}/test`, 'POST')
+    expect(await res.json()).toEqual({ ok: false, error: 'rejected' })
+    expect(calls[0]?.redirect).toBe('manual')
+    expect(calls[0]?.signal).toBeDefined()
+  })
+
+  it('reports an unreachable relay when the request fails', async () => {
+    const admin = await person(true)
+    await save(admin)
+    const inner = globalThis.fetch
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith('/connect/token')) throw new Error('timeout')
+      return inner(input, init)
+    }) as typeof fetch
+    expect(await (await admin.call(`${P}/test`, 'POST')).json()).toEqual({
+      ok: false,
+      error: 'unreachable',
+    })
+  })
+
+  it('shows an unreadable key state when the key cannot be opened', async () => {
+    const admin = await person(true)
+    await save(admin)
+    await env.DB.prepare("UPDATE instance_settings SET sealed_secrets = 'v1.d.AAAA.AAAA'").run()
+    invalidatePushConfig()
+    const view = (await (await admin.call(P)).json()) as any
+    expect(view).toMatchObject({ keySet: false, keyUnreadable: true })
+    expect(view.status.state).toBe('key unreadable')
+    // Saving without the key is refused; with it, the setting recovers.
+    expect((await admin.call(P, 'PUT', { installationId: ID, region: 'us' })).status).toBe(400)
+    const fixed = (await (await save(admin)).json()) as any
+    expect(fixed).toMatchObject({ keySet: true, keyUnreadable: false })
+  })
+
+  it('rate limits saves per admin', async () => {
+    const admin = await person(true)
+    const codes: number[] = []
+    for (let i = 0; i < 7; i++) codes.push((await save(admin)).status)
+    expect(codes[4]).toBe(200)
+    expect(codes[6]).toBe(429)
+  })
+
+  it('pages through every device and does not overlap runs', async () => {
+    const owner = await person(true)
+    await save(owner)
+    const user = await createSession(`bulk${++n}@example.com`)
+    const profile = (await (await authed('/api/accounts/profile', user.access_token)).json()) as {
+      id: string
+    }
+    const stmts = Array.from({ length: 230 }, (_, i) =>
+      env.DB.prepare(
+        `INSERT INTO devices (uuid, user_uuid, name, type, identifier, push_token, refresh_token, created_at, updated_at)
+         VALUES (?1, ?2, 'phone', 0, ?3, 'tok', 'r', 1, 1)`,
+      ).bind(crypto.randomUUID(), profile.id, `bulk-${i}`),
+    )
+    await env.DB.batch(stmts)
+    const { relayReregisterAll } = await import('../src/notifications/relay')
+    seen = []
+    const first = relayReregisterAll(env)
+    const overlapped = await relayReregisterAll(env)
+    expect(overlapped).toBe(0)
+    expect(await first).toBeGreaterThanOrEqual(230)
+    expect(seen.filter((s) => s.url.endsWith('/push/register')).length).toBeGreaterThanOrEqual(230)
+    await env.DB.prepare("DELETE FROM devices WHERE identifier LIKE 'bulk-%'").run()
   })
 })
 
@@ -138,7 +230,7 @@ describe('push settings API', () => {
     expect(view).toMatchObject({
       installationId: ID,
       keySet: true,
-      keyTail: KEY.slice(-4),
+      keyUnreadable: false,
       region: 'us',
       relayUri: 'https://push.bitwarden.com',
     })
@@ -152,10 +244,17 @@ describe('push settings API', () => {
     expect(row?.sealed_secrets.startsWith('v1.')).toBe(true)
 
     // Blank key keeps the stored one; the effective config still has it.
-    const again = await admin.call(P, 'PUT', { installationId: ID, region: 'eu' })
+    const again = await admin.call(P, 'PUT', { installationId: ID, region: 'us' })
     expect(again.status).toBe(200)
-    expect(((await again.json()) as any).relayUri).toBe('https://push.bitwarden.eu')
     expect((await resolveRelay(env))?.cfg.installationKey).toBe(KEY)
+
+    // Changing the destination needs the key again, so a stored key never goes to a new host.
+    const moved = await admin.call(P, 'PUT', { installationId: ID, region: 'eu' })
+    expect(moved.status).toBe(400)
+    expect((await resolveRelay(env))?.cfg.relayUri).toBe('https://push.bitwarden.com')
+    const ok = await save(admin, { region: 'eu' })
+    expect(ok.status).toBe(200)
+    expect(((await ok.json()) as any).relayUri).toBe('https://push.bitwarden.eu')
   })
 
   it('validates input', async () => {

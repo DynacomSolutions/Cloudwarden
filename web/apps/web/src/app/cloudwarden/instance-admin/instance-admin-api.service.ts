@@ -64,7 +64,7 @@ export interface PushStatus {
 export interface PushSettings {
   installationId: string;
   keySet: boolean;
-  keyTail: string | null;
+  keyUnreadable: boolean;
   region: PushRegion;
   relayUri: string | null;
   identityUri: string | null;

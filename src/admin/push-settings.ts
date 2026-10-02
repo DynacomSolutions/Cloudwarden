@@ -7,6 +7,7 @@ import {
   deriveUris,
   invalidatePushConfig,
   loadStoredPush,
+  pushKeyUnreadable,
   type Region,
   savePushStatements,
 } from '../notifications/push-config'
@@ -20,8 +21,8 @@ export async function pushSettingsView(env: Bindings) {
   return {
     installationId: s?.installationId ?? '',
     keySet: s !== null,
-    // Only the last four characters, and only for keys long enough that this reveals little.
-    keyTail: s && s.installationKey.length >= 16 ? s.installationKey.slice(-4) : null,
+    // A key is stored but cannot be opened (the encryption key changed): it must be entered again.
+    keyUnreadable: s === null && (await pushKeyUnreadable(env)),
     region: s?.region ?? 'us',
     relayUri: s?.relayUri ?? null,
     identityUri: s?.identityUri ?? null,
@@ -56,6 +57,17 @@ export async function savePushSettings(
   }
   const before = await loadStoredPush(env)
   if (!key && !before) throw fieldError('installationKey', 'Enter the installation key.')
+  // A stored key is never sent to a new destination: changing a relay address needs the key again.
+  if (
+    !key &&
+    before &&
+    (before.relayUri !== uris.relayUri || before.identityUri !== uris.identityUri)
+  ) {
+    throw fieldError(
+      'installationKey',
+      'Enter the installation key again when the region or addresses change.',
+    )
+  }
 
   const now = audit.now ?? Date.now()
   const upsert = await savePushStatements(

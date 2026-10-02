@@ -10,8 +10,10 @@ import { join, resolve } from 'node:path'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { loginAndUnlock } from '../scripts/import-from-server.mjs'
 import { migrateLocal } from '../scripts/local-migrate.mjs'
+import { ensureBwdc } from './bwdc.mjs'
 import { ensureBws } from './bws.mjs'
 import { buildAccount, decType2, encType2, encType4 } from './crypto.mjs'
+import { startLdap } from './ldap-server.mjs'
 import { deriveAccessTokenKey } from './sm-client.mjs'
 import { makeCert } from './tls-proxy.mjs'
 
@@ -646,6 +648,119 @@ async function main() {
       ).sort()
     assert.deepEqual(await names(after, to.userKey), await names(before, from.userKey))
     pass('importer: personal vault copied to a new account and decrypts identically')
+
+    // The official Directory Connector CLI (TASKS #262, pinned in e2e/bwdc.lock.json) syncing an
+    // LDAP directory into the organisation through the organisation API key and the Public API.
+    const bwdcBin = await ensureBwdc()
+    pass('bwdc: pinned release downloaded and sha256 verified')
+    const dn = (rdn) => `${rdn},dc=example,dc=com`
+    const person = (uid) => ({
+      dn: dn(`uid=${uid},ou=people`),
+      attrs: {
+        objectClass: ['top', 'person', 'inetOrgPerson'],
+        uid: [uid],
+        cn: [uid],
+        mail: [`dc-${uid}@example.com`],
+      },
+    })
+    const directory = [
+      { dn: 'dc=example,dc=com', attrs: { objectClass: ['top', 'domain'], dc: ['example'] } },
+      person('alice'),
+      person('bob'),
+      {
+        dn: dn('cn=staff,ou=groups'),
+        attrs: {
+          objectClass: ['top', 'groupOfNames'],
+          cn: ['Staff'],
+          member: [dn('uid=alice,ou=people'), dn('uid=bob,ou=people')],
+        },
+      },
+    ]
+    const ldap = await startLdap({
+      entries: directory,
+      bindDn: dn('cn=admin'),
+      password: 'ldap-secret',
+    })
+    const orgApiKey = await api(`/organizations/${smOrg.id}/api-key`, 'POST', {
+      masterPasswordHash: acct.masterPasswordHash,
+      type: 0,
+    })
+    const dcDir = join(work, 'bwdc')
+    const dcEnv = {
+      ...env,
+      BITWARDENCLI_CONNECTOR_APPDATA_DIR: dcDir,
+      BITWARDENCLI_CONNECTOR_PLAINTEXT_SECRETS: 'true',
+      BW_NOINTERACTION: 'true',
+      BW_CLIENTID: `organization.${smOrg.id}`,
+      BW_CLIENTSECRET: orgApiKey.apiKey,
+    }
+    const bwdc = (args, opts) => run(bwdcBin, args, { env: dcEnv, timeout: 600_000, ...opts })
+    bwdc(['config', 'server', base])
+    bwdc(['config', 'directory', '0'])
+    bwdc(['config', 'ldap.password', 'ldap-secret'])
+    const dataFile = join(dcDir, 'data.json')
+    const configure = (sync) => {
+      const data = JSON.parse(readFileSync(dataFile, 'utf8'))
+      Object.assign(data.directoryLdap, {
+        hostname: '127.0.0.1',
+        port: ldap.port,
+        rootPath: 'dc=example,dc=com',
+        username: dn('cn=admin'),
+        ssl: false,
+        startTls: false,
+        ad: false,
+        pagedSearch: false,
+      })
+      Object.assign(data.sync, {
+        users: true,
+        groups: true,
+        userObjectClass: 'inetOrgPerson',
+        groupObjectClass: 'groupOfNames',
+        userPath: 'ou=people',
+        groupPath: 'ou=groups',
+        memberAttribute: 'member',
+        groupNameAttribute: 'cn',
+        userEmailAttribute: 'mail',
+        inviteUsersAfterProvisioning: true,
+        ...sync,
+      })
+      writeFileSync(dataFile, JSON.stringify(data, null, 2))
+    }
+    configure({})
+    bwdc(['login'])
+    pass('bwdc: login with the organisation API key (client_credentials, api.organization)')
+    const tested = bwdc(['test']).stdout
+    assert.match(tested, /dc-alice@example\.com/)
+    assert.match(tested, /Staff/)
+    pass('bwdc: test reads users and groups from LDAP')
+    bwdc(['sync'])
+    const dcMembers = (await api(`/organizations/${smOrg.id}/users?includeGroups=true`)).data
+    const alice = dcMembers.find((m) => m.email === 'dc-alice@example.com')
+    const bob = dcMembers.find((m) => m.email === 'dc-bob@example.com')
+    assert.equal(alice?.externalId, dn('uid=alice,ou=people'))
+    assert.equal(bob?.status, 0)
+    const staff = (await api(`/organizations/${smOrg.id}/groups`)).data.find(
+      (g) => g.name === 'Staff',
+    )
+    assert.ok(staff, 'Staff group created')
+    assert.deepEqual(
+      (await api(`/organizations/${smOrg.id}/groups/${staff.id}/users`)).sort(),
+      [alice.id, bob.id].sort(),
+    )
+    pass('bwdc: sync invites the LDAP users and creates the group with its members')
+    directory.splice(
+      directory.findIndex((e) => e.dn === dn('uid=bob,ou=people')),
+      1,
+    )
+    directory[directory.length - 1].attrs.member = [dn('uid=alice,ou=people')]
+    configure({ overwriteExisting: true })
+    bwdc(['sync'])
+    const remaining = (await api(`/organizations/${smOrg.id}/users`)).data.map((m) => m.email)
+    assert.ok(remaining.includes('dc-alice@example.com'))
+    assert.ok(!remaining.includes('dc-bob@example.com'))
+    assert.ok(remaining.includes(EMAIL))
+    pass('bwdc: overwrite sync removes a user deleted from the directory and keeps the owner')
+    void ldap.close()
 
     console.log(`\n${step} steps passed`)
   } catch (err) {

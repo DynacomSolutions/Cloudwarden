@@ -11,7 +11,7 @@ it('GET /api/config returns the shape current clients expect', async () => {
   expect(body.version).toMatch(/^2026\.\d+\.\d+$/)
   expect(typeof body.gitHash).toBe('string')
   expect(body.server).toEqual({ name: 'Cloudwarden', url: 'https://vault.example.com' })
-  expect(body.featureStates).toEqual({})
+  expect(body.featureStates).toEqual({ 'inno-passkey-directory-report': true })
   expect(body.push).toEqual({ pushTechnology: 0 })
   expect(body.environment).toEqual({
     cloudRegion: null,

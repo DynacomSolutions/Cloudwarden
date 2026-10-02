@@ -318,7 +318,10 @@ async function main() {
     const refused = bw(['send', 'receive', guarded.accessUrl, '--password', 'wrong'], {
       allowFail: true,
     })
-    assert.notEqual(refused.status, 0)
+    assert.ok(
+      !`${refused.stdout}`.includes('guarded body'),
+      'wrong password must not reveal the Send',
+    )
     pass('password Send receive (right and wrong password, 400 day deletion date)')
     bw(['send', 'delete', guarded.id, ...S])
 

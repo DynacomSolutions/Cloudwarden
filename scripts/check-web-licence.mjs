@@ -5,8 +5,9 @@
  *
  * Only GPL-3.0 upstream code may live under web/. Upstream keeps code under the Bitwarden License
  * v1.0 in `bitwarden_license/` directories and `@bitwarden/bit-*` packages. This fails when any
- * tracked or untracked file under web/ sits in such a path, or when source under web/ imports
- * those packages or declares the Bitwarden License in a header.
+ * tracked or untracked file under web/ sits in such a path, or when a source or config file under
+ * web/ references such a path or package in any form (import, dynamic import, require, side
+ * effect import, config path) or carries a Bitwarden License header anywhere in the file.
  *
  * Usage: node scripts/check-web-licence.mjs
  */
@@ -19,22 +20,28 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
 const FORBIDDEN_PATH = /(^|\/)bitwarden_license(\/|$)/
-const FORBIDDEN_IMPORT = /from\s+["']@bitwarden\/bit-(common|web|browser|cli|desktop)\b/
-const FORBIDDEN_HEADER = /Bitwarden License,?\s+v?1\.0/i
-const SOURCE = /\.(ts|js|mjs|cjs|html|scss|css)$/
+const FORBIDDEN_REFERENCES = [
+  [/@bitwarden\/bit-[\w-]+/, 'references a Bitwarden License package'],
+  [/bitwarden_license\//, 'references a bitwarden_license/ path'],
+  [/Bitwarden License,?\s+v?(ersion\s+)?1\.0/i, 'carries a Bitwarden License notice'],
+]
+const SOURCE = /\.(ts|tsx|js|mjs|cjs|json|html|scss|css)$/
+// Our own guard documentation and the upstream licence index describe the excluded licence.
+const EXEMPT = new Set(['web/LICENSE.txt', 'web/NOTICE.md'])
 
 export function checkFiles(files, read) {
   const problems = []
   for (const f of files) {
-    if (!f.startsWith('web/')) continue
+    if (!f.startsWith('web/') || EXEMPT.has(f)) continue
     if (FORBIDDEN_PATH.test(f)) {
       problems.push(`${f}: Bitwarden License path`)
       continue
     }
     if (!SOURCE.test(f) || f.includes('/node_modules/')) continue
     const text = read(f)
-    if (FORBIDDEN_IMPORT.test(text)) problems.push(`${f}: imports a Bitwarden License package`)
-    if (FORBIDDEN_HEADER.test(text.slice(0, 2000))) problems.push(`${f}: Bitwarden License header`)
+    for (const [re, what] of FORBIDDEN_REFERENCES) {
+      if (re.test(text)) problems.push(`${f}: ${what}`)
+    }
   }
   return problems
 }

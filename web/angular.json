@@ -6,32 +6,6 @@
     "analytics": false
   },
   "projects": {
-    "bit-web": {
-      "projectType": "application",
-      "schematics": {
-        "@schematics/angular:application": {
-          "strict": true
-        }
-      },
-      "root": "bitwarden_license/bit-web",
-      "sourceRoot": "bitwarden_license/bit-web/src",
-      "prefix": "app",
-      "architect": {
-        "build": {
-          "builder": "@angular-devkit/build-angular:browser",
-          "options": {
-            "outputPath": "dist/web",
-            "index": "apps/web/src/index.html",
-            "main": "bitwarden_license/bit-web/src/app/main.ts",
-            "polyfills": "apps/web/src/polyfills.ts",
-            "tsConfig": "bitwarden_license/bit-web/tsconfig.json",
-            "assets": ["apps/web/src/favicon.ico"],
-            "styles": [],
-            "scripts": []
-          }
-        }
-      }
-    },
     "web": {
       "projectType": "application",
       "schematics": {
@@ -51,7 +25,9 @@
             "main": "apps/web/src/main.ts",
             "polyfills": "apps/web/src/polyfills.ts",
             "tsConfig": "apps/web/tsconfig.json",
-            "assets": ["apps/web/src/favicon.ico"],
+            "assets": [
+              "apps/web/src/favicon.ico"
+            ],
             "styles": [],
             "scripts": []
           }
@@ -128,10 +104,18 @@
             "main": "libs/components/src/main.ts",
             "polyfills": "libs/components/src/polyfills.ts",
             "tsConfig": "libs/components/tsconfig.app.json",
-            "assets": ["libs/components/src/favicon.ico", "libs/components/src/assets"],
-            "styles": ["libs/components/src/styles.scss", "libs/components/src/styles.css"],
+            "assets": [
+              "libs/components/src/favicon.ico",
+              "libs/components/src/assets"
+            ],
+            "styles": [
+              "libs/components/src/styles.scss",
+              "libs/components/src/styles.css"
+            ],
             "stylePreprocessorOptions": {
-              "includePaths": ["libs/components/src/styles"]
+              "includePaths": [
+                "libs/components/src/styles"
+              ]
             },
             "scripts": []
           },

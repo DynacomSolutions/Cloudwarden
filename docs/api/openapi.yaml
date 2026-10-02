@@ -290,33 +290,6 @@ paths:
           $ref: '#/components/responses/Unauthorized'
       x-source-version: web-v2026.9.1
       x-source-file: apps/web/src/app/key-management/key-rotation/user-key-rotation-api.service.ts
-  /api/accounts/key-management/user-key-id:
-    post:
-      tags:
-      - Accounts
-      operationId: setUserKeyId
-      summary: Record the identifier of the current user key
-      description: Sent by the SDK after unlock. Returned as `userDecryption.userKeyId` in sync and cleared by key rotation.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-              - userKeyId
-              properties:
-                userKeyId:
-                  type: string
-      responses:
-        '200':
-          description: Success, empty body.
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-      x-source-version: sdk-internal 9acb7241
-      x-source-file: crates/bitwarden-api-api/src/apis/accounts_key_management_api.rs
   /api/accounts/keys:
     post:
       tags:

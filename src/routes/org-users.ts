@@ -105,8 +105,9 @@ orgUsers.get('/api/organizations/:orgId/users/mini-details', (c) => listMembers(
 
 // Billing metadata the Admin Console awaits before opening the member dialogs (TASKS #229). There
 // is no billing on this server: never Secrets Manager standalone; occupied seats are the members
-// who are not revoked.
-orgUsers.get('/api/organizations/:orgId/billing/vnext/self-host/metadata', async (c) => {
+// who are not revoked. Self-hosted clients read the `self-host` path, cloud-mode ones the other
+// (TASKS #231); both get the same answer.
+const billingMetadata = async (c: Ctx) => {
   const orgUuid = org(c)
   const db = createDb(c.env.DB)
   const actor = await requireMember(db, c.var.user.uuid, orgUuid)
@@ -120,7 +121,9 @@ orgUsers.get('/api/organizations/:orgId/billing/vnext/self-host/metadata', async
     isOnSecretsManagerStandalone: false,
     organizationOccupiedSeats: members.filter((m) => m.status !== Status.Revoked).length,
   })
-})
+}
+orgUsers.get('/api/organizations/:orgId/billing/vnext/self-host/metadata', billingMetadata)
+orgUsers.get('/api/organizations/:orgId/billing/vnext/metadata', billingMetadata)
 
 // ----- invitation -----
 

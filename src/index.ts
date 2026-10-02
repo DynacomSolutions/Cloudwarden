@@ -31,8 +31,10 @@ import { organizations } from './routes/organizations'
 import { policies, publicPolicies } from './routes/policies'
 import { prelogin } from './routes/prelogin'
 import { publicApi } from './routes/public-api'
+import { providers } from './routes/providers'
 import { register } from './routes/register'
 import { secretsManager } from './routes/secrets-manager'
+import { selfHostBilling } from './routes/self-host-billing'
 import { downloadSendFile, sends } from './routes/sends'
 import { settings } from './routes/settings'
 import { sso } from './routes/sso'
@@ -87,6 +89,10 @@ app.route('/', publicSso)
 app.route('/', ssoAdmin)
 app.route('/', orgApiKeys)
 app.route('/', orgIntegrations)
+// Billing, licence and sponsorship answers for a self-hosted server, and the absent Provider
+// Portal (TASKS #231). Literal paths only, so the order relative to the organisation routers is free.
+app.route('/', selfHostBilling)
+app.route('/', providers)
 app.route('/', organizations)
 app.route('/', orgUsers)
 app.route('/', collectionsRouter)

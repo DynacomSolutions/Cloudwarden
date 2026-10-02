@@ -20,6 +20,7 @@
     "api:preview": "pnpm api:build && echo Built docs/api/build/index.html: open it in a browser",
     "test:scripts": "node --test scripts/*.test.mjs",
     "prepare": "lefthook install || true",
+    "import:server": "node scripts/import-from-server.mjs",
     "e2e": "node e2e/run.mjs"
   },
   "devDependencies": {
@@ -30,6 +31,7 @@
     "@cloudflare/vitest-pool-workers": "^0.22.0",
     "@commitlint/cli": "^21.2.3",
     "@commitlint/config-conventional": "^21.2.3",
+    "@noble/hashes": "^2.4.0",
     "@redocly/cli": "^2.57.0",
     "cf": "^1.0.0-beta.5",
     "drizzle-kit": "^0.31.11",

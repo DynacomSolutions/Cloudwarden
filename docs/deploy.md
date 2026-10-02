@@ -39,6 +39,9 @@ them afterwards; they persist across deploys.
 ```sh
 pnpm exec cf workers secrets update JWT_SECRET        # long random string, e.g. openssl rand -base64 48
 pnpm exec cf workers secrets update ADMIN_EMAILS      # comma-separated admin addresses
+# optional mobile push (docs/push-notifications.md):
+# pnpm exec cf workers secrets update PUSH_INSTALLATION_ID
+# pnpm exec cf workers secrets update PUSH_INSTALLATION_KEY
 ```
 
 Each command prompts for the value (see `--help` for non-interactive input).

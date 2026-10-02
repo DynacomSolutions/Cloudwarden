@@ -35,6 +35,13 @@ export interface Bindings {
   JWT_SECRET?: string
   /** Previous signing secret, accepted for verification only while rotating. */
   JWT_SECRET_PREVIOUS?: string
+  /** Bitwarden push relay installation id and key (https://bitwarden.com/host), TASKS #262. */
+  PUSH_INSTALLATION_ID?: string
+  PUSH_INSTALLATION_KEY?: string
+  /** Relay address; default https://push.bitwarden.com (EU: https://push.bitwarden.eu). */
+  PUSH_RELAY_URI?: string
+  /** Identity address that issues the relay token; default https://identity.bitwarden.com (EU: https://identity.bitwarden.eu). */
+  PUSH_IDENTITY_URI?: string
   /** Comma-separated addresses that are instance admins (the account must also be email verified). */
   ADMIN_EMAILS?: string
 }

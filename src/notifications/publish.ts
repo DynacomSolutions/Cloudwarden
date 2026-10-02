@@ -1,6 +1,7 @@
 import type { Bindings } from '../env'
 import { errorKind, log } from '../log'
 import type { MsgValue } from './msgpack'
+import { relaySend } from './relay'
 
 /**
  * Bitwarden notification types, as sent in the `Type` field of `ReceiveMessage`.
@@ -75,19 +76,68 @@ export async function pushUserUpdate(
   type: PushType,
   payload: Payload,
   excludeDeviceIdentifier?: string | null,
+  options: { relay?: boolean } = {},
 ): Promise<void> {
-  try {
-    const stub = env.NOTIFICATIONS.get(env.NOTIFICATIONS.idFromName(userUuid)) as unknown as {
-      push(m: unknown): Promise<number>
-    }
-    await stub.push({
-      target: USER_TARGET,
-      args: [notificationArg(type, payload, excludeDeviceIdentifier ?? null)],
-      excludeDevice: excludeDeviceIdentifier ?? null,
-    })
-  } catch (err) {
-    log('error', 'notification.push_failed', { errorKind: errorKind(err) })
-  }
+  // Live sockets and the mobile relay are independent: one failing never blocks the other.
+  await Promise.all([
+    (async () => {
+      try {
+        const stub = env.NOTIFICATIONS.get(env.NOTIFICATIONS.idFromName(userUuid)) as unknown as {
+          push(m: unknown): Promise<number>
+        }
+        await stub.push({
+          target: USER_TARGET,
+          args: [notificationArg(type, payload, excludeDeviceIdentifier ?? null)],
+          excludeDevice: excludeDeviceIdentifier ?? null,
+        })
+      } catch (err) {
+        log('error', 'notification.push_failed', { errorKind: errorKind(err) })
+      }
+    })(),
+    options.relay === false
+      ? Promise.resolve()
+      : relaySend(env, {
+          type,
+          payload,
+          userId: userUuid,
+          excludeIdentifier: excludeDeviceIdentifier ?? null,
+        }),
+  ])
+}
+
+/**
+ * Sends one event to every member of an organisation: each member's live sockets directly, and
+ * the mobile relay once, targeted by organisation id instead of once per member. `excludeUserUuid`
+ * with `excludeDeviceIdentifier` skips the acting device. The payload is the same for everyone,
+ * so use it for organisation-wide events, not ones that carry a per-user `UserId`.
+ */
+export async function pushOrgUpdate(
+  env: Bindings,
+  organizationUuid: string,
+  memberUuids: string[],
+  type: PushType,
+  payload: Payload,
+  excludeDeviceIdentifier?: string | null,
+  excludeUserUuid?: string | null,
+): Promise<void> {
+  await Promise.all([
+    ...[...new Set(memberUuids)].map((uuid) =>
+      pushUserUpdate(
+        env,
+        uuid,
+        type,
+        payload,
+        uuid === excludeUserUuid ? (excludeDeviceIdentifier ?? null) : null,
+        { relay: false },
+      ),
+    ),
+    relaySend(env, {
+      type,
+      payload,
+      organizationId: organizationUuid,
+      excludeIdentifier: excludeDeviceIdentifier ?? null,
+    }),
+  ])
 }
 
 /**
@@ -99,6 +149,13 @@ export async function pushLogOut(
   userUuid: string,
   originDeviceIdentifier?: string | null,
 ): Promise<void> {
+  const payload = { UserId: userUuid, Date: new Date().toISOString() }
+  const relayDone = relaySend(env, {
+    type: PushType.LogOut,
+    payload,
+    userId: userUuid,
+    excludeIdentifier: originDeviceIdentifier ?? null,
+  })
   try {
     const stub = env.NOTIFICATIONS.get(env.NOTIFICATIONS.idFromName(userUuid)) as unknown as {
       push(m: unknown): Promise<number>
@@ -119,6 +176,7 @@ export async function pushLogOut(
   } catch (err) {
     log('error', 'notification.push_failed', { errorKind: errorKind(err) })
   }
+  await relayDone
 }
 
 /** Name of the Durable Object serving the anonymous hub for one auth request. */

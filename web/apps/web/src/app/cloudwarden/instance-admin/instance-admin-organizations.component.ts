@@ -8,6 +8,7 @@ import { DialogService, ToastService } from "@bitwarden/components";
 import { HeaderModule } from "../../layouts/header/header.module";
 import { SharedModule } from "../../shared";
 
+import { ConfirmNameDialogComponent } from "./confirm-name-dialog.component";
 import { AdminOrganization, InstanceAdminApiService } from "./instance-admin-api.service";
 
 @Component({
@@ -72,10 +73,10 @@ export class InstanceAdminOrganizationsComponent implements OnInit {
   }
 
   protected async remove(o: AdminOrganization) {
-    const ok = await this.dialogService.openSimpleDialog({
-      title: { key: "cwDeleteOrganization" },
-      content: this.i18n.t("cwDeleteOrganizationDesc", o.name),
-      type: "danger",
+    const ok = await ConfirmNameDialogComponent.confirm(this.dialogService, {
+      title: this.i18n.t("cwDeleteOrganization"),
+      description: this.i18n.t("cwDeleteOrganizationDesc", o.name),
+      name: o.name,
     });
     if (!ok) {
       return;

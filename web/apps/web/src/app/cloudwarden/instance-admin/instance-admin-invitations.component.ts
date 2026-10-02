@@ -87,12 +87,19 @@ export class InstanceAdminInvitationsComponent implements OnInit {
     if (this.form.invalid) {
       return;
     }
-    const r = await this.api.invite(this.form.value.email ?? "");
-    this.toastService.showToast({
-      variant: "success",
-      message: this.i18n.t("cwInvited", r.email),
-    });
-    this.form.reset();
+    try {
+      const r = await this.api.invite(this.form.value.email ?? "");
+      this.toastService.showToast({
+        variant: "success",
+        message: this.i18n.t("cwInvited", r.email),
+      });
+      this.form.reset();
+    } catch (e) {
+      this.toastService.showToast({
+        variant: "error",
+        message: (e as Error)?.message ?? String(e),
+      });
+    }
     await this.load();
   };
 

@@ -19,7 +19,9 @@ Manager, the Provider Portal, SSO and SCIM administration and other enterprise f
 therefore not part of this build. Cloudwarden's own Secrets Manager pages
 (`apps/web/src/app/cloudwarden/secrets-manager/`) are written from scratch against Cloudwarden's
 API contract (`docs/secrets-manager.md`); no code, structure or assets were taken from
-Bitwarden's Secrets Manager web app.
+Bitwarden's Secrets Manager web app. Likewise the SCIM settings and event integrations pages
+(`apps/web/src/app/cloudwarden/org-integrations/`) are Cloudwarden's own, written against
+`docs/integrations.md` without reference to Bitwarden's licensed screens.
 
 ## Trademarks
 
@@ -53,5 +55,8 @@ Summary of changes made by Cloudwarden (see `git log -- web/` for the full histo
   `/sm/:organizationId` (`apps/web/src/app/cloudwarden/secrets-manager/`), shown in the product
   switcher for members with Secrets Manager access; the Secrets Manager logo is replaced with a
   Cloudwarden one.
+- Organisation integrations: SCIM provisioning settings (`settings/scim`) and event integrations
+  (`integrations`: signed webhooks, Splunk, Datadog, Microsoft Sentinel) routed to Cloudwarden's
+  own pages (`apps/web/src/app/cloudwarden/org-integrations/`).
 
 Files Cloudwarden adds live in directories named `cloudwarden/` where practical.

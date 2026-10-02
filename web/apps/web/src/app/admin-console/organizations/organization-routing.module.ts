@@ -63,6 +63,16 @@ const routes: Routes = [
           ),
       },
       {
+        // Cloudwarden: native event integrations page (web/NOTICE.md, docs/integrations.md).
+        path: "integrations",
+        loadComponent: () =>
+          import("../../cloudwarden/org-integrations/event-integrations.component").then(
+            (m) => m.EventIntegrationsComponent,
+          ),
+        canActivate: [organizationPermissionsGuard((o) => o.isAdmin)],
+        data: { titleId: "integrations" },
+      },
+      {
         path: "billing",
         loadChildren: () =>
           import("../../billing/organizations/organization-billing.module").then(

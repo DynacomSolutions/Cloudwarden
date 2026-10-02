@@ -18178,5 +18178,230 @@
         "example": "3"
       }
     }
+  },
+  "cwScimDesc": {
+    "message": "Let an identity provider such as Microsoft Entra ID or Okta create, update, revoke and remove members and groups of this organisation over SCIM 2.0."
+  },
+  "cwScimEnable": {
+    "message": "Enable SCIM"
+  },
+  "cwScimEnableHint": {
+    "message": "While disabled, the SCIM endpoint rejects every request, even with a valid key."
+  },
+  "cwScimProvider": {
+    "message": "Identity provider"
+  },
+  "cwScimProviderOther": {
+    "message": "Other"
+  },
+  "cwScimProviderEntra": {
+    "message": "Microsoft Entra ID"
+  },
+  "cwScimProviderOkta": {
+    "message": "Okta"
+  },
+  "cwScimProviderOneLogin": {
+    "message": "OneLogin"
+  },
+  "cwScimProviderJumpCloud": {
+    "message": "JumpCloud"
+  },
+  "cwScimProviderGoogle": {
+    "message": "Google Workspace"
+  },
+  "cwScimUrl": {
+    "message": "SCIM URL"
+  },
+  "cwScimUrlHint": {
+    "message": "Enter this as the tenant URL (Entra ID) or SCIM connector base URL (Okta). Use the SCIM API key as the secret token or Bearer token."
+  },
+  "cwScimApiKey": {
+    "message": "SCIM API key"
+  },
+  "cwScimViewDesc": {
+    "message": "Confirm your identity to view the SCIM API key."
+  },
+  "cwScimRotateDesc": {
+    "message": "Rotating the key stops the current key working at once. Confirm your identity to continue."
+  },
+  "cwScimKeyWarning": {
+    "message": "Anyone with this key can provision and deprovision members. Store it only in your identity provider."
+  },
+  "cwScimSaved": {
+    "message": "SCIM settings saved"
+  },
+  "cwIntDesc": {
+    "message": "Send this organisation's events to other systems as they happen. Events are delivered in order and retried with back-off until the destination accepts them."
+  },
+  "cwIntExportLink": {
+    "message": "Export the event log as CSV from Reporting, Event logs"
+  },
+  "cwIntNone": {
+    "message": "No integrations yet."
+  },
+  "cwIntAdd": {
+    "message": "Add integration"
+  },
+  "cwIntEdit": {
+    "message": "Edit integration"
+  },
+  "cwIntWebhook": {
+    "message": "Webhook (signed)"
+  },
+  "cwIntSplunk": {
+    "message": "Splunk HTTP Event Collector"
+  },
+  "cwIntDatadog": {
+    "message": "Datadog logs"
+  },
+  "cwIntSentinel": {
+    "message": "Microsoft Sentinel"
+  },
+  "cwIntUrl": {
+    "message": "URL"
+  },
+  "cwIntHeaderName": {
+    "message": "Extra header name"
+  },
+  "cwIntHeaderValue": {
+    "message": "Extra header value"
+  },
+  "cwIntSplunkUrl": {
+    "message": "HEC URL"
+  },
+  "cwIntSplunkToken": {
+    "message": "HEC token"
+  },
+  "cwIntSplunkIndex": {
+    "message": "Index"
+  },
+  "cwIntSplunkSource": {
+    "message": "Source"
+  },
+  "cwIntSplunkSourcetype": {
+    "message": "Source type"
+  },
+  "cwIntDatadogSite": {
+    "message": "Datadog site"
+  },
+  "cwIntDatadogApiKey": {
+    "message": "API key"
+  },
+  "cwIntDatadogService": {
+    "message": "Service"
+  },
+  "cwIntDatadogTags": {
+    "message": "Tags"
+  },
+  "cwIntSentinelTenant": {
+    "message": "Directory (tenant) ID"
+  },
+  "cwIntSentinelClient": {
+    "message": "Application (client) ID"
+  },
+  "cwIntSentinelSecret": {
+    "message": "Client secret"
+  },
+  "cwIntSentinelEndpoint": {
+    "message": "Logs ingestion endpoint"
+  },
+  "cwIntSentinelRule": {
+    "message": "Data collection rule immutable ID"
+  },
+  "cwIntSentinelStream": {
+    "message": "Stream name"
+  },
+  "cwIntEventTypes": {
+    "message": "Event types"
+  },
+  "cwIntEventTypesHint": {
+    "message": "Leave empty to send every event, or list codes and ranges, for example 1000-1010, 1500."
+  },
+  "cwIntEnabled": {
+    "message": "Enabled"
+  },
+  "cwIntSecretKeep": {
+    "message": "Leave empty to keep the stored value."
+  },
+  "cwIntSigningSecret": {
+    "message": "Signing secret"
+  },
+  "cwIntSigningSecretDesc": {
+    "message": "Each request carries X-Cloudwarden-Signature: v1= followed by the hex HMAC-SHA256 of the X-Cloudwarden-Timestamp value, a full stop and the body. Copy this secret now: it is not shown again."
+  },
+  "cwIntTest": {
+    "message": "Send test event"
+  },
+  "cwIntTestOk": {
+    "message": "Test event delivered"
+  },
+  "cwIntRotateSecret": {
+    "message": "Rotate signing secret"
+  },
+  "cwIntRotateSecretDesc": {
+    "message": "The current secret stops being used for new deliveries at once. Update the receiver with the new secret."
+  },
+  "cwIntDeleteDesc": {
+    "message": "Delete the integration $NAME$? Undelivered events are not sent.",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "x"
+      }
+    }
+  },
+  "cwIntFailing": {
+    "message": "Failing ($COUNT$)",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "x"
+      }
+    }
+  },
+  "cwIntLastSent": {
+    "message": "Last delivery $DATE$",
+    "placeholders": {
+      "date": {
+        "content": "$1",
+        "example": "x"
+      }
+    }
+  },
+  "cwIntTestFailed": {
+    "message": "Test failed: $ERROR$",
+    "placeholders": {
+      "error": {
+        "content": "$1",
+        "example": "x"
+      }
+    }
+  },
+  "cwIntMissing": {
+    "message": "Fill in: $FIELDS$",
+    "placeholders": {
+      "fields": {
+        "content": "$1",
+        "example": "x"
+      }
+    }
+  },
+  "cwIntBadEventType": {
+    "message": "Not an event type: $VALUE$",
+    "placeholders": {
+      "value": {
+        "content": "$1",
+        "example": "x"
+      }
+    }
+  },
+  "cwScimKeyChanged": {
+    "message": "Key last changed $DATE$",
+    "placeholders": {
+      "date": {
+        "content": "$1",
+        "example": "x"
+      }
+    }
   }
 }

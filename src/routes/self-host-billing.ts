@@ -55,7 +55,7 @@ export const SELF_HOST_PLAN = {
   hasSelfHost: true,
   hasPolicies: true,
   hasMyItems: false,
-  hasInviteLinks: false,
+  hasInviteLinks: true,
   hasGroups: true,
   hasDirectory: false,
   hasEvents: true,

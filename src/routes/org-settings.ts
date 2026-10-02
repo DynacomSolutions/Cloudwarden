@@ -8,12 +8,15 @@ import { ApiError } from '../errors'
 import {
   bumpOrgRevision,
   can,
+  collectionAccess,
   getMember,
   isAdminRole,
+  loadUserAccess,
+  manageAll,
   requireMember,
   requireOrg,
 } from '../orgs/access'
-import { orgCipherJson } from '../orgs/ciphers'
+import { listOrgCipherRows, orgCipherJson } from '../orgs/ciphers'
 import { EventType, PolicyType, Role, Status } from '../orgs/constants'
 import { eventStatement } from '../orgs/events'
 import { notifyOrgKeys } from '../orgs/notify'
@@ -168,6 +171,22 @@ orgSettings.get('/api/organizations/:orgId/export', async (c) => {
   const db = createDb(c.env.DB)
   const m = await requireMember(db, c.var.user.uuid, org(c))
   if (!can(m, 'accessImportExport')) throw FORBIDDEN()
+  if (!(await manageAll(db, m))) {
+    // Without access to every item, the export holds only what the member can reach.
+    const ua = await loadUserAccess(db, c.var.user.uuid)
+    const rows = (await listOrgCipherRows(db, c.var.user.uuid, ua)).filter(
+      (r) => r.cipher.organizationUuid === org(c) && r.cipher.deletedAt === null,
+    )
+    const own = await db
+      .select()
+      .from(schema.collections)
+      .where(eq(schema.collections.organizationUuid, org(c)))
+    return c.json({
+      object: 'organizationExport',
+      collections: own.filter((x) => collectionAccess(ua, org(c), x.uuid)).map(collectionJson),
+      ciphers: rows.map((r) => orgCipherJson({ ...r, folderId: null })),
+    })
+  }
   const [collections, ciphers, links] = await Promise.all([
     db
       .select()
@@ -210,6 +229,11 @@ orgSettings.get('/api/organizations/:orgId/export', async (c) => {
 })
 
 // ----- invite links (managed by members who manage users) -----
+
+/** Setting `supportsConfirmation` lets joiners confirm themselves, so only owners and admins may. */
+function requireAdminToConfirm(m: { atype: number }, wants: boolean | null | undefined) {
+  if (wants === true && m.atype !== Role.Owner && m.atype !== Role.Admin) throw FORBIDDEN()
+}
 
 async function requireUserManager(c: Ctx) {
   const m = await requireMember(createDb(c.env.DB), c.var.user.uuid, org(c))
@@ -271,7 +295,7 @@ orgSettings.post('/api/organizations/:orgId/invite-link', async (c) => {
       supportsConfirmation: z.boolean().nullish(),
     }),
   )
-  await requireUserManager(c)
+  requireAdminToConfirm(await requireUserManager(c), body.supportsConfirmation)
   const db = createDb(c.env.DB)
   if (await currentLink(db, org(c)))
     throw new ApiError(400, 'This organization already has an invite link.')
@@ -312,7 +336,7 @@ orgSettings.post('/api/organizations/:orgId/invite-link/refresh', async (c) => {
     c,
     z.object({ invite: inviteMaterial, supportsConfirmation: z.boolean().nullish() }),
   )
-  await requireUserManager(c)
+  requireAdminToConfirm(await requireUserManager(c), body.supportsConfirmation)
   const db = createDb(c.env.DB)
   const link = await loadLinkOr404(db, org(c))
   await runBatch(db, [
@@ -334,7 +358,7 @@ orgSettings.put('/api/organizations/:orgId/invite-link/support-confirm', async (
     c,
     z.object({ invite: inviteMaterial, supportsConfirmation: z.boolean() }),
   )
-  await requireUserManager(c)
+  requireAdminToConfirm(await requireUserManager(c), body.supportsConfirmation)
   const db = createDb(c.env.DB)
   const link = await loadLinkOr404(db, org(c))
   await runBatch(db, [
@@ -400,6 +424,10 @@ async function checkJoin(
   if (confirming && !link.supportsConfirmation) {
     throw new ApiError(400, 'This invite link does not support confirmation.')
   }
+  // Joining without an administrator's confirmation needs the organisation to have opted in.
+  if (confirming && !(await enabledPolicy(db, org.uuid, PolicyType.AutomaticUserConfirmation))) {
+    throw new ApiError(400, 'This organization does not confirm members automatically.')
+  }
   try {
     await assertTwoFactorCompliant(db, user.uuid, org.uuid)
   } catch {
@@ -448,7 +476,7 @@ async function checkJoin(
 }
 
 /** The key material of the link, for a signed-in account that knows the link code. */
-orgSettings.post('/api/organizations/users/invite-link/invite', async (c) => {
+orgSettings.post('/api/organizations/users/invite-link/invite', publicLimit, async (c) => {
   const body = await parseBody(c, codeSchema)
   const link = await linkByCode(createDb(c.env.DB), body.organizationId, body.linkCode)
   return c.json({ object: 'organizationInvite', invite: link.invite })
@@ -528,6 +556,6 @@ async function join(c: Ctx, confirming: boolean) {
 }
 
 /** Joins as an accepted member; an administrator confirms later. */
-orgSettings.post('/api/organizations/users/invite-link/accept', (c) => join(c, false))
+orgSettings.post('/api/organizations/users/invite-link/accept', publicLimit, (c) => join(c, false))
 /** Joins and confirms in one step, with the organisation key the client sealed to the account. */
-orgSettings.post('/api/organizations/users/invite-link/confirm', (c) => join(c, true))
+orgSettings.post('/api/organizations/users/invite-link/confirm', publicLimit, (c) => join(c, true))

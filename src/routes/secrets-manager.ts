@@ -1444,8 +1444,9 @@ secretsManager.get('/api/organization/:orgId/service-account/:id/events', async 
 
 // ----- trash -----
 
-/** Trashed secrets of the organisation the caller may change, with their projects. */
+/** Trashed secrets of the organisation the caller may change, with their projects. Members only. */
 async function trashedSecrets(db: Db, ctx: SmContext) {
+  if (ctx.actor.kind !== 'user') throw forbidden()
   const rows = await db
     .select()
     .from(schema.smSecrets)

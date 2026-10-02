@@ -189,6 +189,17 @@ describe('security tasks', () => {
     expect((await member.call('/api/tasks?status=7')).status).toBe(400)
   })
 
+  it('shows tasks without an item only to members who manage reports', async () => {
+    const made = await owner.json(`/api/tasks/${orgId}/bulk-create`, 'POST', {
+      tasks: [{ type: 0 }],
+    })
+    const general = made.data.find((t: any) => t.cipherId === null)
+    expect(general).toBeTruthy()
+    expect((await member.json('/api/tasks')).data.map((t: any) => t.id)).not.toContain(general.id)
+    expect((await member.call(`/api/tasks/${general.id}/complete`, 'PATCH')).status).toBe(404)
+    expect((await owner.json('/api/tasks')).data.map((t: any) => t.id)).toContain(general.id)
+  })
+
   it('completes tasks and reports organisation metrics', async () => {
     expect((await member.call(`/api/tasks/${taskId}/complete`, 'PATCH')).status).toBe(200)
     expect((await member.json('/api/tasks?status=1')).data.map((t: any) => t.id)).toEqual([taskId])
@@ -197,7 +208,7 @@ describe('security tasks', () => {
     expect((await member.call(`/api/tasks/organization?organizationId=${orgId}`)).status).toBe(403)
     expect(await owner.json(`/api/tasks/${orgId}/metrics`)).toMatchObject({
       completedTasks: 1,
-      totalTasks: 1,
+      totalTasks: 2,
     })
   })
 })

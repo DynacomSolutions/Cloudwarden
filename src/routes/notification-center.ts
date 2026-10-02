@@ -16,6 +16,7 @@ import { listOrgCipherRows } from '../orgs/ciphers'
 import { Role, Status } from '../orgs/constants'
 import { activeMemberIds, defer } from '../orgs/notify'
 import { authOnce, batch } from '../orgs/util'
+import { overLimit, tooManyRequests } from '../ratelimit'
 import { parseBody } from '../validation'
 
 export const notificationCenter = new Hono<Env>()
@@ -96,23 +97,32 @@ async function tasksForUser(db: Db, userUuid: string) {
   const editable = new Set(
     (await listOrgCipherRows(db, userUuid)).filter((r) => r.access.edit).map((r) => r.cipher.uuid),
   )
-  const orgs = (
-    await db
-      .select({ id: schema.usersOrganizations.organizationUuid })
-      .from(schema.usersOrganizations)
-      .where(
-        and(
-          eq(schema.usersOrganizations.userUuid, userUuid),
-          eq(schema.usersOrganizations.status, Status.Confirmed),
-        ),
-      )
-  ).map((r) => r.id)
-  if (orgs.length === 0) return []
+  const memberships = await db
+    .select()
+    .from(schema.usersOrganizations)
+    .where(
+      and(
+        eq(schema.usersOrganizations.userUuid, userUuid),
+        eq(schema.usersOrganizations.status, Status.Confirmed),
+      ),
+    )
+  if (memberships.length === 0) return []
+  // Tasks without an item are organisation-wide: only members who manage reports see them.
+  const managers = new Set(
+    memberships.filter((m) => can(m, 'accessReports')).map((m) => m.organizationUuid),
+  )
   const rows = await db
     .select()
     .from(schema.securityTasks)
-    .where(inArray(schema.securityTasks.organizationUuid, orgs))
-  return rows.filter((t) => t.cipherUuid === null || editable.has(t.cipherUuid))
+    .where(
+      inArray(
+        schema.securityTasks.organizationUuid,
+        memberships.map((m) => m.organizationUuid),
+      ),
+    )
+  return rows.filter((t) =>
+    t.cipherUuid === null ? managers.has(t.organizationUuid) : editable.has(t.cipherUuid),
+  )
 }
 
 /** Tells every member of the organisation to refetch their tasks. */
@@ -245,6 +255,7 @@ const smAccessSchema = z.object({
 
 /** Emails the organisation's owners and admins that a member asks for Secrets Manager access. */
 notificationCenter.post('/api/request-access/request-sm-access', async (c) => {
+  if (await overLimit(c, 'sm-access-request', c.var.user.uuid)) return tooManyRequests(c)
   const body = await parseBody(c, smAccessSchema)
   const orgUuid = body.organizationId.toLowerCase()
   if (!UUID.test(orgUuid)) throw new ApiError(404, 'Organization not found.')

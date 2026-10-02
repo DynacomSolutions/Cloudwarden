@@ -27,7 +27,9 @@ export function inviteEmail(registerUrl: string): Template {
   }
 }
 
-export function genericEmail(subject: string, paragraphs: string[]): Template {
+export function genericEmail(rawSubject: string, paragraphs: string[]): Template {
+  // The subject becomes a header: no line breaks, bounded length.
+  const subject = rawSubject.replace(/[\r\n]+/g, ' ').slice(0, 200)
   return { subject, text: plain(paragraphs), html: shell(subject, paragraphs) }
 }
 

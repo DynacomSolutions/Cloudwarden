@@ -113,7 +113,10 @@ describe('organisation export', () => {
 
     const custom = await actor('exp-custom@example.com')
     await addMember(owner, id, custom, { type: 4, permissions: { accessImportExport: true } })
-    expect((await custom.call(`/api/organizations/${id}/export`)).status).toBe(200)
+    // Without access to every item the export holds only what the member can reach.
+    const limited = await custom.json(`/api/organizations/${id}/export`)
+    expect(limited.ciphers).toEqual([])
+    expect(limited.collections).toEqual([])
   })
 })
 
@@ -415,6 +418,11 @@ describe('joining through an invite link', () => {
       invite: 'opaque-invite',
       supportsConfirmation: true,
     })
+    // Joining without confirmation by an administrator needs the organisation's opt-in policy.
+    const noPolicy = await other.call(confirm, 'POST', body)
+    expect(noPolicy.status).toBe(400)
+    expect(((await noPolicy.json()) as { message: string }).message).toMatch(/automatically/)
+    await owner.call(`/api/organizations/${id}/policies/18`, 'PUT', { enabled: true })
     expect((await json('/api/organizations/invite-link/status', join(id, link.code))).status).toBe(
       200,
     )
@@ -422,6 +430,26 @@ describe('joining through an invite link', () => {
     expect((await other.call(confirm, 'POST', body)).status).toBe(200)
     const profile = await other.json('/api/accounts/profile')
     expect(profile.organizations[0]).toMatchObject({ id, status: 2, key: '4.key' })
+
+    // A member who only manages users cannot make the link self-confirming.
+    const manager = await actor('jl-manager@example.com')
+    await addMember(owner, id, manager, { type: 4, permissions: { manageUsers: true } })
+    expect(
+      (
+        await manager.call(`${base}/support-confirm`, 'PUT', {
+          invite: 'x',
+          supportsConfirmation: true,
+        })
+      ).status,
+    ).toBe(403)
+    expect(
+      (
+        await manager.call(`${base}/support-confirm`, 'PUT', {
+          invite: 'x',
+          supportsConfirmation: false,
+        })
+      ).status,
+    ).toBe(200)
 
     // Domain and revocation checks.
     await owner.json(base, 'PUT', { allowedDomains: ['example.org'] })

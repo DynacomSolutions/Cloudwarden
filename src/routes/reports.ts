@@ -4,6 +4,7 @@ import type { Env } from '../env'
 import { ApiError } from '../errors'
 import type { Fetcher } from '../icons/fetch'
 import { log } from '../log'
+import { overLimit, rateLimit, tooManyRequests } from '../ratelimit'
 
 const HIBP_URL = 'https://haveibeenpwned.com/api/v3/breachedaccount/'
 const PASSKEY_DIRECTORY_URL = 'https://passkeys-api.2fa.directory/v1/all.json'
@@ -35,6 +36,41 @@ export function mapPasskeyDirectory(raw: unknown) {
     }))
 }
 
+const MAX_DIRECTORY_BYTES = 8 * 1024 * 1024
+let inflight: Promise<unknown> | null = null
+
+/** Fetches the directory with a size cap, so a bad upstream cannot exhaust memory. */
+async function loadDirectory(fetcher: Fetcher): Promise<unknown> {
+  const res = await fetcher(PASSKEY_DIRECTORY_URL, {
+    headers: { Accept: 'application/json', 'User-Agent': USER_AGENT },
+    signal: AbortSignal.timeout(10_000),
+  })
+  if (!res.ok) throw new Error(String(res.status))
+  const length = Number(res.headers.get('Content-Length') ?? 0)
+  if (length > MAX_DIRECTORY_BYTES) throw new Error('too large')
+  const reader = res.body?.getReader()
+  if (!reader) throw new Error('no body')
+  const chunks: Uint8Array[] = []
+  let total = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    total += value.byteLength
+    if (total > MAX_DIRECTORY_BYTES) {
+      await reader.cancel()
+      throw new Error('too large')
+    }
+    chunks.push(value)
+  }
+  const bytes = new Uint8Array(total)
+  let at = 0
+  for (const part of chunks) {
+    bytes.set(part, at)
+    at += part.byteLength
+  }
+  return JSON.parse(new TextDecoder().decode(bytes))
+}
+
 /** Build the report routes. `fetcher` is injectable so tests never touch the network. */
 export function createReports(fetcher: Fetcher = (u, i) => fetch(u, i)) {
   const reports = new Hono<Env>()
@@ -44,6 +80,8 @@ export function createReports(fetcher: Fetcher = (u, i) => fetch(u, i)) {
   reports.get('/api/hibp/breach', requireAuth, async (c) => {
     const key = c.env.HIBP_API_KEY
     if (!key) throw new ApiError(400, 'The breach report is not configured on this server.')
+    // Every call spends the instance's paid HIBP quota: limit it per account.
+    if (await overLimit(c, 'hibp', c.var.user.uuid)) return tooManyRequests(c)
     const username = c.req.query('username') ?? ''
     if (!username) throw new ApiError(400, 'A username is required.')
     let res: Response
@@ -70,13 +108,18 @@ export function createReports(fetcher: Fetcher = (u, i) => fetch(u, i)) {
     const cacheKey = new Request(`${new URL(c.req.url).origin}/__cache/passkey-directory`)
     const hit = await cache.match(cacheKey)
     if (hit) return c.json(await hit.json())
+    // Cache misses reach the upstream: limit them per address and coalesce concurrent ones.
+    let allowed = false
+    const limited = await rateLimit('passkey-directory', 10)(c, async () => {
+      allowed = true
+    })
+    if (!allowed) return limited as Response
     let raw: unknown
     try {
-      const res = await fetcher(PASSKEY_DIRECTORY_URL, {
-        headers: { Accept: 'application/json', 'User-Agent': USER_AGENT },
+      inflight ??= loadDirectory(fetcher).finally(() => {
+        inflight = null
       })
-      if (!res.ok) throw new Error(String(res.status))
-      raw = await res.json()
+      raw = await inflight
     } catch {
       throw new ApiError(502, 'The passkey directory could not be loaded.')
     }

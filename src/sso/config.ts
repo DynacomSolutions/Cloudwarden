@@ -67,6 +67,11 @@ export const ssoConfigSchema = z.object({
   additionalNameClaimTypes: optText,
   acrValues: optText,
   expectedReturnAcrValue: optText,
+  /**
+   * Cloudwarden option: accept OIDC email addresses the provider does not mark verified
+   * (`email_verified` absent or false) when linking or provisioning accounts. Off by default.
+   */
+  allowUnverifiedEmail: optBool,
   // SAML 2.0 service provider
   spUniqueEntityId: optBool,
   spNameIdFormat: optInt,
@@ -173,6 +178,20 @@ export async function openConfig(env: Bindings, orgUuid: string, data: SsoConfig
   const secret = data.clientSecret
   if (!secret || !isSealed(secret)) return data
   return { ...data, clientSecret: await unseal(env, secretPurpose(orgUuid), secret) }
+}
+
+/**
+ * True when the provider settings the client secret is bound to (authority, metadata address,
+ * client ID) differ, so a kept (placeholder) secret must not be reused.
+ */
+export const providerChanged = (a: SsoConfigData | null | undefined, b: SsoConfigData) => {
+  const norm = (v: string | null | undefined) => (v ?? '').trim()
+  return (
+    !a ||
+    norm(a.authority) !== norm(b.authority) ||
+    norm(a.metadataAddress) !== norm(b.metadataAddress) ||
+    norm(a.clientId) !== norm(b.clientId)
+  )
 }
 
 /** The configuration shown to administrators: the client secret replaced by a placeholder. */

@@ -44,8 +44,10 @@ what the GPL clients send and expect.
      an address it invited; only a claimed domain marks the address verified;
    - revoked members are refused; invitations are accepted; new members join as accepted Users
      for an administrator to confirm.
-   OIDC email comes only from the `email` claim (or claim types the administrator names) and is
-   refused when `email_verified` is false. SAML email comes from the standard email attributes or
+   OIDC email comes only from the `email` claim (or claim types the administrator names). Linking
+   or provisioning by email requires `email_verified: true` unless the organisation turns on
+   "Accept email addresses the provider has not verified" (`allowUnverifiedEmail`); logins of
+   already linked identities are not affected. SAML email comes from the standard email attributes or
    an email-shaped NameID.
 5. A one-time code (5 minutes) bound to client, redirect URI and PKCE challenge goes to the
    client's redirect URI with its `state` unchanged. `POST /identity/connect/token` with
@@ -56,8 +58,10 @@ what the GPL clients send and expect.
 
 The OIDC client secret and the SAML SP private key are encrypted with AES-256-GCM under a key
 derived from `DATA_ENCRYPTION_KEY` (or, without it, from `JWT_SECRET`; `src/orgs/sealed.ts`). The
-settings page shows the client secret as a placeholder; saving the placeholder keeps the stored
-value. Discovery documents are cached for 5 minutes and JWKS per issuer within an isolate. A
+settings page shows the client secret as a placeholder; saving (or testing) with the placeholder
+keeps the stored value, unless the authority, metadata address or client ID changed: then the
+secret must be entered again. Account link tokens (`GET /api/accounts/sso/user-identifier`) are
+issued only to sessions of accounts with a master password. Discovery documents are cached for 5 minutes and JWKS per issuer within an isolate. A
 custom metadata address must be on the authority's host. SAML: AES-CBC encrypted assertions are
 decrypted only inside a verified signed response, all decryption failures give one generic
 error, and a signed response must carry `Destination`.

@@ -165,6 +165,11 @@ export interface SsoIdentity {
   externalId: string
   email: string | null
   name: string | null
+  /**
+   * The provider vouches for the address: OIDC `email_verified === true` (or the administrator's
+   * opt-out); SAML assertions are signed statements of the provider and count as verified.
+   */
+  emailVerified?: boolean
 }
 
 type Member = typeof schema.usersOrganizations.$inferSelect
@@ -216,6 +221,10 @@ export async function provisionSsoUser(
   } else {
     const email = identity.email ? normalizeEmail(identity.email) : null
     if (!email) throw new SsoError('The identity provider did not return an email address.')
+    // Linking or provisioning by email needs an address the provider has verified.
+    if (identity.emailVerified === false) {
+      throw new SsoError('The identity provider has not verified this email address.')
+    }
     if (linkUserUuid) {
       ;[user] = await db
         .select()

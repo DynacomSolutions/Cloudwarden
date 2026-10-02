@@ -39,6 +39,7 @@ import {
   openConfig,
   orgByIdentifier,
   parseConfigData,
+  providerChanged,
   REDACTED_SECRET,
   redactConfig,
   type SsoConfigData,
@@ -312,6 +313,13 @@ ssoAdmin.post('/api/organizations/:orgId/sso', async (c) => {
 
   const now = Date.now()
   // The placeholder shown to administrators keeps the stored (encrypted) secret.
+  // A kept secret belongs to the provider it was entered for: changing the authority, metadata
+  // address or client ID requires entering the secret again.
+  if (data.clientSecret === REDACTED_SECRET && providerChanged(before, data)) {
+    throw new ApiError(400, 'The request is invalid.', {
+      clientSecret: ['Enter the client secret again after changing the provider settings.'],
+    })
+  }
   const toStore =
     data.clientSecret === REDACTED_SECRET
       ? { ...data, clientSecret: before?.clientSecret ?? null }
@@ -395,6 +403,14 @@ ssoAdmin.post('/api/organizations/:orgId/sso/test', rateLimit('sso-test'), async
   if (data.clientSecret === REDACTED_SECRET) {
     const row = await loadSsoConfig(createDb(c.env.DB), orgParam(c))
     const stored = row ? await openConfig(c.env, orgParam(c), parseConfigData(row)) : null
+    if (providerChanged(stored, data)) {
+      return c.json({
+        object: 'ssoTest',
+        success: false,
+        problems: ['Enter the client secret again after changing the provider settings.'],
+        issuer: null,
+      })
+    }
     data = { ...data, clientSecret: stored?.clientSecret ?? null }
   }
   try {
@@ -673,6 +689,11 @@ export const ssoAccounts = new Hono<Env>()
 
 /** A short-lived token that lets a signed-in user link their account to an organisation's SSO. */
 ssoAccounts.get('/api/accounts/sso/user-identifier', requireAuth, async (c) => {
+  // Linking proves account ownership through the master password session; accounts without one
+  // (created by SSO) have nothing to link.
+  if (!hasMasterPassword(c.var.user)) {
+    throw new ApiError(400, 'Set a master password before linking single sign-on.')
+  }
   const token = await signPurposeToken(
     c.env,
     LINK_PURPOSE,

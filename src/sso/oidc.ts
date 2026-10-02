@@ -15,6 +15,8 @@ export interface OidcClaims {
   externalId: string
   email: string | null
   name: string | null
+  /** `email_verified === true`, or the administrator accepts unverified addresses. */
+  emailVerified: boolean
 }
 
 const DISCOVERY_TIMEOUT_MS = 10_000
@@ -199,16 +201,18 @@ export function mapOidcClaims(data: SsoConfigData, claims: Record<string, unknow
   // Only the standard `email` claim and claim types the administrator named. Usernames (`upn`,
   // `preferred_username`) are not email addresses the provider vouches for.
   const email = firstString(claims, [...extra(data.additionalEmailClaimTypes), 'email'])
-  if (email && claims.email_verified === false) {
-    throw new SsoError('The identity provider has not verified this email address.')
-  }
   const name = firstString(claims, [
     ...extra(data.additionalNameClaimTypes),
     'name',
     'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name',
     'given_name',
   ])
-  return { externalId, email: email?.includes('@') ? email : null, name }
+  return {
+    externalId,
+    email: email?.includes('@') ? email : null,
+    name,
+    emailVerified: claims.email_verified === true || data.allowUnverifiedEmail === true,
+  }
 }
 
 /**

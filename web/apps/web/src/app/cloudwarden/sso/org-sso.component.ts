@@ -206,6 +206,15 @@ const SIG = {
             />
             <bit-label>{{ "getClaimsFromUserInfoEndpoint" | i18n }}</bit-label>
           </bit-form-control>
+          <bit-form-control>
+            <input
+              type="checkbox"
+              bitCheckbox
+              formControlName="allowUnverifiedEmail"
+            />
+            <bit-label>{{ "cwAllowUnverifiedEmail" | i18n }}</bit-label>
+            <bit-hint>{{ "cwAllowUnverifiedEmailHint" | i18n }}</bit-hint>
+          </bit-form-control>
           <h4 bitTypography="h4" class="tw-mt-2">
             {{ "openIdOptionalCustomizations" | i18n }}
           </h4>
@@ -542,6 +551,7 @@ export class OrgSsoComponent implements OnInit {
     metadataAddress: [""],
     redirectBehavior: [0],
     getClaimsFromUserInfoEndpoint: [false],
+    allowUnverifiedEmail: [false],
     additionalScopes: [""],
     additionalUserIdClaimTypes: [""],
     additionalEmailClaimTypes: [""],
@@ -591,6 +601,7 @@ export class OrgSsoComponent implements OnInit {
         metadataAddress: d.metadataAddress ?? "",
         redirectBehavior: d.redirectBehavior ?? 0,
         getClaimsFromUserInfoEndpoint: d.getClaimsFromUserInfoEndpoint ?? false,
+        allowUnverifiedEmail: d.allowUnverifiedEmail ?? false,
         additionalScopes: d.additionalScopes ?? "",
         additionalUserIdClaimTypes: d.additionalUserIdClaimTypes ?? "",
         additionalEmailClaimTypes: d.additionalEmailClaimTypes ?? "",
@@ -663,6 +674,7 @@ export class OrgSsoComponent implements OnInit {
       metadataAddress: text(v.metadataAddress),
       redirectBehavior: v.redirectBehavior,
       getClaimsFromUserInfoEndpoint: v.getClaimsFromUserInfoEndpoint,
+      allowUnverifiedEmail: v.allowUnverifiedEmail,
       additionalScopes: text(v.additionalScopes),
       additionalUserIdClaimTypes: text(v.additionalUserIdClaimTypes),
       additionalEmailClaimTypes: text(v.additionalEmailClaimTypes),

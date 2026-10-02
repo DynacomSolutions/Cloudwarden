@@ -25,6 +25,7 @@ export interface SsoConfigData {
   metadataAddress?: string | null;
   redirectBehavior?: number | null;
   getClaimsFromUserInfoEndpoint?: boolean | null;
+  allowUnverifiedEmail?: boolean | null;
   additionalScopes?: string | null;
   additionalUserIdClaimTypes?: string | null;
   additionalEmailClaimTypes?: string | null;

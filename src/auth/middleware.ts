@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import type { MiddlewareHandler } from 'hono'
 import { createDb, schema } from '../db'
 import type { AccessTokenClaims, Env, User } from '../env'
+import { FEDERATION_CLIENT_ID, isStandInUser } from '../federation/standin'
 import { safeEqualStrings } from './crypto'
 import { verificationSecrets, verifyJwt } from './jwt'
 
@@ -39,6 +40,8 @@ export async function authenticateAccessToken(
     .where(eq(schema.users.uuid, claims.sub))
     .limit(1)
   if (!user?.enabled || !safeEqualStrings(claims.sstamp ?? '', user.securityStamp)) return null
+  // Stand-in accounts of federated members only act through signed peer requests (TASKS #303).
+  if (isStandInUser(user) && claims.client_id !== FEDERATION_CLIENT_ID) return null
   return { user, claims }
 }
 

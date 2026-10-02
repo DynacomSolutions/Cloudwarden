@@ -18,7 +18,7 @@ import {
   requirePermission,
 } from '../orgs/access'
 import { listOrgCipherRows, orgCipherJson } from '../orgs/ciphers'
-import { EventType, Status } from '../orgs/constants'
+import { EventType, PolicyType, Status } from '../orgs/constants'
 import { eventStatement } from '../orgs/events'
 import {
   accessOf,
@@ -35,6 +35,7 @@ import { attachmentsByCipher } from '../vault/attachments'
 import { FederationEvent, federationEventStatement } from './events'
 import { federationEnabled } from './identity'
 import { getPeer, isActive, type Peer, peerByDomain, peerJsonCall } from './peers'
+import { FEDERATION_CLIENT_ID, STAND_IN_HASH_PREFIX } from './standin'
 
 type Ctx = Context<Env>
 
@@ -83,6 +84,37 @@ export const federatedInviteSchema = z.object({
   permissions: z.record(z.string(), z.boolean().nullable()).nullish(),
 })
 
+/**
+ * Organisations whose login rules the hosting side cannot apply to a member of another server:
+ * required two-step login, single sign-on (and with it trusted devices and Key Connector), and
+ * the Require SSO policy.
+ */
+async function assertFederatable(db: Db, orgUuid: string) {
+  if (await twoFactorRequired(db, orgUuid)) throw new ApiError(400, NOT_FEDERATED_2FA)
+  const [sso] = await db
+    .select({ enabled: schema.ssoConfigs.enabled })
+    .from(schema.ssoConfigs)
+    .where(eq(schema.ssoConfigs.organizationUuid, orgUuid))
+    .limit(1)
+  const [requireSso] = await db
+    .select({ id: schema.policies.uuid })
+    .from(schema.policies)
+    .where(
+      and(
+        eq(schema.policies.organizationUuid, orgUuid),
+        eq(schema.policies.atype, PolicyType.RequireSso),
+        eq(schema.policies.enabled, true),
+      ),
+    )
+    .limit(1)
+  if (sso?.enabled || requireSso) {
+    throw new ApiError(
+      400,
+      'This organisation uses single sign-on (or requires it), which is not available to members of another server.',
+    )
+  }
+}
+
 const NOT_FEDERATED_2FA =
   'This organisation requires two-step login, which cannot be verified for members of another instance.'
 
@@ -97,7 +129,7 @@ export async function inviteFederated(
   assertCanAssign(actor, body.type)
   assertCanGrant(actor, body)
   const org = await requireOrg(db, orgUuid)
-  if (await twoFactorRequired(db, orgUuid)) throw new ApiError(400, NOT_FEDERATED_2FA)
+  await assertFederatable(db, orgUuid)
   const email = normalizeEmail(body.email)
   if (!/^[^\s@]+@[^\s@]+$/.test(email)) {
     throw new ApiError(400, 'The request is invalid.', { email: ['Invalid email address.'] })
@@ -325,8 +357,7 @@ export async function acceptFederatedInvite(
   const email = normalizeEmail(body.email)
   if (email !== row.f.remoteEmail)
     throw new ApiError(400, 'The invitation was for another address.')
-  if (await twoFactorRequired(db, row.m.organizationUuid))
-    throw new ApiError(400, NOT_FEDERATED_2FA)
+  await assertFederatable(db, row.m.organizationUuid)
   const [byId] = await db
     .select()
     .from(schema.users)
@@ -351,7 +382,7 @@ export async function acceptFederatedInvite(
         email,
         name: body.name ?? email,
         // Not a PBKDF2 output: password login can never succeed for a stand-in account.
-        passwordHash: `!federated.${randomB64u(16)}`,
+        passwordHash: `${STAND_IN_HASH_PREFIX}${randomB64u(16)}`,
         salt: randomB64u(16),
         passwordIterations: 100_000,
         akey: '',
@@ -376,6 +407,25 @@ export async function acceptFederatedInvite(
         .set({ publicKey: body.publicKey, name: body.name ?? byId.name, updatedAt: now })
         .where(eq(schema.users.uuid, byId.uuid)),
     )
+    // A new key pair invalidates the organisation keys wrapped for the old one.
+    if (byId.publicKey !== body.publicKey) {
+      statements.push(
+        db
+          .update(schema.usersOrganizations)
+          .set({ status: Status.Accepted, akey: '', updatedAt: now })
+          .where(
+            and(
+              eq(schema.usersOrganizations.userUuid, byId.uuid),
+              eq(schema.usersOrganizations.status, Status.Confirmed),
+            ),
+          ),
+        federationEventStatement(db, {
+          type: FederationEvent.MemberKeyChanged,
+          userUuid: byId.uuid,
+          peerDomain: peer.domain,
+        }),
+      )
+    }
   }
   statements.push(
     db
@@ -602,7 +652,13 @@ export async function executeForwarded(c: Ctx, user: User, device: string | null
   }
   const body = c.var.federation.body
   assertForwardable(c.req.method, path, url.searchParams, body)
-  const token = await signAccessToken(c.env, user, device ?? 'federation', ['api'])
+  const token = await signAccessToken(
+    c.env,
+    user,
+    device ?? 'federation',
+    ['api'],
+    FEDERATION_CLIENT_ID,
+  )
   const headers = new Headers({ authorization: `Bearer ${token}`, 'device-type': '14' })
   const ct = c.req.header('content-type')
   if (ct) headers.set('content-type', ct)

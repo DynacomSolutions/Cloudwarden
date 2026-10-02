@@ -74,14 +74,17 @@ describe('federation between two instances', { timeout: 120_000 }, () => {
   })
 
   it('invites a user of the peer, who accepts on their own instance', async () => {
-    // A user that does not exist on the peer is refused by the peer.
+    // The peer answers "pending" whether or not the address has an account (no discovery).
     const nobody = await owner.call(`${fed}/organizations/${orgId}/members`, 'POST', {
       email: 'nobody@example.org',
       peerId: peerOnA,
       type: 2,
       collections: [],
     })
-    expect(nobody.status).toBe(404)
+    expect(nobody.status).toBe(200)
+    const nobodyId = (await nobody.json<any>()).id
+    expect(net.B.mail.sent.some((m) => m.to === 'nobody@example.org')).toBe(false)
+    await owner.call(`${fed}/organizations/${orgId}/members/${nobodyId}`, 'DELETE')
 
     const inv = await owner.json(`${fed}/organizations/${orgId}/members`, 'POST', {
       email: alice.email,
@@ -218,6 +221,10 @@ describe('federation between two instances', { timeout: 120_000 }, () => {
     expect(meta.url.startsWith(`${net.B.base}/federation/attachments/`)).toBe(true)
     const dl = await net.B.fetch(new URL(meta.url).pathname + new URL(meta.url).search)
     expect(dl.status).toBe(200)
+    // The relay never passes on the peer's content type or disposition.
+    expect(dl.headers.get('content-type')).toBe('application/octet-stream')
+    expect(dl.headers.get('content-disposition')).toBe('attachment')
+    expect(dl.headers.get('content-security-policy')).toBe("sandbox; default-src 'none'")
     expect(new Uint8Array(await dl.arrayBuffer())).toEqual(bytes)
     // The owner on the hosting side sees the same attachment.
     const ownerItem = (await syncOf(owner)).ciphers.find((c: { id: string }) => c.id === id)
@@ -316,6 +323,94 @@ describe('federation between two instances', { timeout: 120_000 }, () => {
     expect(s.collections).toHaveLength(0)
   })
 
+  it('never signs in a stand-in account and refuses SSO organisations', async () => {
+    // Password grant for the stand-in account's address on the hosting side.
+    const pw = await net.A.fetch('/identity/connect/token', {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'password',
+        username: alice.email,
+        password: 'client-derived-hash',
+        scope: 'api offline_access',
+        client_id: 'web',
+        deviceType: '9',
+        deviceName: 'chrome',
+        deviceIdentifier: 'x',
+      }).toString(),
+    })
+    expect(pw.status).toBe(400)
+    // Even a validly signed access token is refused unless minted for a peer request.
+    const { signAccessToken } = await import('../src/auth/session')
+    const row = await (net.A.env.DB as D1Database)
+      .prepare('SELECT * FROM users WHERE uuid = ?1')
+      .bind(alice.uuid)
+      .first<any>()
+    const standIn = {
+      ...row,
+      uuid: row.uuid,
+      securityStamp: row.security_stamp,
+      email: row.email,
+      name: row.name,
+      verifiedAt: row.verified_at,
+    }
+    const forged = await signAccessToken(net.A.env as never, standIn, 'd', ['api'])
+    const prof = await net.A.fetch('/api/accounts/profile', {
+      headers: { authorization: `Bearer ${forged}` },
+    })
+    expect(prof.status).toBe(401)
+    const { tokenResponse } = await import('../src/auth/session')
+    await expect(
+      tokenResponse(
+        net.A.env as never,
+        { ...standIn, passwordHash: row.password_hash },
+        {
+          deviceIdentifier: 'd',
+          scope: ['api'],
+        },
+      ),
+    ).rejects.toThrow(/cannot sign in/)
+
+    // Organisations with single sign-on or Require SSO cannot take federated members.
+    const sso = await owner.json('/api/organizations', 'POST', {
+      name: 'SSO Org',
+      billingEmail: 'billing@example.com',
+      key: '4.k',
+      keys: { publicKey: 'p', encryptedPrivateKey: '2.p' },
+      collectionName: '2.c',
+      planType: 0,
+    })
+    const db = net.A.env.DB as D1Database
+    await db
+      .prepare(
+        'INSERT INTO sso_configs (organization_uuid, enabled, data, created_at, updated_at) VALUES (?1, 1, ?2, 0, 0)',
+      )
+      .bind(sso.id, '{}')
+      .run()
+    const refused = await owner.call(`${fed}/organizations/${sso.id}/members`, 'POST', {
+      email: 'x@example.org',
+      peerId: peerOnA,
+      type: 2,
+    })
+    expect(refused.status).toBe(400)
+    await db
+      .prepare('UPDATE sso_configs SET enabled = 0 WHERE organization_uuid = ?1')
+      .bind(sso.id)
+      .run()
+    await db
+      .prepare(
+        "INSERT INTO policies (uuid, organization_uuid, atype, enabled, data, updated_at) VALUES ('00000000-0000-4000-8000-000000000000', ?1, 4, 1, NULL, 0)",
+      )
+      .bind(sso.id)
+      .run()
+    const requireSso = await owner.call(`${fed}/organizations/${sso.id}/members`, 'POST', {
+      email: 'x@example.org',
+      peerId: peerOnA,
+      type: 2,
+    })
+    expect(requireSso.status).toBe(400)
+  })
+
   it('rejects unsigned, tampered, replayed and unknown-key requests', async () => {
     const url = `${net.B.base}/federation/v1/ping`
     const unsigned = await net.B.fetch('/federation/v1/ping', { method: 'POST', body: '{}' })
@@ -366,6 +461,46 @@ describe('federation between two instances', { timeout: 120_000 }, () => {
     expect(
       (await net.B.fetch('/federation/v1/ping', { method: 'POST', headers: h5, body })).status,
     ).toBe(403)
+  })
+
+  it('spends the pairing nonce before writing and caps pending peers', async () => {
+    const id = await loadIdentity(net.A.env as never)
+    const url = `${net.B.base}/federation/v1/pair`
+    const body = new TextEncoder().encode(JSON.stringify({ domain: net.A.domain }))
+    const headers = new Headers({ 'content-type': 'application/json' })
+    await signRequest('POST', url, headers, body, id.instanceId, id.privateKey)
+    expect(
+      (await net.B.fetch('/federation/v1/pair', { method: 'POST', headers, body })).status,
+    ).toBe(200)
+    const replay = await net.B.fetch('/federation/v1/pair', { method: 'POST', headers, body })
+    expect(replay.status).toBe(401)
+    // A signed request whose content type was changed after signing is rejected.
+    const h2 = new Headers({ 'content-type': 'application/json' })
+    await signRequest(
+      'POST',
+      `${net.B.base}/federation/v1/ping`,
+      h2,
+      new Uint8Array(),
+      id.instanceId,
+      id.privateKey,
+    )
+    h2.set('content-type', 'text/plain')
+    expect((await net.B.fetch('/federation/v1/ping', { method: 'POST', headers: h2 })).status).toBe(
+      401,
+    )
+
+    const db = net.A.env.DB as D1Database
+    for (let i = 0; i < 20; i++) {
+      await db
+        .prepare(
+          "INSERT INTO federation_peers (uuid, instance_id, domain, public_key, fingerprint, protocol_version, status, local_approved, remote_approved, created_at, updated_at) VALUES (?1, ?1, ?2, 'k', 'f', 1, 'pending', 0, 0, 0, 0)",
+        )
+        .bind(crypto.randomUUID(), `p${i}.example.net`)
+        .run()
+    }
+    const capped = await adminA.call(`${fed}/admin/peers`, 'POST', { domain: 'more.example.net' })
+    expect(capped.status).toBe(429)
+    await db.prepare("DELETE FROM federation_peers WHERE domain LIKE 'p%.example.net'").run()
   })
 
   it('keeps forwarded requests inside the cipher and organisation allowlist', async () => {

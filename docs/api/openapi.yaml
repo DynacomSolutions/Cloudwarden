@@ -82,7 +82,7 @@ tags:
 - name: Providers
   description: Provider Portal. Providers do not exist on a self-hosted Cloudwarden server; lookups and changes answer 404 and lists are empty.
 - name: x-cloudwarden-federation
-  description: 'Cloudwarden federated organisations (docs/federation.md), not part of the Bitwarden API. `/federation/v1/*` is server to server: every request carries an RFC 9421 HTTP Message Signature (Ed25519, components `@method`, `@target-uri`, `content-digest`, `cloudwarden-federated-user`, `cloudwarden-federated-device`, with `created`, `expires`, `nonce` and `keyid` set to the sender instance id) and a Content-Digest; unknown, unapproved or suspended peers get 403, bad or replayed signatures 401. `/api/cloudwarden/federation/*` serves the web client. Everything answers 404 unless `FEDERATION_ENABLED` is true.'
+  description: 'Cloudwarden federated organisations (docs/federation.md), not part of the Bitwarden API. `/federation/v1/*` is server to server: every request carries an RFC 9421 HTTP Message Signature (Ed25519, components `@method`, `@target-uri`, `content-type`, `content-digest`, `cloudwarden-federated-user`, `cloudwarden-federated-device`, with `created`, `expires`, `nonce` and `keyid` set to the sender instance id) and a Content-Digest; unknown, unapproved or suspended peers get 403, bad or replayed signatures 401. `/api/cloudwarden/federation/*` serves the web client. Everything answers 404 unless `FEDERATION_ENABLED` is true.'
 paths:
   /api/accounts:
     delete:

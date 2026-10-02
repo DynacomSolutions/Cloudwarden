@@ -1,8 +1,9 @@
 // Serving side (TASKS #303, #305): the instance where the federated user has their account. It
 // keeps an encrypted replica of each federated organisation (the server only ever holds the
 // EncStrings the hosting side holds) and merges it into the user's sync and profile.
-import { and, eq, inArray, notInArray } from 'drizzle-orm'
+import { and, eq, inArray, ne, notInArray } from 'drizzle-orm'
 import { z } from 'zod'
+import { rateLimit } from '../admin/security'
 import { normalizeEmail } from '../auth/users'
 import { createDb, type Db, runBatch, schema } from '../db'
 import { genericEmail } from '../email'
@@ -15,8 +16,21 @@ import { FederationEvent, federationEventStatement } from './events'
 import { isShadowUser } from './hosting'
 import { baseUrl } from './identity'
 import { getPeer, isActive, type Peer, peerJsonCall } from './peers'
+import {
+  CAPS,
+  isUuid,
+  sanitizeCipher,
+  sanitizeCollections,
+  sanitizePolicies,
+  sanitizeProfile,
+} from './sanitize'
 
 const CIPHER_FETCH_CHUNK = 200
+/** Time each peer may take in the scheduled resynchronisation. */
+export const RESYNC_BUDGET_MS = 20_000
+/** Invitations a peer may send per hour, and invitation emails per user per day. */
+export const INVITES_PER_PEER_HOUR = 30
+export const INVITE_EMAILS_PER_USER_DAY = 5
 
 // ----- invitations -----
 
@@ -34,15 +48,36 @@ export async function receiveInvitation(
   body: z.infer<typeof incomingInviteSchema>,
 ) {
   const db = createDb(env.DB)
+  const now0 = Date.now()
+  if (!(await rateLimit(env.DB, `fedinv:${peer.uuid}`, INVITES_PER_PEER_HOUR, 3600_000, now0))) {
+    throw new ApiError(429, 'Too many invitations from this server.')
+  }
+  // The answer is always "pending", so a peer cannot use invitations to learn who has an account.
+  const pending = { status: 'pending' }
   const [user] = await db
     .select()
     .from(schema.users)
     .where(eq(schema.users.email, normalizeEmail(body.email)))
     .limit(1)
   // Stand-in accounts are never federated onwards: no chains of instances.
-  if (!user || (await isShadowUser(env, user.uuid))) {
-    throw new ApiError(404, 'No account with this address on the invited instance.')
-  }
+  if (!user || (await isShadowUser(env, user.uuid))) return pending
+  // An organisation id that is local, or already served by another peer, is refused silently.
+  const [local] = await db
+    .select({ id: schema.organizations.uuid })
+    .from(schema.organizations)
+    .where(eq(schema.organizations.uuid, body.organizationId))
+    .limit(1)
+  const [elsewhere] = await db
+    .select({ id: schema.federationInvitations.uuid })
+    .from(schema.federationInvitations)
+    .where(
+      and(
+        eq(schema.federationInvitations.organizationUuid, body.organizationId),
+        ne(schema.federationInvitations.peerUuid, peer.uuid),
+      ),
+    )
+    .limit(1)
+  if (local || elsewhere) return pending
   const now = Date.now()
   await runBatch(db, [
     db
@@ -59,13 +94,8 @@ export async function receiveInvitation(
         createdAt: now,
         updatedAt: now,
       })
-      .onConflictDoUpdate({
-        target: [
-          schema.federationInvitations.peerUuid,
-          schema.federationInvitations.remoteMemberUuid,
-        ],
-        set: { status: 'pending', organizationName: body.organizationName, updatedAt: now },
-      }),
+      // A repeated invitation never reopens an answered one.
+      .onConflictDoNothing(),
     federationEventStatement(db, {
       type: FederationEvent.InvitationReceived,
       userUuid: user.uuid,
@@ -73,16 +103,24 @@ export async function receiveInvitation(
       peerDomain: peer.domain,
     }),
   ])
-  await sendNotice(
-    env,
-    user.email,
-    genericEmail(`Invitation to join ${body.organizationName}`, [
-      `You have been invited to join the organisation ${body.organizationName}, hosted on ${peer.domain}.`,
-      'Your account stays on this server; the organisation items appear in your vault after an administrator of the organisation confirms you.',
-      `Accept or decline the invitation in the web vault: ${vaultBase(env)}/#/federation`,
-    ]),
+  const mailOk = await rateLimit(
+    env.DB,
+    `fedinvmail:${user.uuid}`,
+    INVITE_EMAILS_PER_USER_DAY,
+    86_400_000,
+    now,
   )
-  return { status: 'pending' }
+  if (mailOk)
+    await sendNotice(
+      env,
+      user.email,
+      genericEmail(`Invitation to join ${body.organizationName}`, [
+        `You have been invited to join the organisation ${body.organizationName}, hosted on ${peer.domain}.`,
+        'Your account stays on this server; the organisation items appear in your vault after an administrator of the organisation confirms you.',
+        `Accept or decline the invitation in the web vault: ${vaultBase(env)}/#/federation`,
+      ]),
+    )
+  return pending
 }
 
 export async function revokeInvitation(env: Bindings, peer: Peer, memberId: string) {
@@ -193,18 +231,61 @@ interface OrgList {
   organizations: { id: string; status: number; revisionDate: number }[]
 }
 interface OrgIndex {
-  profile: Record<string, unknown>
-  collections: unknown[]
-  policies: unknown[]
+  profile: unknown
+  collections: unknown
+  policies: unknown
   ciphers: { id: string; digest: string; revisionDate: number }[]
 }
 
 /**
- * Pulls every federated organisation the user has on `peer` (incremental: only ciphers whose
- * digest changed are fetched) and purges what the hosting side no longer lists. Returns true when
- * anything changed.
+ * Organisations the user may hold from `peer`: those of invitations the user accepted from that
+ * peer, never a local organisation and never one already replicated from another peer.
  */
-export async function syncUserFromPeer(env: Bindings, user: User, peer: Peer): Promise<boolean> {
+async function boundOrgs(db: Db, userUuid: string, peerUuid: string): Promise<Set<string>> {
+  const accepted = await db
+    .select({ org: schema.federationInvitations.organizationUuid })
+    .from(schema.federationInvitations)
+    .where(
+      and(
+        eq(schema.federationInvitations.userUuid, userUuid),
+        eq(schema.federationInvitations.peerUuid, peerUuid),
+        eq(schema.federationInvitations.status, 'accepted'),
+      ),
+    )
+  const ids = [...new Set(accepted.map((row) => row.org).filter(isUuid))].slice(0, CAPS.orgs)
+  if (ids.length === 0) return new Set()
+  const [local, others] = await Promise.all([
+    db
+      .select({ id: schema.organizations.uuid })
+      .from(schema.organizations)
+      .where(inArray(schema.organizations.uuid, ids)),
+    db
+      .select({ id: schema.federationReplicaOrgs.organizationUuid })
+      .from(schema.federationReplicaOrgs)
+      .where(
+        and(
+          eq(schema.federationReplicaOrgs.userUuid, userUuid),
+          inArray(schema.federationReplicaOrgs.organizationUuid, ids),
+          ne(schema.federationReplicaOrgs.peerUuid, peerUuid),
+        ),
+      ),
+  ])
+  const refused = new Set([...local, ...others].map((r) => r.id))
+  return new Set(ids.filter((id) => !refused.has(id)))
+}
+
+/**
+ * Pulls every federated organisation the user has on `peer` (incremental: only ciphers whose
+ * digest changed are fetched) and purges what the hosting side no longer lists. Everything is
+ * bound to the organisations the user accepted from this peer and rebuilt from allowlists
+ * (src/federation/sanitize.ts). Stops at `deadline`. Returns true when anything changed.
+ */
+export async function syncUserFromPeer(
+  env: Bindings,
+  user: User,
+  peer: Peer,
+  deadline = Number.POSITIVE_INFINITY,
+): Promise<boolean> {
   const db = createDb(env.DB)
   const userPath = `/federation/v1/members/${user.uuid}`
   let list: OrgList
@@ -218,26 +299,59 @@ export async function syncUserFromPeer(env: Bindings, user: User, peer: Peer): P
     if (err instanceof ApiError && err.status === 404) list = { organizations: [] }
     else throw err
   }
+  const bound = await boundOrgs(db, user.uuid, peer.uuid)
+  const listed = (Array.isArray(list?.organizations) ? list.organizations : []).filter(
+    (o) => isUuid(o?.id) && bound.has(o.id),
+  )
   let changed = await purgeReplica(env, user.uuid, {
     peerUuid: peer.uuid,
-    keep: list.organizations.map((o) => o.id),
+    keep: listed.map((o) => o.id),
   })
   const now = Date.now()
-  for (const org of list.organizations) {
+  for (const org of listed) {
+    if (Date.now() > deadline) break
     const index = await peerJsonCall<OrgIndex>(
       env,
       peer,
       `${userPath}/organizations/${org.id}/index`,
-      {
-        body: {},
-        user: user.uuid,
-      },
+      { body: {}, user: user.uuid },
     )
+    const profileJson = rewriteLinks(
+      JSON.stringify(sanitizeProfile(index?.profile, org.id, user.uuid)),
+      env,
+      peer,
+    )
+    const collections = sanitizeCollections(index?.collections, org.id)
+    const collectionIds = new Set(collections.map((c) => c.id as string))
+    const collectionsJson = JSON.stringify(collections)
+    const policiesJson = JSON.stringify(sanitizePolicies(index?.policies, org.id))
+    const indexed = (Array.isArray(index?.ciphers) ? index.ciphers : [])
+      .filter((c) => isUuid(c?.id) && typeof c.digest === 'string' && c.digest.length <= 128)
+      .slice(0, CAPS.ciphersPerOrg)
+    const listedIds = new Set(indexed.map((c) => c.id))
+    // Ids already held for this user under another organisation are never taken over.
+    const owned = new Map<string, string>()
+    for (let i = 0; i < indexed.length; i += 80) {
+      const rows = await db
+        .select({
+          id: schema.federationReplicaCiphers.cipherUuid,
+          org: schema.federationReplicaCiphers.organizationUuid,
+          digest: schema.federationReplicaCiphers.digest,
+        })
+        .from(schema.federationReplicaCiphers)
+        .where(
+          and(
+            eq(schema.federationReplicaCiphers.userUuid, user.uuid),
+            inArray(
+              schema.federationReplicaCiphers.cipherUuid,
+              indexed.slice(i, i + 80).map((c) => c.id),
+            ),
+          ),
+        )
+      for (const r of rows) owned.set(r.id, r.org === org.id ? r.digest : '\u0000other')
+    }
     const existing = await db
-      .select({
-        id: schema.federationReplicaCiphers.cipherUuid,
-        digest: schema.federationReplicaCiphers.digest,
-      })
+      .select({ id: schema.federationReplicaCiphers.cipherUuid })
       .from(schema.federationReplicaCiphers)
       .where(
         and(
@@ -245,21 +359,28 @@ export async function syncUserFromPeer(env: Bindings, user: User, peer: Peer): P
           eq(schema.federationReplicaCiphers.organizationUuid, org.id),
         ),
       )
-    const have = new Map(existing.map((r) => [r.id, r.digest]))
-    const wanted = index.ciphers.filter((c) => have.get(c.id) !== c.digest).map((c) => c.id)
-    const gone = existing.map((r) => r.id).filter((id) => !index.ciphers.some((c) => c.id === id))
+    const wanted = indexed
+      .filter((c) => owned.get(c.id) !== '\u0000other' && owned.get(c.id) !== c.digest)
+      .map((c) => c.id)
+    const gone = existing.map((r) => r.id).filter((id) => !listedIds.has(id))
     const statements: unknown[] = []
     for (let i = 0; i < wanted.length; i += CIPHER_FETCH_CHUNK) {
+      if (Date.now() > deadline) break
       const part = wanted.slice(i, i + CIPHER_FETCH_CHUNK)
+      const requested = new Set(part)
       const got = await peerJsonCall<{
         ciphers: { id: string; digest: string; json: Record<string, unknown> }[]
       }>(env, peer, `${userPath}/organizations/${org.id}/ciphers`, {
         body: { ids: part },
         user: user.uuid,
       })
-      for (const c of got.ciphers) {
-        if (c.json.organizationId !== org.id) continue
-        const json = rewriteLinks(JSON.stringify(c.json), env, peer)
+      for (const c of Array.isArray(got?.ciphers) ? got.ciphers : []) {
+        if (!isUuid(c?.id) || !requested.has(c.id) || c.json?.id !== c.id) continue
+        if (typeof c.digest !== 'string' || c.digest.length > 128) continue
+        requested.delete(c.id)
+        const clean = sanitizeCipher(c.json, org.id, collectionIds)
+        if (!clean) continue
+        const json = rewriteLinks(JSON.stringify(clean), env, peer)
         statements.push(
           db
             .insert(schema.federationReplicaCiphers)
@@ -276,7 +397,8 @@ export async function syncUserFromPeer(env: Bindings, user: User, peer: Peer): P
                 schema.federationReplicaCiphers.userUuid,
                 schema.federationReplicaCiphers.cipherUuid,
               ],
-              set: { json, digest: c.digest, organizationUuid: org.id, updatedAt: now },
+              set: { json, digest: c.digest, updatedAt: now },
+              setWhere: eq(schema.federationReplicaCiphers.organizationUuid, org.id),
             }),
         )
       }
@@ -288,18 +410,12 @@ export async function syncUserFromPeer(env: Bindings, user: User, peer: Peer): P
           .where(
             and(
               eq(schema.federationReplicaCiphers.userUuid, user.uuid),
+              eq(schema.federationReplicaCiphers.organizationUuid, org.id),
               inArray(schema.federationReplicaCiphers.cipherUuid, gone.slice(i, i + 80)),
             ),
           ),
       )
     }
-    const profileJson = rewriteLinks(
-      JSON.stringify({ ...index.profile, userId: user.uuid }),
-      env,
-      peer,
-    )
-    const collectionsJson = JSON.stringify(index.collections)
-    const policiesJson = JSON.stringify(index.policies)
     const [prev] = await db
       .select()
       .from(schema.federationReplicaOrgs)
@@ -310,6 +426,8 @@ export async function syncUserFromPeer(env: Bindings, user: User, peer: Peer): P
         ),
       )
       .limit(1)
+    if (prev && prev.peerUuid !== peer.uuid) continue
+    const revisionDate = Number.isSafeInteger(org.revisionDate) ? org.revisionDate : now
     const orgChanged =
       !prev ||
       prev.profileJson !== profileJson ||
@@ -327,7 +445,7 @@ export async function syncUserFromPeer(env: Bindings, user: User, peer: Peer): P
             profileJson,
             collectionsJson,
             policiesJson,
-            revisionDate: org.revisionDate,
+            revisionDate,
             syncedAt: now,
           })
           .onConflictDoUpdate({
@@ -335,14 +453,9 @@ export async function syncUserFromPeer(env: Bindings, user: User, peer: Peer): P
               schema.federationReplicaOrgs.userUuid,
               schema.federationReplicaOrgs.organizationUuid,
             ],
-            set: {
-              profileJson,
-              collectionsJson,
-              policiesJson,
-              revisionDate: org.revisionDate,
-              syncedAt: now,
-              peerUuid: peer.uuid,
-            },
+            // The owning peer of an existing row never changes.
+            set: { profileJson, collectionsJson, policiesJson, revisionDate, syncedAt: now },
+            setWhere: eq(schema.federationReplicaOrgs.peerUuid, peer.uuid),
           }),
       )
       await runBatch(db, statements as never)
@@ -489,9 +602,66 @@ export async function handlePeerEvent(
   const user = await loadUser(env, body.userId)
   if (!user) throw new ApiError(404, 'Unknown federated user.')
   await syncUserFromPeer(env, user, peer)
-  // Payloads carry the hosting side's ids, which are also ours: only the user id is rewritten.
-  const payload = { ...body.payload, UserId: user.uuid }
-  await announce(env, user.uuid, body.type, payload, body.contextId ?? null)
+  const push = federatedPush(body, user.uuid)
+  if (!push) return
+  // Only for organisations this peer actually serves to the user.
+  const org = push.payload.OrganizationId
+  if (typeof org === 'string') {
+    const row = await replicaOrg(createDb(env.DB), user.uuid, org)
+    if (row?.o.peerUuid !== peer.uuid) return
+  }
+  const contextId =
+    typeof body.contextId === 'string' && /^[\w.:-]{1,128}$/.test(body.contextId)
+      ? body.contextId
+      : null
+  await announce(env, user.uuid, push.type, push.payload, contextId)
+}
+
+const CIPHER_PUSHES = new Set<number>([
+  PushType.SyncCipherUpdate,
+  PushType.SyncCipherCreate,
+  PushType.SyncLoginDelete,
+  PushType.SyncCipherDelete,
+])
+const SYNC_PUSHES = new Set<number>([
+  PushType.SyncCiphers,
+  PushType.SyncVault,
+  PushType.SyncOrgKeys,
+  PushType.SyncOrganizations,
+])
+
+/**
+ * Peer events become pushes only for sync types, with the payload rebuilt from validated ids. No
+ * log out, auth request, send or settings push can be triggered from another server.
+ */
+export function federatedPush(
+  body: { type: number; payload: Record<string, unknown> },
+  userUuid: string,
+): { type: number; payload: Record<string, string | string[] | null> } | null {
+  const p = body.payload ?? {}
+  const date = new Date().toISOString()
+  if (CIPHER_PUSHES.has(body.type)) {
+    if (!isUuid(p.Id) || !isUuid(p.OrganizationId)) return null
+    const cols = Array.isArray(p.CollectionIds) ? p.CollectionIds.filter(isUuid).slice(0, 500) : []
+    const rev =
+      typeof p.RevisionDate === 'string' && !Number.isNaN(Date.parse(p.RevisionDate))
+        ? new Date(p.RevisionDate).toISOString()
+        : date
+    return {
+      type: body.type,
+      payload: {
+        Id: p.Id,
+        UserId: userUuid,
+        OrganizationId: p.OrganizationId,
+        CollectionIds: cols,
+        RevisionDate: rev,
+      },
+    }
+  }
+  if (SYNC_PUSHES.has(body.type)) {
+    return { type: body.type, payload: { UserId: userUuid, Date: date } }
+  }
+  return null
 }
 
 /** Pulls every peer for one user (after a forwarded write, and from the schedule). */
@@ -511,11 +681,14 @@ export async function syncUser(env: Bindings, user: User): Promise<void> {
 export async function resyncAll(env: Bindings): Promise<void> {
   const peers = await createDb(env.DB).select().from(schema.federationPeers)
   for (const peer of peers.filter(isActive)) {
+    // Each peer gets a bounded share of the run, so one slow peer cannot starve the others.
+    const deadline = Date.now() + RESYNC_BUDGET_MS
     for (const uuid of await usersOfPeer(env, peer.uuid)) {
+      if (Date.now() > deadline) break
       const user = await loadUser(env, uuid)
       if (!user) continue
       try {
-        if (await syncUserFromPeer(env, user, peer)) await announce(env, uuid)
+        if (await syncUserFromPeer(env, user, peer, deadline)) await announce(env, uuid)
       } catch (err) {
         log('warn', 'federation.resync_failed', { errorKind: errorKind(err) }, env)
       }

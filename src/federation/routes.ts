@@ -75,6 +75,20 @@ type Ctx = Context<Env>
 
 export const federation = new Hono<Env>()
 
+/** Relayed attachment downloads per client address per minute. */
+const ATTACHMENT_RATE_LIMIT = 120
+/** Peers waiting for approval, across the instance; pairing requests beyond it are refused. */
+const MAX_PENDING_PEERS = 20
+/** Pairing requests per minute across the instance. */
+const PAIR_GLOBAL_LIMIT = 30
+
+async function assertPendingRoom(env: Bindings) {
+  const pending = (await listPeers(env)).filter((p) => p.status === PeerStatus.Pending)
+  if (pending.length >= MAX_PENDING_PEERS) {
+    throw new ApiError(429, 'Too many peers are waiting for approval.')
+  }
+}
+
 const fedBody = <S extends z.ZodType>(c: Ctx, s: S): z.infer<S> => {
   let raw: unknown
   try {
@@ -111,6 +125,9 @@ federation.post('/federation/v1/pair', async (c) => {
   if (!(await rateLimit(c.env.DB, `fedpair:${ip}`, PAIR_RATE_LIMIT, 60_000, Date.now()))) {
     throw new ApiError(429, 'Too many pairing requests.')
   }
+  if (!(await rateLimit(c.env.DB, 'fedpair:all', PAIR_GLOBAL_LIMIT, 60_000, Date.now()))) {
+    throw new ApiError(429, 'Too many pairing requests.')
+  }
   const parsed = parseSignature(c.req.raw.headers)
   if (!parsed) throw new ApiError(401, 'Missing or malformed federation signature.')
   const body = new Uint8Array(await c.req.raw.arrayBuffer())
@@ -126,6 +143,13 @@ federation.post('/federation/v1/pair', async (c) => {
   if (d.instanceId !== parsed.params.keyid)
     throw new ApiError(401, 'Key id does not match the peer.')
   const nonce = await verifyInbound(c, d.publicKey, body)
+  // The nonce is spent before anything is written, so a replayed pairing request changes nothing.
+  // The peer row may not exist yet, so the nonce lives in the rate limit table (limit 1).
+  if (
+    !(await rateLimit(c.env.DB, `fedpairnonce:${d.instanceId}:${nonce}`, 1, 3_600_000, Date.now()))
+  ) {
+    throw new ApiError(401, 'Replayed federation request.')
+  }
   const db = createDb(c.env.DB)
   const now = Date.now()
   let peer = await peerByDomain(c.env, domain)
@@ -142,6 +166,7 @@ federation.post('/federation/v1/pair', async (c) => {
       .where(eq(schema.federationPeers.instanceId, d.instanceId))
       .limit(1)
     if (byId) throw new ApiError(409, 'This instance is already paired under another domain.')
+    await assertPendingRoom(c.env)
     const uuid = crypto.randomUUID()
     await runBatch(db, [
       db.insert(schema.federationPeers).values({
@@ -168,8 +193,7 @@ federation.post('/federation/v1/pair', async (c) => {
       .set({ remoteApproved: true, status, lastSeenAt: now, updatedAt: now })
       .where(eq(schema.federationPeers.uuid, peer.uuid))
   }
-  if (!(await claimNonce(c.env, peer.uuid, nonce)))
-    throw new ApiError(401, 'Replayed federation request.')
+  await claimNonce(c.env, peer.uuid, nonce)
   return c.json({
     instanceId: (await descriptor(c.env)).instanceId,
     localApproved: peer.localApproved,
@@ -279,6 +303,10 @@ federation.all('/federation/v1/members/:userId/proxy/*', async (c) => {
 
 federation.get('/federation/attachments/:peerId/:cipherId/:attachmentId', async (c) => {
   requireFederation(c.env)
+  const ip = c.req.header('CF-Connecting-IP') ?? 'unknown'
+  if (!(await rateLimit(c.env.DB, `fedatt:${ip}`, ATTACHMENT_RATE_LIMIT, 60_000, Date.now()))) {
+    throw new ApiError(429, 'Too many requests.')
+  }
   const peer = await getPeer(c.env, c.req.param('peerId'))
   if (!peer || !isActive(peer)) throw new ApiError(404, 'Not found')
   const cipherId = c.req.param('cipherId')
@@ -293,12 +321,25 @@ federation.get('/federation/attachments/:peerId/:cipherId/:attachmentId', async 
       `${baseUrl(peer.domain)}/attachments/${cipherId}/${attachmentId}?token=${encodeURIComponent(token)}`,
     ),
   )
-  const headers = new Headers({ 'cache-control': 'no-store' })
-  for (const h of ['content-type', 'content-length', 'content-disposition']) {
-    const v = res.headers.get(h)
-    if (v) headers.set(h, v)
+  // Never the peer's own type or disposition: the bytes are encrypted, and a peer must not be
+  // able to serve active content from this origin.
+  const headers = new Headers({
+    'cache-control': 'no-store',
+    'content-type': 'application/octet-stream',
+    'content-disposition': 'attachment',
+    'content-security-policy': "sandbox; default-src 'none'",
+    'x-content-type-options': 'nosniff',
+  })
+  const length = res.headers.get('content-length')
+  if (length && /^\d+$/.test(length)) headers.set('content-length', length)
+  if (!res.ok) {
+    await res.body?.cancel()
+    return c.json(
+      { message: 'Attachment not available.', object: 'error' },
+      res.status === 404 ? 404 : 502,
+    )
   }
-  return new Response(res.body, { status: res.status, headers })
+  return new Response(res.body, { status: 200, headers })
 })
 
 // ----- peer lifecycle shared by the admin API and the unpair call -----
@@ -355,11 +396,11 @@ federation.use(`${UI}/*`, async (c, next) => {
   c.header('Cache-Control', 'no-store')
   await next()
 })
-federation.use(`${UI}/*`, requireAuth)
 federation.use(`${UI}/*`, async (c, next) => {
   requireFederation(c.env)
   await next()
 })
+federation.use(`${UI}/*`, requireAuth)
 
 /** Whether federation is on, and the active peers an org admin can invite from. */
 federation.get(`${UI}/status`, async (c) => {
@@ -396,6 +437,7 @@ federation.post(`${ADMIN}/peers`, async (c) => {
   const { domain: input } = await parseBody(c, z.object({ domain: z.string().min(1).max(260) }))
   const domain = normaliseDomainOrThrow(input)
   if (domain === ownDomain(c.env)) throw new ApiError(400, 'An instance cannot pair with itself.')
+  await assertPendingRoom(c.env)
   if (await peerByDomain(c.env, domain)) throw new ApiError(400, 'This peer already exists.')
   const d = await fetchDescriptor(c.env, domain)
   const db = createDb(c.env.DB)

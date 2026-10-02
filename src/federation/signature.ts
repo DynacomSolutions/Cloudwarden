@@ -9,6 +9,7 @@ export const DEVICE_HEADER = 'cloudwarden-federated-device'
 export const COMPONENTS = [
   '@method',
   '@target-uri',
+  'content-type',
   'content-digest',
   USER_HEADER,
   DEVICE_HEADER,

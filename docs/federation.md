@@ -51,7 +51,7 @@ Every server-to-server request is signed with RFC 9421 HTTP Message Signatures:
 Content-Digest: sha-256=:<base64 SHA-256 of the body>:
 Cloudwarden-Federated-User: <user id or ->
 Cloudwarden-Federated-Device: <client device identifier or ->
-Signature-Input: fed=("@method" "@target-uri" "content-digest" "cloudwarden-federated-user" "cloudwarden-federated-device");created=<unix>;expires=<created+300>;nonce="<random>";keyid="<sender instance id>";alg="ed25519";tag="cloudwarden-federation"
+Signature-Input: fed=("@method" "@target-uri" "content-type" "content-digest" "cloudwarden-federated-user" "cloudwarden-federated-device");created=<unix>;expires=<created+300>;nonce="<random>";keyid="<sender instance id>";alg="ed25519";tag="cloudwarden-federation"
 Signature: fed=:<base64 Ed25519 signature of the signature base>:
 ```
 
@@ -59,8 +59,16 @@ The receiver accepts only this exact component list, checks `created` within 300
 clock, `expires` not passed, the Content-Digest against the body, the signature against the peer's
 stored key (looked up by `keyid`), and records the nonce per peer (`federation_nonces`); a second
 use of a nonce is a replay and gets 401. Only active peers (approved on both sides, not suspended)
-are accepted (403 otherwise), each limited to 600 requests per minute (429). Responses are
-protected by TLS to the paired domain.
+are accepted (403 otherwise), each limited to 600 requests per minute (429). The pairing request
+spends its nonce before anything is written; at most 20 peers may wait for approval and pairing
+requests are limited per address and per instance.
+
+Responses are not signed. Their authenticity rests on TLS to the paired domain as the Workers
+runtime validates it (certificate checks cannot be turned off from Worker code). The DNS over
+HTTPS address check runs before each call, but the runtime resolves the name again when it
+connects, so it narrows DNS rebinding rather than excluding it; Workers cannot reach private
+networks in any case. Everything a peer returns is treated as untrusted input (see "Replica and
+sync").
 
 ### Outbound requests
 
@@ -113,9 +121,24 @@ B keeps per user: `federation_replica_orgs` (profile entry, collections and poli
   attachment links).
 - `POST .../organizations/{orgId}/ciphers` returns full views for the ids whose digest changed.
 
+The serving side only keeps organisations of invitations the user accepted from that peer (never
+a local organisation id, never one another peer serves, never more than 50) and rebuilds every
+record from an allowlist (`src/federation/sanitize.ts`): the profile entry gets the bound
+organisation and user ids with SSO, Key Connector, account recovery, SCIM and Secrets Manager
+flags forced off; policies are limited to the bound organisation and the client-side types
+(master password, generator, personal ownership, Send, vault timeout, export); collections and
+items are forced into the bound organisation, item ids must be ones it asked for and not already
+held under another organisation, and sizes are capped. Change events only trigger sync pushes
+(item, items, vault, organisation keys, organisations) with payloads rebuilt from validated ids.
+Invitations always answer "pending" (no account discovery), at most 30 per peer per hour, with at
+most 5 invitation emails per user per day. The scheduled resynchronisation gives each peer at most
+20 seconds.
+
 Organisations no longer listed are purged with their items and local folder links. A's links are
 rewritten to B's own address: attachment downloads become
-`/federation/attachments/{peerId}/{cipherId}/{attachmentId}` on B, which relays the file from A.
+`/federation/attachments/{peerId}/{cipherId}/{attachmentId}` on B, which relays the file from A
+as `application/octet-stream` with `Content-Disposition: attachment` and a `sandbox` CSP (never
+the peer's own headers), rate limited per address.
 
 `GET /api/sync` and the profile on B include the replica exactly like local organisations, with
 the user's own folders from B (`federation_item_folders`). Suspended peers are left out.
@@ -174,8 +197,11 @@ These are refused with a clear message (400) for federated members:
 - Secrets Manager.
 - Organisation import and export, billing, licences and domain verification.
 - Archiving federated items (archive state is per member on the hosting side).
-- Organisations that require two-step login cannot invite federated members, because A cannot
-  verify B's second factors.
+- Organisations that require two-step login, use single sign-on (and with it trusted devices or
+  Key Connector) or enable the Require SSO policy cannot invite or accept federated members.
+- Stand-in accounts can never sign in: every grant of the token endpoint (password, refresh,
+  SSO authorisation code, passkey, device approval, API key) refuses them, and their access
+  tokens are only accepted when minted in-process for a verified peer request.
 - Deleting the organisation from the serving side. Administer the organisation on its home
   instance; the Admin Console of a federated organisation on B is not supported.
 

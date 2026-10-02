@@ -99,7 +99,7 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 | 121 | Recovery code | done | agent | `get-recover`, anonymous `recover` (both paths) disables all providers and rotates the code |
 | 122 | WebAuthn / passkeys as second factor | done | agent | ES256 and RS256, attestation not verified (none accepted), counter and one-shot challenge checks, own CBOR decoder |
 | 123 | Email 2FA (needs task 141) | done | agent | 6 digit code, 10 minute expiry, 5 attempts, sent through `src/email`; setup refused without a transport |
-| 124 | Duo and YubiKey OTP (optional) | deferred | | Endpoints answer 400 "not supported". See `docs/two-factor.md` |
+| 124 | Duo (Universal Prompt, user and organisation) and YubiKey OTP (YubiCloud) | done | agent | `src/auth/duo.ts`, `src/auth/yubico.ts`, migration `0012`; fixed-vector and flow tests in `test/duo-yubikey.test.ts`. See `docs/two-factor.md` |
 | 125 | Login with passkey (passwordless) | deferred | | Needs the `/api/webauthn` credential store with PRF key wrapping and `grant_type=webauthn`; not started. See `docs/two-factor.md` |
 
 ## Phase 7: Optional services
@@ -124,7 +124,7 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 | 160 | Deployment guide: create D1, R2, secrets, custom domain, using only placeholders | doing | | Fresh account deploy from docs alone. `docs/deploy.md`; config reads deploy values from env |
 | 161 | CI deploy workflow (environment-protected, OIDC or scoped token in secrets) | doing | | `deploy.yml`: gate, `cf d1 migrations apply`, `cf deploy`, `/alive` smoke check. Worker secrets set once by hand |
 | 162 | Scheduled D1 export to R2 for portable backups | done | agent | Daily cron, 14 day retention, `scripts/restore-backup.mjs`. `docs/backup.md`; tests in `test/backup.test.ts` and `scripts/restore-backup.test.mjs`. Restore tested at SQL generation level; live restore into a fresh D1 not yet run |
-| 163 | Optional data importer from other self-hosted Bitwarden-compatible servers (data only, no code reuse) | deferred | agent | Reading another server's SQLite file needs its internal schema and password hash scheme, which cannot be derived from the client contract without porting (rule 6). Reasons, the supported per-account export/import path and a contract-only API migration option are in `docs/data-import.md` |
+| 163 | Importer from other self-hosted Bitwarden-compatible servers (data only, no code reuse) | done | agent | `scripts/import-from-server.mjs` over the public API (prelogin, token, sync, register, ciphers/import), client side decryption, `--register` keeps the user key; `docs/data-import.md`; tests in `scripts/import-from-server.test.mjs` and a `pnpm e2e` step |
 | 164 | Observability: structured logs without vault data, Workers Analytics | done | agent | `src/log.ts`, request middleware, Workers Logs enabled. `docs/observability.md`; `test/log.test.ts` asserts no body, query or email in logs. Manual log review on a deployed Worker still due |
 | 165 | D1 Sessions API if read replication is enabled | done | agent | Replication stays off (documented); `D1_SESSIONS=true` opts in to a `withSession` wrapper (`src/db/sessions.ts`) with the `x-d1-bookmark` header, default off. Tests in `test/d1-sessions.test.ts`; see `docs/d1-sessions.md`. Not run against a replicated production database |
 

@@ -85,6 +85,13 @@
       "when": 1790934277816,
       "tag": "0011_parity_account_email",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1790940343707,
+      "tag": "0012_org_twofactor",
+      "breakpoints": true
     }
   ]
 }

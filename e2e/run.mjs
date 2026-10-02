@@ -8,9 +8,10 @@ import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { setTimeout as sleep } from 'node:timers/promises'
+import { loginAndUnlock } from '../scripts/import-from-server.mjs'
 import { migrateLocal } from '../scripts/local-migrate.mjs'
 import { ensureBws } from './bws.mjs'
-import { buildAccount, encType2, encType4 } from './crypto.mjs'
+import { buildAccount, decType2, encType2, encType4 } from './crypto.mjs'
 import { deriveAccessTokenKey } from './sm-client.mjs'
 import { makeCert } from './tls-proxy.mjs'
 
@@ -541,6 +542,72 @@ async function main() {
     bws(['secret', 'delete', made.id])
     assert.ok(!bwsJson(['secret', 'list']).some((s) => s.id === made.id))
     pass('bws: secret delete')
+
+    // Importer (TASKS #163): copy the personal vault of the account above into a new account
+    // on the same server, through the public API only, then check the copy decrypts identically.
+    const copyEmail = `import-${Date.now()}@example.com`
+    const copyEnv = { ...env, SOURCE_PASSWORD: PASSWORD }
+    const importer = await loginAndUnlock(direct, EMAIL, PASSWORD, {
+      deviceIdentifier: 'e2e-importer-device',
+    })
+    const sealed = async (text) => encType2(Buffer.from(text), importer.userKey)
+    const post = async (path, body) =>
+      fetchRetry(`${direct}${path}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${importer.accessToken}`,
+        },
+        body: JSON.stringify(body),
+      })
+    const copyFolder = await (await post('/api/folders', { name: await sealed('Imported') })).json()
+    for (const name of ['Import one', 'Import two']) {
+      const made = await post('/api/ciphers', {
+        type: 1,
+        name: await sealed(name),
+        folderId: copyFolder.id,
+        login: { username: await sealed('user'), password: await sealed('pw'), uris: [] },
+      })
+      assert.equal(made.status, 200, await made.text())
+    }
+    const imported = run(
+      process.execPath,
+      [
+        join(root, 'scripts', 'import-from-server.mjs'),
+        '--source',
+        direct,
+        '--source-email',
+        EMAIL,
+        '--target',
+        direct,
+        '--target-email',
+        copyEmail,
+        '--register',
+        '--device-id',
+        'e2e-importer-device',
+      ],
+      { env: copyEnv },
+    )
+    assert.match(imported.stdout, /Import finished/)
+    const device = { deviceIdentifier: 'e2e-importer-device' }
+    const from = await loginAndUnlock(direct, EMAIL, PASSWORD, device)
+    const to = await loginAndUnlock(direct, copyEmail, PASSWORD, device)
+    const syncOf = async (session) =>
+      await (
+        await fetchRetry(`${direct}/api/sync`, {
+          headers: { Authorization: `Bearer ${session.accessToken}` },
+        })
+      ).json()
+    const [before, after] = [await syncOf(from), await syncOf(to)]
+    const personal = (sync) => sync.ciphers.filter((c) => !c.organizationId && !c.deletedDate)
+    assert.ok(personal(before).length > 0)
+    assert.equal(personal(after).length, personal(before).length)
+    const names = async (sync, key) =>
+      (
+        await Promise.all(personal(sync).map(async (c) => (await decType2(c.name, key)).toString()))
+      ).sort()
+    assert.deepEqual(await names(after, to.userKey), await names(before, from.userKey))
+    pass('importer: personal vault copied to a new account and decrypts identically')
 
     console.log(`\n${step} steps passed`)
   } catch (err) {

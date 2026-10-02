@@ -719,21 +719,6 @@ describe('disable and unsupported providers', () => {
     expect(res.body).toEqual({ enabled: false, type: 0, object: 'twoFactorProvider' })
     expect((await login(email)).status).toBe(200)
   })
-
-  it('answers Duo and YubiKey with a clear 400', async () => {
-    const s = await createSession('tf-unsupported@example.com')
-    for (const [path, method] of [
-      ['/api/two-factor/get-duo', 'POST'],
-      ['/api/two-factor/get-yubikey', 'POST'],
-      ['/api/two-factor/duo', 'PUT'],
-      ['/api/two-factor/yubikey', 'PUT'],
-      ['/api/two-factor/yubikey', 'DELETE'],
-    ] as const) {
-      const res = await call(s, path, { masterPasswordHash: PW }, method)
-      expect(res.status).toBe(400)
-      expect(res.body.message).toContain('not supported')
-    }
-  })
 })
 
 describe('rate limiting', () => {
@@ -820,7 +805,7 @@ describe('security hardening', () => {
       .bind(email)
       .first<{ uuid: string }>()
     await sqlOne(
-      'insert into twofactor (uuid, user_uuid, atype, enabled, data, last_used) values (?, ?, 3, 1, ?, 0)',
+      'insert into twofactor (uuid, user_uuid, atype, enabled, data, last_used) values (?, ?, 4, 1, ?, 0)',
       crypto.randomUUID(),
       user?.uuid,
       '{}',
@@ -829,7 +814,7 @@ describe('security hardening', () => {
     expect(first.status).toBe(400)
     expect(first.body.access_token).toBeUndefined()
     expect(first.body.TwoFactorProviders2).toBeUndefined()
-    const guess = await challenge(email, { twoFactorProvider: '3', twoFactorToken: 'cccccc' })
+    const guess = await challenge(email, { twoFactorProvider: '4', twoFactorToken: 'cccccc' })
     expect(guess.status).toBe(400)
     expect(guess.body.access_token).toBeUndefined()
 
@@ -843,7 +828,7 @@ describe('security hardening', () => {
     // Spent: all providers gone, code rotated, cannot be reused.
     expect((await login(email)).status).toBe(200)
     const left = await env.DB.prepare(
-      'select count(*) n from twofactor where atype = 3 and enabled = 1',
+      'select count(*) n from twofactor where atype = 4 and enabled = 1',
     ).first<{ n: number }>()
     expect(left?.n).toBe(0)
     const rotated = (await call(s, '/api/two-factor/get-recover', { masterPasswordHash: PW })).body

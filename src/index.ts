@@ -90,14 +90,14 @@ app.route('/', publicPolicies)
 // Anonymous SSO discovery by email must run before the authenticated organisation routers.
 app.route('/', publicSso)
 app.route('/', ssoAdmin)
+// Before the other organisation routers: its public invite-link routes skip their `authOnce`.
+app.route('/', orgSettings)
 app.route('/', orgApiKeys)
 app.route('/', orgIntegrations)
 // Billing, licence and sponsorship answers for a self-hosted server, and the absent Provider
 // Portal (TASKS #231). Literal paths only, so the order relative to the organisation routers is free.
 app.route('/', selfHostBilling)
 app.route('/', providers)
-// Before the other organisation routers: its public invite-link routes skip their `authOnce`.
-app.route('/', orgSettings)
 app.route('/', organizations)
 app.route('/', orgUsers)
 app.route('/', collectionsRouter)

@@ -9,7 +9,7 @@ export type OrgRow = typeof schema.organizations.$inferSelect
 /** Plan and feature flags: every organisation behaves like a self-hosted enterprise one. */
 const FEATURES = {
   useGroups: true,
-  // Directory Connector and the Public API (TASKS #261, #262).
+  // Directory Connector and the Public API (TASKS #271, #272).
   useDirectory: true,
   useEvents: true,
   useTotp: true,

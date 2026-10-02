@@ -59,7 +59,7 @@ app.route('/', devices)
 app.route('/', accounts)
 app.route('/', accountEmail)
 app.route('/', sync)
-// Organisation-token APIs (TASKS #261, #263): their own authentication, before member routers.
+// Organisation-token APIs (TASKS #271, #273): their own authentication, before member routers.
 app.route('/', publicApi)
 app.route('/', scim)
 // Secrets Manager accepts machine tokens, so it runs before the organisation routers whose

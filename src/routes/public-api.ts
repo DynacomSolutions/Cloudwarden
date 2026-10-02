@@ -1,4 +1,4 @@
-// Bitwarden Public API (TASKS #261), served at `/api/public/*` (self-hosted layout) and
+// Bitwarden Public API (TASKS #271), served at `/api/public/*` (self-hosted layout) and
 // `/public/*` (cloud layout). Authenticated with an organisation token from the
 // `client_credentials` grant (`client_id=organization.<id>`, `scope=api.organization`). Request and
 // response models follow Bitwarden's published Public API reference: `member`, `group`,

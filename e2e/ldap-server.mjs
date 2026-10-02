@@ -1,4 +1,4 @@
-// A minimal LDAPv3 server (RFC 4511) for the Directory Connector e2e steps (TASKS #262): simple
+// A minimal LDAPv3 server (RFC 4511) for the Directory Connector e2e steps (TASKS #272): simple
 // bind, search with the full filter grammar (and, or, not, equality, substrings, >=, <=,
 // presence) and scope, unbind. Plain TCP on 127.0.0.1, entries held in memory, nothing else.
 import { createServer } from 'node:net'

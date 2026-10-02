@@ -1,4 +1,4 @@
-// Event integrations (TASKS #264): configuration API, sealed secrets, signed webhook delivery in
+// Event integrations (TASKS #274): configuration API, sealed secrets, signed webhook delivery in
 // order with retries and back-off, and the Splunk HEC, Datadog and Microsoft Sentinel payloads.
 import { env } from 'cloudflare:workers'
 import { beforeAll, describe, expect, it } from 'vitest'

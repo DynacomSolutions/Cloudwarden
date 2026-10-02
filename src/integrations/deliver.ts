@@ -1,4 +1,4 @@
-// Event delivery (TASKS #264). Every minute the cron reads, per enabled integration, the
+// Event delivery (TASKS #274). Every minute the cron reads, per enabled integration, the
 // organisation's events written after its cursor (the events table `rowid`, so delivery follows
 // insertion order) and sends them. Success moves the cursor; failure keeps it, records the error
 // and backs off exponentially (30 s doubling to 6 h), so every event is delivered at least once,

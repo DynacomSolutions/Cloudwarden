@@ -37,8 +37,8 @@
 # Upstream file name listed in web/UPSTREAM-BLOBS.txt
 ^entrypoint\.sh$
 
-# Public vendor endpoints of the event integrations (TASKS #264, docs/integrations.md)
+# Public vendor endpoints of the event integrations (TASKS #274, docs/integrations.md)
 datadoghq\.(com|eu)|ddog-gov\.com
 login\.microsoftonline\.com|monitor\.azure\.com
-# Pinned libatomic1 package for the bwdc e2e steps (TASKS #262)
+# Pinned libatomic1 package for the bwdc e2e steps (TASKS #272)
 deb\.debian\.org

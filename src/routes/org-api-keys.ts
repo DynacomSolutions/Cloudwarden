@@ -1,4 +1,4 @@
-// Organisation API key management for the web client (TASKS #260): `POST api-key` shows (and
+// Organisation API key management for the web client (TASKS #270): `POST api-key` shows (and
 // creates) the key, `POST rotate-api-key` replaces it, `GET api-key-information[/{type}]` lists
 // when each key was last changed. The Public API key (type 0) is owner only; the SCIM key
 // (type 2) needs the `manageScim` permission.

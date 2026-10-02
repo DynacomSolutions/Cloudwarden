@@ -1,4 +1,4 @@
-// Downloads the pinned official Directory Connector CLI, `bwdc` (GPL-3.0, TASKS #262), into
+// Downloads the pinned official Directory Connector CLI, `bwdc` (GPL-3.0, TASKS #272), into
 // e2e/.cache after checking its sha256 against e2e/bwdc.lock.json. Linux x64 only. The archive
 // holds the `bwdc` binary and its native module, which must sit next to it.
 import { spawnSync } from 'node:child_process'

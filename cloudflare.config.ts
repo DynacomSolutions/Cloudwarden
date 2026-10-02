@@ -31,7 +31,7 @@ export default defineConfig({
         '/send-files/*',
         '/alive',
         '/app-id.json',
-        // Public API and SCIM (TASKS #261, #263); `/v2/*` is the cloud SCIM path layout.
+        // Public API and SCIM (TASKS #271, #273); `/v2/*` is the cloud SCIM path layout.
         '/public/*',
         '/scim/*',
         '/v2/*',
@@ -83,7 +83,7 @@ export default defineConfig({
     triggers: [
       triggers.scheduled({ schedule: '17 * * * *' }),
       triggers.scheduled({ schedule: '17 3 * * *' }),
-      // Event integrations (TASKS #264); must equal DELIVERY_CRON in src/integrations/deliver.ts.
+      // Event integrations (TASKS #274); must equal DELIVERY_CRON in src/integrations/deliver.ts.
       triggers.scheduled({ schedule: '* * * * *' }),
     ],
     exports: {

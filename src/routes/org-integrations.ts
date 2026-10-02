@@ -1,5 +1,5 @@
-// Admin Console API for Cloudwarden's own SCIM settings and event integrations (TASKS #263,
-// #264). These are Cloudwarden endpoints (the upstream screens for these features are not open
+// Admin Console API for Cloudwarden's own SCIM settings and event integrations (TASKS #273,
+// #274). These are Cloudwarden endpoints (the upstream screens for these features are not open
 // source); the web client pages under `web/apps/web/src/app/cloudwarden/` call them.
 import { and, eq } from 'drizzle-orm'
 import type { Context } from 'hono'

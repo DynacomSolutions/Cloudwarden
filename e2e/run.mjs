@@ -649,7 +649,7 @@ async function main() {
     assert.deepEqual(await names(after, to.userKey), await names(before, from.userKey))
     pass('importer: personal vault copied to a new account and decrypts identically')
 
-    // The official Directory Connector CLI (TASKS #262, pinned in e2e/bwdc.lock.json) syncing an
+    // The official Directory Connector CLI (TASKS #272, pinned in e2e/bwdc.lock.json) syncing an
     // LDAP directory into the organisation through the organisation API key and the Public API.
     const { bin: bwdcBin, env: bwdcExtraEnv } = await ensureBwdc()
     pass('bwdc: pinned release downloaded and sha256 verified')

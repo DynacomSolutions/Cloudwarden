@@ -20,7 +20,7 @@ export interface EventInput {
   /** Machine account that acted, or that the event is about. */
   serviceAccountUuid?: string | null
   grantedServiceAccountUuid?: string | null
-  /** Non-member actor: 1 SCIM, 3 Public API (TASKS #260). */
+  /** Non-member actor: 1 SCIM, 3 Public API (TASKS #270). */
   systemUser?: number | null
   date?: number
 }

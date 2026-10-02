@@ -1,4 +1,4 @@
-// Directory import (TASKS #262): `POST /public/organization/import`, the request the Bitwarden
+// Directory import (TASKS #272): `POST /public/organization/import`, the request the Bitwarden
 // Directory Connector sends after reading users and groups from LDAP, Entra ID, Google, Okta or
 // OneLogin. Members are matched by external id, then by email; new ones are invited. Groups are
 // matched by external id and their membership replaced. With `overwriteExisting`, members and

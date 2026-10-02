@@ -1,4 +1,4 @@
-// Organisation API keys (TASKS #260). Type 0 authenticates the Public API through the
+// Organisation API keys (TASKS #270). Type 0 authenticates the Public API through the
 // `client_credentials` grant with `client_id=organization.<id>` and `scope=api.organization`;
 // type 2 authenticates SCIM requests. Keys are 30 alphanumeric characters, sealed at rest.
 import { and, eq } from 'drizzle-orm'

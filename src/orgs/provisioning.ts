@@ -1,4 +1,4 @@
-// Shared member provisioning for the Public API, directory import and SCIM (TASKS #261 to #263).
+// Shared member provisioning for the Public API, directory import and SCIM (TASKS #271 to #273).
 import { and, eq } from 'drizzle-orm'
 import { normalizeEmail } from '../auth/users'
 import { type Db, schema } from '../db'

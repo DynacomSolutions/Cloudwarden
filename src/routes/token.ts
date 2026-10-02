@@ -381,7 +381,7 @@ token.post('/identity/connect/token', rateLimit('token'), async (c) => {
     case 'client_credentials':
       // Secrets Manager machine accounts log in with their access token (TASKS #220).
       if ((form.scope ?? '').split(' ').includes(MACHINE_SCOPE)) return machineLoginGrant(c, form)
-      // Organisation API key: Public API and Directory Connector (TASKS #260).
+      // Organisation API key: Public API and Directory Connector (TASKS #270).
       if ((form.client_id ?? '').startsWith('organization.')) return organizationLoginGrant(c, form)
       return clientCredentialsGrant(c, form)
     case 'send_access':

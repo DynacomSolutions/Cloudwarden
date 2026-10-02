@@ -1,4 +1,4 @@
-// Event integration destinations (TASKS #264): signed webhooks, Splunk HTTP Event Collector,
+// Event integration destinations (TASKS #274): signed webhooks, Splunk HTTP Event Collector,
 // Datadog log intake and Microsoft Sentinel (Azure Monitor Logs Ingestion API). Each destination
 // validates its settings and turns a batch of organisation events into HTTP requests. Formats come
 // from the public documentation of each product.

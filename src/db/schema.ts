@@ -442,7 +442,7 @@ export const events = sqliteTable(
     projectUuid: text('project_uuid'),
     serviceAccountUuid: text('service_account_uuid'),
     grantedServiceAccountUuid: text('granted_service_account_uuid'),
-    /** Non-member actor (TASKS #260): 1 SCIM, 2 domain verification, 3 Public API. */
+    /** Non-member actor (TASKS #270): 1 SCIM, 2 domain verification, 3 Public API. */
     systemUser: integer('system_user'),
     deviceType: integer('device_type'),
     ipAddress: text('ip_address'),
@@ -704,7 +704,7 @@ export const smAccessPolicies = sqliteTable(
   ],
 )
 
-// ----- Organisation API keys, SCIM and event integrations (TASKS #260 to #266). Secrets are
+// ----- Organisation API keys, SCIM and event integrations (TASKS #270 to #276). Secrets are
 // sealed with the instance key (src/orgs/sealed.ts); the server needs them back in clear to show
 // the key again or to sign deliveries, so they are encrypted rather than hashed. -----
 

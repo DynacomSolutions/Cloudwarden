@@ -8,7 +8,7 @@ import { purgeExpired } from './vault/purge'
 /**
  * Cron entry point. The daily trigger exports D1 to R2 (TASKS #162); the hourly trigger purges
  * expired Sends and orphaned blobs (TASKS #84); the minute trigger delivers events to integrations
- * (TASKS #264). An invocation without a cron string (manual or
+ * (TASKS #274). An invocation without a cron string (manual or
  * test) runs both. Each job is isolated in try/catch and awaited; a backup failure is rethrown so
  * the invocation is marked failed, a purge failure is logged and left for the next hour.
  */

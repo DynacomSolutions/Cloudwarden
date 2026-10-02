@@ -1,4 +1,4 @@
-// Encryption at rest for server-held secrets (TASKS #260): organisation API keys, SCIM keys and
+// Encryption at rest for server-held secrets (TASKS #270): organisation API keys, SCIM keys and
 // integration tokens. AES-256-GCM under a key derived with HKDF-SHA256 from `DATA_ENCRYPTION_KEY`
 // (a Worker secret). Without it the key is derived from `JWT_SECRET` under a different label, so a
 // deployment keeps working; setting `DATA_ENCRYPTION_KEY` later still opens old values because each

@@ -58,7 +58,7 @@ export const EventType = {
   ServiceAccountDeleted: 2305,
 } as const
 
-/** `systemUser` of events raised without a member acting (TASKS #260). */
+/** `systemUser` of events raised without a member acting (TASKS #270). */
 export const EventSystemUser = { Scim: 1, DomainVerification: 2, PublicApi: 3 } as const
 
 export const PERMISSION_KEYS = [

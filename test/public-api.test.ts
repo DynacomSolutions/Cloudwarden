@@ -1,5 +1,5 @@
 // Organisation API keys, the organisation `client_credentials` grant, the Public API and the
-// Directory Connector import (TASKS #260 to #262). Responses are validated against the Public API
+// Directory Connector import (TASKS #270 to #272). Responses are validated against the Public API
 // schemas in docs/api/openapi.yaml.
 
 import { env } from 'cloudflare:workers'

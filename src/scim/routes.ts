@@ -1,4 +1,4 @@
-// SCIM 2.0 service provider (RFC 7643, RFC 7644) for one organisation (TASKS #263), at
+// SCIM 2.0 service provider (RFC 7643, RFC 7644) for one organisation (TASKS #273), at
 // `/scim/v2/{organizationId}` (self-hosted layout) and `/v2/{organizationId}` (the path Bitwarden's
 // cloud SCIM host uses). Identity providers such as Microsoft Entra ID and Okta authenticate with
 // the organisation's SCIM API key as a Bearer token once SCIM is enabled in the Admin Console.

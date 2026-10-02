@@ -30,6 +30,7 @@ Cloudwarden is a single Cloudflare Worker that implements the Bitwarden server A
 | `src/db/schema.ts` | Drizzle schema (source of truth for migrations) |
 | `migrations/` | Generated SQL migrations applied to D1 |
 | `src/do/notification-hub.ts` | WebSocket hub (SignalR protocol) |
+| `src/sm/`, `src/routes/secrets-manager.ts` | Secrets Manager: machine login, access model, API ([docs/secrets-manager.md](secrets-manager.md)) |
 | `test/` | Vitest suites running inside workerd |
 
 ## Principles

@@ -216,7 +216,7 @@ export function memberJson(
     hasMasterPassword: true,
     twoFactorEnabled: m.userUuid ? (lists?.twoFactor.has(m.userUuid) ?? false) : false,
     claimedByOrganization: false,
-    accessSecretsManager: false,
+    accessSecretsManager: m.accessSecretsManager,
     accessPam: false,
     revocationReason: null,
     ...(lists

@@ -65,6 +65,7 @@ organizations.post('/api/organizations', async (c) => {
       organizationUuid: orgUuid,
       email: user.email,
       accessAll: true,
+      accessSecretsManager: true,
       akey: body.key,
       status: Status.Confirmed,
       atype: Role.Owner,

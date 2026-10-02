@@ -113,6 +113,7 @@ const inviteSchema = z.object({
   collections: z.array(selectionSchema).nullish(),
   groups: z.array(z.string()).nullish(),
   permissions: permissionsSchema,
+  accessSecretsManager: z.boolean().nullish(),
 })
 
 function inviteLink(c: Ctx, orgRow: { uuid: string; name: string }, m: Member, token: string) {
@@ -202,6 +203,7 @@ orgUsers.post('/api/organizations/:orgId/users/invite', async (c) => {
       atype: body.type,
       resetPasswordKey: null,
       externalId: null,
+      accessSecretsManager: body.accessSecretsManager === true,
       createdAt: now,
       updatedAt: now,
     })
@@ -503,6 +505,26 @@ const single = async (c: Ctx, op: Op) => {
   return c.body(null, 200)
 }
 
+/** Grants Secrets Manager access (TASKS #220); the web client's bulk "activate Secrets Manager". */
+const enableSecretsManagerOp: Op = async (c, db, actor, target) => {
+  assertCanAssign(actor, target.atype)
+  return [
+    db
+      .update(schema.usersOrganizations)
+      .set({ accessSecretsManager: true, updatedAt: Date.now() })
+      .where(eq(schema.usersOrganizations.uuid, target.uuid)),
+    eventStatement(db, c, {
+      type: EventType.OrganizationUserUpdated,
+      organizationUuid: target.organizationUuid,
+      organizationUserUuid: target.uuid,
+      userUuid: target.userUuid,
+    }),
+  ]
+}
+
+orgUsers.put('/api/organizations/:orgId/users/enable-secrets-manager', async (c) =>
+  bulkOk(await runOps(c, (await parseBody(c, idsSchema)).ids, enableSecretsManagerOp), c),
+)
 orgUsers.put('/api/organizations/:orgId/users/revoke', async (c) =>
   bulkOk(await runOps(c, (await parseBody(c, idsSchema)).ids, revokeOp), c),
 )
@@ -541,6 +563,7 @@ const updateSchema = z.object({
   collections: z.array(selectionSchema).nullish(),
   groups: z.array(z.string()).nullish(),
   permissions: permissionsSchema,
+  accessSecretsManager: z.boolean().nullish(),
 })
 const updateMember = async (c: Ctx) => {
   const body = await parseBody(c, updateSchema)
@@ -575,6 +598,9 @@ const updateMember = async (c: Ctx) => {
         atype: body.type,
         accessAll,
         permissions: permissionsColumn(body.type, body.permissions),
+        ...(body.accessSecretsManager == null
+          ? {}
+          : { accessSecretsManager: body.accessSecretsManager }),
         updatedAt: now,
       })
       .where(eq(schema.usersOrganizations.uuid, target.uuid)),

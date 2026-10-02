@@ -42,6 +42,20 @@ export const EventType = {
   OrganizationUserRestored: 1512,
   OrganizationUpdated: 1600,
   PolicyUpdated: 1700,
+  // Secrets Manager (TASKS #220).
+  SecretRetrieved: 2100,
+  SecretCreated: 2101,
+  SecretEdited: 2102,
+  SecretDeleted: 2103,
+  ProjectCreated: 2201,
+  ProjectEdited: 2202,
+  ProjectDeleted: 2203,
+  ServiceAccountUserAdded: 2300,
+  ServiceAccountUserRemoved: 2301,
+  ServiceAccountGroupAdded: 2302,
+  ServiceAccountGroupRemoved: 2303,
+  ServiceAccountCreated: 2304,
+  ServiceAccountDeleted: 2305,
 } as const
 
 export const PERMISSION_KEYS = [

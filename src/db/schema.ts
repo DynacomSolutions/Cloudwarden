@@ -121,6 +121,8 @@ export const organizations = sqliteTable('organizations', {
   billingEmail: text('billing_email').notNull(),
   privateKey: text('private_key'),
   publicKey: text('public_key'),
+  // Last change to any Secrets Manager data of the organisation (TASKS #220); drives secrets sync.
+  secretsRevisionDate: integer('secrets_revision_date'),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 })
@@ -206,6 +208,9 @@ export const usersOrganizations = sqliteTable(
     atype: integer('atype').notNull(),
     resetPasswordKey: text('reset_password_key'),
     externalId: text('external_id'),
+    accessSecretsManager: integer('access_secrets_manager', { mode: 'boolean' })
+      .notNull()
+      .default(false),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -363,6 +368,10 @@ export const events = sqliteTable(
     policyUuid: text('policy_uuid'),
     organizationUserUuid: text('organization_user_uuid'),
     actingUserUuid: text('acting_user_uuid'),
+    secretUuid: text('secret_uuid'),
+    projectUuid: text('project_uuid'),
+    serviceAccountUuid: text('service_account_uuid'),
+    grantedServiceAccountUuid: text('granted_service_account_uuid'),
     deviceType: integer('device_type'),
     ipAddress: text('ip_address'),
     eventDate: integer('event_date').notNull(),
@@ -521,4 +530,132 @@ export const invitations = sqliteTable(
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex('invitations_email_unique').on(t.email)],
+)
+
+// ----- Secrets Manager (TASKS #220). Names, keys, values and notes are EncStrings; the server
+// never sees plaintext. -----
+
+export const smProjects = sqliteTable(
+  'sm_projects',
+  {
+    uuid: id(),
+    organizationUuid: text('organization_uuid')
+      .notNull()
+      .references(() => organizations.uuid, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index('sm_projects_organization_idx').on(t.organizationUuid)],
+)
+
+export const smSecrets = sqliteTable(
+  'sm_secrets',
+  {
+    uuid: id(),
+    organizationUuid: text('organization_uuid')
+      .notNull()
+      .references(() => organizations.uuid, { onDelete: 'cascade' }),
+    key: text('key').notNull(),
+    value: text('value').notNull(),
+    note: text('note').notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index('sm_secrets_organization_idx').on(t.organizationUuid)],
+)
+
+export const smSecretsProjects = sqliteTable(
+  'sm_secrets_projects',
+  {
+    secretUuid: text('secret_uuid')
+      .notNull()
+      .references(() => smSecrets.uuid, { onDelete: 'cascade' }),
+    projectUuid: text('project_uuid')
+      .notNull()
+      .references(() => smProjects.uuid, { onDelete: 'cascade' }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.secretUuid, t.projectUuid] }),
+    index('sm_secrets_projects_project_idx').on(t.projectUuid),
+  ],
+)
+
+/** Machine accounts (`service-accounts` on the wire). */
+export const smServiceAccounts = sqliteTable(
+  'sm_service_accounts',
+  {
+    uuid: id(),
+    organizationUuid: text('organization_uuid')
+      .notNull()
+      .references(() => organizations.uuid, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index('sm_service_accounts_organization_idx').on(t.organizationUuid)],
+)
+
+/**
+ * Machine account access tokens. Only a SHA-256 of the client secret is kept. `encryptedPayload`
+ * (the organisation key under the token's own key) and `key` are opaque client data.
+ */
+export const smAccessTokens = sqliteTable(
+  'sm_access_tokens',
+  {
+    uuid: id(),
+    serviceAccountUuid: text('service_account_uuid')
+      .notNull()
+      .references(() => smServiceAccounts.uuid, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    clientSecretHash: text('client_secret_hash').notNull(),
+    encryptedPayload: text('encrypted_payload').notNull(),
+    key: text('key').notNull(),
+    expiresAt: integer('expires_at'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index('sm_access_tokens_service_account_idx').on(t.serviceAccountUuid)],
+)
+
+/**
+ * Access policies. Exactly one grantee column (member, group or machine account) and exactly one
+ * granted column (project, secret or machine account) is set per row.
+ */
+export const smAccessPolicies = sqliteTable(
+  'sm_access_policies',
+  {
+    uuid: id(),
+    organizationUuid: text('organization_uuid')
+      .notNull()
+      .references(() => organizations.uuid, { onDelete: 'cascade' }),
+    organizationUserUuid: text('organization_user_uuid').references(() => usersOrganizations.uuid, {
+      onDelete: 'cascade',
+    }),
+    groupUuid: text('group_uuid').references(() => groups.uuid, { onDelete: 'cascade' }),
+    serviceAccountUuid: text('service_account_uuid').references(() => smServiceAccounts.uuid, {
+      onDelete: 'cascade',
+    }),
+    grantedProjectUuid: text('granted_project_uuid').references(() => smProjects.uuid, {
+      onDelete: 'cascade',
+    }),
+    grantedSecretUuid: text('granted_secret_uuid').references(() => smSecrets.uuid, {
+      onDelete: 'cascade',
+    }),
+    grantedServiceAccountUuid: text('granted_service_account_uuid').references(
+      () => smServiceAccounts.uuid,
+      { onDelete: 'cascade' },
+    ),
+    read: integer('read', { mode: 'boolean' }).notNull().default(false),
+    write: integer('write', { mode: 'boolean' }).notNull().default(false),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index('sm_access_policies_organization_idx').on(t.organizationUuid),
+    index('sm_access_policies_project_idx').on(t.grantedProjectUuid),
+    index('sm_access_policies_secret_idx').on(t.grantedSecretUuid),
+    index('sm_access_policies_granted_sa_idx').on(t.grantedServiceAccountUuid),
+    index('sm_access_policies_sa_idx').on(t.serviceAccountUuid),
+  ],
 )

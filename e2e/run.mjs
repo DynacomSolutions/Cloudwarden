@@ -14,6 +14,7 @@ import { ensureBwdc } from './bwdc.mjs'
 import { ensureBws } from './bws.mjs'
 import { buildAccount, decType2, encType2, encType4 } from './crypto.mjs'
 import { deriveAccessTokenKey } from './sm-client.mjs'
+import { runSso } from './sso.mjs'
 import { makeCert } from './tls-proxy.mjs'
 
 const root = resolve(import.meta.dirname, '..')
@@ -59,6 +60,8 @@ async function main() {
     JWT_SECRET: 'e2e-only-secret-e2e-only-secret-0123456789',
     DEPLOY_DOMAIN: `127.0.0.1:${tlsPort}`,
     NODE_EXTRA_CA_CERTS: tls.ca,
+    // The SSO step's mock provider is plain http on 127.0.0.1 (TASKS #288).
+    SSO_ALLOW_INSECURE_LOOPBACK: 'true',
   }
 
   // Local D1 migrations through the cf CLI.
@@ -859,6 +862,8 @@ async function main() {
     assert.ok(remaining.includes(EMAIL))
     pass('bwdc: overwrite sync removes a user deleted from the directory and keeps the owner')
     void ldap.close()
+
+    await runSso({ direct, base, pass })
 
     console.log(`\n${step} steps passed`)
   } catch (err) {

@@ -42,6 +42,8 @@ export interface Bindings {
   JWT_SIGNING_KEY?: string
   /** Previous ES256 key, published and accepted for verification only while rotating. */
   JWT_SIGNING_KEY_PREVIOUS?: string
+  /** Development and e2e only: accept an http loopback OIDC provider (src/sso/oidc.ts). */
+  SSO_ALLOW_INSECURE_LOOPBACK?: string
   /** Bitwarden push relay installation id and key (https://bitwarden.com/host), TASKS #262. */
   PUSH_INSTALLATION_ID?: string
   PUSH_INSTALLATION_KEY?: string

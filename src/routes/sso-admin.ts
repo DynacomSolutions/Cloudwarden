@@ -50,7 +50,7 @@ import {
 import { hasMasterPassword } from '../sso/decryption'
 import { SsoError } from '../sso/errors'
 import { LINK_PURPOSE, LINK_TTL_SECONDS } from '../sso/flow'
-import { testOidc } from '../sso/oidc'
+import { insecureLoopback, testOidc } from '../sso/oidc'
 import { testSaml } from '../sso/saml'
 import { ensureSpKeys, SsoEventType } from '../sso/sp-keys'
 import { kdfProblem, parseBody } from '../validation'
@@ -171,13 +171,16 @@ const httpsUrl = (v: string | null | undefined) => {
 }
 
 /** Field problems of a configuration about to be enabled. */
-function configProblems(data: SsoConfigData): Record<string, string[]> {
+function configProblems(data: SsoConfigData, env: Env['Bindings']): Record<string, string[]> {
   const errors: Record<string, string[]> = {}
   const add = (k: string, m: string) => {
     errors[k] = [...(errors[k] ?? []), m]
   }
   if (data.configType === SsoType.OpenIdConnect) {
-    if (!httpsUrl(data.authority)) add('authority', 'An https authority URL is required.')
+    const loopbackOk =
+      insecureLoopback(env) && /^http:\/\/(127\.0\.0\.1|localhost)[:/]/.test(data.authority ?? '')
+    if (!httpsUrl(data.authority) && !loopbackOk)
+      add('authority', 'An https authority URL is required.')
     if (!data.clientId?.trim()) add('clientId', 'The client ID is required.')
     if (data.metadataAddress && !httpsUrl(data.metadataAddress))
       add('metadataAddress', 'The metadata address must use https.')
@@ -261,7 +264,7 @@ ssoAdmin.post('/api/organizations/:orgId/sso', async (c) => {
       throw new ApiError(400, 'The request is invalid.', {
         identifier: ['An SSO identifier is required.'],
       })
-    const problems = configProblems(data)
+    const problems = configProblems(data, c.env)
     if (Object.keys(problems).length > 0)
       throw new ApiError(400, 'The request is invalid.', problems)
   }
@@ -396,7 +399,7 @@ ssoAdmin.post('/api/organizations/:orgId/sso/test', rateLimit('sso-test'), async
   }
   try {
     if (data.configType === SsoType.OpenIdConnect) {
-      const r = await testOidc(data)
+      const r = await testOidc(data, c.env)
       return c.json({
         object: 'ssoTest',
         success: r.problems.length === 0,

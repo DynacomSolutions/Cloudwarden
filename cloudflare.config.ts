@@ -55,7 +55,12 @@ export default defineConfig({
       // JWT_SECRET and ADMIN_EMAILS (to try the web client's Instance admin pages). Never set the
       // flag when deploying; production secrets are set out of band with `cf workers secrets`.
       ...(env.LOCAL_DEV_SECRETS === 'true'
-        ? { JWT_SECRET: bindings.secret(), ADMIN_EMAILS: bindings.secret() }
+        ? {
+            JWT_SECRET: bindings.secret(),
+            ADMIN_EMAILS: bindings.secret(),
+            // Development and e2e only: allow an http loopback OIDC provider (docs/sso.md).
+            SSO_ALLOW_INSECURE_LOOPBACK: bindings.text(env.SSO_ALLOW_INSECURE_LOOPBACK || 'false'),
+          }
         : {}),
       DOMAIN: bindings.text(domain ? `https://${domain}` : 'https://vault.example.com'),
       SIGNUPS_ALLOWED: bindings.text(env.SIGNUPS_ALLOWED || 'false'),

@@ -192,10 +192,10 @@ See `docs/sso.md`. Bitwarden's SSO server and SSO settings screens are Bitwarden
 | 282 | SAML 2.0 service provider (`xmldsigjs`): metadata, signed AuthnRequest (redirect and POST), Response validation (signature, wrapping, issuer, destination, audience, times, InResponseTo, replay), encrypted assertions | done | agent | `test/sso-saml.test.ts` with generated certificates |
 | 283 | JIT provisioning and linking rules, `set-password`, Require SSO policy (with single organisation dependency), account link and unlink | done | agent | `test/sso-oidc.test.ts` |
 | 284 | Trusted device encryption: device key endpoints, `TrustedDeviceOption`, offboarding password, policies auto-enabled, key rotation re-wraps devices | done | agent | `test/sso-tde.test.ts` |
-| 285 | Key Connector: organisation option, `set-key-connector-key`, `convert-to-key-connector`, confirmation details, `KeyConnectorOption`. Bitwarden's Key Connector is Bitwarden-licensed: not tested against; HS256 tokens without JWKS are a known gap | doing | agent | `test/sso-tde.test.ts`; interoperability with a third-party Key Connector open |
+| 285 | Key Connector: organisation option, `set-key-connector-key`, `convert-to-key-connector`, confirmation details, `KeyConnectorOption`; ES256 access tokens (`JWT_SIGNING_KEY`, rotation with `JWT_SIGNING_KEY_PREVIOUS`) with `/identity/.well-known/openid-configuration` and JWKS. Bitwarden's Key Connector is Bitwarden-licensed: documented, not run in CI | done | agent | `test/sso-tde.test.ts`; interoperability with a third-party Key Connector open |
 | 286 | Claimed domains: CRUD, DNS TXT verification over DoH, hourly cron, SSO discovery by email, claimed account rules and admin account deletion | done | agent | `test/sso-tde.test.ts` |
 | 287 | Web UI: Settings, Single sign-on (OIDC, SAML, member decryption, test) and Settings, Claimed domains, written from scratch | done | agent | `pnpm web:build`; `pnpm check:web-licence` |
-| 288 | E2E SSO with the official CLI and a mock OIDC provider | todo | | `pnpm e2e` step |
+| 288 | E2E SSO against a mock OIDC provider (`e2e/oidc-idp.mjs`, `e2e/sso.mjs`): the script plays the web client through prevalidate, authorize, provider sign-in, callback and code redemption; dev-only `SSO_ALLOW_INSECURE_LOOPBACK` admits the http loopback provider | done | agent | `pnpm e2e` SSO steps (run in CI) |
 
 ## Phase 13: Federated organisations (Cloudwarden exclusive, owner approved)
 

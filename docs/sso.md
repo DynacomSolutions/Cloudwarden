@@ -144,6 +144,13 @@ verified by another. Members on a claimed domain are claimed (`userIsClaimedByOr
 leave, and administrators with manage users can delete their accounts
 (`DELETE .../users/{id}/delete-account`, bulk `DELETE .../users/delete-account`).
 
+## End-to-end test
+
+`pnpm e2e` runs `e2e/sso.mjs` against `e2e/oidc-idp.mjs`, a mock OpenID Connect provider on
+`127.0.0.1` (TASKS #288). The provider is plain http, which the Worker accepts only with
+`SSO_ALLOW_INSECURE_LOOPBACK=true`; that variable is declared only together with
+`LOCAL_DEV_SECRETS` (local development and the e2e run) and must never be set in production.
+
 ## Web UI
 
 `web/apps/web/src/app/cloudwarden/sso/`: Settings, Single sign-on (OIDC and SAML fields, member

@@ -21,7 +21,7 @@
     "message": "Tất cả ứng dụng quan trọng"
   },
   "appLogoLabel": {
-    "message": "Bitwarden logo"
+    "message": "Cloudwarden logo"
   },
   "criticalApplications": {
     "message": "Ứng dụng quan trọng"
@@ -236,7 +236,7 @@
     "message": "Theo dõi các cải tiến trong toàn bộ nhóm của bạn"
   },
   "membersAreAutomaticallyNotified": {
-    "message": "Các thành viên được tự động thông báo về các mật khẩu có rủi ro trong tiện ích mở rộng Bitwarden của họ. Không cần phải theo sát kiểm tra."
+    "message": "Các thành viên được tự động thông báo về các mật khẩu có rủi ro trong tiện ích mở rộng Cloudwarden của họ. Không cần phải theo sát kiểm tra."
   },
   "importYourOrgDataToGetStarted": {
     "message": "Nhập dữ liệu tổ chức của bạn để bắt đầu"
@@ -399,7 +399,7 @@
     }
   },
   "membersWillReceiveSecurityTask": {
-    "message": "Các thành viên trong tổ chức của bạn sẽ được giao nhiệm vụ thay đổi mật khẩu dễ bị tổn thương. Họ sẽ nhận được thông báo trong tiện ích mở rộng trình duyệt Bitwarden của họ."
+    "message": "Các thành viên trong tổ chức của bạn sẽ được giao nhiệm vụ thay đổi mật khẩu dễ bị tổn thương. Họ sẽ nhận được thông báo trong tiện ích mở rộng trình duyệt Cloudwarden của họ."
   },
   "membersAtRiskCount": {
     "message": "$COUNT$ thành viên gặp rủi ro",
@@ -847,10 +847,10 @@
     "message": "Giúp quá trình xác minh 2 bước diễn ra liền mạch"
   },
   "totpHelper": {
-    "message": "Bitwarden có thể lưu trữ và điền mã xác thực 2 bước. Sao chép và dán khóa vào ô này."
+    "message": "Cloudwarden có thể lưu trữ và điền mã xác thực 2 bước. Sao chép và dán khóa vào ô này."
   },
   "totpHelperWithCapture": {
-    "message": "Bitwarden có thể lưu trữ và điền mã xác minh 2 bước. Hãy chọn biểu tượng máy ảnh để quét mã QR xác thực của trang web, hoặc sao chép và dán khoá vào ô này."
+    "message": "Cloudwarden có thể lưu trữ và điền mã xác minh 2 bước. Hãy chọn biểu tượng máy ảnh để quét mã QR xác thực của trang web, hoặc sao chép và dán khoá vào ô này."
   },
   "totpCapture": {
     "message": "Quét mã QR trình xác thực từ trang web hiện tại"
@@ -2222,7 +2222,7 @@
     "message": "Đăng nhập bằng thiết bị"
   },
   "loginWithDeviceEnabledNote": {
-    "message": "Đăng nhập bằng thiết bị phải được thiết lập trong cài đặt của ứng dụng Bitwarden. Dùng cách khác?"
+    "message": "Đăng nhập bằng thiết bị phải được thiết lập trong cài đặt của ứng dụng Cloudwarden. Dùng cách khác?"
   },
   "needAnotherOptionV1": {
     "message": "Cần một tùy chọn khác?"
@@ -2339,7 +2339,7 @@
     "message": "Tạo tài khoản"
   },
   "newToBitwarden": {
-    "message": "Bạn mới sử dụng Bitwarden?"
+    "message": "Bạn mới sử dụng Cloudwarden?"
   },
   "setAStrongPassword": {
     "message": "Đặt mật khẩu mạnh"
@@ -2357,7 +2357,7 @@
     "message": "Đăng nhập"
   },
   "loginPageEmailEntryScreenTitle": {
-    "message": "Đăng nhập vào Bitwarden"
+    "message": "Đăng nhập vào Cloudwarden"
   },
   "enterTheCodeSentToYourEmail": {
     "message": "Nhập mã được gửi về email của bạn"
@@ -2387,7 +2387,7 @@
     "message": "Thiết bị là gì?"
   },
   "aDeviceIs": {
-    "message": "Một thiết bị là một bản cài đặt duy nhất của ứng dụng Bitwarden mà bạn đã đăng nhập. Việc cài đặt lại ứng dụng, xóa dữ liệu ứng dụng hoặc xóa cookie có thể khiến thiết bị xuất hiện nhiều lần."
+    "message": "Một thiết bị là một bản cài đặt duy nhất của ứng dụng Cloudwarden mà bạn đã đăng nhập. Việc cài đặt lại ứng dụng, xóa dữ liệu ứng dụng hoặc xóa cookie có thể khiến thiết bị xuất hiện nhiều lần."
   },
   "logInInitiated": {
     "message": "Bắt đầu đăng nhập"
@@ -2694,7 +2694,7 @@
     "message": "Một thông báo đã được gửi đến thiết bị của bạn."
   },
   "notificationSentDevicePart1": {
-    "message": "Mở khóa Bitwarden trên thiết bị của bạn hoặc trên "
+    "message": "Mở khóa Cloudwarden trên thiết bị của bạn hoặc trên "
   },
   "accessAttemptBy": {
     "message": "Cố gắng truy cập bởi $EMAIL$",
@@ -2718,7 +2718,7 @@
     "message": "Hãy đảm bảo rằng cụm từ xác thực khớp với cụm từ bên dưới trước khi phê duyệt."
   },
   "notificationSentDeviceComplete": {
-    "message": "Mở khóa Bitwarden trên thiết bị của bạn. Hãy đảm bảo rằng cụm từ xác thực khớp với cụm từ bên dưới trước khi xác nhận."
+    "message": "Mở khóa Cloudwarden trên thiết bị của bạn. Hãy đảm bảo rằng cụm từ xác thực khớp với cụm từ bên dưới trước khi xác nhận."
   },
   "aNotificationWasSentToYourDevice": {
     "message": "Một thông báo đã được gửi đến thiết bị của bạn"
@@ -2932,7 +2932,7 @@
     "message": "Quá trình xuất này sẽ mã hóa dữ liệu của bạn bằng khóa mã hóa của tài khoản. Nếu bạn từng thay đổi mã hóa tài khoản của mình, bạn nên xuất lại vì bạn sẽ không thể giải mã tập tin xuất này."
   },
   "encExportAccountWarningDesc": {
-    "message": "Khóa mã hóa tài khoản là duy nhất cho mỗi tài khoản Bitwarden, vì vậy bạn không thể nhập tệp xuất được mã hóa vào một tài khoản khác."
+    "message": "Khóa mã hóa tài khoản là duy nhất cho mỗi tài khoản Cloudwarden, vì vậy bạn không thể nhập tệp xuất được mã hóa vào một tài khoản khác."
   },
   "exportNoun": {
     "message": "Xuất",
@@ -2988,10 +2988,10 @@
     "message": "Cơ sở dữ liệu KeePass này quá lớn để nhập."
   },
   "accountRestrictedOptionDescription": {
-    "message": "Sử dụng khóa mã hóa tài khoản của bạn, được tạo từ tên đăng nhập và mật khẩu chính của bạn để mã hóa tệp xuất và giới hạn việc nhập chỉ cho tài khoản Bitwarden hiện tại."
+    "message": "Sử dụng khóa mã hóa tài khoản của bạn, được tạo từ tên đăng nhập và mật khẩu chính của bạn để mã hóa tệp xuất và giới hạn việc nhập chỉ cho tài khoản Cloudwarden hiện tại."
   },
   "passwordProtectedOptionDescription": {
-    "message": "Thiết lập mật khẩu cho tệp để mã hóa dữ liệu xuất và nhập nó vào bất kỳ tài khoản Bitwarden nào bằng cách sử dụng mật khẩu đó để giải mã."
+    "message": "Thiết lập mật khẩu cho tệp để mã hóa dữ liệu xuất và nhập nó vào bất kỳ tài khoản Cloudwarden nào bằng cách sử dụng mật khẩu đó để giải mã."
   },
   "exportTypeHeading": {
     "message": "Xuất kiểu"
@@ -3162,7 +3162,7 @@
     "message": "Yêu cầu đang chờ xử lý"
   },
   "logBackInOthersToo": {
-    "message": "Vui lòng đăng nhập lại. Nếu bạn đang dùng những ứng dụng Bitwarden khác, vui lòng đăng xuất and đăng nhập lại những ứng dụng đó."
+    "message": "Vui lòng đăng nhập lại. Nếu bạn đang dùng những ứng dụng Cloudwarden khác, vui lòng đăng xuất and đăng nhập lại những ứng dụng đó."
   },
   "changeMasterPassword": {
     "message": "Thay đổi mật khẩu chính"
@@ -3208,7 +3208,7 @@
     "description": "Memory refers to computer memory (RAM). MB is short for megabytes."
   },
   "argon2Warning": {
-    "message": "Việc đặt giá trị số lần lặp (KDF iterations), bộ nhớ (memory) và song song (parallelism) quá cao có thể dẫn đến hiệu suất kém khi đăng nhập (và mở khóa) Bitwarden trên các thiết bị chậm hoặc đời cũ. Chúng tôi khuyên bạn nên thay đổi từng cài đặt một cách từ từ, sau đó kiểm tra trên tất cả các thiết bị của mình."
+    "message": "Việc đặt giá trị số lần lặp (KDF iterations), bộ nhớ (memory) và song song (parallelism) quá cao có thể dẫn đến hiệu suất kém khi đăng nhập (và mở khóa) Cloudwarden trên các thiết bị chậm hoặc đời cũ. Chúng tôi khuyên bạn nên thay đổi từng cài đặt một cách từ từ, sau đó kiểm tra trên tất cả các thiết bị của mình."
   },
   "kdfParallelism": {
     "message": "KDF song song"
@@ -3241,10 +3241,10 @@
     "message": "Bật tính năng bảo vệ đăng nhập thiết bị mới"
   },
   "turnOffNewDeviceLoginProtectionModalDesc": {
-    "message": "Tiếp tục bên dưới để tắt tính năng gửi email cảnh báo mà Bitwarden gửi khi bạn đăng nhập từ một thiết bị mới."
+    "message": "Tiếp tục bên dưới để tắt tính năng gửi email cảnh báo mà Cloudwarden gửi khi bạn đăng nhập từ một thiết bị mới."
   },
   "turnOnNewDeviceLoginProtectionModalDesc": {
-    "message": "Tiếp tục bên dưới để Bitwarden gửi cho bạn email cảnh báo khi bạn đăng nhập từ một thiết bị mới."
+    "message": "Tiếp tục bên dưới để Cloudwarden gửi cho bạn email cảnh báo khi bạn đăng nhập từ một thiết bị mới."
   },
   "turnOffNewDeviceLoginProtectionWarning": {
     "message": "Khi tính năng bảo vệ đăng nhập thiết bị mới bị tắt, bất kỳ ai có mật khẩu chính của bạn đều có thể truy cập tài khoản của bạn từ bất kỳ thiết bị nào. Để bảo vệ tài khoản mà không cần cảnh báo qua email, hãy thiết lập tính năng đăng nhập hai bước."
@@ -3694,7 +3694,7 @@
     "description": "Followed by a literal filename (my_passwords.json) rendered as code."
   },
   "importGnomeInstructionsFileHere": {
-    "message": "tại đây lên Bitwarden.",
+    "message": "tại đây lên Cloudwarden.",
     "description": "Follows the my_passwords.json filename."
   },
   "importPasswordagentInstructions": {
@@ -3827,7 +3827,7 @@
     "message": "Quy tắc tên miền"
   },
   "domainRulesDesc": {
-    "message": "Nếu bạn sử dụng cùng một tài khoản đăng nhập trên nhiều tên miền website khác nhau, bạn có thể đánh dấu website đó là \"tương đương\". Các tên miền \"Toàn cầu\" là những tên miền đã được Bitwarden tạo sẵn cho bạn."
+    "message": "Nếu bạn sử dụng cùng một tài khoản đăng nhập trên nhiều tên miền website khác nhau, bạn có thể đánh dấu website đó là \"tương đương\". Các tên miền \"Toàn cầu\" là những tên miền đã được Cloudwarden tạo sẵn cho bạn."
   },
   "globalEqDomains": {
     "message": "Các tên miền tương đương toàn cầu"
@@ -3878,7 +3878,7 @@
     "message": "Bật tính năng đăng nhập hai bước cho tổ chức của bạn."
   },
   "twoStepLoginEnterpriseDescStart": {
-    "message": "Áp dụng các tùy chọn đăng nhập hai bước của Bitwarden cho thành viên bằng cách sử dụng ",
+    "message": "Áp dụng các tùy chọn đăng nhập hai bước của Cloudwarden cho thành viên bằng cách sử dụng ",
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Enforce Bitwarden Two-step Login options for members by using the Two-step Login Policy.'"
   },
   "twoStepLoginPolicy": {
@@ -3891,7 +3891,7 @@
     "message": "Nếu bạn đã thiết lập SSO hoặc có kế hoạch thiết lập, tính năng Đăng nhập hai bước có thể đã được áp dụng thông qua Nhà cung cấp danh tính của bạn."
   },
   "twoStepLoginRecoveryWarning": {
-    "message": "Cài đặt đăng nhập hai bước có thể khiến bạn mất quyền truy cập vĩnh viễn tài khoản Bitwarden của mình. Mã khôi phục cho phép bạn truy cập tài khoản trong trường hợp bạn không thể sử dụng nhà cung cấp đăng nhập hai bước thông thường (ví dụ: bạn mất thiết bị). Bộ phận hỗ trợ Bitwarden sẽ không thể giúp bạn nếu bạn mất quyền truy cập vào tài khoản. Chúng tôi khuyên bạn nên ghi lại hoặc in mã khôi phục và giữ nó ở nơi an toàn."
+    "message": "Cài đặt đăng nhập hai bước có thể khiến bạn mất quyền truy cập vĩnh viễn tài khoản Cloudwarden của mình. Mã khôi phục cho phép bạn truy cập tài khoản trong trường hợp bạn không thể sử dụng nhà cung cấp đăng nhập hai bước thông thường (ví dụ: bạn mất thiết bị). Bộ phận hỗ trợ Cloudwarden sẽ không thể giúp bạn nếu bạn mất quyền truy cập vào tài khoản. Chúng tôi khuyên bạn nên ghi lại hoặc in mã khôi phục và giữ nó ở nơi an toàn."
   },
   "restrictedItemTypePolicy": {
     "message": "Xóa loại mục thẻ"
@@ -3913,7 +3913,7 @@
     "message": "Một chính sách được thiết lập bởi 1 hoặc nhiều tổ chức ngăn bạn nhập thẻ vào kho của mình."
   },
   "yourSingleUseRecoveryCode": {
-    "message": "Mã khôi phục sử dụng một lần của bạn có thể được sử dụng để tắt tính năng đăng nhập hai bước trong trường hợp bạn mất quyền truy cập vào nhà cung cấp dịch vụ đăng nhập hai bước. Bitwarden khuyến nghị bạn ghi lại mã khôi phục và lưu trữ nó ở nơi an toàn."
+    "message": "Mã khôi phục sử dụng một lần của bạn có thể được sử dụng để tắt tính năng đăng nhập hai bước trong trường hợp bạn mất quyền truy cập vào nhà cung cấp dịch vụ đăng nhập hai bước. Cloudwarden khuyến nghị bạn ghi lại mã khôi phục và lưu trữ nó ở nơi an toàn."
   },
   "viewRecoveryCode": {
     "message": "Xem mã khôi phục"
@@ -4011,13 +4011,13 @@
     }
   },
   "continueToExternalUrlDesc": {
-    "message": "Bạn đang rời khỏi Bitwarden và mở một trang web bên ngoài trong một cửa sổ mới."
+    "message": "Bạn đang rời khỏi Cloudwarden và mở một trang web bên ngoài trong một cửa sổ mới."
   },
   "twoStepContinueToBitwardenUrlTitle": {
     "message": "Tiếp tục tới bitwarden.com?"
   },
   "twoStepContinueToBitwardenUrlDesc": {
-    "message": "Trình xác thực Bitwarden cho phép bạn lưu trữ các khóa xác thực và tạo mã TOTP cho quy trình xác thực hai bước. Tìm hiểu thêm trên trang web bitwarden.com."
+    "message": "Trình xác thực Cloudwarden cho phép bạn lưu trữ các khóa xác thực và tạo mã TOTP cho quy trình xác thực hai bước. Tìm hiểu thêm trên trang web bitwarden.com."
   },
   "twoStepAuthenticatorScanCodeV2": {
     "message": "Quét mã QR bên dưới bằng ứng dụng xác thực của bạn hoặc nhập khóa."
@@ -4059,7 +4059,7 @@
     "message": "Lưu mẫu."
   },
   "twoFactorYubikeyWarning": {
-    "message": "Do giới hạn của hệ điều hành, YubiKey không thể xài hết được trên các ứng dụng Bitwarden. Bạn nên đăng ký thêm một phương pháp xác thực 2 bước khác khi mà YubiKey không xài được. Hỗ trợ hệ điều hành:"
+    "message": "Do giới hạn của hệ điều hành, YubiKey không thể xài hết được trên các ứng dụng Cloudwarden. Bạn nên đăng ký thêm một phương pháp xác thực 2 bước khác khi mà YubiKey không xài được. Hỗ trợ hệ điều hành:"
   },
   "twoFactorYubikeySupportUsb": {
     "message": "Kho lưu trữ web, ứng dụng máy tính, giao diện dòng lệnh (CLI) và tất cả các tiện ích mở rộng trình duyệt trên thiết bị có cổng USB có thể chấp nhận YubiKey của bạn."
@@ -4110,7 +4110,7 @@
     "message": "Vô hiệu hóa tất cả các khóa"
   },
   "twoFactorDuoDesc": {
-    "message": "Nhập thông tin ứng dụng Bitwarden từ bảng điều khiển Duo Admin của bạn."
+    "message": "Nhập thông tin ứng dụng Cloudwarden từ bảng điều khiển Duo Admin của bạn."
   },
   "twoFactorDuoClientId": {
     "message": "Client Id"
@@ -4161,7 +4161,7 @@
     "message": "Lưu mẫu."
   },
   "twoFactorU2fWarning": {
-    "message": "Do giới hạn của hệ điều hành, FIDO U2F không thể xài hết được trên các ứng dụng Bitwarden. Bạn nên đăng ký thêm một phương pháp xác thực 2 bước khác khi mà FIDO U2F không xài được. Hỗ trợ hệ điều hành:"
+    "message": "Do giới hạn của hệ điều hành, FIDO U2F không thể xài hết được trên các ứng dụng Cloudwarden. Bạn nên đăng ký thêm một phương pháp xác thực 2 bước khác khi mà FIDO U2F không xài được. Hỗ trợ hệ điều hành:"
   },
   "twoFactorU2fSupportWeb": {
     "message": "Kho lưu trữ web và tiện ích mở rộng trình duyệt trên máy tính để bàn/laptop sử dụng trình duyệt hỗ trợ U2F (Chrome, Opera, Vivaldi hoặc Firefox với tính năng FIDO U2F đã được kích hoạt)."
@@ -4176,7 +4176,7 @@
     "message": "Có vấn đề khi đọc khóa bảo mật. Vui lòng thử lại."
   },
   "twoFactorRecoveryYourCode": {
-    "message": "Mã khôi phục đăng nhập hai bước của Bitwarden"
+    "message": "Mã khôi phục đăng nhập hai bước của Cloudwarden"
   },
   "twoFactorRecoveryNoCode": {
     "message": "Bạn chưa thiết lập bất kỳ nhà cung cấp xác thực hai bước nào. Sau khi thiết lập nhà cung cấp xác thực hai bước, bạn có thể quay lại đây để lấy mã khôi phục."
@@ -4229,7 +4229,7 @@
     "message": "Đăng nhập hai bước không hoạt động"
   },
   "inactive2faReportDesc": {
-    "message": "Đăng nhập hai bước sẽ thêm một lớp bảo vệ cho tài khoản của bạn. Thiết lập đăng nhập hai bước bằng trình xác thực Bitwarden cho các tài khoản này hoặc sử dụng phương pháp thay thế."
+    "message": "Đăng nhập hai bước sẽ thêm một lớp bảo vệ cho tài khoản của bạn. Thiết lập đăng nhập hai bước bằng trình xác thực Cloudwarden cho các tài khoản này hoặc sử dụng phương pháp thay thế."
   },
   "inactive2faFound": {
     "message": "Đăng nhập không sử dụng xác thực hai yếu tố đã được phát hiện"
@@ -4266,7 +4266,7 @@
     "message": "và "
   },
   "passkeyLoginReportHowToUse": {
-    "message": "cách sử dụng mã khóa trong Bitwarden."
+    "message": "cách sử dụng mã khóa trong Cloudwarden."
   },
   "passkeyLoginFound": {
     "message": "Thông tin đăng nhập hỗ trợ mã khóa"
@@ -4526,7 +4526,7 @@
     }
   },
   "bitwardenFamiliesPlan": {
-    "message": "Gói Bitwarden Gia Đình."
+    "message": "Gói Cloudwarden Gia Đình."
   },
   "addons": {
     "message": "Tiện ích bổ sung"
@@ -4738,7 +4738,7 @@
     }
   },
   "churnOfferDiscountBody": {
-    "message": "Để cảm ơn bạn đã là khách hàng lâu năm của Bitwarden, chúng tôi muốn tặng bạn mức giảm giá $DISCOUNT$ cho thời gian sử dụng $DURATION$ tiếp theo của bạn.",
+    "message": "Để cảm ơn bạn đã là khách hàng lâu năm của Cloudwarden, chúng tôi muốn tặng bạn mức giảm giá $DISCOUNT$ cho thời gian sử dụng $DURATION$ tiếp theo của bạn.",
     "description": "Body copy on the churn-mitigation offer card. DISCOUNT = discount amount; DURATION = service duration (e.g. 'year' or '6 months')",
     "placeholders": {
       "discount": {
@@ -4800,7 +4800,7 @@
     }
   },
   "churnOfferDiscountBodyRecurringAmount": {
-    "message": "Để cảm ơn bạn đã là khách hàng lâu năm của Bitwarden, chúng tôi muốn tặng bạn mức giảm $AMOUNT$ cho mỗi $INTERVAL$ trong vòng $DURATION$ tới.",
+    "message": "Để cảm ơn bạn đã là khách hàng lâu năm của Cloudwarden, chúng tôi muốn tặng bạn mức giảm $AMOUNT$ cho mỗi $INTERVAL$ trong vòng $DURATION$ tới.",
     "description": "Body copy on the churn-mitigation offer card for a fixed-amount discount that repeats each billing period. AMOUNT = discount amount (e.g. '$15.00'); INTERVAL = billing interval unit (e.g. 'month'); DURATION = discount duration (e.g. 'year' or '6 months')",
     "placeholders": {
       "amount": {
@@ -5249,7 +5249,7 @@
     }
   },
   "trialThankYou": {
-    "message": "Cảm ơn bạn đã đăng ký Bitwarden gói $PLAN$!",
+    "message": "Cảm ơn bạn đã đăng ký Cloudwarden gói $PLAN$!",
     "placeholders": {
       "plan": {
         "content": "$1",
@@ -5258,7 +5258,7 @@
     }
   },
   "trialSecretsManagerThankYou": {
-    "message": "Cảm ơn bạn đã đăng ký Trình quản lý Bí mật Bitwarden gói $PLAN$!",
+    "message": "Cảm ơn bạn đã đăng ký Trình quản lý Bí mật Cloudwarden gói $PLAN$!",
     "placeholders": {
       "plan": {
         "content": "$1",
@@ -5391,13 +5391,13 @@
     "message": "External ID"
   },
   "externalIdDesc": {
-    "message": "External ID là một tham chiếu không được mã hóa được sử dụng bởi Bitwarden Directory Connector và API."
+    "message": "External ID là một tham chiếu không được mã hóa được sử dụng bởi Cloudwarden Directory Connector và API."
   },
   "ssoExternalId": {
     "message": "SSO External ID"
   },
   "ssoExternalIdDesc": {
-    "message": "SSO External ID là một tham chiếu không được mã hóa giữa Bitwarden và nhà cung cấp SSO đã được cấu hình của bạn."
+    "message": "SSO External ID là một tham chiếu không được mã hóa giữa Cloudwarden và nhà cung cấp SSO đã được cấu hình của bạn."
   },
   "nestCollectionUnder": {
     "message": "Lồng bộ sưu tập vào dưới"
@@ -5454,13 +5454,13 @@
     "message": "Mời"
   },
   "inviteUserDesc": {
-    "message": "Mời một người dùng mới tham gia tổ chức của bạn bằng cách nhập địa chỉ email tài khoản Bitwarden của họ vào ô bên dưới. Nếu họ chưa có tài khoản Bitwarden, họ sẽ được yêu cầu tạo tài khoản mới."
+    "message": "Mời một người dùng mới tham gia tổ chức của bạn bằng cách nhập địa chỉ email tài khoản Cloudwarden của họ vào ô bên dưới. Nếu họ chưa có tài khoản Cloudwarden, họ sẽ được yêu cầu tạo tài khoản mới."
   },
   "inviteUserDescription": {
     "message": "Mời người dùng mới tham gia tổ chức của bạn bằng cách nhập địa chỉ email của họ bên dưới."
   },
   "inviteUserDescSharedFolders": {
-    "message": "Mời người dùng mới vào kho lưu trữ tổ chức của bạn bằng cách nhập địa chỉ email tài khoản Bitwarden của họ bên dưới. Nếu họ chưa có tài khoản Bitwarden, họ sẽ được yêu cầu tạo tài khoản mới.",
+    "message": "Mời người dùng mới vào kho lưu trữ tổ chức của bạn bằng cách nhập địa chỉ email tài khoản Cloudwarden của họ bên dưới. Nếu họ chưa có tài khoản Cloudwarden, họ sẽ được yêu cầu tạo tài khoản mới.",
     "description": "VFO1 (shared folder terminology) variant of inviteUserDesc, shown when the vfo1-foundation flag is enabled."
   },
   "inviteMultipleEmailDesc": {
@@ -5603,10 +5603,10 @@
     "message": "CLI"
   },
   "bitWebVault": {
-    "message": "Trang web kho lưu trữ Bitwarden"
+    "message": "Trang web kho lưu trữ Cloudwarden"
   },
   "bitSecretsManager": {
-    "message": "Trình quản lý bí mật Bitwarden"
+    "message": "Trình quản lý bí mật Cloudwarden"
   },
   "loggedIn": {
     "message": "Đã đăng nhập"
@@ -6925,7 +6925,7 @@
     "message": "Quay lại đăng ký"
   },
   "joinOrganizationDesc": {
-    "message": "Bạn đã được mời tham gia tổ chức bên trên. Để chấp nhận lời mời, bạn cần đăng nhập hoặc tạo tài khoản Bitwarden mới."
+    "message": "Bạn đã được mời tham gia tổ chức bên trên. Để chấp nhận lời mời, bạn cần đăng nhập hoặc tạo tài khoản Cloudwarden mới."
   },
   "finishJoiningThisOrganizationBySettingAMasterPassword": {
     "message": "Hoàn tất gia nhập tổ chức này bằng cách đặt một mật khẩu chính."
@@ -7066,10 +7066,10 @@
     "message": "Nếu tài khoản của bạn tồn tại, chúng tôi đã gửi cho bạn một email với hướng dẫn chi tiết."
   },
   "deleteRecoverConfirmDesc": {
-    "message": "Bạn đã yêu cầu xóa tài khoản Bitwarden của mình. Nhấn vào nút bên dưới để xác nhận."
+    "message": "Bạn đã yêu cầu xóa tài khoản Cloudwarden của mình. Nhấn vào nút bên dưới để xác nhận."
   },
   "deleteRecoverOrgConfirmDesc": {
-    "message": "Bạn đã yêu cầu xóa tổ chức Bitwarden của mình."
+    "message": "Bạn đã yêu cầu xóa tổ chức Cloudwarden của mình."
   },
   "myOrganization": {
     "message": "Tổ chức của tôi"
@@ -7403,7 +7403,7 @@
     }
   },
   "updateEncryptionKeyWarning": {
-    "message": "Sau khi cập nhật khóa mã hóa của bạn, bạn bắt buộc phải đăng xuất và đăng nhập lại vào tất cả các ứng dụng Bitwarden mà bạn đang sử dụng (chẳng hạn như ứng dụng di động hoặc tiện ích mở rộng trình duyệt). Nếu không đăng xuất và đăng nhập lại (để tải xuống khóa mã hóa mới), dữ liệu của bạn có thể bị hỏng. Chúng tôi sẽ cố gắng tự động đăng xuất bạn, tuy nhiên có thể sẽ bị trễ."
+    "message": "Sau khi cập nhật khóa mã hóa của bạn, bạn bắt buộc phải đăng xuất và đăng nhập lại vào tất cả các ứng dụng Cloudwarden mà bạn đang sử dụng (chẳng hạn như ứng dụng di động hoặc tiện ích mở rộng trình duyệt). Nếu không đăng xuất và đăng nhập lại (để tải xuống khóa mã hóa mới), dữ liệu của bạn có thể bị hỏng. Chúng tôi sẽ cố gắng tự động đăng xuất bạn, tuy nhiên có thể sẽ bị trễ."
   },
   "updateEncryptionKeyAccountExportWarning": {
     "message": "Mọi bản xuất bị hạn chế tài khoản mà bạn đã lưu sẽ trở nên không hợp lệ."
@@ -7439,7 +7439,7 @@
     "message": "Bạn chưa chọn gì."
   },
   "receiveMarketingEmails": {
-    "message": "Nhận các bản cập nhật từ Bitwarden trong hộp thư đến của bạn."
+    "message": "Nhận các bản cập nhật từ Cloudwarden trong hộp thư đến của bạn."
   },
   "subscribe": {
     "message": "Đăng ký"
@@ -7546,7 +7546,7 @@
     "message": "Copy and paste the link where your team will find it: your onboarding checklist, a Slack #new-joiners channel, Notion docs, or an email template."
   },
   "viewBitwardenOnboardingGuide": {
-    "message": "View Bitwarden onboarding guide"
+    "message": "View Cloudwarden onboarding guide"
   },
   "coachMarkStepOfTotal": {
     "message": "$CURRENT$ of $TOTAL$",
@@ -7790,7 +7790,7 @@
     "message": "Khóa API"
   },
   "apiKeyDesc": {
-    "message": "Khóa API của bạn có thể được sử dụng để xác thực với API công khai của Bitwarden."
+    "message": "Khóa API của bạn có thể được sử dụng để xác thực với API công khai của Cloudwarden."
   },
   "apiKeyRotateDesc": {
     "message": "Việc thay đổi khóa API sẽ làm vô hiệu hóa khóa cũ. Bạn có thể thay đổi khóa API nếu cho rằng khóa hiện tại không còn an toàn để sử dụng."
@@ -8149,7 +8149,7 @@
     "description": "VFO1 terminology variant of 'singleOrgPolicyDescV2'"
   },
   "singleOrgBlockCreateMessage": {
-    "message": "Tổ chức hiện tại của bạn có chính sách không cho phép bạn tham gia nhiều hơn một tổ chức. Vui lòng liên hệ với quản trị viên tổ chức của bạn hoặc đăng ký bằng một tài khoản Bitwarden khác."
+    "message": "Tổ chức hiện tại của bạn có chính sách không cho phép bạn tham gia nhiều hơn một tổ chức. Vui lòng liên hệ với quản trị viên tổ chức của bạn hoặc đăng ký bằng một tài khoản Cloudwarden khác."
   },
   "singleOrgPolicyMemberWarning": {
     "message": "Các thành viên không tuân thủ sẽ bị đưa vào trạng thái thu hồi cho đến khi họ rời khỏi tất cả các tổ chức khác. Quản trị viên được miễn trừ và có thể khôi phục thành viên khi đã tuân thủ."
@@ -8400,7 +8400,7 @@
     "message": "Gặp phải sự cố? Tải xuống sau đó chia sẻ báo cáo chẩn đoán với"
   },
   "bitwardenSupport": {
-    "message": "bộ phận hỗ trợ Bitwarden",
+    "message": "bộ phận hỗ trợ Cloudwarden",
     "description": "Link text that follows the troubleshooting description sentence. 'Bitwarden' should not be translated."
   },
   "download": {
@@ -8457,7 +8457,7 @@
     "message": "Chỉnh sửa liên hệ khẩn cấp"
   },
   "inviteEmergencyContactDesc": {
-    "message": "Mời một liên hệ khẩn cấp mới bằng cách nhập địa chỉ email tài khoản Bitwarden của họ vào ô bên dưới. Nếu họ chưa có tài khoản Bitwarden, họ sẽ được yêu cầu tạo tài khoản mới."
+    "message": "Mời một liên hệ khẩn cấp mới bằng cách nhập địa chỉ email tài khoản Cloudwarden của họ vào ô bên dưới. Nếu họ chưa có tài khoản Cloudwarden, họ sẽ được yêu cầu tạo tài khoản mới."
   },
   "emergencyAccessRecoveryInitiated": {
     "message": "Đã kích hoạt quyền truy cập khẩn cấp"
@@ -8496,7 +8496,7 @@
     "message": "Đã mời người dùng."
   },
   "acceptEmergencyAccess": {
-    "message": "Bạn đã được mời trở thành liên hệ khẩn cấp cho người dùng được liệt kê ở trên. Để chấp nhận lời mời, bạn cần đăng nhập hoặc tạo tài khoản Bitwarden mới."
+    "message": "Bạn đã được mời trở thành liên hệ khẩn cấp cho người dùng được liệt kê ở trên. Để chấp nhận lời mời, bạn cần đăng nhập hoặc tạo tài khoản Cloudwarden mới."
   },
   "emergencyInviteAcceptFailed": {
     "message": "Không thể chấp nhận lời mời. Yêu cầu người dùng gửi lời mời mới."
@@ -8682,7 +8682,7 @@
     "message": "Cách bật xác nhận người dùng tự động"
   },
   "autoConfirmExtension1": {
-    "message": "Mở tiện ích mở rộng Bitwarden của bạn"
+    "message": "Mở tiện ích mở rộng Cloudwarden của bạn"
   },
   "autoConfirmExtension2": {
     "message": "Chọn",
@@ -8693,7 +8693,7 @@
     "description": "This is a fragment of a larger sencence. The whole sentence will read: 'Select Turn on'"
   },
   "autoConfirmExtensionOpened": {
-    "message": "Đã mở tiện ích mở rộng Bitwarden trong trình duyệt. Giờ bạn có thể bật tùy chọn xác nhận người dùng tự động."
+    "message": "Đã mở tiện ích mở rộng Cloudwarden trong trình duyệt. Giờ bạn có thể bật tùy chọn xác nhận người dùng tự động."
   },
   "autoConfirmPolicyEditDescription": {
     "message": "Người dùng mới được mời vào tổ chức sẽ tự động được xác nhận khi thiết bị của quản trị viên đang mở khóa. Trước khi bật chính sách này, hãy đọc kỹ và đồng ý với các điều sau: ",
@@ -8906,7 +8906,7 @@
     "description": "VFO1 terminology variant of 'uriMatchDetectionPolicyDesc', shown in the policies list"
   },
   "uriMatchDetectionPolicyDescV2": {
-    "message": "Đặt mặc định những phần nào của địa chỉ trang web (URI) cần khớp để Bitwarden đề xuất mục đăng nhập khi tự động điền. Chính sách này sẽ không được áp dụng cho chủ sở hữu và quản trị viên."
+    "message": "Đặt mặc định những phần nào của địa chỉ trang web (URI) cần khớp để Cloudwarden đề xuất mục đăng nhập khi tự động điền. Chính sách này sẽ không được áp dụng cho chủ sở hữu và quản trị viên."
   },
   "uriMatchDetectionOptionsLabel": {
     "message": "Phát hiện khớp URI mặc định"
@@ -8926,7 +8926,7 @@
     "message": "Bộ quy tắc tự động điền tùy chỉnh"
   },
   "fillAssistRulesUrlHint": {
-    "message": "Theo mặc định, hỗ trợ điền sử dụng bộ quy tắc được Bitwarden tuyển chọn. Nhập URL tại đây để ghi đè bằng bộ quy tắc của riêng bạn."
+    "message": "Theo mặc định, hỗ trợ điền sử dụng bộ quy tắc được Cloudwarden tuyển chọn. Nhập URL tại đây để ghi đè bằng bộ quy tắc của riêng bạn."
   },
   "invalidFillAssistRulesUrl": {
     "message": "Nhập URL hợp lệ",
@@ -9039,7 +9039,7 @@
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "sendAccessTaglineProductDesc": {
-    "message": "Bitwarden Send cho phép truyền tải thông tin nhạy cảm và tạm thời đến người khác một cách dễ dàng và an toàn.",
+    "message": "Cloudwarden Send cho phép truyền tải thông tin nhạy cảm và tạm thời đến người khác một cách dễ dàng và an toàn.",
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "sendAccessTaglineLearnMore": {
@@ -9066,7 +9066,7 @@
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Learn more, see how it works, **or** try it now.'"
   },
   "developmentDevOpsAndITTeamsChooseBWSecret": {
-    "message": "Các nhóm Phát triển, DevOps và CNTT chọn Trình quản lý bí mật Bitwarden để quản lý và triển khai an toàn cơ sở hạ tầng và bí mật máy của họ."
+    "message": "Các nhóm Phát triển, DevOps và CNTT chọn Trình quản lý bí mật Cloudwarden để quản lý và triển khai an toàn cơ sở hạ tầng và bí mật máy của họ."
   },
   "centralizeSecretsManagement": {
     "message": "Tập trung quản lý bí mật."
@@ -9102,10 +9102,10 @@
     "message": "Thêm ghi chú"
   },
   "bitwardenSecretsManager": {
-    "message": "Trình quản lý bí mật Bitwarden"
+    "message": "Trình quản lý bí mật Cloudwarden"
   },
   "moreProductsFromBitwarden": {
-    "message": "Các sản phẩm khác từ Bitwarden"
+    "message": "Các sản phẩm khác từ Cloudwarden"
   },
   "requestAccessToSecretsManager": {
     "message": "Yêu cầu quyền truy cập Trình quản lý Bí mật"
@@ -9117,7 +9117,7 @@
     "message": "Access request for secrets manager email sent to admins."
   },
   "requestAccessSMDefaultEmailContent": {
-    "message": "Xin chào,\n\nTôi muốn đề nghị đăng ký sử dụng Trình quản lý Bí mật Bitwarden cho nhóm của chúng ta. Sự hỗ trợ của bạn sẽ rất đáng trân trọng!\n\nTrình quản lý Bí mật Bitwarden là giải pháp quản lý bí mật được mã hóa đầu cuối, giúp lưu trữ, chia sẻ và triển khai an toàn các thông tin xác thực của máy như khóa API, mật khẩu cơ sở dữ liệu và chứng chỉ xác thực.\n\nSecrets Manager sẽ giúp chúng ta:\n\n* Nâng cao bảo mật\n* Tinh giản quy trình hoạt động\n* Ngăn chặn rò rỉ bí mật tốn kém\n\nĐể yêu cầu dùng thử miễn phí cho nhóm, vui lòng liên hệ với Bitwarden.\n\nCảm ơn bạn đã hỗ trợ!"
+    "message": "Xin chào,\n\nTôi muốn đề nghị đăng ký sử dụng Trình quản lý Bí mật Cloudwarden cho nhóm của chúng ta. Sự hỗ trợ của bạn sẽ rất đáng trân trọng!\n\nTrình quản lý Bí mật Cloudwarden là giải pháp quản lý bí mật được mã hóa đầu cuối, giúp lưu trữ, chia sẻ và triển khai an toàn các thông tin xác thực của máy như khóa API, mật khẩu cơ sở dữ liệu và chứng chỉ xác thực.\n\nSecrets Manager sẽ giúp chúng ta:\n\n* Nâng cao bảo mật\n* Tinh giản quy trình hoạt động\n* Ngăn chặn rò rỉ bí mật tốn kém\n\nĐể yêu cầu dùng thử miễn phí cho nhóm, vui lòng liên hệ với Cloudwarden.\n\nCảm ơn bạn đã hỗ trợ!"
   },
   "giveMembersAccess": {
     "message": "Cấp quyền truy cập cho thành viên:"
@@ -9151,7 +9151,7 @@
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Learn more about Bitwarden Send or sign up to **try it today.**'"
   },
   "sendAccessCreatorIdentifier": {
-    "message": "Thành viên Bitwarden $USER_IDENTIFIER$ đã chia sẻ với bạn",
+    "message": "Thành viên Cloudwarden $USER_IDENTIFIER$ đã chia sẻ với bạn",
     "placeholders": {
       "user_identifier": {
         "content": "$1",
@@ -9176,7 +9176,7 @@
     "description": "Toast message shown when a user clicks the resend code link on the Send access page. 'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "viewSendHiddenEmailWarning": {
-    "message": "Người dùng Bitwarden đã tạo Send này đã chọn ẩn địa chỉ email của họ. Bạn nên đảm bảo rằng bạn tin tưởng nguồn của liên kết này trước khi sử dụng hoặc tải xuống nội dung của nó.",
+    "message": "Người dùng Cloudwarden đã tạo Send này đã chọn ẩn địa chỉ email của họ. Bạn nên đảm bảo rằng bạn tin tưởng nguồn của liên kết này trước khi sử dụng hoặc tải xuống nội dung của nó.",
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "expirationDateIsInvalid": {
@@ -9548,10 +9548,10 @@
     "message": "Lỗi giải mã"
   },
   "couldNotDecryptVaultItem": {
-    "message": "Bitwarden could not decrypt the vault item listed below. Contact Bitwarden Customer Support and provide the item ID below to see if it can be recovered."
+    "message": "Cloudwarden could not decrypt the vault item listed below. Contact Cloudwarden Customer Support and provide the item ID below to see if it can be recovered."
   },
   "couldNotDecryptVaultItems": {
-    "message": "Bitwarden could not decrypt the vault items listed below. Contact Bitwarden Customer Support and provide the item IDs below to see if they can be recovered."
+    "message": "Cloudwarden could not decrypt the vault items listed below. Contact Cloudwarden Customer Support and provide the item IDs below to see if they can be recovered."
   },
   "itemId": {
     "message": "Item ID",
@@ -9574,7 +9574,7 @@
     "message": "Cài đặt nhà cung cấp"
   },
   "setupProviderLoginDesc": {
-    "message": "Bạn đã được mời để thiết lập một nhà cung cấp mới. Để tiếp tục, bạn cần đăng nhập hoặc tạo tài khoản Bitwarden mới."
+    "message": "Bạn đã được mời để thiết lập một nhà cung cấp mới. Để tiếp tục, bạn cần đăng nhập hoặc tạo tài khoản Cloudwarden mới."
   },
   "setupProviderDesc": {
     "message": "Vui lòng nhập các thông tin bên dưới để hoàn tất quá trình thiết lập Nhà cung cấp. Liên hệ với Bộ phận Hỗ trợ Khách hàng nếu bạn có bất kỳ câu hỏi nào."
@@ -9605,13 +9605,13 @@
     "message": "Người dùng dịch vụ có thể truy cập và quản lý tất cả các tổ chức khách hàng."
   },
   "providerInviteUserDesc": {
-    "message": "Mời người dùng mới vào Nhà cung cấp của bạn bằng cách nhập địa chỉ email tài khoản Bitwarden của họ bên dưới. Nếu họ chưa có tài khoản Bitwarden, sẽ được yêu cầu tạo tài khoản mới."
+    "message": "Mời người dùng mới vào Nhà cung cấp của bạn bằng cách nhập địa chỉ email tài khoản Cloudwarden của họ bên dưới. Nếu họ chưa có tài khoản Cloudwarden, sẽ được yêu cầu tạo tài khoản mới."
   },
   "joinProvider": {
     "message": "Tham gia Nhà cung cấp"
   },
   "joinProviderDesc": {
-    "message": "Bạn đã được mời tham gia Nhà cung cấp được liệt kê ở trên. Để chấp nhận lời mời, bạn cần đăng nhập hoặc tạo tài khoản Bitwarden mới."
+    "message": "Bạn đã được mời tham gia Nhà cung cấp được liệt kê ở trên. Để chấp nhận lời mời, bạn cần đăng nhập hoặc tạo tài khoản Cloudwarden mới."
   },
   "providerInviteAcceptFailed": {
     "message": "Không thể chấp nhận lời mời. Vui lòng yêu cầu quản trị viên Nhà cung cấp gửi lại lời mời mới."
@@ -9763,7 +9763,7 @@
     "message": "Hành động khi hết thời gian chờ phiên"
   },
   "sessionTimeoutSuppressedByConnectedDevice": {
-    "message": "Được quản lý bởi ứng dụng tiện ích mở rộng trình duyệt Bitwarden. Mở ứng dụng trình duyệt để chỉnh sửa."
+    "message": "Được quản lý bởi ứng dụng tiện ích mở rộng trình duyệt Cloudwarden. Mở ứng dụng trình duyệt để chỉnh sửa."
   },
   "immediately": {
     "message": "Ngay lập tức"
@@ -10018,10 +10018,10 @@
     "message": "Cấu hình đăng nhập một lần đã được lưu"
   },
   "sponsoredFamilies": {
-    "message": "Gói Bitwarden Gia đình miễn phí"
+    "message": "Gói Cloudwarden Gia đình miễn phí"
   },
   "sponsoredBitwardenFamilies": {
-    "message": "Gói Bitwarden Gia đình được tài trợ"
+    "message": "Gói Cloudwarden Gia đình được tài trợ"
   },
   "sponsoredBitwardenFamiliesV2": {
     "message": "Lượt quy đổi của người không phải thành viên"
@@ -10036,31 +10036,31 @@
     "message": "Các gói Gia đình dành cho người không phải thành viên được tài trợ sẽ hiển thị tại đây"
   },
   "noSponsoredFamiliesDetailsV2": {
-    "message": "Chưa có người không phải thành viên nào quy đổi Gói Bitwarden Gia đình Được tài trợ."
+    "message": "Chưa có người không phải thành viên nào quy đổi Gói Cloudwarden Gia đình Được tài trợ."
   },
   "sponsorshipFreeBitwardenFamilies": {
-    "message": "Thành viên tổ chức của bạn đủ điều kiện sử dụng gói Bitwarden Gia đình miễn phí. Bạn có thể tài trợ Bitwarden Gia đình miễn phí cho nhân viên không thuộc tổ chức Bitwarden của bạn. Việc tài trợ cho người không phải thành viên yêu cầu có chỗ trống trong tổ chức của bạn."
+    "message": "Thành viên tổ chức của bạn đủ điều kiện sử dụng gói Cloudwarden Gia đình miễn phí. Bạn có thể tài trợ Cloudwarden Gia đình miễn phí cho nhân viên không thuộc tổ chức Cloudwarden của bạn. Việc tài trợ cho người không phải thành viên yêu cầu có chỗ trống trong tổ chức của bạn."
   },
   "sponsorshipFreeBitwardenFamiliesV2": {
-    "message": "Các thành viên của bạn đủ điều kiện quy đổi Gói Bitwarden Gia đình Được tài trợ. Bạn có thể tài trợ một gói Gia đình cho những nhân viên không phải là thành viên trong tổ chức Bitwarden của bạn, nhưng điều này sẽ yêu cầu số ghế khả dụng trong tổ chức của bạn."
+    "message": "Các thành viên của bạn đủ điều kiện quy đổi Gói Cloudwarden Gia đình Được tài trợ. Bạn có thể tài trợ một gói Gia đình cho những nhân viên không phải là thành viên trong tổ chức Cloudwarden của bạn, nhưng điều này sẽ yêu cầu số ghế khả dụng trong tổ chức của bạn."
   },
   "sponsoredFamiliesRemoveActiveSponsorship": {
     "message": "Khi bạn hủy tài trợ đang hoạt động, một ghế trong tổ chức của bạn sẽ khả dụng sau ngày gia hạn của tổ chức được tài trợ."
   },
   "sponsoredFamiliesEligible": {
-    "message": "Bạn và gia đình đủ điều kiện nhận Gói Bitwarden Gia đình miễn phí. Hãy kích hoạt bằng email cá nhân để giữ dữ liệu của bạn an toàn ngay cả khi không ở nơi làm việc."
+    "message": "Bạn và gia đình đủ điều kiện nhận Gói Cloudwarden Gia đình miễn phí. Hãy kích hoạt bằng email cá nhân để giữ dữ liệu của bạn an toàn ngay cả khi không ở nơi làm việc."
   },
   "sponsoredFamiliesEligibleV2": {
-    "message": "Bạn và gia đình đủ điều kiện nhận Gói Bitwarden Gia đình Được tài trợ mà không mất thêm chi phí. Quy đổi gói này bằng email cá nhân của bạn để giữ cho dữ liệu an toàn và tách biệt khỏi tài khoản Bitwarden công việc của bạn."
+    "message": "Bạn và gia đình đủ điều kiện nhận Gói Cloudwarden Gia đình Được tài trợ mà không mất thêm chi phí. Quy đổi gói này bằng email cá nhân của bạn để giữ cho dữ liệu an toàn và tách biệt khỏi tài khoản Cloudwarden công việc của bạn."
   },
   "sponsoredFamiliesEligibleCard": {
-    "message": "Hãy nhận Gói Bitwarden Gia đình miễn phí của bạn ngay hôm nay để bảo vệ dữ liệu an toàn ngay cả khi bạn không ở nơi làm việc."
+    "message": "Hãy nhận Gói Cloudwarden Gia đình miễn phí của bạn ngay hôm nay để bảo vệ dữ liệu an toàn ngay cả khi bạn không ở nơi làm việc."
   },
   "sponsoredFamiliesIncludeMessage": {
-    "message": "Gói Bitwarden Gia đình bao gồm"
+    "message": "Gói Cloudwarden Gia đình bao gồm"
   },
   "sponsoredFamiliesIncludeMessageV2": {
-    "message": "Gói Bitwarden Gia đình bao gồm"
+    "message": "Gói Cloudwarden Gia đình bao gồm"
   },
   "sponsoredFamiliesPremiumAccess": {
     "message": "Quyền truy cập Cao cấp cho tối đa 6 người dùng"
@@ -10081,7 +10081,7 @@
     "message": "Thành viên đã đổi gói gia đình sẽ hiển thị tại đây"
   },
   "membersWithSponsoredFamilies": {
-    "message": "Thành viên trong tổ chức của bạn đủ điều kiện nhận Gói Bitwarden Gia đình miễn phí. Tại đây, bạn có thể xem những thành viên đã tài trợ cho một tổ chức Gia đình."
+    "message": "Thành viên trong tổ chức của bạn đủ điều kiện nhận Gói Cloudwarden Gia đình miễn phí. Tại đây, bạn có thể xem những thành viên đã tài trợ cho một tổ chức Gia đình."
   },
   "organizationHasMemberMessage": {
     "message": "Không thể gửi tài trợ tới $EMAIL$ vì họ là thành viên của tổ chức của bạn.",
@@ -10108,7 +10108,7 @@
     "message": "Bạn muốn đổi ưu đãi Gói Gia đình miễn phí nào?"
   },
   "sponsoredFamiliesEmail": {
-    "message": "Nhập email cá nhân của bạn để đổi Gói Bitwarden Gia đình"
+    "message": "Nhập email cá nhân của bạn để đổi Gói Cloudwarden Gia đình"
   },
   "sponsoredFamiliesLeaveCopy": {
     "message": "Nếu bạn hủy ưu đãi hoặc bị xóa khỏi tổ chức tài trợ, gói Gia đình được tài trợ của bạn sẽ hết hạn vào ngày gia hạn tiếp theo."
@@ -10117,7 +10117,7 @@
     "message": "Chấp nhận ưu đãi cho một tổ chức hiện có hoặc tạo tổ chức Gia đình mới."
   },
   "setupSponsoredFamiliesLoginDesc": {
-    "message": "Bạn đã được tặng một tổ chức gói Bitwarden Gia đình miễn phí. Để tiếp tục, bạn cần đăng nhập vào tài khoản đã nhận ưu đãi này."
+    "message": "Bạn đã được tặng một tổ chức gói Cloudwarden Gia đình miễn phí. Để tiếp tục, bạn cần đăng nhập vào tài khoản đã nhận ưu đãi này."
   },
   "sponsoredFamiliesAcceptFailed": {
     "message": "Không thể chấp nhận ưu đãi. Vui lòng gửi lại email ưu đãi từ tài khoản Doanh nghiệp của bạn và thử lại."
@@ -10132,10 +10132,10 @@
     }
   },
   "sponsoredFamiliesOffer": {
-    "message": "Chấp nhận Gói Bitwarden Gia đình miễn phí"
+    "message": "Chấp nhận Gói Cloudwarden Gia đình miễn phí"
   },
   "sponsoredFamiliesOfferRedeemed": {
-    "message": "Ưu đãi Gói Bitwarden Gia đình miễn phí đã được đổi thành công"
+    "message": "Ưu đãi Gói Cloudwarden Gia đình miễn phí đã được đổi thành công"
   },
   "redeemed": {
     "message": "Đã đổi"
@@ -10266,7 +10266,7 @@
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Connect login with SSO to your self-hosted decryption key server. Using this option, members won’t need to use their master passwords to decrypt vault data. The require SSO authentication and single organization policies are required to set up Key Connector decryption. Contact Bitwarden Support for set up assistance.'"
   },
   "memberDecryptionKeyConnectorDescEnd": {
-    "message": "là bắt buộc để thiết lập giải mã bằng Key Connector. Liên hệ với Bộ phận hỗ trợ Bitwarden để được trợ giúp thiết lập.",
+    "message": "là bắt buộc để thiết lập giải mã bằng Key Connector. Liên hệ với Bộ phận hỗ trợ Cloudwarden để được trợ giúp thiết lập.",
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Connect login with SSO to your self-hosted decryption key server. Using this option, members won’t need to use their master passwords to decrypt vault data. The require SSO authentication and single organization policies are required to set up Key Connector decryption. Contact Bitwarden Support for set up assistance.'"
   },
   "keyConnectorPolicyRestriction": {
@@ -10366,7 +10366,7 @@
     "message": "Môi trường tùy chỉnh"
   },
   "selfHostedBaseUrlHint": {
-    "message": "Chỉ định URL gốc của cài đặt Bitwarden được lưu trữ tại chỗ của bạn. Ví dụ: https://bitwarden.company.com"
+    "message": "Chỉ định URL gốc của cài đặt Cloudwarden được lưu trữ tại chỗ của bạn. Ví dụ: https://bitwarden.company.com"
   },
   "selfHostedCustomEnvHeader": {
     "message": "Đối với cấu hình nâng cao, bạn có thể chỉ định URL gốc của từng dịch vụ một cách độc lập."
@@ -10414,7 +10414,7 @@
     "message": "Mã thông báo đồng bộ thanh toán"
   },
   "automaticBillingSyncDesc": {
-    "message": "Đồng bộ tự động sẽ mở khóa tài trợ Gói Gia đình và cho phép bạn đồng bộ giấy phép mà không cần tải tệp lên. Sau khi thực hiện các cập nhật trên máy chủ đám mây Bitwarden, hãy chọn Đồng bộ giấy phép để áp dụng thay đổi."
+    "message": "Đồng bộ tự động sẽ mở khóa tài trợ Gói Gia đình và cho phép bạn đồng bộ giấy phép mà không cần tải tệp lên. Sau khi thực hiện các cập nhật trên máy chủ đám mây Cloudwarden, hãy chọn Đồng bộ giấy phép để áp dụng thay đổi."
   },
   "active": {
     "message": "Đang hoạt động"
@@ -10777,11 +10777,11 @@
     }
   },
   "forwarderGeneratedBy": {
-    "message": "Được tạo bởi Bitwarden.",
+    "message": "Được tạo bởi Cloudwarden.",
     "description": "Displayed with the address on the forwarding service's configuration screen."
   },
   "forwarderGeneratedByWithWebsite": {
-    "message": "Trang web: $WEBSITE$. Được tạo bởi Bitwarden.",
+    "message": "Trang web: $WEBSITE$. Được tạo bởi Cloudwarden.",
     "description": "Displayed with the address on the forwarding service's configuration screen.",
     "placeholders": {
       "WEBSITE": {
@@ -11981,7 +11981,7 @@
     "message": "Cài đặt thêm"
   },
   "moreFromBitwarden": {
-    "message": "Thêm từ Bitwarden"
+    "message": "Thêm từ Cloudwarden"
   },
   "switchProducts": {
     "message": "Chuyển đổi sản phẩm"
@@ -12173,7 +12173,7 @@
     "message": "Kích hoạt quyền truy cập Trình quản lý Bí mật cho người dùng."
   },
   "grantSecretsManager": {
-    "message": "Cấp quyền truy cập vào Trình quản lý Bí mật Bitwarden"
+    "message": "Cấp quyền truy cập vào Trình quản lý Bí mật Cloudwarden"
   },
   "userAccessSecretsManagerGA": {
     "message": "Người dùng này có thể truy cập Trình quản lý Bí mật"
@@ -12450,7 +12450,7 @@
     "message": "Bắt đầu"
   },
   "getStartedWithSecretsManager": {
-    "message": "Bắt đầu với Trình quản lý Bí mật Bitwarden"
+    "message": "Bắt đầu với Trình quản lý Bí mật Cloudwarden"
   },
   "smOnboardingChecklistSubtitle": {
     "message": "Hoàn thành các bước này để bắt đầu quản lý các bí mật của nhóm bạn"
@@ -12877,7 +12877,7 @@
     "message": "Người dùng đã đặt mật khẩu chính trong quá trình offboarding TDE."
   },
   "startYour7DayFreeTrialOfBitwardenFor": {
-    "message": "Bắt đầu dùng thử 7 ngày miễn phí Bitwarden cho $ORG$",
+    "message": "Bắt đầu dùng thử 7 ngày miễn phí Cloudwarden cho $ORG$",
     "placeholders": {
       "org": {
         "content": "$1",
@@ -12886,7 +12886,7 @@
     }
   },
   "startYour7DayFreeTrialOfBitwardenSecretsManagerFor": {
-    "message": "Bắt đầu dùng thử 7 ngày miễn phí Trình quản lý Bí mật Bitwarden cho $ORG$",
+    "message": "Bắt đầu dùng thử 7 ngày miễn phí Trình quản lý Bí mật Cloudwarden cho $ORG$",
     "placeholders": {
       "org": {
         "content": "$1",
@@ -13291,7 +13291,7 @@
     "message": "Bắt đầu với kho lưu trữ của bạn"
   },
   "onboardingChecklistSubtitle": {
-    "message": "Hoàn thành các bước này để bảo mật dữ liệu cá nhân của bạn và tận dụng tối đa Bitwarden"
+    "message": "Hoàn thành các bước này để bảo mật dữ liệu cá nhân của bạn và tận dụng tối đa Cloudwarden"
   },
   "dismissThisChecklist": {
     "message": "Bỏ qua danh sách kiểm tra này"
@@ -13388,7 +13388,7 @@
     "description": "Label indicating the most common import formats"
   },
   "uriMatchDefaultStrategyHint": {
-    "message": "Phát hiện khớp URI là cách Bitwarden xác định các gợi ý tự động điền.",
+    "message": "Phát hiện khớp URI là cách Cloudwarden xác định các gợi ý tự động điền.",
     "description": "Explains to the user that URI match detection determines how Bitwarden suggests autofill options, and clarifies that this default strategy applies when no specific match detection is set for a login item."
   },
   "regExAdvancedOptionWarning": {
@@ -13432,13 +13432,13 @@
     "message": "Chi tiết xác nhận"
   },
   "smFreeTrialThankYou": {
-    "message": "Cảm ơn bạn đã đăng ký Trình quản lý Bí mật Bitwarden!"
+    "message": "Cảm ơn bạn đã đăng ký Trình quản lý Bí mật Cloudwarden!"
   },
   "smFreeTrialConfirmationEmail": {
     "message": "Chúng tôi đã gửi email xác nhận đến địa chỉ email của bạn tại "
   },
   "sorryToSeeYouGo": {
-    "message": "Rất tiếc khi thấy bạn rời đi! Hãy giúp cải thiện Bitwarden bằng cách chia sẻ lý do bạn hủy.",
+    "message": "Rất tiếc khi thấy bạn rời đi! Hãy giúp cải thiện Cloudwarden bằng cách chia sẻ lý do bạn hủy.",
     "description": "A message shown to users as part of an offboarding survey asking them to provide more information on their subscription cancelation."
   },
   "selectCancellationReason": {
@@ -14000,20 +14000,20 @@
     "message": "Tích hợp"
   },
   "integrationsDesc": {
-    "message": "Tự động đồng bộ bí mật từ Trình quản lý Bí mật Bitwarden đến dịch vụ bên thứ ba."
+    "message": "Tự động đồng bộ bí mật từ Trình quản lý Bí mật Cloudwarden đến dịch vụ bên thứ ba."
   },
   "sdks": {
     "message": "SDKs"
   },
   "sdksDesc": {
-    "message": "Sử dụng SDK Trình quản lý Bí mật Bitwarden trong các ngôn ngữ lập trình sau để xây dựng ứng dụng của bạn."
+    "message": "Sử dụng SDK Trình quản lý Bí mật Cloudwarden trong các ngôn ngữ lập trình sau để xây dựng ứng dụng của bạn."
   },
   "ssoDescStart": {
     "message": "Cấu hình",
     "description": "This represents the beginning of a sentence, broken up to include links. The full sentence will be 'Configure single sign-on for Bitwarden using the implementation guide for your Identity Provider."
   },
   "ssoDescEnd": {
-    "message": "cho Bitwarden bằng cách sử dụng hướng dẫn triển khai cho Nhà cung cấp danh tính của bạn.",
+    "message": "cho Cloudwarden bằng cách sử dụng hướng dẫn triển khai cho Nhà cung cấp danh tính của bạn.",
     "description": "This represents the end of a sentence, broken up to include links. The full sentence will be 'Configure single sign-on for Bitwarden using the implementation guide for your Identity Provider."
   },
   "userProvisioning": {
@@ -14027,26 +14027,26 @@
     "description": "This represents the beginning of a sentence, broken up to include links. The full sentence will be 'Configure SCIM (System for Cross-domain Identity Management) to automatically provision users and groups to Bitwarden using the implementation guide for your Identity Provider"
   },
   "scimIntegrationDescEnd": {
-    "message": "(Hệ thống quản lý danh tính đa miền) để tự động cấp phép người dùng và nhóm cho Bitwarden bằng cách sử dụng hướng dẫn triển khai cho Nhà cung cấp danh tính của bạn.",
+    "message": "(Hệ thống quản lý danh tính đa miền) để tự động cấp phép người dùng và nhóm cho Cloudwarden bằng cách sử dụng hướng dẫn triển khai cho Nhà cung cấp danh tính của bạn.",
     "description": "This represents the end of a sentence, broken up to include links. The full sentence will be 'Configure SCIM (System for Cross-domain Identity Management) to automatically provision users and groups to Bitwarden using the implementation guide for your Identity Provider"
   },
   "bwdc": {
-    "message": "Trình kết nối thư mục Bitwarden"
+    "message": "Trình kết nối thư mục Cloudwarden"
   },
   "bwdcDesc": {
-    "message": "Cấu hình Trình kết nối thư mục Bitwarden để tự động cấp phép người dùng và nhóm bằng cách sử dụng hướng dẫn triển khai cho Nhà cung cấp danh tính của bạn."
+    "message": "Cấu hình Trình kết nối thư mục Cloudwarden để tự động cấp phép người dùng và nhóm bằng cách sử dụng hướng dẫn triển khai cho Nhà cung cấp danh tính của bạn."
   },
   "eventManagement": {
     "message": "Quản lý sự kiện"
   },
   "eventManagementDesc": {
-    "message": "Tích hợp nhật ký sự kiện của Bitwarden với hệ thống SIEM (quản lý thông tin và sự kiện hệ thống) của bạn bằng cách sử dụng hướng dẫn triển khai cho nền tảng của bạn."
+    "message": "Tích hợp nhật ký sự kiện của Cloudwarden với hệ thống SIEM (quản lý thông tin và sự kiện hệ thống) của bạn bằng cách sử dụng hướng dẫn triển khai cho nền tảng của bạn."
   },
   "deviceManagement": {
     "message": "Quản lý thiết bị"
   },
   "deviceManagementDesc": {
-    "message": "Cấu hình quản lý thiết bị cho Bitwarden bằng cách sử dụng hướng dẫn triển khai cho nền tảng của bạn."
+    "message": "Cấu hình quản lý thiết bị cho Cloudwarden bằng cách sử dụng hướng dẫn triển khai cho nền tảng của bạn."
   },
   "crowdstrikeEventIntegrationDesc": {
     "message": "Gửi dữ liệu sự kiện đến thực thể Logscale của bạn"
@@ -14265,22 +14265,22 @@
     "message": "Quản lý thanh toán từ Cổng thông tin Nhà cung cấp"
   },
   "continueSettingUp": {
-    "message": "Tiếp tục thiết lập Bitwarden"
+    "message": "Tiếp tục thiết lập Cloudwarden"
   },
   "continueSettingUpFreeTrial": {
-    "message": "Tiếp tục thiết lập bản dùng thử miễn phí Bitwarden của bạn"
+    "message": "Tiếp tục thiết lập bản dùng thử miễn phí Cloudwarden của bạn"
   },
   "continueSettingUpPasswordManager": {
-    "message": "Tiếp tục thiết lập Trình quản lý mật khẩu Bitwarden"
+    "message": "Tiếp tục thiết lập Trình quản lý mật khẩu Cloudwarden"
   },
   "continueSettingUpFreeTrialPasswordManager": {
-    "message": "Tiếp tục thiết lập bản dùng thử miễn phí của Trình quản lý mật khẩu Bitwarden"
+    "message": "Tiếp tục thiết lập bản dùng thử miễn phí của Trình quản lý mật khẩu Cloudwarden"
   },
   "continueSettingUpSecretsManager": {
-    "message": "Tiếp tục thiết lập Trình quản lý Bí mật Bitwarden"
+    "message": "Tiếp tục thiết lập Trình quản lý Bí mật Cloudwarden"
   },
   "continueSettingUpFreeTrialSecretsManager": {
-    "message": "Tiếp tục thiết lập bản dùng thử miễn phí của Trình quản lý Bí mật Bitwarden"
+    "message": "Tiếp tục thiết lập bản dùng thử miễn phí của Trình quản lý Bí mật Cloudwarden"
   },
   "enterTeamsOrgInfo": {
     "message": "Nhập thông tin tổ chức Teams của bạn"
@@ -14556,14 +14556,14 @@
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'Notice: Later this month, client vault privacy will be improved and provider members will no longer have direct access to client vault items. For questions, please contact Bitwarden support'."
   },
   "contactBitwardenSupport": {
-    "message": "liên hệ với bộ phận hỗ trợ Bitwarden.",
+    "message": "liên hệ với bộ phận hỗ trợ Cloudwarden.",
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'Notice: Later this month, client vault privacy will be improved and provider members will no longer have direct access to client vault items. For questions, please contact Bitwarden support'. 'Bitwarden' should not be translated"
   },
   "sponsored": {
     "message": "Được tài trợ"
   },
   "licenseAndBillingManagementDesc": {
-    "message": "Sau khi thực hiện các cập nhật trên máy chủ đám mây Bitwarden, hãy tải lên tệp giấy phép của bạn để áp dụng các thay đổi mới nhất."
+    "message": "Sau khi thực hiện các cập nhật trên máy chủ đám mây Cloudwarden, hãy tải lên tệp giấy phép của bạn để áp dụng các thay đổi mới nhất."
   },
   "addToFolder": {
     "message": "Thêm vào thư mục"
@@ -14681,7 +14681,7 @@
     "message": "Số CVV là gì?"
   },
   "learnMoreAboutApi": {
-    "message": "Tìm hiểu thêm về API của Bitwarden"
+    "message": "Tìm hiểu thêm về API của Cloudwarden"
   },
   "fileSends": {
     "message": "Send tập tin"
@@ -14858,7 +14858,7 @@
     "message": "Gói đăng ký Trình quản lý Bí mật của bạn sẽ được nâng cấp dựa trên gói đã chọn"
   },
   "bitwardenPasswordManager": {
-    "message": "Trình quản lý mật khẩu Bitwarden"
+    "message": "Trình quản lý mật khẩu Cloudwarden"
   },
   "secretsManagerComplimentaryPasswordManager": {
     "message": "Gói đăng ký Trình quản lý Mật khẩu miễn phí một năm của bạn sẽ được nâng cấp lên gói đã chọn. Bạn sẽ không bị tính phí cho đến khi thời gian miễn phí kết thúc."
@@ -14936,7 +14936,7 @@
     "description": "This represents the beginning of a sentence. The full sentence will be 'Manage subscription from the Provider Portal', but 'Provider Portal' will be a link and thus cannot be included in the translation file."
   },
   "toHostBitwardenOnYourOwnServer": {
-    "message": "Để tự lưu trữ Bitwarden trên máy chủ của bạn, bạn sẽ cần tải tệp giấy phép lên. Để hỗ trợ các gói Gia đình Miễn phí và các tính năng thanh toán nâng cao cho tổ chức tự lưu trữ của bạn, bạn sẽ cần thiết lập đồng bộ tự động trong tổ chức tự lưu trữ."
+    "message": "Để tự lưu trữ Cloudwarden trên máy chủ của bạn, bạn sẽ cần tải tệp giấy phép lên. Để hỗ trợ các gói Gia đình Miễn phí và các tính năng thanh toán nâng cao cho tổ chức tự lưu trữ của bạn, bạn sẽ cần thiết lập đồng bộ tự động trong tổ chức tự lưu trữ."
   },
   "selfHostingTitleProper": {
     "message": "Tự lưu trữ"
@@ -15060,21 +15060,21 @@
     "message": "Đã xóa thành công"
   },
   "freeFamiliesSponsorship": {
-    "message": "Xóa tài trợ Gói Bitwarden Gia đình miễn phí"
+    "message": "Xóa tài trợ Gói Cloudwarden Gia đình miễn phí"
   },
   "freeFamiliesSponsorshipPolicyTitleV2": {
-    "message": "Loại bỏ gói Gói Bitwarden Gia đình được tài trợ"
+    "message": "Loại bỏ gói Gói Cloudwarden Gia đình được tài trợ"
   },
   "freeFamiliesSponsorshipTitleVfo1": {
     "message": "Xóa Gói Gia đình được tài trợ",
     "description": "VFO1 terminology variant of 'freeFamiliesSponsorshipPolicyTitleV2', shown in the policies list"
   },
   "freeFamiliesSponsorshipPolicyTitleV2Vfo1": {
-    "message": "Xóa Gói Bitwarden Gia đình được tài trợ",
+    "message": "Xóa Gói Cloudwarden Gia đình được tài trợ",
     "description": "VFO1 terminology variant of 'freeFamiliesSponsorshipPolicyTitleV2', shown in the drawer title"
   },
   "freeFamiliesSponsorshipPolicyDescV2": {
-    "message": "Không cho phép thành viên quy đổi gói Gói Bitwarden Gia đình được tài trợ bởi tổ chức của bạn."
+    "message": "Không cho phép thành viên quy đổi gói Gói Cloudwarden Gia đình được tài trợ bởi tổ chức của bạn."
   },
   "freeFamiliesSponsorshipDescVfo1": {
     "message": "Xóa tùy chọn cho phép thành viên đổi Gói Gia đình miễn phí.",
@@ -15138,10 +15138,10 @@
     "message": "Tên miền tự động được xác nhận"
   },
   "automaticDomainClaimProcess": {
-    "message": "Bitwarden sẽ thử xác nhận tên miền 3 lần trong 72 giờ đầu tiên. Nếu tên miền không thể được xác nhận, hãy kiểm tra bản ghi DNS trong máy chủ của bạn và tự xác nhận. Tên miền sẽ bị xóa khỏi tổ chức của bạn trong 7 ngày nếu không được xác nhận."
+    "message": "Cloudwarden sẽ thử xác nhận tên miền 3 lần trong 72 giờ đầu tiên. Nếu tên miền không thể được xác nhận, hãy kiểm tra bản ghi DNS trong máy chủ của bạn và tự xác nhận. Tên miền sẽ bị xóa khỏi tổ chức của bạn trong 7 ngày nếu không được xác nhận."
   },
   "automaticDomainClaimProcess1": {
-    "message": "Bitwarden sẽ cố gắng xác nhận chủ sở hữu miền trong vòng 72 giờ. Nếu không thể xác nhận chủ sở hữu miền, hãy xác minh bản ghi DNS của bạn và xác nhận theo cách thủ công. Các miền chưa được xác nhận chủ sở hữu sẽ bị xóa sau 7 ngày."
+    "message": "Cloudwarden sẽ cố gắng xác nhận chủ sở hữu miền trong vòng 72 giờ. Nếu không thể xác nhận chủ sở hữu miền, hãy xác minh bản ghi DNS của bạn và xác nhận theo cách thủ công. Các miền chưa được xác nhận chủ sở hữu sẽ bị xóa sau 7 ngày."
   },
   "automaticDomainClaimProcess2": {
     "message": "Sau khi đã xác nhận chủ sở hữu, các thành viên hiện tại có miền được xác nhận chủ sở hữu sẽ nhận được email về việc "
@@ -15309,19 +15309,19 @@
     "message": "Sao chép khóa riêng tư"
   },
   "openingExtension": {
-    "message": "Đang mở tiện ích mở rộng trình duyệt Bitwarden"
+    "message": "Đang mở tiện ích mở rộng trình duyệt Cloudwarden"
   },
   "somethingWentWrong": {
     "message": "Đã có lỗi xảy ra..."
   },
   "openingExtensionError": {
-    "message": "Chúng tôi gặp sự cố khi mở tiện ích mở rộng trình duyệt Bitwarden. Nhấp vào nút để mở ngay bây giờ."
+    "message": "Chúng tôi gặp sự cố khi mở tiện ích mở rộng trình duyệt Cloudwarden. Nhấp vào nút để mở ngay bây giờ."
   },
   "openExtension": {
     "message": "Mở tiện ích mở rộng"
   },
   "doNotHaveExtension": {
-    "message": "Bạn chưa có tiện ích mở rộng trình duyệt Bitwarden?"
+    "message": "Bạn chưa có tiện ích mở rộng trình duyệt Cloudwarden?"
   },
   "installExtension": {
     "message": "Cài đặt tiện ích mở rộng"
@@ -15330,7 +15330,7 @@
     "message": "Đã mở tiện ích mở rộng trình duyệt"
   },
   "openedExtensionViewAtRiskPasswords": {
-    "message": "Đã mở tiện ích mở rộng trình duyệt Bitwarden thành công. Bây giờ bạn có thể xem lại mật khẩu có rủi ro của mình."
+    "message": "Đã mở tiện ích mở rộng trình duyệt Cloudwarden thành công. Bây giờ bạn có thể xem lại mật khẩu có rủi ro của mình."
   },
   "resellerRenewalWarningMsg": {
     "message": "Đăng ký của bạn sẽ sớm được gia hạn. Để đảm bảo dịch vụ không bị gián đoạn, hãy liên hệ $RESELLER$ để xác nhận gia hạn trước $RENEWAL_DATE$.",
@@ -15346,7 +15346,7 @@
     }
   },
   "resellerRenewalWarningMsgV2": {
-    "message": "Gói đăng ký của bạn sẽ sớm được gia hạn. Để đảm bảo dịch vụ không bị gián đoạn, hãy liên hệ với nhà cung cấp Bitwarden của bạn để xác nhận việc gia hạn trước ngày $RENEWAL_DATE$.",
+    "message": "Gói đăng ký của bạn sẽ sớm được gia hạn. Để đảm bảo dịch vụ không bị gián đoạn, hãy liên hệ với nhà cung cấp Cloudwarden của bạn để xác nhận việc gia hạn trước ngày $RENEWAL_DATE$.",
     "placeholders": {
       "renewal_date": {
         "content": "$1",
@@ -15385,7 +15385,7 @@
     }
   },
   "resellerPastDueWarningMsgV2": {
-    "message": "Hóa đơn cho gói đăng ký của bạn chưa được thanh toán. Để đảm bảo dịch vụ không bị gián đoạn, hãy liên hệ với nhà cung cấp Bitwarden của bạn trước ngày $GRACE_PERIOD_END$.",
+    "message": "Hóa đơn cho gói đăng ký của bạn chưa được thanh toán. Để đảm bảo dịch vụ không bị gián đoạn, hãy liên hệ với nhà cung cấp Cloudwarden của bạn trước ngày $GRACE_PERIOD_END$.",
     "placeholders": {
       "grace_period_end": {
         "content": "$1",
@@ -15546,7 +15546,7 @@
     "message": "Nâng cấp để xem nhật ký sự kiện từ tổ chức của bạn."
   },
   "upgradeEventLogMessage": {
-    "message": "Những sự kiện này chỉ là ví dụ và không phản ánh các sự kiện thực tế trong tổ chức Bitwarden của bạn."
+    "message": "Những sự kiện này chỉ là ví dụ và không phản ánh các sự kiện thực tế trong tổ chức Cloudwarden của bạn."
   },
   "viewEvents": {
     "message": "Xem các Sự kiện"
@@ -15727,7 +15727,7 @@
     "message": "Tự động điền mật khẩu của bạn một cách an toàn chỉ với một cú nhấp chuột"
   },
   "setupExtensionPageDescription": {
-    "message": "Tải tiện ích mở rộng trình duyệt Bitwarden và bắt đầu tự động điền ngay hôm nay"
+    "message": "Tải tiện ích mở rộng trình duyệt Cloudwarden và bắt đầu tự động điền ngay hôm nay"
   },
   "getTheExtension": {
     "message": "Tải tiện ích mở rộng"
@@ -15745,19 +15745,19 @@
     "message": "Chuyển đến ứng dụng web"
   },
   "bitwardenExtensionInstalled": {
-    "message": "Đã cài đặt tiện ích mở rộng Bitwarden!"
+    "message": "Đã cài đặt tiện ích mở rộng Cloudwarden!"
   },
   "bitwardenExtensionIsInstalled": {
-    "message": "Tiện ích mở rộng Bitwarden đã được cài đặt!"
+    "message": "Tiện ích mở rộng Cloudwarden đã được cài đặt!"
   },
   "openExtensionToAutofill": {
     "message": "Mở tiện ích mở rộng để đăng nhập và bắt đầu tự động điền."
   },
   "openBitwardenExtension": {
-    "message": "Mở tiện ích mở rộng Bitwarden"
+    "message": "Mở tiện ích mở rộng Cloudwarden"
   },
   "gettingStartedWithBitwardenPart1": {
-    "message": "Để biết các mẹo bắt đầu sử dụng Bitwarden, hãy truy cập",
+    "message": "Để biết các mẹo bắt đầu sử dụng Cloudwarden, hãy truy cập",
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'For tips on getting started with Bitwarden visit the Learning Center and Help Center'"
   },
   "gettingStartedWithBitwardenPart2": {
@@ -15765,7 +15765,7 @@
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'For tips on getting started with Bitwarden visit the Learning Center and Help Center'"
   },
   "openExtensionFromToolbarPart1": {
-    "message": "Nếu tiện ích mở rộng không mở, bạn có thể cần mở Bitwarden từ biểu tượng ",
+    "message": "Nếu tiện ích mở rộng không mở, bạn có thể cần mở Cloudwarden từ biểu tượng ",
     "description": "This will be used as part of a larger sentence, broken up to include the Bitwarden icon. The full sentence will read 'If the extension didn't open, you may need to open Bitwarden from the icon [Bitwarden Icon] on the toolbar.'"
   },
   "openExtensionFromToolbarPart2": {
@@ -15777,7 +15777,7 @@
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'For tips on getting started with Bitwarden visit the Learning Center and Help Center'"
   },
   "setupExtensionContentAlt": {
-    "message": "Với tiện ích mở rộng trình duyệt Bitwarden, bạn có thể dễ dàng tạo thông tin đăng nhập mới, truy cập thông tin đăng nhập đã lưu trực tiếp từ thanh công cụ trình duyệt của mình và đăng nhập vào tài khoản một cách nhanh chóng bằng cách sử dụng tính năng tự động điền của Bitwarden."
+    "message": "Với tiện ích mở rộng trình duyệt Cloudwarden, bạn có thể dễ dàng tạo thông tin đăng nhập mới, truy cập thông tin đăng nhập đã lưu trực tiếp từ thanh công cụ trình duyệt của mình và đăng nhập vào tài khoản một cách nhanh chóng bằng cách sử dụng tính năng tự động điền của Cloudwarden."
   },
   "restart": {
     "message": "Khởi động lại"
@@ -15809,7 +15809,7 @@
     "message": "Về cài đặt này"
   },
   "permitCipherDetailsDescription": {
-    "message": "Bitwarden sẽ sử dụng URI đăng nhập đã lưu để xác định biểu tượng hoặc URL đổi mật khẩu nào cần dùng nhằm cải thiện trải nghiệm của bạn. Không có thông tin nào được thu thập hay lưu lại khi bạn sử dụng dịch vụ này."
+    "message": "Cloudwarden sẽ sử dụng URI đăng nhập đã lưu để xác định biểu tượng hoặc URL đổi mật khẩu nào cần dùng nhằm cải thiện trải nghiệm của bạn. Không có thông tin nào được thu thập hay lưu lại khi bạn sử dụng dịch vụ này."
   },
   "showQuickCopyActionsDetailsDescription": {
     "message": "Thêm 3 nút sao chép nhanh bên cạnh các mục để sao chép tên đăng nhập, mật khẩu hoặc mã xác minh vào bộ nhớ tạm."
@@ -15879,7 +15879,7 @@
     }
   },
   "restoreProviderPortalAccessViaCustomerSupport": {
-    "message": "Để khôi phục quyền truy cập vào cổng thông tin nhà cung cấp của bạn, hãy liên hệ Bộ phận Hỗ trợ khách hàng của Bitwarden để gia hạn đăng ký.",
+    "message": "Để khôi phục quyền truy cập vào cổng thông tin nhà cung cấp của bạn, hãy liên hệ Bộ phận Hỗ trợ khách hàng của Cloudwarden để gia hạn đăng ký.",
     "description": "A message shown in a non-dismissible dialog to any user of a suspended providers."
   },
   "restoreProviderPortalAccessViaPaymentMethod": {
@@ -15921,7 +15921,7 @@
     "message": "Đã hủy đăng ký"
   },
   "providersubCanceledmessage": {
-    "message": "Để đăng ký lại, hãy liên hệ Bộ phận Hỗ trợ khách hàng của Bitwarden."
+    "message": "Để đăng ký lại, hãy liên hệ Bộ phận Hỗ trợ khách hàng của Cloudwarden."
   },
   "showAll": {
     "message": "Hiển thị tất cả"
@@ -16040,7 +16040,7 @@
     "message": "Thu gọn chi tiết mua hàng"
   },
   "familiesMembership": {
-    "message": "Gói Bitwarden Gia đình"
+    "message": "Gói Cloudwarden Gia đình"
   },
   "advancedOnlineSecurity": {
     "message": "Bảo mật trực tuyến nâng cao"
@@ -16064,7 +16064,7 @@
     "message": "Gói tùy chỉnh"
   },
   "planDescCustom": {
-    "message": "Bitwarden mở rộng quy mô cùng với các doanh nghiệp thuộc mọi quy mô để bảo mật mật khẩu và thông tin nhạy cảm. Nếu bạn là một phần của doanh nghiệp lớn, hãy liên hệ với bộ phận bán hàng để yêu cầu báo giá."
+    "message": "Cloudwarden mở rộng quy mô cùng với các doanh nghiệp thuộc mọi quy mô để bảo mật mật khẩu và thông tin nhạy cảm. Nếu bạn là một phần của doanh nghiệp lớn, hãy liên hệ với bộ phận bán hàng để yêu cầu báo giá."
   },
   "builtInAuthenticator": {
     "message": "Trình xác thực tích hợp"
@@ -16154,7 +16154,7 @@
     "message": "Tùy chọn tự lưu trữ"
   },
   "complimentaryFamiliesPlan": {
-    "message": "Gói Bitwarden Gia đình miễn phí cho tất cả người dùng"
+    "message": "Gói Cloudwarden Gia đình miễn phí cho tất cả người dùng"
   },
   "strengthenCybersecurity": {
     "message": "Tăng cường an ninh mạng"
@@ -16181,7 +16181,7 @@
     "message": "Đã xảy ra lỗi khi tính thuế cho vị trí của bạn. Vui lòng thử lại."
   },
   "individualUpgradeWelcomeMessage": {
-    "message": "Chào mừng đến với Bitwarden"
+    "message": "Chào mừng đến với Cloudwarden"
   },
   "individualUpgradeDescriptionMessage": {
     "message": "Mở khóa thêm các tính năng bảo mật với Premium hoặc bắt đầu chia sẻ mục với Gói Gia đình"
@@ -16202,7 +16202,7 @@
     "message": "Nâng cấp ngay"
   },
   "getAdvancedOnlineSecurityWithBitwardenPremium": {
-    "message": "Get advanced online security with Bitwarden premium."
+    "message": "Get advanced online security with Cloudwarden premium."
   },
   "formWillCreateNewFamiliesOrgMessage": {
     "message": "Hoàn tất biểu mẫu này sẽ tạo một tổ chức Gia đình mới. Bạn có thể nâng cấp tổ chức Miễn phí của mình từ Bảng điều khiển quản trị."
@@ -16211,7 +16211,7 @@
     "message": "Chúng tôi gặp lỗi khi xử lý nâng cấp của bạn. Vui lòng thử lại."
   },
   "bitwardenFreeplanMessage": {
-    "message": "Bạn đang sử dụng gói Bitwarden Miễn phí"
+    "message": "Bạn đang sử dụng gói Cloudwarden Miễn phí"
   },
   "upgradeCompleteSecurity": {
     "message": "Nâng cấp để tăng cường bảo mật toàn diện"
@@ -16229,7 +16229,7 @@
     "message": "Thuật toán"
   },
   "encryptionKeySettingsHowShouldWeEncryptYourData": {
-    "message": "Chọn cách Bitwarden mã hóa dữ liệu trong kho của bạn. Mọi tùy chọn đều an toàn, nhưng những phương pháp mạnh hơn sẽ giúp bảo vệ tốt hơn - đặc biệt là trước các cuộc tấn công brute-force. Bitwarden khuyến nghị giữ cài đặt mặc định cho hầu hết người dùng."
+    "message": "Chọn cách Cloudwarden mã hóa dữ liệu trong kho của bạn. Mọi tùy chọn đều an toàn, nhưng những phương pháp mạnh hơn sẽ giúp bảo vệ tốt hơn - đặc biệt là trước các cuộc tấn công brute-force. Cloudwarden khuyến nghị giữ cài đặt mặc định cho hầu hết người dùng."
   },
   "encryptionKeySettingsIncreaseImproveSecurity": {
     "message": "Tăng các giá trị cao hơn mức mặc định sẽ giúp tăng cường bảo mật, nhưng đồng thời kho của bạn có thể mất nhiều thời gian hơn để mở khóa."
@@ -16260,10 +16260,10 @@
     "description": "VFO1 terminology variant of 'blockClaimedDomainAccountCreationDesc', shown in the policies list"
   },
   "blockClaimedDomainAccountCreationDescV2": {
-    "message": "Chặn các thành viên sử dụng miền đã được xác nhận chủ sở hữu của bạn để tạo tài khoản Bitwarden bên ngoài tổ chức của bạn."
+    "message": "Chặn các thành viên sử dụng miền đã được xác nhận chủ sở hữu của bạn để tạo tài khoản Cloudwarden bên ngoài tổ chức của bạn."
   },
   "blockClaimedDomainAccountCreationDescV2Vfo1": {
-    "message": "Chặn thành viên sử dụng tên miền đã xác nhận của bạn để tạo tài khoản Bitwarden bên ngoài kho lưu trữ tổ chức của bạn.",
+    "message": "Chặn thành viên sử dụng tên miền đã xác nhận của bạn để tạo tài khoản Cloudwarden bên ngoài kho lưu trữ tổ chức của bạn.",
     "description": "VFO1 terminology variant of 'blockClaimedDomainAccountCreationDescV2'"
   },
   "blockClaimedDomainAccountCreationPrerequisiteV2": {
@@ -16301,7 +16301,7 @@
     }
   },
   "removeMasterPasswordForOrgUserKeyConnector": {
-    "message": "Tổ chức của bạn không còn sử dụng mật khẩu chính để đăng nhập vào Bitwarden. Để tiếp tục, hãy xác minh tổ chức và tên miền."
+    "message": "Tổ chức của bạn không còn sử dụng mật khẩu chính để đăng nhập vào Cloudwarden. Để tiếp tục, hãy xác minh tổ chức và tên miền."
   },
   "continueWithLogIn": {
     "message": "Tiếp tục đăng nhập"
@@ -16504,7 +16504,7 @@
     "message": "Từ chối và rời đi"
   },
   "youHaveBitwardenPremium": {
-    "message": "Bạn có Bitwarden Cao cấp"
+    "message": "Bạn có Cloudwarden Cao cấp"
   },
   "viewAndManagePremiumSubscription": {
     "message": "Xem và quản lý gói đăng ký Cao cấp của bạn"
@@ -16543,13 +16543,13 @@
     "message": "Bạn đã có gói đăng ký?"
   },
   "alreadyHaveSubscriptionSelfHostedMessage": {
-    "message": "Mở trang đăng ký trên tài khoản đám mây Bitwarden của bạn và tải xuống tệp giấy phép của bạn. Sau đó quay lại màn hình này và tải nó lên bên dưới."
+    "message": "Mở trang đăng ký trên tài khoản đám mây Cloudwarden của bạn và tải xuống tệp giấy phép của bạn. Sau đó quay lại màn hình này và tải nó lên bên dưới."
   },
   "alreadyHaveSubscriptionSelfHostedMessageV2": {
-    "message": "Mở trang đăng ký trên tài khoản Bitwarden của bạn và tải xuống tệp giấy phép của bạn. Sau đó quay lại màn hình này và tải tệp lên bên dưới."
+    "message": "Mở trang đăng ký trên tài khoản Cloudwarden của bạn và tải xuống tệp giấy phép của bạn. Sau đó quay lại màn hình này và tải tệp lên bên dưới."
   },
   "alreadyHaveSubscriptionSelfHostedMessageV3": {
-    "message": "Trong môi trường đám mây của bạn, đăng nhập vào tài khoản Bitwarden, mở trang đăng ký và tải xuống tệp giấy phép. Sau đó, quay lại màn hình này và tải tệp lên."
+    "message": "Trong môi trường đám mây của bạn, đăng nhập vào tài khoản Cloudwarden, mở trang đăng ký và tải xuống tệp giấy phép. Sau đó, quay lại màn hình này và tải tệp lên."
   },
   "viewAllPlans": {
     "message": "Xem tất cả các gói"
@@ -16635,10 +16635,10 @@
     "message": "Tải tiện ích mở rộng để truy cập kho lưu trữ dễ dàng"
   },
   "extensionPromptBody": {
-    "message": "Khi đã cài đặt tiện ích mở rộng trình duyệt, bạn sẽ mang Bitwarden đi khắp mọi nơi trực tuyến. Nó sẽ tự động điền mật khẩu, vì vậy bạn có thể đăng nhập vào tài khoản của mình chỉ bằng một cú nhấp chuột."
+    "message": "Khi đã cài đặt tiện ích mở rộng trình duyệt, bạn sẽ mang Cloudwarden đi khắp mọi nơi trực tuyến. Nó sẽ tự động điền mật khẩu, vì vậy bạn có thể đăng nhập vào tài khoản của mình chỉ bằng một cú nhấp chuột."
   },
   "extensionPromptImageAlt": {
-    "message": "Một trình duyệt web hiển thị tiện ích mở rộng Bitwarden với các mục tự động điền cho trang web hiện tại."
+    "message": "Một trình duyệt web hiển thị tiện ích mở rộng Cloudwarden với các mục tự động điền cho trang web hiện tại."
   },
   "skip": {
     "message": "Bỏ qua"
@@ -16686,10 +16686,10 @@
     "message": "Mật khẩu Send không hợp lệ"
   },
   "vaultWelcomeDialogTitle": {
-    "message": "Bạn đã tham gia! Chào mừng bạn đến với Bitwarden"
+    "message": "Bạn đã tham gia! Chào mừng bạn đến với Cloudwarden"
   },
   "vaultWelcomeDialogDescription": {
-    "message": "Lưu trữ tất cả mật khẩu và thông tin cá nhân của bạn trong kho lưu trữ Bitwarden của bạn. Chúng tôi sẽ dẫn bạn đi làm quen một vòng."
+    "message": "Lưu trữ tất cả mật khẩu và thông tin cá nhân của bạn trong kho lưu trữ Cloudwarden của bạn. Chúng tôi sẽ dẫn bạn đi làm quen một vòng."
   },
   "vaultWelcomeDialogPrimaryCta": {
     "message": "Bắt đầu chuyến tham quan"
@@ -16711,7 +16711,7 @@
     "message": "Nâng cấp lên gói Doanh nghiệp"
   },
   "upgradeShareEvenMore": {
-    "message": "Chia sẻ nhiều hơn nữa với Gói Bitwarden Gia đình, hoặc có được tính năng bảo mật mật khẩu mạnh mẽ, đáng tin cậy với gói Đội nhóm hoặc Doanh nghiệp"
+    "message": "Chia sẻ nhiều hơn nữa với Gói Cloudwarden Gia đình, hoặc có được tính năng bảo mật mật khẩu mạnh mẽ, đáng tin cậy với gói Đội nhóm hoặc Doanh nghiệp"
   },
   "organizationUpgradeTaxInformationMessage": {
     "message": "Giá chưa bao gồm thuế và được tính phí hàng năm."
@@ -16923,7 +16923,7 @@
     "message": "Giúp thành viên cải thiện"
   },
   "aiCoachmarkHelpMembersDescription": {
-    "message": "Khi bạn đã chọn các ứng dụng quan trọng, hãy nhắc nhở các thành viên thay đổi mật khẩu có rủi ro. Họ sẽ nhận được một tin nhắn trong tiện ích mở rộng Bitwarden của họ."
+    "message": "Khi bạn đã chọn các ứng dụng quan trọng, hãy nhắc nhở các thành viên thay đổi mật khẩu có rủi ro. Họ sẽ nhận được một tin nhắn trong tiện ích mở rộng Cloudwarden của họ."
   },
   "aiCoachmarkRunReportTitle": {
     "message": "Luôn nắm bắt các rủi ro mới"
@@ -17689,7 +17689,7 @@
     "message": "Thanh toán thành công"
   },
   "paymentSuccessfulProcessingMessage": {
-    "message": "Quá trình nâng cấp của bạn đang được xử lý. Có thể mất một vài phút trước khi bạn thấy các tính năng Cao cấp trong Bitwarden."
+    "message": "Quá trình nâng cấp của bạn đang được xử lý. Có thể mất một vài phút trước khi bạn thấy các tính năng Cao cấp trong Cloudwarden."
   },
   "planPurchased": {
     "message": "Đã mua gói"

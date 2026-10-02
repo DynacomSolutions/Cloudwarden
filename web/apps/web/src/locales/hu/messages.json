@@ -21,7 +21,7 @@
     "message": "Összes kritikus alkalmazás"
   },
   "appLogoLabel": {
-    "message": "Bitwarden logó"
+    "message": "Cloudwarden logó"
   },
   "criticalApplications": {
     "message": "Kritikus alkalmazások"
@@ -236,7 +236,7 @@
     "message": "A fejlesztések nyomon követése a csapaton belül"
   },
   "membersAreAutomaticallyNotified": {
-    "message": "A tagok automatikusan értesítést kapnak a Bitwarden bővítményükben található veszélyeztetett jelszavakról. Nincs kapkodás."
+    "message": "A tagok automatikusan értesítést kapnak a Cloudwarden bővítményükben található veszélyeztetett jelszavakról. Nincs kapkodás."
   },
   "importYourOrgDataToGetStarted": {
     "message": "A szervezeti adataok importálása a kezdéshez"
@@ -399,7 +399,7 @@
     }
   },
   "membersWillReceiveSecurityTask": {
-    "message": "A szervezet tagjaira feladat hárul a sebezhető jelszavak megváltoztatására. Értesítést kapnak a Bitwarden böngésző bővítményen belül."
+    "message": "A szervezet tagjaira feladat hárul a sebezhető jelszavak megváltoztatására. Értesítést kapnak a Cloudwarden böngésző bővítményen belül."
   },
   "membersAtRiskCount": {
     "message": "$COUNT$ kockázatos tag",
@@ -847,10 +847,10 @@
     "message": "Tegyük zökkenőmentessé a kétlépcsős azonosítást."
   },
   "totpHelper": {
-    "message": "A Bitwarden képes tárolni és kitölteni a kétlépcsős ellenőrző kódokat. Másoljuk ki és illesszük be a kulcsot ebbe a mezőbe."
+    "message": "A Cloudwarden képes tárolni és kitölteni a kétlépcsős ellenőrző kódokat. Másoljuk ki és illesszük be a kulcsot ebbe a mezőbe."
   },
   "totpHelperWithCapture": {
-    "message": "A Bitwarden képes tárolni és kitölteni a kétlépcsős ellenőrző kódokat. Válasszuk a kamera ikont, hogy képernyőképet készítsünk a webhely hitelesítő QR kódjáról vagy másoljuk ki és illesszük be a kulcsot ebbe a mezőbe."
+    "message": "A Cloudwarden képes tárolni és kitölteni a kétlépcsős ellenőrző kódokat. Válasszuk a kamera ikont, hogy képernyőképet készítsünk a webhely hitelesítő QR kódjáról vagy másoljuk ki és illesszük be a kulcsot ebbe a mezőbe."
   },
   "totpCapture": {
     "message": "Hitelesítő QR kód szkennelése az aktuális weboldalról"
@@ -2222,7 +2222,7 @@
     "message": "Bejelentkezés eszközzel"
   },
   "loginWithDeviceEnabledNote": {
-    "message": "Az eszközzel történő bejelentkezést be kell állítani a Bitwarden alkalmazás beállításaiban. Más opcióra van szükség?"
+    "message": "Az eszközzel történő bejelentkezést be kell állítani a Cloudwarden alkalmazás beállításaiban. Más opcióra van szükség?"
   },
   "needAnotherOptionV1": {
     "message": "Másik opció szükséges?"
@@ -2387,7 +2387,7 @@
     "message": "Mi az eszköz?"
   },
   "aDeviceIs": {
-    "message": "Az eszköz a Bitwarden alkalmazás egyedi telepítése, amelyre bejelentkeztünk. Az alkalmazás adatok újratelepítése, törlése vagy a sütik törlése azt eredményezheti, hogy egy eszköz többször is megjelenhet."
+    "message": "Az eszköz a Cloudwarden alkalmazás egyedi telepítése, amelyre bejelentkeztünk. Az alkalmazás adatok újratelepítése, törlése vagy a sütik törlése azt eredményezheti, hogy egy eszköz többször is megjelenhet."
   },
   "logInInitiated": {
     "message": "A bejelentkezés elindításra került."
@@ -2694,7 +2694,7 @@
     "message": "A rendszer értesítést küldött az eszközre."
   },
   "notificationSentDevicePart1": {
-    "message": "A Bitwarden zárolás feloldása az eszközön vagy: "
+    "message": "A Cloudwarden zárolás feloldása az eszközön vagy: "
   },
   "accessAttemptBy": {
     "message": "Bejelentkezési kísérlet $EMAIL$ segítségével",
@@ -2718,7 +2718,7 @@
     "message": "Jóváhagyás előtt győződjünk meg arról, hogy az ujjlenyomat kifejezés megegyezik az alábbi kifejezéssel."
   },
   "notificationSentDeviceComplete": {
-    "message": "Oldjuk fel a Bitwarden zárolását az eszközön. Jóváhagyás előtt győződjünk meg arról, hogy az ujjlenyomat kifejezés megegyezik az alábbi kifejezéssel."
+    "message": "Oldjuk fel a Cloudwarden zárolását az eszközön. Jóváhagyás előtt győződjünk meg arról, hogy az ujjlenyomat kifejezés megegyezik az alábbi kifejezéssel."
   },
   "aNotificationWasSentToYourDevice": {
     "message": "Egy értesítés lett elküldve az eszközre."
@@ -2932,7 +2932,7 @@
     "message": "Ez az exportálás titkosítja az adatokat a fiók titkosítási kulcsával. Ha valaha a fiók forgatási kulcsa más lesz, akkor újra exportálni kell, mert nem lehet visszafejteni ezt az exportálási fájlt."
   },
   "encExportAccountWarningDesc": {
-    "message": "A fiók titkosítási kulcsai minden Bitwarden felhasználói fiókhoz egyediek, ezért nem importálhatunk titkosított exportálást egy másik fiókba."
+    "message": "A fiók titkosítási kulcsai minden Cloudwarden felhasználói fiókhoz egyediek, ezért nem importálhatunk titkosított exportálást egy másik fiókba."
   },
   "exportNoun": {
     "message": "Exportálás",
@@ -2988,7 +2988,7 @@
     "message": "Ez a KeePass adatbázis túl nagy az importáláshoz."
   },
   "accountRestrictedOptionDescription": {
-    "message": "Használjuk a fiók felhasználónevéből és a mesterjelszóból származó titkosítási kulcsot az exportálás titkosításához és az importálás korlátozásához csak az aktuális Bitwarden fiókra."
+    "message": "Használjuk a fiók felhasználónevéből és a mesterjelszóból származó titkosítási kulcsot az exportálás titkosításához és az importálás korlátozásához csak az aktuális Cloudwarden fiókra."
   },
   "passwordProtectedOptionDescription": {
     "message": "Hozzunk létre egy felhasználó által generált jelszót az exportálás védelme érdekében. Ezzel más fiókokban is használható exportálást hozhatunk létre."
@@ -3162,7 +3162,7 @@
     "message": "Függőben lévő kérelem"
   },
   "logBackInOthersToo": {
-    "message": "Ismételten be kell jelentkezni. Ha másik Bitwarden alkalmazásokat használunk, ott is jelentkezzünk ki és ismételten be."
+    "message": "Ismételten be kell jelentkezni. Ha másik Cloudwarden alkalmazásokat használunk, ott is jelentkezzünk ki és ismételten be."
   },
   "changeMasterPassword": {
     "message": "Mesterjelszó módosítása"
@@ -3241,10 +3241,10 @@
     "message": "Az új eszköz bejelentkezési védelmének bekapcsolása"
   },
   "turnOffNewDeviceLoginProtectionModalDesc": {
-    "message": "Folytassuk az alábbiakkal a Bitwarden által küldendő ellenőrző emailek kikapcsolásához, amikor új eszközről jelentkezünk be."
+    "message": "Folytassuk az alábbiakkal a Cloudwarden által küldendő ellenőrző emailek kikapcsolásához, amikor új eszközről jelentkezünk be."
   },
   "turnOnNewDeviceLoginProtectionModalDesc": {
-    "message": "Folytassuk az alábbiakkal a Bitwarden által küldendő ellenőrző emailek bekapcsolásához, amikor új eszközről jelentkezünk be."
+    "message": "Folytassuk az alábbiakkal a Cloudwarden által küldendő ellenőrző emailek bekapcsolásához, amikor új eszközről jelentkezünk be."
   },
   "turnOffNewDeviceLoginProtectionWarning": {
     "message": "Ha az új eszköz bejelentkezési védelme ki van kapcsolva, a mesterjelszó birtokában bárki hozzáférhet fiókhoz bármilyen eszközről. Ha meg szeretnénk védeni fiókot ellenőrző emailek nélkül, állítsunk be kétlépcsős bejelentkezést."
@@ -3827,7 +3827,7 @@
     "message": "Domain szabályok"
   },
   "domainRulesDesc": {
-    "message": "Ha ugyanazokat a bejelentkezési adatokat használjuk több különböző webhely domainen, ezeket \"azonos\"-ként jelölhetjük meg.  A \"Globális\" domainek a Bitwarden által már létrehozottak."
+    "message": "Ha ugyanazokat a bejelentkezési adatokat használjuk több különböző webhely domainen, ezeket \"azonos\"-ként jelölhetjük meg.  A \"Globális\" domainek a Cloudwarden által már létrehozottak."
   },
   "globalEqDomains": {
     "message": "Globális azonos domainek"
@@ -3878,7 +3878,7 @@
     "message": "A kétlépcsős bejelentkezés engedélyezése a szervezethez."
   },
   "twoStepLoginEnterpriseDescStart": {
-    "message": "A Bitwarden kétlépcsős bejelentkezési opcióinak kényszerítése a tagoknál:",
+    "message": "A Cloudwarden kétlépcsős bejelentkezési opcióinak kényszerítése a tagoknál:",
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Enforce Bitwarden Two-step Login options for members by using the Two-step Login Policy.'"
   },
   "twoStepLoginPolicy": {
@@ -3891,7 +3891,7 @@
     "message": "Ha beállítottuk az egyszeri bejelentkezést vagy azt tervezük, a kétlépcsős bejelentkezés már érvényre juthat az azonosítás szolgáltatón keresztül."
   },
   "twoStepLoginRecoveryWarning": {
-    "message": "A kétlépcsős bejelentkezés engedélyezése véglegesen kizárhatja a felhasználót a Bitwarden fiókból. A helyreállítási kód lehetővé teszi a fiókjához való hozzáférést abban az esetben, ha már nem tudjuk használni a szokásos kétlépcsős bejelentkezési szolgáltatást (pl. készülék elvesztése). A Bitwarden támogatás nem tud segíteni abban az esetben, ha elveszítjük a hozzáférést a fiókhoz. Célszerű leírni vagy kinyomtatni a helyreállítási kódot és azt biztonságos helyen tartani."
+    "message": "A kétlépcsős bejelentkezés engedélyezése véglegesen kizárhatja a felhasználót a Cloudwarden fiókból. A helyreállítási kód lehetővé teszi a fiókjához való hozzáférést abban az esetben, ha már nem tudjuk használni a szokásos kétlépcsős bejelentkezési szolgáltatást (pl. készülék elvesztése). A Cloudwarden támogatás nem tud segíteni abban az esetben, ha elveszítjük a hozzáférést a fiókhoz. Célszerű leírni vagy kinyomtatni a helyreállítási kódot és azt biztonságos helyen tartani."
   },
   "restrictedItemTypePolicy": {
     "message": "Kártyaelem típus eltávolítása"
@@ -3913,7 +3913,7 @@
     "message": "Egy vagy több szervezet által beállított szabályzat megakadályozza a kártyák importálását a széfekbe."
   },
   "yourSingleUseRecoveryCode": {
-    "message": "Az egyszer használatos helyreállítási kóddal kikapcsolhatjuk a kétlépcsős bejelentkezést abban az esetben, ha elveszítjük a hozzáférést a kétlépcsős bejelentkezési szolgáltatóhoz. A Bitwarden azt javasolja, hogy írjuk le a helyreállítási kódot és tartsuk biztonságos helyen."
+    "message": "Az egyszer használatos helyreállítási kóddal kikapcsolhatjuk a kétlépcsős bejelentkezést abban az esetben, ha elveszítjük a hozzáférést a kétlépcsős bejelentkezési szolgáltatóhoz. A Cloudwarden azt javasolja, hogy írjuk le a helyreállítási kódot és tartsuk biztonságos helyen."
   },
   "viewRecoveryCode": {
     "message": "Helyreállító kód megtekintése"
@@ -4059,7 +4059,7 @@
     "message": "Az űrlap mentése."
   },
   "twoFactorYubikeyWarning": {
-    "message": "Platform korlátozások miatt nem lehetséges minden Bitwarden alkalmazásban YubiKey eszközt használni. Engedélyezzünk egy másik kétlépcsős bejelentkezés szolgáltatót, hogy hozzáférhessünk a fiókhoz akkor is, ha a YubiKey nem használható. Támogatott platformok:"
+    "message": "Platform korlátozások miatt nem lehetséges minden Cloudwarden alkalmazásban YubiKey eszközt használni. Engedélyezzünk egy másik kétlépcsős bejelentkezés szolgáltatót, hogy hozzáférhessünk a fiókhoz akkor is, ha a YubiKey nem használható. Támogatott platformok:"
   },
   "twoFactorYubikeySupportUsb": {
     "message": "Webes széf, asztali alkalmazás, CLI, és minden egyéb böngésző bővítmény olyan USB porttal rendelkező eszközön, amely elfogadja a YubiKey eszközt."
@@ -4110,7 +4110,7 @@
     "message": "Összes kulcs letiltása"
   },
   "twoFactorDuoDesc": {
-    "message": "A Bitwarden alkalmazás információjának megadása a Duo Admin panelről."
+    "message": "A Cloudwarden alkalmazás információjának megadása a Duo Admin panelről."
   },
   "twoFactorDuoClientId": {
     "message": "Ügyfél azonosító"
@@ -4161,7 +4161,7 @@
     "message": "Az űrlap mentése."
   },
   "twoFactorU2fWarning": {
-    "message": "A platform korlátozások miatt nem lehet minden Bitwarden alkalmazásban FIDO U2F-t használni. Célszerű engedélyezni egy másik kétlépcsős bejelentkezés szolgáltatót a fiók eléréséhez akkor, ha a FIDO U2F nem használható. Támogatott platformok:"
+    "message": "A platform korlátozások miatt nem lehet minden Cloudwarden alkalmazásban FIDO U2F-t használni. Célszerű engedélyezni egy másik kétlépcsős bejelentkezés szolgáltatót a fiók eléréséhez akkor, ha a FIDO U2F nem használható. Támogatott platformok:"
   },
   "twoFactorU2fSupportWeb": {
     "message": "Web széf és böngésző kiegészítők asztali gépen / laptopon engedélyezett U2F böngészővel (Chrome, Opera, Vivaldi, vagy Firefox bekapcsolt FIDO U2F-fel)."
@@ -4176,7 +4176,7 @@
     "message": "Probléma lépett fel a biztonsági kulcs olvasásakor. Próbáljuk újra."
   },
   "twoFactorRecoveryYourCode": {
-    "message": "Bitwarden kétlépcsős bejelentkezés helyreállító kód"
+    "message": "Cloudwarden kétlépcsős bejelentkezés helyreállító kód"
   },
   "twoFactorRecoveryNoCode": {
     "message": "Még nem lett engedélyezve kétlépcsős bejelentkezés szolgáltató. A kétlépcsős bejelentkezés szolgáltató engedélyezése után visszatérhetünk ide a helyreállító kódért."
@@ -4229,7 +4229,7 @@
     "message": "Kétlépéses bejelentkezés kikapcsolása"
   },
   "inactive2faReportDesc": {
-    "message": "A kétlépcsős bejelentkezés egy védelmi réteget ad a fiókoknak.  Állítsunk be kétlépéses vejelentkezést a Bitwarden hitelesítővel ezekhez a fiókokhoz vagy használjunk alternatív módot."
+    "message": "A kétlépcsős bejelentkezés egy védelmi réteget ad a fiókoknak.  Állítsunk be kétlépéses vejelentkezést a Cloudwarden hitelesítővel ezekhez a fiókokhoz vagy használjunk alternatív módot."
   },
   "inactive2faFound": {
     "message": "Kétlépések bejelentkezés nélküli bejelentkezések találhatók."
@@ -4266,7 +4266,7 @@
     "message": "és "
   },
   "passkeyLoginReportHowToUse": {
-    "message": "hogyan kell használni ezeket a Bitwarden."
+    "message": "hogyan kell használni ezeket a Cloudwarden."
   },
   "passkeyLoginFound": {
     "message": "Belépő kulcsokat támogató bejelentkezések"
@@ -4339,7 +4339,7 @@
     "message": "Gyenge jelszavak jelentés"
   },
   "weakPasswordsReportDesc": {
-    "message": "A gyenge jelszavakat könnyen megfejthetik hackerek és jelszótöréshez használt eszközök. A Bitwarden jelszógenerátor segít erős jelszót készíteni."
+    "message": "A gyenge jelszavakat könnyen megfejthetik hackerek és jelszótöréshez használt eszközök. A Cloudwarden jelszógenerátor segít erős jelszót készíteni."
   },
   "weakPasswordsFound": {
     "message": "Gyenge jelszavak találhatók."
@@ -4526,7 +4526,7 @@
     }
   },
   "bitwardenFamiliesPlan": {
-    "message": "Bitwarden családi csomag."
+    "message": "Cloudwarden családi csomag."
   },
   "addons": {
     "message": "Kiegészítők"
@@ -4738,7 +4738,7 @@
     }
   },
   "churnOfferDiscountBody": {
-    "message": "Köszönetképpen, mint régóta Bitwarden ügyfél, $DISCOUNT$ kedvezmény kaphatunk a következő $DURATION$ szolgáltatásra.",
+    "message": "Köszönetképpen, mint régóta Cloudwarden ügyfél, $DISCOUNT$ kedvezmény kaphatunk a következő $DURATION$ szolgáltatásra.",
     "description": "Body copy on the churn-mitigation offer card. DISCOUNT = discount amount; DURATION = service duration (e.g. 'year' or '6 months')",
     "placeholders": {
       "discount": {
@@ -4800,7 +4800,7 @@
     }
   },
   "churnOfferDiscountBodyRecurringAmount": {
-    "message": "Köszönetképpen, hogy régóta Bitwarden ügyfelek vagyunk, $AMOUNT$ felajánlott kedvezményt kapunk minden $INTERVAL$ esetén a következő $DURATION$ tekintetében.",
+    "message": "Köszönetképpen, hogy régóta Cloudwarden ügyfelek vagyunk, $AMOUNT$ felajánlott kedvezményt kapunk minden $INTERVAL$ esetén a következő $DURATION$ tekintetében.",
     "description": "Body copy on the churn-mitigation offer card for a fixed-amount discount that repeats each billing period. AMOUNT = discount amount (e.g. '$15.00'); INTERVAL = billing interval unit (e.g. 'month'); DURATION = discount duration (e.g. 'year' or '6 months')",
     "placeholders": {
       "amount": {
@@ -5249,7 +5249,7 @@
     }
   },
   "trialThankYou": {
-    "message": "Köszönet a regisztrációért a Bitwarden $PLAN$ csomagjára!",
+    "message": "Köszönet a regisztrációért a Cloudwarden $PLAN$ csomagjára!",
     "placeholders": {
       "plan": {
         "content": "$1",
@@ -5258,7 +5258,7 @@
     }
   },
   "trialSecretsManagerThankYou": {
-    "message": "Köszönet a regisztrációért a Bitwarden Titkos Kód Kezelő $PLAN$ csomagjára!",
+    "message": "Köszönet a regisztrációért a Cloudwarden Titkos Kód Kezelő $PLAN$ csomagjára!",
     "placeholders": {
       "plan": {
         "content": "$1",
@@ -5391,13 +5391,13 @@
     "message": "Külső azonosító"
   },
   "externalIdDesc": {
-    "message": "A külső azonosító a Bitwarden tárkapcsoló és API által nem titkosított referencia."
+    "message": "A külső azonosító a Cloudwarden tárkapcsoló és API által nem titkosított referencia."
   },
   "ssoExternalId": {
     "message": "SSO külső azonosító"
   },
   "ssoExternalIdDesc": {
-    "message": "Az SSO külső azonosító egy titkosítatlan hivatkozás a Bitwarden és az jelenleg konfigurált SSO szolgáltató között."
+    "message": "Az SSO külső azonosító egy titkosítatlan hivatkozás a Cloudwarden és az jelenleg konfigurált SSO szolgáltató között."
   },
   "nestCollectionUnder": {
     "message": "Gyűjtemény beágyazása:"
@@ -5454,13 +5454,13 @@
     "message": "Meghívás"
   },
   "inviteUserDesc": {
-    "message": "Új felhasználó meghívása a szervezetéhez a Bitwarden fiók e-mail címének megadásával. Ha még nem rendelkezik Bitwarden-fiókkal, felkérjük új fiók létrehozására.\n"
+    "message": "Új felhasználó meghívása a szervezetéhez a Cloudwarden fiók e-mail címének megadásával. Ha még nem rendelkezik Bitwarden-fiókkal, felkérjük új fiók létrehozására.\n"
   },
   "inviteUserDescription": {
     "message": "Új felhasználók meghívása a szervezetbe az email cím megadásával lentebb."
   },
   "inviteUserDescSharedFolders": {
-    "message": "Invite a new user to your organization vault by entering their Bitwarden account email address below. If they do not have a Bitwarden account already, they will be prompted to create a new account.",
+    "message": "Invite a new user to your organization vault by entering their Cloudwarden account email address below. If they do not have a Cloudwarden account already, they will be prompted to create a new account.",
     "description": "VFO1 (shared folder terminology) variant of inviteUserDesc, shown when the vfo1-foundation flag is enabled."
   },
   "inviteMultipleEmailDesc": {
@@ -5603,10 +5603,10 @@
     "message": "CLI"
   },
   "bitWebVault": {
-    "message": "Bitwarden webes széf"
+    "message": "Cloudwarden webes széf"
   },
   "bitSecretsManager": {
-    "message": "Bitwarden titkos kód kezelő"
+    "message": "Cloudwarden titkos kód kezelő"
   },
   "loggedIn": {
     "message": "Megtörtént a bejelentkezés."
@@ -6925,7 +6925,7 @@
     "message": "Vissza a regisztrációhoz"
   },
   "joinOrganizationDesc": {
-    "message": "Meghívást érkezett a fenti szervezethez csatlakozáshoz.  A meghívás elfogadásához be kell jelentkezni vagy új Bitwarden fiókot kell létrehozni."
+    "message": "Meghívást érkezett a fenti szervezethez csatlakozáshoz.  A meghívás elfogadásához be kell jelentkezni vagy új Cloudwarden fiókot kell létrehozni."
   },
   "finishJoiningThisOrganizationBySettingAMasterPassword": {
     "message": "Fejezzük be a szervezethez csatlakozást egy mesterjelszó beállításával."
@@ -7066,10 +7066,10 @@
     "message": "Ha létezik a fiók, egy email kerül kiküldésre további utasításokkal."
   },
   "deleteRecoverConfirmDesc": {
-    "message": "A Bitwarden fiók törlését kértük. Kattintás a lenti gombra a megerősítéshez."
+    "message": "A Cloudwarden fiók törlését kértük. Kattintás a lenti gombra a megerősítéshez."
   },
   "deleteRecoverOrgConfirmDesc": {
-    "message": "A saját Bitwarden szervezet törlése lett kérve."
+    "message": "A saját Cloudwarden szervezet törlése lett kérve."
   },
   "myOrganization": {
     "message": "Saját szervezet"
@@ -7403,7 +7403,7 @@
     }
   },
   "updateEncryptionKeyWarning": {
-    "message": "A titkosítási kulcs frissítése után ki kell jelentkezni és vissza kell jelentkezni az összes jelenleg használt Bitwarden alkalmazásba (például a mobilalkalmazás vagy a böngésző bővítmények). A kijelentkezés és a bejelentkezés elmulasztása (amely letölti az új titkosítási kulcsot) adatvesztést okozhat. Megkíséreljük az automatikusan kijelentkeztetést, azonban ez késhet."
+    "message": "A titkosítási kulcs frissítése után ki kell jelentkezni és vissza kell jelentkezni az összes jelenleg használt Cloudwarden alkalmazásba (például a mobilalkalmazás vagy a böngésző bővítmények). A kijelentkezés és a bejelentkezés elmulasztása (amely letölti az új titkosítási kulcsot) adatvesztést okozhat. Megkíséreljük az automatikusan kijelentkeztetést, azonban ez késhet."
   },
   "updateEncryptionKeyAccountExportWarning": {
     "message": "A fiókhoz korlátozottan mentett exportálások érvénytelenek lesznek."
@@ -7546,7 +7546,7 @@
     "message": "Másoljuk ki és illesszük be a hivatkozást, ahol csapat megtalálja azt: a beállítási ellenőrzőlistát, egy Slack #new-joiners csatornát, Notion dokumentumokat vagy egy email sablont."
   },
   "viewBitwardenOnboardingGuide": {
-    "message": "Bitwarden beüzemelési útmutató megtekintése"
+    "message": "Cloudwarden beüzemelési útmutató megtekintése"
   },
   "coachMarkStepOfTotal": {
     "message": "$CURRENT$ / $TOTAL$",
@@ -7725,7 +7725,7 @@
     "message": "Gyenge mesterjelszó"
   },
   "weakMasterPasswordDesc": {
-    "message": "A választott mesterjelszó gyenge. Erős jelszót kell használni a Bitwarden fiók megfelelő védelme érdekében. Biztosan ezt a mesterjelszót szeretnénk használni?"
+    "message": "A választott mesterjelszó gyenge. Erős jelszót kell használni a Cloudwarden fiók megfelelő védelme érdekében. Biztosan ezt a mesterjelszót szeretnénk használni?"
   },
   "rotateAccountEncKey": {
     "message": "A felhasználói fiókom titkosítókódját is cseréljük le"
@@ -7790,7 +7790,7 @@
     "message": "API kulcs"
   },
   "apiKeyDesc": {
-    "message": "Az API kulcs használható a Bitwarden nyilvános API hitelesítéséhez."
+    "message": "Az API kulcs használható a Cloudwarden nyilvános API hitelesítéséhez."
   },
   "apiKeyRotateDesc": {
     "message": "Az API kulcs cseréje érvényteleníti a korábbi kulcsot. Ha azt gondolod, hogy a jelenlegi kulcs nem biztonságos akkor lecserélheted az API kulcsot."
@@ -8149,7 +8149,7 @@
     "description": "VFO1 terminology variant of 'singleOrgPolicyDescV2'"
   },
   "singleOrgBlockCreateMessage": {
-    "message": "Jelenlegi szervezetének van olyan irányelve, amely nem engedélyezi, hogy több szervezethez csatlakozzunk. Lépjünk kapcsolatba szervezetünk adminisztrátorával vagy regisztráljunk egy másik Bitwarden fiókból."
+    "message": "Jelenlegi szervezetének van olyan irányelve, amely nem engedélyezi, hogy több szervezethez csatlakozzunk. Lépjünk kapcsolatba szervezetünk adminisztrátorával vagy regisztráljunk egy másik Cloudwarden fiókból."
   },
   "singleOrgPolicyMemberWarning": {
     "message": "A nem megfelelő tagok visszavont státuszba kerülnek mindaddig, amíg ki nem lépnek az összes többi szervezetből. Az adminisztrátorok mentesülnek és visszaállíthatják a tagokat, ha megfelelnek a megfelelőségnek."
@@ -8400,7 +8400,7 @@
     "message": "Problémát tapasztalunk? Töltsük le, majd osszuk meg a diagnosztikai jelentést:"
   },
   "bitwardenSupport": {
-    "message": "Bitwarden támogatás",
+    "message": "Cloudwarden támogatás",
     "description": "Link text that follows the troubleshooting description sentence. 'Bitwarden' should not be translated."
   },
   "download": {
@@ -8457,7 +8457,7 @@
     "message": "Sürgősségi kapcsolat szerkesztése"
   },
   "inviteEmergencyContactDesc": {
-    "message": "Új felhasználó meghívása sürgősségi kapcsolatként a Bitwarden fiók email címének megadásával. Ha még nem rendelkezik Bitwarden-fiókkal, felkérjük új fiók létrehozására."
+    "message": "Új felhasználó meghívása sürgősségi kapcsolatként a Cloudwarden fiók email címének megadásával. Ha még nem rendelkezik Bitwarden-fiókkal, felkérjük új fiók létrehozására."
   },
   "emergencyAccessRecoveryInitiated": {
     "message": "A sürgősségi hozzáférés kezdeményezésre került."
@@ -8496,7 +8496,7 @@
     "message": "Meghívott felhasználó."
   },
   "acceptEmergencyAccess": {
-    "message": "Meghívást érkezett a fenti személytől sürgősségi kapcsolat tekintetében. A meghívás elfogadásához be kell jelentkezni vagy új Bitwarden fiókot kell létrehozni."
+    "message": "Meghívást érkezett a fenti személytől sürgősségi kapcsolat tekintetében. A meghívás elfogadásához be kell jelentkezni vagy új Cloudwarden fiókot kell létrehozni."
   },
   "emergencyInviteAcceptFailed": {
     "message": "A meghívást nem lehet elfogadni. Kérjük meg a felhasználót új meghívó elküldésére."
@@ -8682,7 +8682,7 @@
     "message": "Hogyan kapcsolható be az automatikus felhasználó megerősítés"
   },
   "autoConfirmExtension1": {
-    "message": "Nyissuk meg a Bitwarden bővítményt."
+    "message": "Nyissuk meg a Cloudwarden bővítményt."
   },
   "autoConfirmExtension2": {
     "message": "Kiválasztás",
@@ -8693,7 +8693,7 @@
     "description": "This is a fragment of a larger sencence. The whole sentence will read: 'Select Turn on'"
   },
   "autoConfirmExtensionOpened": {
-    "message": "Sikeresen megnyitásra került a Bitwarden böngésző bővítmény. Most már aktiválhatjuk az automatikus felhasználó megerősítés beállítást."
+    "message": "Sikeresen megnyitásra került a Cloudwarden böngésző bővítmény. Most már aktiválhatjuk az automatikus felhasználó megerősítés beállítást."
   },
   "autoConfirmPolicyEditDescription": {
     "message": "A szervezetbe meghívott új felhasználók automatikusan megerősítést kapnak, ha egy adminisztrátor eszköz feloldásra kerül. Mielőtt bekapcsolnánk ezt a szabályzatot, tekintsük át és fogadjuk el a következőket: ",
@@ -8827,7 +8827,7 @@
     "message": "Send letiltása"
   },
   "disableSendPolicyDesc": {
-    "message": "Ne engedjük a felhasználóknak a Bitwarden Send létrehozását vagy szerkesztését. A meglévő küldés törlése továbbra is megengedett.",
+    "message": "Ne engedjük a felhasználóknak a Cloudwarden Send létrehozását vagy szerkesztését. A meglévő küldés törlése továbbra is megengedett.",
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "disableSendExemption": {
@@ -8906,7 +8906,7 @@
     "description": "VFO1 terminology variant of 'uriMatchDetectionPolicyDesc', shown in the policies list"
   },
   "uriMatchDetectionPolicyDescV2": {
-    "message": "Állítsunk be egy alapértelmezést, hogy a webhely cím (URI) mely részeinek kell megfelelniük ahhoz, hogy a Bitwarden bejelentkezést javasoljon az automatikus kitöltéshez. Ez a házirend nem érvényesül a tulajdonosok és az adminisztrátorok számára."
+    "message": "Állítsunk be egy alapértelmezést, hogy a webhely cím (URI) mely részeinek kell megfelelniük ahhoz, hogy a Cloudwarden bejelentkezést javasoljon az automatikus kitöltéshez. Ez a házirend nem érvényesül a tulajdonosok és az adminisztrátorok számára."
   },
   "uriMatchDetectionOptionsLabel": {
     "message": "Alapértelmezett URI egyezés érzékelés"
@@ -8926,7 +8926,7 @@
     "message": "Egyedi automatikus kitöltési szabálykészlet"
   },
   "fillAssistRulesUrlHint": {
-    "message": "Alapértelmezés szerint a kitöltési segédlet a Bitwarden által összeállított szabálykészletet használja. Írjunk be ide egy webcímet, hogy felülírjuk a sajáttal."
+    "message": "Alapértelmezés szerint a kitöltési segédlet a Cloudwarden által összeállított szabálykészletet használja. Írjunk be ide egy webcímet, hogy felülírjuk a sajáttal."
   },
   "invalidFillAssistRulesUrl": {
     "message": "Adjon meg érvényes webcímet.",
@@ -9039,7 +9039,7 @@
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "sendAccessTaglineProductDesc": {
-    "message": "A Bitwarden Küldés könnyen és biztonságosan továbbítja az érzékeny, ideiglenes információkat másoknak.",
+    "message": "A Cloudwarden Küldés könnyen és biztonságosan továbbítja az érzékeny, ideiglenes információkat másoknak.",
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "sendAccessTaglineLearnMore": {
@@ -9066,7 +9066,7 @@
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Learn more, see how it works, **or** try it now.'"
   },
   "developmentDevOpsAndITTeamsChooseBWSecret": {
-    "message": "Fejlesztők, DevOps és informatikai csapatok választják a Bitwarden Secret Managert hogy biztonságosan tudják telepíteni az infrastruktúra és eszköztitkokat."
+    "message": "Fejlesztők, DevOps és informatikai csapatok választják a Cloudwarden Secret Managert hogy biztonságosan tudják telepíteni az infrastruktúra és eszköztitkokat."
   },
   "centralizeSecretsManagement": {
     "message": "Központosítsd a titkosított adattárolást."
@@ -9105,7 +9105,7 @@
     "message": "Bitwarden Secrets Manager"
   },
   "moreProductsFromBitwarden": {
-    "message": "További Bitwarden termékek"
+    "message": "További Cloudwarden termékek"
   },
   "requestAccessToSecretsManager": {
     "message": "Igényelj hozzáférést a Secrets Managerhez"
@@ -9117,7 +9117,7 @@
     "message": "Access request for secrets manager email sent to admins."
   },
   "requestAccessSMDefaultEmailContent": {
-    "message": "Hi,\n\nI am requesting a subscription to Bitwarden Secrets Manager for our team. Your support would mean a great deal!\n\nBitwarden Secrets Manager is an end-to-end encrypted secrets management solution for securely storing, sharing, and deploying machine credentials like API keys, database passwords, and authentication certificates.\n\nSecrets Manager will help us to:\n\n- Improve security\n- Streamline operations\n- Prevent costly secret leaks\n\nTo request a free trial for our team, please reach out to Bitwarden.\n\nThank you for your help!"
+    "message": "Hi,\n\nI am requesting a subscription to Bitwarden Secrets Manager for our team. Your support would mean a great deal!\n\nBitwarden Secrets Manager is an end-to-end encrypted secrets management solution for securely storing, sharing, and deploying machine credentials like API keys, database passwords, and authentication certificates.\n\nSecrets Manager will help us to:\n\n- Improve security\n- Streamline operations\n- Prevent costly secret leaks\n\nTo request a free trial for our team, please reach out to Cloudwarden.\n\nThank you for your help!"
   },
   "giveMembersAccess": {
     "message": "Give members access:"
@@ -9151,7 +9151,7 @@
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Learn more about Bitwarden Send or sign up to **try it today.**'"
   },
   "sendAccessCreatorIdentifier": {
-    "message": "$USER_IDENTIFIER$ Bitwarden felhasználó megosztotta a következőket",
+    "message": "$USER_IDENTIFIER$ Cloudwarden felhasználó megosztotta a következőket",
     "placeholders": {
       "user_identifier": {
         "content": "$1",
@@ -9176,7 +9176,7 @@
     "description": "Toast message shown when a user clicks the resend code link on the Send access page. 'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "viewSendHiddenEmailWarning": {
-    "message": "Az ezt a Send elemet létrehozó Bitwarden felhasználó úgy döntött, hogy elrejti email címét. Mielőtt felhasználnánk vagy letöltenénk a tartalmát, ellenőrizzük a hivatkozás megbízhatóságát.",
+    "message": "Az ezt a Send elemet létrehozó Cloudwarden felhasználó úgy döntött, hogy elrejti email címét. Mielőtt felhasználnánk vagy letöltenénk a tartalmát, ellenőrizzük a hivatkozás megbízhatóságát.",
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "expirationDateIsInvalid": {
@@ -9548,10 +9548,10 @@
     "message": "Visszafejtési hiba"
   },
   "couldNotDecryptVaultItem": {
-    "message": "A Bitwarden nem tudta visszafejteni a lentebb felsorolt széf elemet. Lépjünk kapcsolatba a Bitwarden ügyfélszolgálatával és adjuk meg az alábbi elem azonosítót, hogy megtudjuk, helyreállítható-e."
+    "message": "A Cloudwarden nem tudta visszafejteni a lentebb felsorolt széf elemet. Lépjünk kapcsolatba a Cloudwarden ügyfélszolgálatával és adjuk meg az alábbi elem azonosítót, hogy megtudjuk, helyreállítható-e."
   },
   "couldNotDecryptVaultItems": {
-    "message": "A Bitwarden nem tudta visszafejteni a lentebb felsorolt széf elemeket. Lépjünk kapcsolatba a Bitwarden ügyfélszolgálatával és adjuk meg az alábbi elemek azonosítót, hogy megtudjuk, helyreállíthatók-e."
+    "message": "A Cloudwarden nem tudta visszafejteni a lentebb felsorolt széf elemeket. Lépjünk kapcsolatba a Cloudwarden ügyfélszolgálatával és adjuk meg az alábbi elemek azonosítót, hogy megtudjuk, helyreállíthatók-e."
   },
   "itemId": {
     "message": "Elem azonosító",
@@ -9574,7 +9574,7 @@
     "message": "Szolgáltató beállítása"
   },
   "setupProviderLoginDesc": {
-    "message": "Meghívás érkezett egy új szolgáltató beállítására. A folytatáshoz be kell jelentkezni vagy létre kell hozni egy új Bitwarden fiókot."
+    "message": "Meghívás érkezett egy új szolgáltató beállítására. A folytatáshoz be kell jelentkezni vagy létre kell hozni egy új Cloudwarden fiókot."
   },
   "setupProviderDesc": {
     "message": "Adjuk meg az alábbi adatokat a szolgáltató beállításának befejezéséhez. Ha bármilyen kérdés van, forduljunk az Ügyfélszolgálathoz."
@@ -9605,13 +9605,13 @@
     "message": "A szolgáltatás felhasználói elérhetik és kezelhetik az összes ügyfélszervezetet."
   },
   "providerInviteUserDesc": {
-    "message": "Új felhasználó meghívása a szervezetéhez a Bitwarden fiók email címének megadásával. Ha még nem rendelkeznek Bitwarden fiókkal, felkérjük új fiók létrehozására."
+    "message": "Új felhasználó meghívása a szervezetéhez a Cloudwarden fiók email címének megadásával. Ha még nem rendelkeznek Cloudwarden fiókkal, felkérjük új fiók létrehozására."
   },
   "joinProvider": {
     "message": "Csatlakozás szolgáltatóhoz"
   },
   "joinProviderDesc": {
-    "message": "Meghívást érkezett a fenti szervezethez csatlakozáshoz.  A meghívás elfogadásához be kell jelentkezni vagy új Bitwarden fiókot kell létrehozni."
+    "message": "Meghívást érkezett a fenti szervezethez csatlakozáshoz.  A meghívás elfogadásához be kell jelentkezni vagy új Cloudwarden fiókot kell létrehozni."
   },
   "providerInviteAcceptFailed": {
     "message": "A meghívás nem fogadható el. Kérjük fel a szervezet adminisztrátorát új meghívó küldésére."
@@ -9763,7 +9763,7 @@
     "message": "Munkamenet időkifutási művelet"
   },
   "sessionTimeoutSuppressedByConnectedDevice": {
-    "message": "A Bitwarden böngésző bővítmény alkalmazás kezeli. Nyissuk meg a böngésző alkalmazást szerkesztésre."
+    "message": "A Cloudwarden böngésző bővítmény alkalmazás kezeli. Nyissuk meg a böngésző alkalmazást szerkesztésre."
   },
   "immediately": {
     "message": "Azonnal"
@@ -10018,7 +10018,7 @@
     "message": "Az egyszeri bejelentkezés konfigurációja mentésre került."
   },
   "sponsoredFamilies": {
-    "message": "Díjmentes Bitwarden családi csomag"
+    "message": "Díjmentes Cloudwarden családi csomag"
   },
   "sponsoredBitwardenFamilies": {
     "message": "Szponzorált családok"
@@ -10039,28 +10039,28 @@
     "message": "Még egyetlen nem-tag sem váltotta be a Sszponzorált Családi csomagot."
   },
   "sponsorshipFreeBitwardenFamilies": {
-    "message": "A szervezet tagjai jogosultak a Free Bitwarden Families programra. Ingyenes Bitwarden Családokat szponzorálhatunk olyan alkalmazottak számára, akik nem tagjai Bitwarden szervezetének. A nem-tag szponzorálásához a szervezeten belül rendelkezésre álló hely szükséges."
+    "message": "A szervezet tagjai jogosultak a Free Cloudwarden Families programra. Ingyenes Cloudwarden Családokat szponzorálhatunk olyan alkalmazottak számára, akik nem tagjai Cloudwarden szervezetének. A nem-tag szponzorálásához a szervezeten belül rendelkezésre álló hely szükséges."
   },
   "sponsorshipFreeBitwardenFamiliesV2": {
-    "message": "A tagok jogosultak a Szponzorált családok csomag beváltására. Szponzorálhatunk egy Családok csomagot olyan alkalmazottak számára, akik nem tagjai a Bitwarden szervezetnek, de ehhez szabad helyekre van szükség a szervezetünkön belül."
+    "message": "A tagok jogosultak a Szponzorált családok csomag beváltására. Szponzorálhatunk egy Családok csomagot olyan alkalmazottak számára, akik nem tagjai a Cloudwarden szervezetnek, de ehhez szabad helyekre van szükség a szervezetünkön belül."
   },
   "sponsoredFamiliesRemoveActiveSponsorship": {
     "message": "Amikor eltávolítunk egy aktív szponzorációt, a szponzorált szervezet megújítási dátuma után elérhető lesz egy hely a szervezeten belül."
   },
   "sponsoredFamiliesEligible": {
-    "message": "A felhasználó és családja jogosult az ingyenes Bitwarden családok programra. Váltsuk ezt be személyes email címmel, hogy az adatok biztonságban legyenek még akkor is, amikor éppen nem dolgozunk."
+    "message": "A felhasználó és családja jogosult az ingyenes Cloudwarden családok programra. Váltsuk ezt be személyes email címmel, hogy az adatok biztonságban legyenek még akkor is, amikor éppen nem dolgozunk."
   },
   "sponsoredFamiliesEligibleV2": {
-    "message": "Mi és családunk jogosult a Szponzorált Családok csomagra, további költségek nélkül. Váltsuk be ezt a csomagot személyes emailünkkel, hogy adataink biztonságban legyenek és elkülönüljenek a Bitwarden munkahelyi fiókjától."
+    "message": "Mi és családunk jogosult a Szponzorált Családok csomagra, további költségek nélkül. Váltsuk be ezt a csomagot személyes emailünkkel, hogy adataink biztonságban legyenek és elkülönüljenek a Cloudwarden munkahelyi fiókjától."
   },
   "sponsoredFamiliesEligibleCard": {
-    "message": "Váltsuk be ingyenes Bitwarden családoknak előfizetést még ma, hogy az adatok biztonságban legyenek, még akkor is, amikor éppen nem dolgozunk."
+    "message": "Váltsuk be ingyenes Cloudwarden családoknak előfizetést még ma, hogy az adatok biztonságban legyenek, még akkor is, amikor éppen nem dolgozunk."
   },
   "sponsoredFamiliesIncludeMessage": {
-    "message": "A Bitwarden családoknak csomag tartalmazza:"
+    "message": "A Cloudwarden családoknak csomag tartalmazza:"
   },
   "sponsoredFamiliesIncludeMessageV2": {
-    "message": "A Bitwarden Családok csomag tartalmazza:"
+    "message": "A Cloudwarden Családok csomag tartalmazza:"
   },
   "sponsoredFamiliesPremiumAccess": {
     "message": "Prémium hozzáférés legfeljebb 6 felhasználónak"
@@ -10081,7 +10081,7 @@
     "message": "Itt jelennek meg azok a tagok, akik beváltották a családi csomagokat."
   },
   "membersWithSponsoredFamilies": {
-    "message": "A szervezet tagjai jogosultak a Free Bitwarden Families programra. Itt láthatjuk azokat a tagokat, akik szponzoráltak egy Családok szervezetet."
+    "message": "A szervezet tagjai jogosultak a Free Cloudwarden Families programra. Itt láthatjuk azokat a tagokat, akik szponzoráltak egy Családok szervezetet."
   },
   "organizationHasMemberMessage": {
     "message": "Nem lehet szponzorációt küldeni $EMAIL$ címre, mert az illető a szervezet tagja.",
@@ -10108,7 +10108,7 @@
     "message": "Melyik ingyenes családi ajánlatot szeretnénk beváltani?"
   },
   "sponsoredFamiliesEmail": {
-    "message": "A Bitwarden családok beváltásához adjuk meg a személyes email címünket."
+    "message": "A Cloudwarden családok beváltásához adjuk meg a személyes email címünket."
   },
   "sponsoredFamiliesLeaveCopy": {
     "message": "Ha kilépünk ebből a szervezetből vagy eltávolítás történik, a Családi csomag a számlázási időszak végén lejár."
@@ -10117,7 +10117,7 @@
     "message": "Meglévő szervezet ajánlatának elfogadása vagy új Családi szervezet létrehozása."
   },
   "setupSponsoredFamiliesLoginDesc": {
-    "message": "Ingyenes Bitwarden Családi csomag szervezetet ajánlottak fel. A folytatáshoz be kell jelentkezni az ajánlatot fogadó fiókba."
+    "message": "Ingyenes Cloudwarden Családi csomag szervezetet ajánlottak fel. A folytatáshoz be kell jelentkezni az ajánlatot fogadó fiókba."
   },
   "sponsoredFamiliesAcceptFailed": {
     "message": "Nem sikerült elfogadni az ajánlatot. Küldjük el ismét az ajánlati emailt a vállalati fiókból és próbáljuk újra."
@@ -10132,10 +10132,10 @@
     }
   },
   "sponsoredFamiliesOffer": {
-    "message": "Az ingyenes Bitwarden Családi csomag elfogadása"
+    "message": "Az ingyenes Cloudwarden Családi csomag elfogadása"
   },
   "sponsoredFamiliesOfferRedeemed": {
-    "message": "Az ingyenes Bitwarden családi szervezet ajánlat beváltásra került."
+    "message": "Az ingyenes Cloudwarden családi szervezet ajánlat beváltásra került."
   },
   "redeemed": {
     "message": "Beváltva"
@@ -10266,7 +10266,7 @@
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Connect login with SSO to your self-hosted decryption key server. Using this option, members won’t need to use their master passwords to decrypt vault data. The require SSO authentication and single organization policies are required to set up Key Connector decryption. Contact Bitwarden Support for set up assistance.'"
   },
   "memberDecryptionKeyConnectorDescEnd": {
-    "message": "szükségesek a Key Connector visszafejtésének beállításához. Beállítási segítségért forduljunk a Bitwarden ügyfélszolgálatához.",
+    "message": "szükségesek a Key Connector visszafejtésének beállításához. Beállítási segítségért forduljunk a Cloudwarden ügyfélszolgálatához.",
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Connect login with SSO to your self-hosted decryption key server. Using this option, members won’t need to use their master passwords to decrypt vault data. The require SSO authentication and single organization policies are required to set up Key Connector decryption. Contact Bitwarden Support for set up assistance.'"
   },
   "keyConnectorPolicyRestriction": {
@@ -10366,7 +10366,7 @@
     "message": "Egyedi környezet"
   },
   "selfHostedBaseUrlHint": {
-    "message": "Adjuk meg a helyileg tárolt Bitwarden telepítés alap webcímét. Példa: https://bitwarden.company.com"
+    "message": "Adjuk meg a helyileg tárolt Cloudwarden telepítés alap webcímét. Példa: https://bitwarden.company.com"
   },
   "selfHostedCustomEnvHeader": {
     "message": "Speciális konfigurációhoz külön-külön megadhatjuk az egyes szolgáltatások alap webcímét."
@@ -10414,7 +10414,7 @@
     "message": "Számlázási szinkron vezérjel"
   },
   "automaticBillingSyncDesc": {
-    "message": "Az automatikus szinkronizálás feloldja a Családok szponzorálását és lehetővé teszi a licenszek szinkronizálását fájl feltöltése nélkül. Miután frissítettük a Bitwarden felhőszervert, válasszuk a Szinkronizálási licensz lehetőséget a módosítások alkalmazásához."
+    "message": "Az automatikus szinkronizálás feloldja a Családok szponzorálását és lehetővé teszi a licenszek szinkronizálását fájl feltöltése nélkül. Miután frissítettük a Cloudwarden felhőszervert, válasszuk a Szinkronizálási licensz lehetőséget a módosítások alkalmazásához."
   },
   "active": {
     "message": "Bekapcsolva"
@@ -10777,11 +10777,11 @@
     }
   },
   "forwarderGeneratedBy": {
-    "message": "Generálta: Bitwarden.",
+    "message": "Generálta: Cloudwarden.",
     "description": "Displayed with the address on the forwarding service's configuration screen."
   },
   "forwarderGeneratedByWithWebsite": {
-    "message": "Webhely: $WEBSITE$. Generálta: Bitwarden.",
+    "message": "Webhely: $WEBSITE$. Generálta: Cloudwarden.",
     "description": "Displayed with the address on the forwarding service's configuration screen.",
     "placeholders": {
       "WEBSITE": {
@@ -12877,7 +12877,7 @@
     "message": "A felhasználó beállított egy mesterjelszót a TDE kilptetés során."
   },
   "startYour7DayFreeTrialOfBitwardenFor": {
-    "message": "Kezdjük el a Bitwarden 7 napos ingyenes próbaverzió használatát $ORG$ áron",
+    "message": "Kezdjük el a Cloudwarden 7 napos ingyenes próbaverzió használatát $ORG$ áron",
     "placeholders": {
       "org": {
         "content": "$1",
@@ -12886,7 +12886,7 @@
     }
   },
   "startYour7DayFreeTrialOfBitwardenSecretsManagerFor": {
-    "message": "Kezdjük el a Bitwarden Titkos Kód Kezelő $ORG$ 7 napos ingyenes próbaverzió használatát",
+    "message": "Kezdjük el a Cloudwarden Titkos Kód Kezelő $ORG$ 7 napos ingyenes próbaverzió használatát",
     "placeholders": {
       "org": {
         "content": "$1",
@@ -13388,7 +13388,7 @@
     "description": "Label indicating the most common import formats"
   },
   "uriMatchDefaultStrategyHint": {
-    "message": "Az URI egyezés észlelése az, ahogyan a Bitwarden azonosítja az automatikus kitöltési javaslatokat.",
+    "message": "Az URI egyezés észlelése az, ahogyan a Cloudwarden azonosítja az automatikus kitöltési javaslatokat.",
     "description": "Explains to the user that URI match detection determines how Bitwarden suggests autofill options, and clarifies that this default strategy applies when no specific match detection is set for a login item."
   },
   "regExAdvancedOptionWarning": {
@@ -13432,7 +13432,7 @@
     "message": "Megerősítő adatok"
   },
   "smFreeTrialThankYou": {
-    "message": "Köszönet a Bitwarden Titkos Kód Kezelő regisztrációért!"
+    "message": "Köszönet a Cloudwarden Titkos Kód Kezelő regisztrációért!"
   },
   "smFreeTrialConfirmationEmail": {
     "message": "A megerősítő email elküldésre került az email címre:"
@@ -14013,7 +14013,7 @@
     "description": "This represents the beginning of a sentence, broken up to include links. The full sentence will be 'Configure single sign-on for Bitwarden using the implementation guide for your Identity Provider."
   },
   "ssoDescEnd": {
-    "message": "a Bitwarden számára az azonosítás szolgáltató megvalósítási útmutató használatával.",
+    "message": "a Cloudwarden számára az azonosítás szolgáltató megvalósítási útmutató használatával.",
     "description": "This represents the end of a sentence, broken up to include links. The full sentence will be 'Configure single sign-on for Bitwarden using the implementation guide for your Identity Provider."
   },
   "userProvisioning": {
@@ -14027,26 +14027,26 @@
     "description": "This represents the beginning of a sentence, broken up to include links. The full sentence will be 'Configure SCIM (System for Cross-domain Identity Management) to automatically provision users and groups to Bitwarden using the implementation guide for your Identity Provider"
   },
   "scimIntegrationDescEnd": {
-    "message": "(Rendszer a tartományok közötti azonosítás kezeléshez), hogy automatikusan biztosítson felhasználókat és csoportokat a Bitwarden számára az azonostíás szolgáltató megvalósítási útmutatója segítségével.",
+    "message": "(Rendszer a tartományok közötti azonosítás kezeléshez), hogy automatikusan biztosítson felhasználókat és csoportokat a Cloudwarden számára az azonostíás szolgáltató megvalósítási útmutatója segítségével.",
     "description": "This represents the end of a sentence, broken up to include links. The full sentence will be 'Configure SCIM (System for Cross-domain Identity Management) to automatically provision users and groups to Bitwarden using the implementation guide for your Identity Provider"
   },
   "bwdc": {
-    "message": "Bitwarden Directory Connector"
+    "message": "Cloudwarden Directory Connector"
   },
   "bwdcDesc": {
-    "message": "Konfigurálja a Bitwarden Directory Connector szolgáltatást úgy, hogy automatikusan biztosítson felhasználókat és csoportokat az identitásszolgáltató megvalósítási útmutatója segítségével."
+    "message": "Konfigurálja a Cloudwarden Directory Connector szolgáltatást úgy, hogy automatikusan biztosítson felhasználókat és csoportokat az identitásszolgáltató megvalósítási útmutatója segítségével."
   },
   "eventManagement": {
     "message": "Esemény kezelés"
   },
   "eventManagementDesc": {
-    "message": "Integrálja a Bitwarden eseménynaplókat a SIEM (rendszerinformációs és esemény kezelési) rendszerrel a platform megvalósítási útmutatója segítségével."
+    "message": "Integrálja a Cloudwarden eseménynaplókat a SIEM (rendszerinformációs és esemény kezelési) rendszerrel a platform megvalósítási útmutatója segítségével."
   },
   "deviceManagement": {
     "message": "Eszközkezelés"
   },
   "deviceManagementDesc": {
-    "message": "Az eszközkezelés konfigurálása a Bitwarden számára a platform megvalósítási útmutatója segítségével."
+    "message": "Az eszközkezelés konfigurálása a Cloudwarden számára a platform megvalósítási útmutatója segítségével."
   },
   "crowdstrikeEventIntegrationDesc": {
     "message": "Eseményadatok küldése a Logscale példánynak"
@@ -14265,22 +14265,22 @@
     "message": "A számlázás kezelése a szolgáltatói portálon keresztül"
   },
   "continueSettingUp": {
-    "message": "A Bitwarden beüzemelésének folytatása"
+    "message": "A Cloudwarden beüzemelésének folytatása"
   },
   "continueSettingUpFreeTrial": {
-    "message": "Folytassuk a Bitwarden ingyenes próbaverziójának beállítását."
+    "message": "Folytassuk a Cloudwarden ingyenes próbaverziójának beállítását."
   },
   "continueSettingUpPasswordManager": {
-    "message": "Folytassuk a Bitwarden jelszókezelő beüzemelését."
+    "message": "Folytassuk a Cloudwarden jelszókezelő beüzemelését."
   },
   "continueSettingUpFreeTrialPasswordManager": {
-    "message": "Folytassuk a Bitwarden jelszókezelő ingyenes próbaverziójának beállítását."
+    "message": "Folytassuk a Cloudwarden jelszókezelő ingyenes próbaverziójának beállítását."
   },
   "continueSettingUpSecretsManager": {
-    "message": "Folytassuk a Bitwarden titkos kód kezelő beüzemelését."
+    "message": "Folytassuk a Cloudwarden titkos kód kezelő beüzemelését."
   },
   "continueSettingUpFreeTrialSecretsManager": {
-    "message": "Folytassuk a Bitwarden titkos kód kezelő ingyenes próbaverziójának beállítását."
+    "message": "Folytassuk a Cloudwarden titkos kód kezelő ingyenes próbaverziójának beállítását."
   },
   "enterTeamsOrgInfo": {
     "message": "Adjuk meg a Teams szervezet információit."
@@ -14556,14 +14556,14 @@
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'Notice: Later this month, client vault privacy will be improved and provider members will no longer have direct access to client vault items. For questions, please contact Bitwarden support'."
   },
   "contactBitwardenSupport": {
-    "message": "vedd fel a kapcsolatot a Bitwarden ügyfélszolgálattal.",
+    "message": "vedd fel a kapcsolatot a Cloudwarden ügyfélszolgálattal.",
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'Notice: Later this month, client vault privacy will be improved and provider members will no longer have direct access to client vault items. For questions, please contact Bitwarden support'. 'Bitwarden' should not be translated"
   },
   "sponsored": {
     "message": "Szponzorált"
   },
   "licenseAndBillingManagementDesc": {
-    "message": "A Bitwarden felhőkiszolgáló frissítése után töltsük fel a licenszfájlt a legutóbbi módosítások alkalmazásához."
+    "message": "A Cloudwarden felhőkiszolgáló frissítése után töltsük fel a licenszfájlt a legutóbbi módosítások alkalmazásához."
   },
   "addToFolder": {
     "message": "Mappához adás"
@@ -14681,7 +14681,7 @@
     "message": "Mi az a CVV szám?"
   },
   "learnMoreAboutApi": {
-    "message": "További információ a Bitwarden API-járól"
+    "message": "További információ a Cloudwarden API-járól"
   },
   "fileSends": {
     "message": "Fájl küldés"
@@ -14858,7 +14858,7 @@
     "message": "A Titkos kód kezelő előfizetés a kiválasztott csomag alapján frissül."
   },
   "bitwardenPasswordManager": {
-    "message": "Bitwarden jelszókezelő"
+    "message": "Cloudwarden jelszókezelő"
   },
   "secretsManagerComplimentaryPasswordManager": {
     "message": "A kiegészítő egyéves Jelszókezelő előfizetésed a kiválasztott csomagra frissül. A díjmentes időszak lejártáig nem számítunk fel díjat."
@@ -14936,7 +14936,7 @@
     "description": "This represents the beginning of a sentence. The full sentence will be 'Manage subscription from the Provider Portal', but 'Provider Portal' will be a link and thus cannot be included in the translation file."
   },
   "toHostBitwardenOnYourOwnServer": {
-    "message": "Ha a Bitwarden szolgáltatást saját szerveren szeretnénk tárolni, fel kell tölteni a licenszfájlt. A Free Families csomagok és a speciális számlázási lehetőségek támogatásához a saját üzemeltetésű szervezet számára be kell állítani az automatikus szinkronizálást a saját üzemeltetésű szervezetben."
+    "message": "Ha a Cloudwarden szolgáltatást saját szerveren szeretnénk tárolni, fel kell tölteni a licenszfájlt. A Free Families csomagok és a speciális számlázási lehetőségek támogatásához a saját üzemeltetésű szervezet számára be kell állítani az automatikus szinkronizálást a saját üzemeltetésű szervezetben."
   },
   "selfHostingTitleProper": {
     "message": "Saját üzemeltetés"
@@ -15060,7 +15060,7 @@
     "message": "A törlés sikeres volt."
   },
   "freeFamiliesSponsorship": {
-    "message": "Az ingyenes Bitwarden Családok szponzorálásának eltávolítása"
+    "message": "Az ingyenes Cloudwarden Családok szponzorálásának eltávolítása"
   },
   "freeFamiliesSponsorshipPolicyTitleV2": {
     "message": "A szponzorált Családi csomag eltávolítása"
@@ -15138,10 +15138,10 @@
     "message": "Automatikusan igényelt tartományok"
   },
   "automaticDomainClaimProcess": {
-    "message": "A Bitwarden az első 72 óra során 3 alkalommal kísérli meg a tartomány ellenőrzését. Ha a tartomány nem ellenőrizhető, ellenőrizésre kerül a DNS rekordt a kiszolgálón és az ellenőrzés manuálisan történik. A tartomány 7 napon belül eltávolításra kerül, ha nem kerül igénylésre."
+    "message": "A Cloudwarden az első 72 óra során 3 alkalommal kísérli meg a tartomány ellenőrzését. Ha a tartomány nem ellenőrizhető, ellenőrizésre kerül a DNS rekordt a kiszolgálón és az ellenőrzés manuálisan történik. A tartomány 7 napon belül eltávolításra kerül, ha nem kerül igénylésre."
   },
   "automaticDomainClaimProcess1": {
-    "message": "A Bitwarden 72 órán belül megkísérli igényelni a tartományt. Ha a tartomány nem igényelhető, ellenőrizzük DNS-rekordot és igényeljünk manuálisan. A nem igényelt tartományok 7 nap múlva eltávolításra kerülnek."
+    "message": "A Cloudwarden 72 órán belül megkísérli igényelni a tartományt. Ha a tartomány nem igényelhető, ellenőrizzük DNS-rekordot és igényeljünk manuálisan. A nem igényelt tartományok 7 nap múlva eltávolításra kerülnek."
   },
   "automaticDomainClaimProcess2": {
     "message": "Az igénylést követően az igényelt tartományokkal rendelkező meglévő tagok emailt kapnak: "
@@ -15309,7 +15309,7 @@
     "message": "Személyes kulcs másolása"
   },
   "openingExtension": {
-    "message": "A Bitwarden böngésző bővítmény megnyitása"
+    "message": "A Cloudwarden böngésző bővítmény megnyitása"
   },
   "somethingWentWrong": {
     "message": "Valami hiba történt."
@@ -15321,7 +15321,7 @@
     "message": "Bővítmény megnyitása"
   },
   "doNotHaveExtension": {
-    "message": "Nincs a Bitwarden böngésző bővítmény?"
+    "message": "Nincs a Cloudwarden böngésző bővítmény?"
   },
   "installExtension": {
     "message": "Bővítmény telepítése"
@@ -15330,7 +15330,7 @@
     "message": "Megnyitottuk a böngésző bővítményt."
   },
   "openedExtensionViewAtRiskPasswords": {
-    "message": "Sikeresen megnyitottuk a Bitwarden böngésző bővítményt. Mostantól áttekinthetjük a veszélyeztetett jelszavakat."
+    "message": "Sikeresen megnyitottuk a Cloudwarden böngésző bővítményt. Mostantól áttekinthetjük a veszélyeztetett jelszavakat."
   },
   "resellerRenewalWarningMsg": {
     "message": "Az előfizetés hamarosan megújul. A folyamatos szolgáltatás biztosítása érdekében lépjünk kapcsolatba $RESELLER$ viszonteladóval és erősítsük meg a megújítást $RENEWAL_DATE$ előtt.",
@@ -15346,7 +15346,7 @@
     }
   },
   "resellerRenewalWarningMsgV2": {
-    "message": "Az előfizetés hamarosan megújul. A folyamatos szolgáltatás biztosítása érdekében lépjünk kapcsolatba a Bitwarden szolgáltatóval és erősítsük meg a megújítást $RENEWAL_DATE$ előtt.",
+    "message": "Az előfizetés hamarosan megújul. A folyamatos szolgáltatás biztosítása érdekében lépjünk kapcsolatba a Cloudwarden szolgáltatóval és erősítsük meg a megújítást $RENEWAL_DATE$ előtt.",
     "placeholders": {
       "renewal_date": {
         "content": "$1",
@@ -15385,7 +15385,7 @@
     }
   },
   "resellerPastDueWarningMsgV2": {
-    "message": "Az előfizetésről szóló számla nem lett kfizetve. A folyamatos szolgáltatás biztosítása érdekében lépjünk kapcsolatba Bitwarden szolgáltatóval és erősítsük meg a megújítást $GRACE_PERIOD_END$ előtt.",
+    "message": "Az előfizetésről szóló számla nem lett kfizetve. A folyamatos szolgáltatás biztosítása érdekében lépjünk kapcsolatba Cloudwarden szolgáltatóval és erősítsük meg a megújítást $GRACE_PERIOD_END$ előtt.",
     "placeholders": {
       "grace_period_end": {
         "content": "$1",
@@ -15546,7 +15546,7 @@
     "message": "Frissítsünk, hogy megtekinthessük a szervezet eseménynaplóit."
   },
   "upgradeEventLogMessage": {
-    "message": "Ezek az események csak példák és nem tükröznek valós eseményeket a Bitwarden szervezetén belül."
+    "message": "Ezek az események csak példák és nem tükröznek valós eseményeket a Cloudwarden szervezetén belül."
   },
   "viewEvents": {
     "message": "Események megtekintése"
@@ -15748,7 +15748,7 @@
     "message": "Bitwarden extension installed!"
   },
   "bitwardenExtensionIsInstalled": {
-    "message": "A Bitwarden kiterjesztés telepítésre került!"
+    "message": "A Cloudwarden kiterjesztés telepítésre került!"
   },
   "openExtensionToAutofill": {
     "message": "Open the extension to log in and start autofilling."
@@ -15757,7 +15757,7 @@
     "message": "Open Bitwarden extension"
   },
   "gettingStartedWithBitwardenPart1": {
-    "message": "For tips on getting started with Bitwarden visit the",
+    "message": "For tips on getting started with Cloudwarden visit the",
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'For tips on getting started with Bitwarden visit the Learning Center and Help Center'"
   },
   "gettingStartedWithBitwardenPart2": {
@@ -15777,7 +15777,7 @@
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'For tips on getting started with Bitwarden visit the Learning Center and Help Center'"
   },
   "setupExtensionContentAlt": {
-    "message": "With the Bitwarden browser extension you can easily create new logins, access your saved logins directly from your browser toolbar, and sign in to accounts quickly using Bitwarden autofill."
+    "message": "With the Bitwarden browser extension you can easily create new logins, access your saved logins directly from your browser toolbar, and sign in to accounts quickly using Cloudwarden autofill."
   },
   "restart": {
     "message": "Újraindítás"
@@ -15809,7 +15809,7 @@
     "message": "Informció erről a beállításról"
   },
   "permitCipherDetailsDescription": {
-    "message": "A Bitwarden mentett bejelentkezési webcímeket használ annak azonosítására, hogy melyik ikont vagy jelszó webcímet kell használni az élmény javítása érdekében. A szolgáltatás használatakor nincs információ gyűjtés vagy mentés."
+    "message": "A Cloudwarden mentett bejelentkezési webcímeket használ annak azonosítására, hogy melyik ikont vagy jelszó webcímet kell használni az élmény javítása érdekében. A szolgáltatás használatakor nincs információ gyűjtés vagy mentés."
   },
   "showQuickCopyActionsDetailsDescription": {
     "message": "Adjunk hozzá 3 gyorsmásoló gombot az elemek mellé a felhasználónév, a jelszó vagy az ellenőrző kód vágólapra másolásához."
@@ -15879,7 +15879,7 @@
     }
   },
   "restoreProviderPortalAccessViaCustomerSupport": {
-    "message": "A szolgáltatói portálhoz hozzáférés visszaállításához lépjünk kapcsolatba a Bitwarden ügyfélszolgálatával az előfizetés megújításához.",
+    "message": "A szolgáltatói portálhoz hozzáférés visszaállításához lépjünk kapcsolatba a Cloudwarden ügyfélszolgálatával az előfizetés megújításához.",
     "description": "A message shown in a non-dismissible dialog to any user of a suspended providers."
   },
   "restoreProviderPortalAccessViaPaymentMethod": {
@@ -15921,7 +15921,7 @@
     "message": "Az előfizetés törlésre került."
   },
   "providersubCanceledmessage": {
-    "message": "Az ismételt feliratkozáshoz lépjünk kapcsolatba a Bitwarden Ügyféltámogatással."
+    "message": "Az ismételt feliratkozáshoz lépjünk kapcsolatba a Cloudwarden Ügyféltámogatással."
   },
   "showAll": {
     "message": "Összes megjelenítése"
@@ -16064,7 +16064,7 @@
     "message": "Egyedi csomag"
   },
   "planDescCustom": {
-    "message": "A Bitwarden bármilyen méretű vállalkozásra kiterjed a jelszavak és érzékeny információk biztonsága érdekében. Ha egy nagyvállalat tagja vagyunk, lépjünk kapcsolatba az értékesítéssel ajánlat kéréshez."
+    "message": "A Cloudwarden bármilyen méretű vállalkozásra kiterjed a jelszavak és érzékeny információk biztonsága érdekében. Ha egy nagyvállalat tagja vagyunk, lépjünk kapcsolatba az értékesítéssel ajánlat kéréshez."
   },
   "builtInAuthenticator": {
     "message": "Beépített hitelesítés"
@@ -16202,7 +16202,7 @@
     "message": "Áttérés most"
   },
   "getAdvancedOnlineSecurityWithBitwardenPremium": {
-    "message": "Fejlett online biztonság megszerzése a Bitwarden prémiummal."
+    "message": "Fejlett online biztonság megszerzése a Cloudwarden prémiummal."
   },
   "formWillCreateNewFamiliesOrgMessage": {
     "message": "Az űrlap kitöltésével egy új Családok szervezet jön létre. Az Adminisztrációs konzolban lehet áttérni az Ingyenes szervezetről."
@@ -16211,7 +16211,7 @@
     "message": "Hiba történt az áttérés feldolgozása közben. Próbáljuk újra."
   },
   "bitwardenFreeplanMessage": {
-    "message": "Jelenleg a Bitwarden Ingyenes csomaggal rendelkezünk."
+    "message": "Jelenleg a Cloudwarden Ingyenes csomaggal rendelkezünk."
   },
   "upgradeCompleteSecurity": {
     "message": "Áttérés a teljes biztonságért"
@@ -16229,7 +16229,7 @@
     "message": "Algoritmus"
   },
   "encryptionKeySettingsHowShouldWeEncryptYourData": {
-    "message": "Válasszuk ki, hogy a Bitwarden hogyan titkosítsa a széf adatokat. Minden lopció biztonságos, de az erősebb módszerek jobb védelmet nyújtanak - különösen a brute force típusú támadások ellen. A Bitwarden a legtöbb felhasználó számára az alapértelmezett beállítást ajánlja."
+    "message": "Válasszuk ki, hogy a Cloudwarden hogyan titkosítsa a széf adatokat. Minden lopció biztonságos, de az erősebb módszerek jobb védelmet nyújtanak - különösen a brute force típusú támadások ellen. A Cloudwarden a legtöbb felhasználó számára az alapértelmezett beállítást ajánlja."
   },
   "encryptionKeySettingsIncreaseImproveSecurity": {
     "message": "Az értékek alapértelmezett fölé emelése javítja a biztonságot, de ennek eredményeként a széf feloldása hosszabb időt vehet igénybe."
@@ -16260,10 +16260,10 @@
     "description": "VFO1 terminology variant of 'blockClaimedDomainAccountCreationDesc', shown in the policies list"
   },
   "blockClaimedDomainAccountCreationDescV2": {
-    "message": "Tiltsuk le a tagokat abban, hogy az igényelt tartományt a szervezeten kívüli Bitwarden fiókok létrehozására használják."
+    "message": "Tiltsuk le a tagokat abban, hogy az igényelt tartományt a szervezeten kívüli Cloudwarden fiókok létrehozására használják."
   },
   "blockClaimedDomainAccountCreationDescV2Vfo1": {
-    "message": "Tiltsuk le a tagokat abban, hogy az igényelt tartományt a szervezeten kívüli Bitwarden fiókok létrehozására használják.",
+    "message": "Tiltsuk le a tagokat abban, hogy az igényelt tartományt a szervezeten kívüli Cloudwarden fiókok létrehozására használják.",
     "description": "VFO1 terminology variant of 'blockClaimedDomainAccountCreationDescV2'"
   },
   "blockClaimedDomainAccountCreationPrerequisiteV2": {
@@ -16504,7 +16504,7 @@
     "message": "Elutasítás és kilépés"
   },
   "youHaveBitwardenPremium": {
-    "message": "Bitwarden Prémium verzió van használatban."
+    "message": "Cloudwarden Prémium verzió van használatban."
   },
   "viewAndManagePremiumSubscription": {
     "message": "Tekintsük meg és kezeljük a Prémium előfizetést."
@@ -16543,13 +16543,13 @@
     "message": "Már van előfizetés?"
   },
   "alreadyHaveSubscriptionSelfHostedMessage": {
-    "message": "Nyissuk meg az előfizetési oldalt Bitwarden felhőfiókjában és töltsük le licensz fájlt. Ezután térjünk vissza erre a képernyőre és töltsük fel lentebb."
+    "message": "Nyissuk meg az előfizetési oldalt Cloudwarden felhőfiókjában és töltsük le licensz fájlt. Ezután térjünk vissza erre a képernyőre és töltsük fel lentebb."
   },
   "alreadyHaveSubscriptionSelfHostedMessageV2": {
-    "message": "Nyissuk meg az előfizetési oldalt Bitwarden fiókban és töltsük le a licensz fájlt. Ezután térjünk vissza erre a képernyőre és töltsük fel lentebb."
+    "message": "Nyissuk meg az előfizetési oldalt Cloudwarden fiókban és töltsük le a licensz fájlt. Ezután térjünk vissza erre a képernyőre és töltsük fel lentebb."
   },
   "alreadyHaveSubscriptionSelfHostedMessageV3": {
-    "message": "A felhő környezetben jelentkezzünk be a Bitwarden fiókba, nyissuk meg az előfizetés oldalt és töltsük le licensz fájlt. Ezután térjünk vissza erre a képernyőre és töltsük fel azt."
+    "message": "A felhő környezetben jelentkezzünk be a Cloudwarden fiókba, nyissuk meg az előfizetés oldalt és töltsük le licensz fájlt. Ezután térjünk vissza erre a képernyőre és töltsük fel azt."
   },
   "viewAllPlans": {
     "message": "Összes csomag megtekintése"
@@ -16638,7 +16638,7 @@
     "message": "A böngésző kiterjesztés telepítésével a Bitwardent mindenhová magunkkal vihetjük. Kitölti a jelszavakat, így egyetlen kattintással bejelentkezhetünk a fiókjainkba."
   },
   "extensionPromptImageAlt": {
-    "message": "Egy webböngésző, amely a Bitwarden kiterjesztést jeleníti meg az aktuális weboldal automatikus kitöltési elemeivel."
+    "message": "Egy webböngésző, amely a Cloudwarden kiterjesztést jeleníti meg az aktuális weboldal automatikus kitöltési elemeivel."
   },
   "skip": {
     "message": "Kihagyás"
@@ -16689,7 +16689,7 @@
     "message": "Megérkeztünk! Üdvözlet a Bitwardenben"
   },
   "vaultWelcomeDialogDescription": {
-    "message": "Az összes jelszó és személyes adat tárolása a Bitwarden trezorban. Nézzünk körbe."
+    "message": "Az összes jelszó és személyes adat tárolása a Cloudwarden trezorban. Nézzünk körbe."
   },
   "vaultWelcomeDialogPrimaryCta": {
     "message": "Túra elkezdése"
@@ -16923,7 +16923,7 @@
     "message": "Segíts a tagoknak fejlődni"
   },
   "aiCoachmarkHelpMembersDescription": {
-    "message": "Miután kiválasztottuk a kritikus alkalmazásokat, kérjük meg a tagokat a veszélyeztetett jelszavak megváltoztatására. Üzenetet kapnak a Bitwarden kiterjesztésükben."
+    "message": "Miután kiválasztottuk a kritikus alkalmazásokat, kérjük meg a tagokat a veszélyeztetett jelszavak megváltoztatására. Üzenetet kapnak a Cloudwarden kiterjesztésükben."
   },
   "aiCoachmarkRunReportTitle": {
     "message": "Maradás az új kockázatok elején"

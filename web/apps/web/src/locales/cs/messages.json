@@ -21,7 +21,7 @@
     "message": "Všechny kritické aplikace"
   },
   "appLogoLabel": {
-    "message": "Logo Bitwarden"
+    "message": "Logo Cloudwarden"
   },
   "criticalApplications": {
     "message": "Kritické aplikace"
@@ -236,7 +236,7 @@
     "message": "Sledujte pokroky v rámci celého týmu"
   },
   "membersAreAutomaticallyNotified": {
-    "message": "Členové jsou automaticky upozorněni na ohrožená hesla v rozšíření Bitwarden. Není třeba nic dohledávat."
+    "message": "Členové jsou automaticky upozorněni na ohrožená hesla v rozšíření Cloudwarden. Není třeba nic dohledávat."
   },
   "importYourOrgDataToGetStarted": {
     "message": "Pro spuštění nahrajte data své organizace"
@@ -399,7 +399,7 @@
     }
   },
   "membersWillReceiveSecurityTask": {
-    "message": "Členům Vaší organizace bude přiřazen úkol ke změně zranitelných hesel. Obdrží oznámení v rámci jejich rozšíření prohlížeče Bitwarden."
+    "message": "Členům Vaší organizace bude přiřazen úkol ke změně zranitelných hesel. Obdrží oznámení v rámci jejich rozšíření prohlížeče Cloudwarden."
   },
   "membersAtRiskCount": {
     "message": "$COUNT$ zranitelných členů",
@@ -847,10 +847,10 @@
     "message": "Bezproblémové dvoufázové ověřování"
   },
   "totpHelper": {
-    "message": "Bitwarden umí ukládat a vyplňovat dvoufázové ověřovací kódy. Zkopírujte a vložte klíč do tohoto pole."
+    "message": "Cloudwarden umí ukládat a vyplňovat dvoufázové ověřovací kódy. Zkopírujte a vložte klíč do tohoto pole."
   },
   "totpHelperWithCapture": {
-    "message": "Bitwarden umí ukládat a vyplňovat dvoufázové ověřovací kódy. Vyberte ikonu fotoaparátu a pořiďte snímek obrazovky ověřovacího QR kódu této webové stránky nebo klíč zkopírujte a vložte do tohoto pole."
+    "message": "Cloudwarden umí ukládat a vyplňovat dvoufázové ověřovací kódy. Vyberte ikonu fotoaparátu a pořiďte snímek obrazovky ověřovacího QR kódu této webové stránky nebo klíč zkopírujte a vložte do tohoto pole."
   },
   "totpCapture": {
     "message": "Naskenovat QR kód z aktuální webové stránky"
@@ -2222,7 +2222,7 @@
     "message": "Přihlásit se zařízením"
   },
   "loginWithDeviceEnabledNote": {
-    "message": "Přihlášení zařízením musí být nastaveno v aplikaci Bitwarden. Potřebujete další volby?"
+    "message": "Přihlášení zařízením musí být nastaveno v aplikaci Cloudwarden. Potřebujete další volby?"
   },
   "needAnotherOptionV1": {
     "message": "Potřebujete další volby?"
@@ -2387,7 +2387,7 @@
     "message": "Co je to zařízení?"
   },
   "aDeviceIs": {
-    "message": "Zařízení je jedinečná instalace aplikace Bitwarden, ve které jste se přihlásili. Přeinstalování, vymazání dat aplikace nebo vymazání souborů cookie může vést k tomu, že se zařízení objeví vícekrát."
+    "message": "Zařízení je jedinečná instalace aplikace Cloudwarden, ve které jste se přihlásili. Přeinstalování, vymazání dat aplikace nebo vymazání souborů cookie může vést k tomu, že se zařízení objeví vícekrát."
   },
   "logInInitiated": {
     "message": "Bylo zahájeno přihlášení"
@@ -2694,7 +2694,7 @@
     "message": "Na Vaše zařízení bylo odesláno oznámení."
   },
   "notificationSentDevicePart1": {
-    "message": "Odemknout Bitwarden na Vašem zařízení nebo na "
+    "message": "Odemknout Cloudwarden na Vašem zařízení nebo na "
   },
   "accessAttemptBy": {
     "message": "Pokus o přístup z $EMAIL$",
@@ -2718,7 +2718,7 @@
     "message": "Před schválením se ujistěte, že fráze otisku prstu odpovídá frázi níže."
   },
   "notificationSentDeviceComplete": {
-    "message": "Odemkněte Bitwarden na Vašem zařízení. Před schválením se ujistěte, že fráze otisku prstu odpovídá frázi níže."
+    "message": "Odemkněte Cloudwarden na Vašem zařízení. Před schválením se ujistěte, že fráze otisku prstu odpovídá frázi níže."
   },
   "aNotificationWasSentToYourDevice": {
     "message": "Na Vaše zařízení bylo odesláno oznámení"
@@ -3195,7 +3195,7 @@
     }
   },
   "kdfIterationsWarning": {
-    "message": "Nastavení příliš vysoké hodnoty počtu iterací KDF může mít za následek špatný výkon při přihlašování (a odemykání) aplikace Bitwarden na zařízeních se slabým procesorem. Doporučujeme hodnotu navyšovat přírůstkově po $INCREMENT$ a vyzkoušet všechna Vaše zařízení.",
+    "message": "Nastavení příliš vysoké hodnoty počtu iterací KDF může mít za následek špatný výkon při přihlašování (a odemykání) aplikace Cloudwarden na zařízeních se slabým procesorem. Doporučujeme hodnotu navyšovat přírůstkově po $INCREMENT$ a vyzkoušet všechna Vaše zařízení.",
     "placeholders": {
       "increment": {
         "content": "$1",
@@ -3208,7 +3208,7 @@
     "description": "Memory refers to computer memory (RAM). MB is short for megabytes."
   },
   "argon2Warning": {
-    "message": "Nastavení příliš vysoké hodnoty počtu iterací KDF, paměti a paralelity může mít za následek špatný výkon při přihlašování (a odemykání) aplikace Bitwarden na zařízeních se slabým procesorem. Doporučujeme hodnotu navyšovat přírůstkově a vyzkoušet všechna Vaše zařízení."
+    "message": "Nastavení příliš vysoké hodnoty počtu iterací KDF, paměti a paralelity může mít za následek špatný výkon při přihlašování (a odemykání) aplikace Cloudwarden na zařízeních se slabým procesorem. Doporučujeme hodnotu navyšovat přírůstkově a vyzkoušet všechna Vaše zařízení."
   },
   "kdfParallelism": {
     "message": "Paralelita KDF"
@@ -3244,7 +3244,7 @@
     "message": "Pokračujte níže a vypněte ověřovací e-maily od Bitwardenu, když se přihlásíte z nového zařízení."
   },
   "turnOnNewDeviceLoginProtectionModalDesc": {
-    "message": "Níže postupujte tak, aby Vám Bitwarden zasílal ověřovací e-maily při přihlášení z nového zařízení."
+    "message": "Níže postupujte tak, aby Vám Cloudwarden zasílal ověřovací e-maily při přihlášení z nového zařízení."
   },
   "turnOffNewDeviceLoginProtectionWarning": {
     "message": "Pokud je ochrana přihlášení z nového zařízení vypnutá, může kdokoli s Vaším hlavním heslem přistupovat k Vašemu účtu z libovolného zařízení. Chcete-li svůj účet chránit bez ověřovacích e-mailů, nastavte dvoufázové přihlašování."
@@ -3827,7 +3827,7 @@
     "message": "Doménová pravidla"
   },
   "domainRulesDesc": {
-    "message": "Pokud máte stejné přihlašovací údaje napříč různými doménami, můžete je označit jako \"ekvivalentní\". Bitwarden za Vás již vytvořil seznam \"globálních\" domén."
+    "message": "Pokud máte stejné přihlašovací údaje napříč různými doménami, můžete je označit jako \"ekvivalentní\". Cloudwarden za Vás již vytvořil seznam \"globálních\" domén."
   },
   "globalEqDomains": {
     "message": "Globální ekvivalentní domény"
@@ -3913,7 +3913,7 @@
     "message": "Zásady nastavené 1 nebo více organizací Vám brání v importu karet do Vašeho trezoru."
   },
   "yourSingleUseRecoveryCode": {
-    "message": "Jednorázový kód pro obnovení lze použít k vypnutí dvoufázového přihlašování v případě, že ztratíte přístup ke svému poskytovateli dvoufázového přihlašování. Bitwarden doporučuje, abyste si kód pro obnovení zapsali a uložili na bezpečném místě."
+    "message": "Jednorázový kód pro obnovení lze použít k vypnutí dvoufázového přihlašování v případě, že ztratíte přístup ke svému poskytovateli dvoufázového přihlašování. Cloudwarden doporučuje, abyste si kód pro obnovení zapsali a uložili na bezpečném místě."
   },
   "viewRecoveryCode": {
     "message": "Zobrazit kód pro obnovení"
@@ -4011,7 +4011,7 @@
     }
   },
   "continueToExternalUrlDesc": {
-    "message": "Opouštíte Bitwarden a spouštíte externí webové stránky v novém okně."
+    "message": "Opouštíte Cloudwarden a spouštíte externí webové stránky v novém okně."
   },
   "twoStepContinueToBitwardenUrlTitle": {
     "message": "Pokračovat na bitwarden.com?"
@@ -4110,7 +4110,7 @@
     "message": "Deaktivovat všechny klíče"
   },
   "twoFactorDuoDesc": {
-    "message": "Zadejte informace o aplikaci Bitwarden z panelu Duo Admin."
+    "message": "Zadejte informace o aplikaci Cloudwarden z panelu Duo Admin."
   },
   "twoFactorDuoClientId": {
     "message": "ID klienta"
@@ -4339,7 +4339,7 @@
     "message": "Slabá hesla"
   },
   "weakPasswordsReportDesc": {
-    "message": "Slabá hesla mohou být snadno uhodnuta hackery či automatickými nástroji určenými pro prolomení hesel. Generátor hesel Bitwarden Vám pomůže vytvořit silná hesla."
+    "message": "Slabá hesla mohou být snadno uhodnuta hackery či automatickými nástroji určenými pro prolomení hesel. Generátor hesel Cloudwarden Vám pomůže vytvořit silná hesla."
   },
   "weakPasswordsFound": {
     "message": "Nalezena slabá hesla"
@@ -4738,7 +4738,7 @@
     }
   },
   "churnOfferDiscountBody": {
-    "message": "Jako poděkování za to, že jste dlouhodobým zákazníkem Bitwarden, bychom Vám rádi nabídli slevu $DISCOUNT$ na $DURATION$.",
+    "message": "Jako poděkování za to, že jste dlouhodobým zákazníkem Cloudwarden, bychom Vám rádi nabídli slevu $DISCOUNT$ na $DURATION$.",
     "description": "Body copy on the churn-mitigation offer card. DISCOUNT = discount amount; DURATION = service duration (e.g. 'year' or '6 months')",
     "placeholders": {
       "discount": {
@@ -4800,7 +4800,7 @@
     }
   },
   "churnOfferDiscountBodyRecurringAmount": {
-    "message": "Jako poděkování za to, že jste dlouhodobým zákazníkem Bitwarden, bychom Vám rádi nabídli slevu $AMOUNT$ každý $INTERVAL$ na $DURATION$.",
+    "message": "Jako poděkování za to, že jste dlouhodobým zákazníkem Cloudwarden, bychom Vám rádi nabídli slevu $AMOUNT$ každý $INTERVAL$ na $DURATION$.",
     "description": "Body copy on the churn-mitigation offer card for a fixed-amount discount that repeats each billing period. AMOUNT = discount amount (e.g. '$15.00'); INTERVAL = billing interval unit (e.g. 'month'); DURATION = discount duration (e.g. 'year' or '6 months')",
     "placeholders": {
       "amount": {
@@ -5258,7 +5258,7 @@
     }
   },
   "trialSecretsManagerThankYou": {
-    "message": "Děkujeme za registraci do Správce tajných klíčů Bitwarden s plánem $PLAN$!",
+    "message": "Děkujeme za registraci do Správce tajných klíčů Cloudwarden s plánem $PLAN$!",
     "placeholders": {
       "plan": {
         "content": "$1",
@@ -5606,7 +5606,7 @@
     "message": "Webový trezor Bitwardenu"
   },
   "bitSecretsManager": {
-    "message": "Správce tajných klíčů Bitwarden"
+    "message": "Správce tajných klíčů Cloudwarden"
   },
   "loggedIn": {
     "message": "Přihlášen"
@@ -8400,7 +8400,7 @@
     "message": "Máte problém? Stáhněte si a pak sdílejte diagnostický report s"
   },
   "bitwardenSupport": {
-    "message": "podporou Bitwarden",
+    "message": "podporou Cloudwarden",
     "description": "Link text that follows the troubleshooting description sentence. 'Bitwarden' should not be translated."
   },
   "download": {
@@ -8682,7 +8682,7 @@
     "message": "Jak zapnout automatické potvrzení uživatele"
   },
   "autoConfirmExtension1": {
-    "message": "Otevřít rozšíření Bitwarden"
+    "message": "Otevřít rozšíření Cloudwarden"
   },
   "autoConfirmExtension2": {
     "message": "Vybrat",
@@ -8693,7 +8693,7 @@
     "description": "This is a fragment of a larger sencence. The whole sentence will read: 'Select Turn on'"
   },
   "autoConfirmExtensionOpened": {
-    "message": "Rozšíření prohlížeče Bitwarden bylo úspěšně otevřeno. Nyní můžete aktivovat automatické potvrzení uživatele."
+    "message": "Rozšíření prohlížeče Cloudwarden bylo úspěšně otevřeno. Nyní můžete aktivovat automatické potvrzení uživatele."
   },
   "autoConfirmPolicyEditDescription": {
     "message": "Noví uživatelé pozvaní do organizace budou automaticky potvrzeni při odemknutí zařízení správce. Před zapnutím této zásady zkontrolujte a odsouhlaste následující: ",
@@ -8906,7 +8906,7 @@
     "description": "VFO1 terminology variant of 'uriMatchDetectionPolicyDesc', shown in the policies list"
   },
   "uriMatchDetectionPolicyDescV2": {
-    "message": "Nastavte výchozí hodnotu, které části adresy webové stránky (URI) se musí shodovat, aby Bitwarden navrhl přihlašovací údaje pro automatické vyplnění. Toto pravidlo se nebude vztahovat na vlastníky a správce."
+    "message": "Nastavte výchozí hodnotu, které části adresy webové stránky (URI) se musí shodovat, aby Cloudwarden navrhl přihlašovací údaje pro automatické vyplnění. Toto pravidlo se nebude vztahovat na vlastníky a správce."
   },
   "uriMatchDetectionOptionsLabel": {
     "message": "Výchozí zjišťování shody URI"
@@ -9039,7 +9039,7 @@
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "sendAccessTaglineProductDesc": {
-    "message": "Bitwarden Send odesílá citlivé, dočasné informace ostatním snadno a bezpečně.",
+    "message": "Cloudwarden Send odesílá citlivé, dočasné informace ostatním snadno a bezpečně.",
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "sendAccessTaglineLearnMore": {
@@ -9066,7 +9066,7 @@
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Learn more, see how it works, **or** try it now.'"
   },
   "developmentDevOpsAndITTeamsChooseBWSecret": {
-    "message": "Vývojáři i IT týmy si vybírají Správce tajných klíčů Bitwarden pro bezpečnou správu a nasazení do jejich své infrastruktury a tajných klíčů."
+    "message": "Vývojáři i IT týmy si vybírají Správce tajných klíčů Cloudwarden pro bezpečnou správu a nasazení do jejich své infrastruktury a tajných klíčů."
   },
   "centralizeSecretsManagement": {
     "message": "Centralizujte správu tajných klíčů."
@@ -9102,7 +9102,7 @@
     "message": "Přidat poznámku"
   },
   "bitwardenSecretsManager": {
-    "message": "Správce tajných klíčů Bitwarden"
+    "message": "Správce tajných klíčů Cloudwarden"
   },
   "moreProductsFromBitwarden": {
     "message": "Více produktů od Bitwardenu"
@@ -9117,7 +9117,7 @@
     "message": "Žádost o přístup ke Správci tajných klíčů byla odeslána e-mailem správcům."
   },
   "requestAccessSMDefaultEmailContent": {
-    "message": "Zdravím,\n\nžádám o předplatné Správce tajných klíčů Bitwarden pro náš tým. Vaše podpora by pro nás znamenala mnoho!\n\nSprávce tajných klíčů Bitwarden je end-to-end řešení pro správu šifrovaných tajných klíčů pro bezpečné ukládání, sdílení a nasazení strojových pověření, jako jsou klíče API, databázová hesla a ověřovací certifikáty.\n\nSprávce klíčů nám pomůže:\n\n- zlepšit zabezpečení\n- zjednodušit provoz\n- zabránit nákladným únikům tajných klíčů\n\nChcete-li požádat o bezplatnou zkušební verzi pro náš tým, obraťte se na společnost Bitwarden.\n\nDěkujeme Vám za pomoc!"
+    "message": "Zdravím,\n\nžádám o předplatné Správce tajných klíčů Cloudwarden pro náš tým. Vaše podpora by pro nás znamenala mnoho!\n\nSprávce tajných klíčů Cloudwarden je end-to-end řešení pro správu šifrovaných tajných klíčů pro bezpečné ukládání, sdílení a nasazení strojových pověření, jako jsou klíče API, databázová hesla a ověřovací certifikáty.\n\nSprávce klíčů nám pomůže:\n\n- zlepšit zabezpečení\n- zjednodušit provoz\n- zabránit nákladným únikům tajných klíčů\n\nChcete-li požádat o bezplatnou zkušební verzi pro náš tým, obraťte se na společnost Cloudwarden.\n\nDěkujeme Vám za pomoc!"
   },
   "giveMembersAccess": {
     "message": "Umožnit členům přístup:"
@@ -9151,7 +9151,7 @@
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Learn more about Bitwarden Send or sign up to **try it today.**'"
   },
   "sendAccessCreatorIdentifier": {
-    "message": "Uživatel Bitwarden $USER_IDENTIFIER$ s Vámi sdílí následující",
+    "message": "Uživatel Cloudwarden $USER_IDENTIFIER$ s Vámi sdílí následující",
     "placeholders": {
       "user_identifier": {
         "content": "$1",
@@ -9548,10 +9548,10 @@
     "message": "Chyba dešifrování"
   },
   "couldNotDecryptVaultItem": {
-    "message": "Bitwarden nemohl dešifrovat položku z trezoru zobrazenou níže. Kontaktujte zákaznickou podporu Bitwarden a zadejte ID položky níže a zjistěte, zda je možné ji obnovit."
+    "message": "Cloudwarden nemohl dešifrovat položku z trezoru zobrazenou níže. Kontaktujte zákaznickou podporu Cloudwarden a zadejte ID položky níže a zjistěte, zda je možné ji obnovit."
   },
   "couldNotDecryptVaultItems": {
-    "message": "Bitwarden nemohl dešifrovat položky z trezoru zobrazené níže. Kontaktujte zákaznickou podporu Bitwarden a zadejte ID položek níže a zjistěte, zda je možné je obnovit."
+    "message": "Cloudwarden nemohl dešifrovat položky z trezoru zobrazené níže. Kontaktujte zákaznickou podporu Cloudwarden a zadejte ID položek níže a zjistěte, zda je možné je obnovit."
   },
   "itemId": {
     "message": "ID položky",
@@ -9763,7 +9763,7 @@
     "message": "Akce časového limitu relace"
   },
   "sessionTimeoutSuppressedByConnectedDevice": {
-    "message": "Spravováno rozšířením prohlížeče Bitwarden. Pro úpravu otevřete rozšíření prohlížeče."
+    "message": "Spravováno rozšířením prohlížeče Cloudwarden. Pro úpravu otevřete rozšíření prohlížeče."
   },
   "immediately": {
     "message": "Okamžitě"
@@ -10018,7 +10018,7 @@
     "message": "Konfigurace jednotného přihlášení byla uložena"
   },
   "sponsoredFamilies": {
-    "message": "Bitwarden pro rodinu zdarma"
+    "message": "Cloudwarden pro rodinu zdarma"
   },
   "sponsoredBitwardenFamilies": {
     "message": "Sponzorované rodiny"
@@ -10039,28 +10039,28 @@
     "message": "Žádný nečlen zatím nevyužil sponzorovaný rodinný tarif."
   },
   "sponsorshipFreeBitwardenFamilies": {
-    "message": "Členové Vaší organizace mají nárok na bezplatné rodiny Bitwarden. Můžete sponzorovat zdarma rodiny Bitwarden pro zaměstnance, kteří nejsou členy Vaší organizace Bitwarden. Sponzorování nečlena vyžaduje dostupné místo ve Vaší organizaci."
+    "message": "Členové Vaší organizace mají nárok na bezplatné rodiny Cloudwarden. Můžete sponzorovat zdarma rodiny Cloudwarden pro zaměstnance, kteří nejsou členy Vaší organizace Cloudwarden. Sponzorování nečlena vyžaduje dostupné místo ve Vaší organizaci."
   },
   "sponsorshipFreeBitwardenFamiliesV2": {
-    "message": "Vaši členové mají nárok na využití sponzorovaného rodinného tarifu. Můžete sponzorovat rodinný tarif pro zaměstnance, kteří nejsou členy Vaší organizace Bitwarden, ale k tomu je nutné, aby ve Vaší organizaci byla k dispozici volná místa."
+    "message": "Vaši členové mají nárok na využití sponzorovaného rodinného tarifu. Můžete sponzorovat rodinný tarif pro zaměstnance, kteří nejsou členy Vaší organizace Cloudwarden, ale k tomu je nutné, aby ve Vaší organizaci byla k dispozici volná místa."
   },
   "sponsoredFamiliesRemoveActiveSponsorship": {
     "message": "Pokud odeberete aktivní sponzorství, bude po datu obnovení sponzorované organizace k dispozici volný uživatel ve Vaší organizaci."
   },
   "sponsoredFamiliesEligible": {
-    "message": "Vy a Vaše rodina máte nárok na Bitwarden pro rodinu zdarma. Nárok můžete uplatnit Vaším osobním e-mailem, abyste zajistili bezpečnost Vašich dat, i když nejste v práci."
+    "message": "Vy a Vaše rodina máte nárok na Cloudwarden pro rodinu zdarma. Nárok můžete uplatnit Vaším osobním e-mailem, abyste zajistili bezpečnost Vašich dat, i když nejste v práci."
   },
   "sponsoredFamiliesEligibleV2": {
     "message": "Vy a vaše rodina máte nárok na program \"Sponsored Families Plan\", a to bez jakýchkoli dodatečných nákladů. Tento program si aktivujte pomocí svého osobního e-mailu, abyste zajistili bezpečnost svých dat a oddělili je od svého pracovního účtu v Bitwardenu."
   },
   "sponsoredFamiliesEligibleCard": {
-    "message": "Uplatněte ještě dnes svůj plán Bitwarden pro rodinu zdarma, aby byla Vaše data bezpečná, i když nejste v práci."
+    "message": "Uplatněte ještě dnes svůj plán Cloudwarden pro rodinu zdarma, aby byla Vaše data bezpečná, i když nejste v práci."
   },
   "sponsoredFamiliesIncludeMessage": {
-    "message": "Plán Bitwarden pro rodiny zahrnuje"
+    "message": "Plán Cloudwarden pro rodiny zahrnuje"
   },
   "sponsoredFamiliesIncludeMessageV2": {
-    "message": "Plán \"Bitwarden Families\" obsahuje"
+    "message": "Plán \"Cloudwarden Families\" obsahuje"
   },
   "sponsoredFamiliesPremiumAccess": {
     "message": "Prémiový přístup až pro 6 uživatelů"
@@ -10081,7 +10081,7 @@
     "message": "Zde se zobrazí členové, kteří využili rodinné plány"
   },
   "membersWithSponsoredFamilies": {
-    "message": "Členové Vaší organizace mají nárok na bezplatné rodiny Bitwarden. Zde můžete vidět členy, kteří sponzorovali organizaci rodin."
+    "message": "Členové Vaší organizace mají nárok na bezplatné rodiny Cloudwarden. Zde můžete vidět členy, kteří sponzorovali organizaci rodin."
   },
   "organizationHasMemberMessage": {
     "message": "Sponzorství nemůže být odesláno do $EMAIL$, protože je členem Vaší organizace.",
@@ -10105,10 +10105,10 @@
     "message": "Vyberte organizaci, kterou chcete sponzorovat"
   },
   "familiesSponsoringOrgSelect": {
-    "message": "Kterou nabídku Bitwarden pro rodinu zdarma chcete uplatnit?"
+    "message": "Kterou nabídku Cloudwarden pro rodinu zdarma chcete uplatnit?"
   },
   "sponsoredFamiliesEmail": {
-    "message": "Pro uplatnění Bitwarden Families zadejte Váš osobní e-mail"
+    "message": "Pro uplatnění Cloudwarden Families zadejte Váš osobní e-mail"
   },
   "sponsoredFamiliesLeaveCopy": {
     "message": "Pokud odeberete nabídku nebo budete odebráni ze sponzorské organizace, Vaše sponzorství rodiny vyprší k dalšímu datu obnovy."
@@ -10117,7 +10117,7 @@
     "message": "Přijmout nabídku pro existující organizaci nebo vytvořit novou organizaci rodin."
   },
   "setupSponsoredFamiliesLoginDesc": {
-    "message": "Byl Vám nabídnut bezplatný plán organizace Bitwarden pro rodinu zdarma. Chcete-li pokračovat, musíte se přihlásit k účtu, který obdržel nabídku."
+    "message": "Byl Vám nabídnut bezplatný plán organizace Cloudwarden pro rodinu zdarma. Chcete-li pokračovat, musíte se přihlásit k účtu, který obdržel nabídku."
   },
   "sponsoredFamiliesAcceptFailed": {
     "message": "Nelze přijmout nabídku. Znovu odešlete e-mail s nabídkou z účtu Enterprise a zkuste to znovu."
@@ -10132,10 +10132,10 @@
     }
   },
   "sponsoredFamiliesOffer": {
-    "message": "Přijmout Bitwarden pro rodinu zdarma"
+    "message": "Přijmout Cloudwarden pro rodinu zdarma"
   },
   "sponsoredFamiliesOfferRedeemed": {
-    "message": "Nabídka Bitwarden pro rodinu zdarma byla úspěšně uplatněna"
+    "message": "Nabídka Cloudwarden pro rodinu zdarma byla úspěšně uplatněna"
   },
   "redeemed": {
     "message": "Uplatněno"
@@ -10266,7 +10266,7 @@
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Connect login with SSO to your self-hosted decryption key server. Using this option, members won’t need to use their master passwords to decrypt vault data. The require SSO authentication and single organization policies are required to set up Key Connector decryption. Contact Bitwarden Support for set up assistance.'"
   },
   "memberDecryptionKeyConnectorDescEnd": {
-    "message": "Pro pomoc při nastavení kontaktujte podporu Bitwarden.",
+    "message": "Pro pomoc při nastavení kontaktujte podporu Cloudwarden.",
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Connect login with SSO to your self-hosted decryption key server. Using this option, members won’t need to use their master passwords to decrypt vault data. The require SSO authentication and single organization policies are required to set up Key Connector decryption. Contact Bitwarden Support for set up assistance.'"
   },
   "keyConnectorPolicyRestriction": {
@@ -10366,7 +10366,7 @@
     "message": "Vlastní prostředí"
   },
   "selfHostedBaseUrlHint": {
-    "message": "Zadejte základní URL adresu Vaší vlastní hostované aplikace Bitwarden. Příklad: https://bitwarden.spolecnost.cz"
+    "message": "Zadejte základní URL adresu Vaší vlastní hostované aplikace Cloudwarden. Příklad: https://bitwarden.spolecnost.cz"
   },
   "selfHostedCustomEnvHeader": {
     "message": "Pro rozšířená nastavení můžete zadat základní URL adresu každé služby zvlášť."
@@ -12886,7 +12886,7 @@
     }
   },
   "startYour7DayFreeTrialOfBitwardenSecretsManagerFor": {
-    "message": "Začněte 7denní bezplatnou zkušební verzi Správce tajných klíčů Bitwarden pro $ORG$",
+    "message": "Začněte 7denní bezplatnou zkušební verzi Správce tajných klíčů Cloudwarden pro $ORG$",
     "placeholders": {
       "org": {
         "content": "$1",
@@ -13388,7 +13388,7 @@
     "description": "Label indicating the most common import formats"
   },
   "uriMatchDefaultStrategyHint": {
-    "message": "Detekce shody URI je způsob, jakým Bitwarden identifikuje návrhy automatického vyplňování.",
+    "message": "Detekce shody URI je způsob, jakým Cloudwarden identifikuje návrhy automatického vyplňování.",
     "description": "Explains to the user that URI match detection determines how Bitwarden suggests autofill options, and clarifies that this default strategy applies when no specific match detection is set for a login item."
   },
   "regExAdvancedOptionWarning": {
@@ -13432,13 +13432,13 @@
     "message": "Detaily potvrzení"
   },
   "smFreeTrialThankYou": {
-    "message": "Děkujeme za registraci do Správce tajných klíčů Bitwarden!"
+    "message": "Děkujeme za registraci do Správce tajných klíčů Cloudwarden!"
   },
   "smFreeTrialConfirmationEmail": {
     "message": "Potvrzovací e-mail byl odeslán na "
   },
   "sorryToSeeYouGo": {
-    "message": "Je nám líto, že odcházíte! Pomozte nám Bitwarden vylepšit a řekněte nám, co se Vám nelíbí.",
+    "message": "Je nám líto, že odcházíte! Pomozte nám Cloudwarden vylepšit a řekněte nám, co se Vám nelíbí.",
     "description": "A message shown to users as part of an offboarding survey asking them to provide more information on their subscription cancelation."
   },
   "selectCancellationReason": {
@@ -14000,20 +14000,20 @@
     "message": "Integrace"
   },
   "integrationsDesc": {
-    "message": "Automaticky synchronizuje tajné klíče se Správce tajných klíčů Bitwarden do služby třetí strany."
+    "message": "Automaticky synchronizuje tajné klíče se Správce tajných klíčů Cloudwarden do služby třetí strany."
   },
   "sdks": {
     "message": "SDK"
   },
   "sdksDesc": {
-    "message": "Použije SDK Správce tajných klíčů Bitwarden v následujících programovacích jazycích k vytvoření vlastních aplikací."
+    "message": "Použije SDK Správce tajných klíčů Cloudwarden v následujících programovacích jazycích k vytvoření vlastních aplikací."
   },
   "ssoDescStart": {
     "message": "Nastavit",
     "description": "This represents the beginning of a sentence, broken up to include links. The full sentence will be 'Configure single sign-on for Bitwarden using the implementation guide for your Identity Provider."
   },
   "ssoDescEnd": {
-    "message": "Bitwarden pomocí průvodce implementací Vašeho poskytovatele identity.",
+    "message": "Cloudwarden pomocí průvodce implementací Vašeho poskytovatele identity.",
     "description": "This represents the end of a sentence, broken up to include links. The full sentence will be 'Configure single sign-on for Bitwarden using the implementation guide for your Identity Provider."
   },
   "userProvisioning": {
@@ -14027,14 +14027,14 @@
     "description": "This represents the beginning of a sentence, broken up to include links. The full sentence will be 'Configure SCIM (System for Cross-domain Identity Management) to automatically provision users and groups to Bitwarden using the implementation guide for your Identity Provider"
   },
   "scimIntegrationDescEnd": {
-    "message": "(Systém pro správu identity napříč doménami) automaticky poskytuje uživatelům a skupinám Bitwarden pomocí prováděcího průvodce pro Vašeho poskytovatele identity.",
+    "message": "(Systém pro správu identity napříč doménami) automaticky poskytuje uživatelům a skupinám Cloudwarden pomocí prováděcího průvodce pro Vašeho poskytovatele identity.",
     "description": "This represents the end of a sentence, broken up to include links. The full sentence will be 'Configure SCIM (System for Cross-domain Identity Management) to automatically provision users and groups to Bitwarden using the implementation guide for your Identity Provider"
   },
   "bwdc": {
-    "message": "Konektor adresáře Bitwarden"
+    "message": "Konektor adresáře Cloudwarden"
   },
   "bwdcDesc": {
-    "message": "Nastaví konektor adresáře Bitwarden tak, aby automaticky poskytoval uživatele a skupiny pomocí implementačního průvodce pro Vašeho poskytovatele identity."
+    "message": "Nastaví konektor adresáře Cloudwarden tak, aby automaticky poskytoval uživatele a skupiny pomocí implementačního průvodce pro Vašeho poskytovatele identity."
   },
   "eventManagement": {
     "message": "Správa událostí"
@@ -14046,7 +14046,7 @@
     "message": "Správa zařízení"
   },
   "deviceManagementDesc": {
-    "message": "Nastaví správu zařízení pro Bitwarden pomocí implementačního průvodce pro Vaši platformu."
+    "message": "Nastaví správu zařízení pro Cloudwarden pomocí implementačního průvodce pro Vaši platformu."
   },
   "crowdstrikeEventIntegrationDesc": {
     "message": "Odeslat data události do Vaší instance Logscale"
@@ -14268,19 +14268,19 @@
     "message": "Pokračovat v nastavení Bitwardenu"
   },
   "continueSettingUpFreeTrial": {
-    "message": "Pokračujte v nastavení zkušební verze aplikace Bitwarden"
+    "message": "Pokračujte v nastavení zkušební verze aplikace Cloudwarden"
   },
   "continueSettingUpPasswordManager": {
-    "message": "Pokračujte v nastavení Správce hesel Bitwarden"
+    "message": "Pokračujte v nastavení Správce hesel Cloudwarden"
   },
   "continueSettingUpFreeTrialPasswordManager": {
-    "message": "Pokračujte v nastavení bezplatného zkušebního období Správce hesel Bitwarden"
+    "message": "Pokračujte v nastavení bezplatného zkušebního období Správce hesel Cloudwarden"
   },
   "continueSettingUpSecretsManager": {
-    "message": "Pokračujte v nastavení Správce tajných klíčů Bitwarden"
+    "message": "Pokračujte v nastavení Správce tajných klíčů Cloudwarden"
   },
   "continueSettingUpFreeTrialSecretsManager": {
-    "message": "Pokračujte v nastavení bezplatného zkušebního období Správce tajných klíčů Bitwarden"
+    "message": "Pokračujte v nastavení bezplatného zkušebního období Správce tajných klíčů Cloudwarden"
   },
   "enterTeamsOrgInfo": {
     "message": "Zadejte informace o Teams Vaší organizace"
@@ -14556,7 +14556,7 @@
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'Notice: Later this month, client vault privacy will be improved and provider members will no longer have direct access to client vault items. For questions, please contact Bitwarden support'."
   },
   "contactBitwardenSupport": {
-    "message": "obraťte na podporu společnosti Bitwarden.",
+    "message": "obraťte na podporu společnosti Cloudwarden.",
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'Notice: Later this month, client vault privacy will be improved and provider members will no longer have direct access to client vault items. For questions, please contact Bitwarden support'. 'Bitwarden' should not be translated"
   },
   "sponsored": {
@@ -14858,7 +14858,7 @@
     "message": "Vaše předplatné Správce tajných klíčů bude aktualizováno na základě vybraného tarifu"
   },
   "bitwardenPasswordManager": {
-    "message": "Správce hesel Bitwarden"
+    "message": "Správce hesel Cloudwarden"
   },
   "secretsManagerComplimentaryPasswordManager": {
     "message": "Vaše doplňkové roční předplatné Správce hesel bude aktualizováno na vybraný plán. Poplatek Vám bude účtován až po skončení bezplatného období."
@@ -14936,7 +14936,7 @@
     "description": "This represents the beginning of a sentence. The full sentence will be 'Manage subscription from the Provider Portal', but 'Provider Portal' will be a link and thus cannot be included in the translation file."
   },
   "toHostBitwardenOnYourOwnServer": {
-    "message": "Chcete-li hostovat Bitwarden na vlastním serveru, musíte nahrát licenční soubor. Chcete-li podporovat plány Free Families a pokročilé možnosti účtování pro Vaši vlastní hostovanou organizaci, budete muset nastavit automatickou synchronizaci ve Vaší vlastní hostované organizaci."
+    "message": "Chcete-li hostovat Cloudwarden na vlastním serveru, musíte nahrát licenční soubor. Chcete-li podporovat plány Free Families a pokročilé možnosti účtování pro Vaši vlastní hostovanou organizaci, budete muset nastavit automatickou synchronizaci ve Vaší vlastní hostované organizaci."
   },
   "selfHostingTitleProper": {
     "message": "Vlastní server"
@@ -15060,7 +15060,7 @@
     "message": "Úspěšně smazáno"
   },
   "freeFamiliesSponsorship": {
-    "message": "Odebrat sponzorství Free Bitwarden Families"
+    "message": "Odebrat sponzorství Free Cloudwarden Families"
   },
   "freeFamiliesSponsorshipPolicyTitleV2": {
     "message": "Odebrat sponzorovaný plán Families"
@@ -15138,10 +15138,10 @@
     "message": "Automaticky uplatněné domény"
   },
   "automaticDomainClaimProcess": {
-    "message": "Bitwarden se pokusí uplatnit doménu třikrát během prvních 72 hodin. Pokud doménu nelze uplatnit, zkontrolujte záznam DNS v hostitelském počítači a uplatněte ji ručně. Pokud se doménu nepodaří uplatnit, bude z Vaší organizace odebrána do 7 dnů."
+    "message": "Cloudwarden se pokusí uplatnit doménu třikrát během prvních 72 hodin. Pokud doménu nelze uplatnit, zkontrolujte záznam DNS v hostitelském počítači a uplatněte ji ručně. Pokud se doménu nepodaří uplatnit, bude z Vaší organizace odebrána do 7 dnů."
   },
   "automaticDomainClaimProcess1": {
-    "message": "Bitwarden se pokusí nárokovat doménu do 72 hodin. Pokud doménu nelze nárokovat, ověřte svůj DNS záznam a nárokujte ručně. Nenárokované domény jsou odebrány po 7 dnech."
+    "message": "Cloudwarden se pokusí nárokovat doménu do 72 hodin. Pokud doménu nelze nárokovat, ověřte svůj DNS záznam a nárokujte ručně. Nenárokované domény jsou odebrány po 7 dnech."
   },
   "automaticDomainClaimProcess2": {
     "message": "Po nárokování budou stávající členové s nárokovanými doménami obeznámeni e-mailem o "
@@ -15309,19 +15309,19 @@
     "message": "Kopírovat soukromý klíč"
   },
   "openingExtension": {
-    "message": "Otevírání rozšíření Bitwarden pro prohlížeč"
+    "message": "Otevírání rozšíření Cloudwarden pro prohlížeč"
   },
   "somethingWentWrong": {
     "message": "Něco se pokazilo…"
   },
   "openingExtensionError": {
-    "message": "Měli jsme potíže s otevřením rozšíření Bitwarden pro pohlížeč. Klepněte na tlačítko pro jeho otevření."
+    "message": "Měli jsme potíže s otevřením rozšíření Cloudwarden pro pohlížeč. Klepněte na tlačítko pro jeho otevření."
   },
   "openExtension": {
     "message": "Otevřít rozšíření"
   },
   "doNotHaveExtension": {
-    "message": "Nemáte rozšíření Bitwarden pro prohlížeč?"
+    "message": "Nemáte rozšíření Cloudwarden pro prohlížeč?"
   },
   "installExtension": {
     "message": "Nainstalovat rozšíření"
@@ -15330,7 +15330,7 @@
     "message": "Otevřeno rozšíření prohlížeče"
   },
   "openedExtensionViewAtRiskPasswords": {
-    "message": "Rozšíření Bitwarden pro prohlížeč bylo úspěšně otevřeno. Nyní můžete zkontrolovat Vaše zranitelná hesla."
+    "message": "Rozšíření Cloudwarden pro prohlížeč bylo úspěšně otevřeno. Nyní můžete zkontrolovat Vaše zranitelná hesla."
   },
   "resellerRenewalWarningMsg": {
     "message": "Vaše předplatné se brzy obnoví. Chcete-li zajistit nepřerušenou službu, kontaktujte $RESELLER$ pro potvrzení obnovení před $RENEWAL_DATE$.",
@@ -15546,7 +15546,7 @@
     "message": "Aktualizujte pro zobrazení logů událostí z Vaší organizace."
   },
   "upgradeEventLogMessage": {
-    "message": "Tyto události jsou jen příklady a neodrážejí skutečné události v rámci Vaší organizace Bitwarden."
+    "message": "Tyto události jsou jen příklady a neodrážejí skutečné události v rámci Vaší organizace Cloudwarden."
   },
   "viewEvents": {
     "message": "Zobrazit události"
@@ -15727,7 +15727,7 @@
     "message": "Bezpečné automatické vyplňování hesel jedním klepnutím"
   },
   "setupExtensionPageDescription": {
-    "message": "Získejte rozšíření Bitwarden pro prohlížeč a začněte s automatickým vyplňováním ještě dnes"
+    "message": "Získejte rozšíření Cloudwarden pro prohlížeč a začněte s automatickým vyplňováním ještě dnes"
   },
   "getTheExtension": {
     "message": "Získat rozšíření"
@@ -15745,19 +15745,19 @@
     "message": "Přeskočit na webovou aplikaci"
   },
   "bitwardenExtensionInstalled": {
-    "message": "Rozšíření Bitwarden nainstalováno!"
+    "message": "Rozšíření Cloudwarden nainstalováno!"
   },
   "bitwardenExtensionIsInstalled": {
-    "message": "Rozšíření Bitwarden je nainstalováno!"
+    "message": "Rozšíření Cloudwarden je nainstalováno!"
   },
   "openExtensionToAutofill": {
     "message": "Otevřete rozšíření pro příhlášení a spuštění automatického vyplňování."
   },
   "openBitwardenExtension": {
-    "message": "Otevřít rozšíření Bitwarden"
+    "message": "Otevřít rozšíření Cloudwarden"
   },
   "gettingStartedWithBitwardenPart1": {
-    "message": "Pro tipy, jak začít používat Bitwarden, navštivte",
+    "message": "Pro tipy, jak začít používat Cloudwarden, navštivte",
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'For tips on getting started with Bitwarden visit the Learning Center and Help Center'"
   },
   "gettingStartedWithBitwardenPart2": {
@@ -15765,7 +15765,7 @@
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'For tips on getting started with Bitwarden visit the Learning Center and Help Center'"
   },
   "openExtensionFromToolbarPart1": {
-    "message": "Pokud není rozšíření otevřeno, možná budete muset otevřít Bitwarden z ikony ",
+    "message": "Pokud není rozšíření otevřeno, možná budete muset otevřít Cloudwarden z ikony ",
     "description": "This will be used as part of a larger sentence, broken up to include the Bitwarden icon. The full sentence will read 'If the extension didn't open, you may need to open Bitwarden from the icon [Bitwarden Icon] on the toolbar.'"
   },
   "openExtensionFromToolbarPart2": {
@@ -15777,7 +15777,7 @@
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'For tips on getting started with Bitwarden visit the Learning Center and Help Center'"
   },
   "setupExtensionContentAlt": {
-    "message": "Pomocí rozšíření Bitwarden pro prohlížeč můžete snadno vytvářet nová přihlašovací jména, přistupovat k uloženým přihlašovacím jménům přímo z panelu nástrojů prohlížeče a rychle se přihlašovat k účtům pomocí automatického vyplňování."
+    "message": "Pomocí rozšíření Cloudwarden pro prohlížeč můžete snadno vytvářet nová přihlašovací jména, přistupovat k uloženým přihlašovacím jménům přímo z panelu nástrojů prohlížeče a rychle se přihlašovat k účtům pomocí automatického vyplňování."
   },
   "restart": {
     "message": "Restartovat"
@@ -15809,7 +15809,7 @@
     "message": "O tomto nastavení"
   },
   "permitCipherDetailsDescription": {
-    "message": "Bitwarden bude používat uložené přihlašovací URI k identifikaci, která ikona nebo změna adresy URL by měla být použita pro zlepšení Vašeho zážitku. Při používání této služby nejsou shromažďovány ani ukládány žádné informace."
+    "message": "Cloudwarden bude používat uložené přihlašovací URI k identifikaci, která ikona nebo změna adresy URL by měla být použita pro zlepšení Vašeho zážitku. Při používání této služby nejsou shromažďovány ani ukládány žádné informace."
   },
   "showQuickCopyActionsDetailsDescription": {
     "message": "Přidá vedle položek 3 tlačítka pro rychlé kopírování, pomocí kterých můžete zkopírovat své uživatelské jméno, heslo nebo ověřovací kód do schránky."
@@ -15879,7 +15879,7 @@
     }
   },
   "restoreProviderPortalAccessViaCustomerSupport": {
-    "message": "Chcete-li obnovit přístup k portálu poskytovatele, obraťte se na zákaznickou podporu Bitwarden pro obnovení předplatného.",
+    "message": "Chcete-li obnovit přístup k portálu poskytovatele, obraťte se na zákaznickou podporu Cloudwarden pro obnovení předplatného.",
     "description": "A message shown in a non-dismissible dialog to any user of a suspended providers."
   },
   "restoreProviderPortalAccessViaPaymentMethod": {
@@ -15921,7 +15921,7 @@
     "message": "Předplatné bylo zrušeno"
   },
   "providersubCanceledmessage": {
-    "message": "Chcete-li se znovu přihlásit, kontaktujte zákaznickou podporu Bitwarden."
+    "message": "Chcete-li se znovu přihlásit, kontaktujte zákaznickou podporu Cloudwarden."
   },
   "showAll": {
     "message": "Zobrazit vše"
@@ -16064,7 +16064,7 @@
     "message": "Vlastní plán"
   },
   "planDescCustom": {
-    "message": "Bitwarden se přizpůsobí firmám všech velikostí a zajistí bezpečnost hesel a citlivých informací. Pokud jste součástí velké společnosti, kontaktujte obchodní oddělení a požádejte o cenovou nabídku."
+    "message": "Cloudwarden se přizpůsobí firmám všech velikostí a zajistí bezpečnost hesel a citlivých informací. Pokud jste součástí velké společnosti, kontaktujte obchodní oddělení a požádejte o cenovou nabídku."
   },
   "builtInAuthenticator": {
     "message": "Vestavěný autentifikátor"
@@ -16202,7 +16202,7 @@
     "message": "Aktualizovat nyní"
   },
   "getAdvancedOnlineSecurityWithBitwardenPremium": {
-    "message": "Získejte pokročilé zabezpečení online s Bitwarden Premium."
+    "message": "Získejte pokročilé zabezpečení online s Cloudwarden Premium."
   },
   "formWillCreateNewFamiliesOrgMessage": {
     "message": "Vyplněním tohoto formuláře vytvoříte novou organizaci Rodin. Můžete vylepšit svou bezplatnou organizaci z konzole správce."
@@ -16211,7 +16211,7 @@
     "message": "Při zpracování aktualizace došlo k chybě. Zkuste to znovu."
   },
   "bitwardenFreeplanMessage": {
-    "message": "Máte bezplatný plán Bitwarden"
+    "message": "Máte bezplatný plán Cloudwarden"
   },
   "upgradeCompleteSecurity": {
     "message": "Aktualizujte pro úplné zabezpečení"
@@ -16229,7 +16229,7 @@
     "message": "Algoritmus"
   },
   "encryptionKeySettingsHowShouldWeEncryptYourData": {
-    "message": "Vyberte, jak by Bitwarden měl šifrovat Vaše data trezoru. Všechny volby jsou bezpečné, ale silnější metody poskytují lepší ochranu - zejména proti útokům silou. Bitwarden doporučuje výchozí nastavení pro většinu uživatelů."
+    "message": "Vyberte, jak by Cloudwarden měl šifrovat Vaše data trezoru. Všechny volby jsou bezpečné, ale silnější metody poskytují lepší ochranu - zejména proti útokům silou. Cloudwarden doporučuje výchozí nastavení pro většinu uživatelů."
   },
   "encryptionKeySettingsIncreaseImproveSecurity": {
     "message": "Zvýšení hodnot nad výchozím nastavením zvýší zabezpečení, ale odemknutí Vašeho trezoru může trvat déle."
@@ -16260,10 +16260,10 @@
     "description": "VFO1 terminology variant of 'blockClaimedDomainAccountCreationDesc', shown in the policies list"
   },
   "blockClaimedDomainAccountCreationDescV2": {
-    "message": "Zabrání členům v tom, aby pomocí Vaší zaregistrované domény zakládali účty Bitwarden mimo Vaši organizaci."
+    "message": "Zabrání členům v tom, aby pomocí Vaší zaregistrované domény zakládali účty Cloudwarden mimo Vaši organizaci."
   },
   "blockClaimedDomainAccountCreationDescV2Vfo1": {
-    "message": "Zabrání členům v tom, aby pomocí Vaší zaregistrované domény zakládali účty Bitwarden mimo trezor Vaší organizace.",
+    "message": "Zabrání členům v tom, aby pomocí Vaší zaregistrované domény zakládali účty Cloudwarden mimo trezor Vaší organizace.",
     "description": "VFO1 terminology variant of 'blockClaimedDomainAccountCreationDescV2'"
   },
   "blockClaimedDomainAccountCreationPrerequisiteV2": {
@@ -16504,7 +16504,7 @@
     "message": "Odmítnout a opustit"
   },
   "youHaveBitwardenPremium": {
-    "message": "Máte Bitwarden Premium"
+    "message": "Máte Cloudwarden Premium"
   },
   "viewAndManagePremiumSubscription": {
     "message": "Zobrazit a spravovat předplatné Premium"
@@ -16543,13 +16543,13 @@
     "message": "Již máte předplatné?"
   },
   "alreadyHaveSubscriptionSelfHostedMessage": {
-    "message": "Otevřete stránku s předplatným na Vašem účtu Bitwarden a stáhněte si licenční soubor. Poté se vraťte na tuto obrazovku a nahrajte jej níže."
+    "message": "Otevřete stránku s předplatným na Vašem účtu Cloudwarden a stáhněte si licenční soubor. Poté se vraťte na tuto obrazovku a nahrajte jej níže."
   },
   "alreadyHaveSubscriptionSelfHostedMessageV2": {
-    "message": "Otevřete stránku s předplatným na Vašem účtu Bitwarden a stáhněte si licenční soubor. Poté se vraťte na tuto obrazovku a nahrajte jej níže."
+    "message": "Otevřete stránku s předplatným na Vašem účtu Cloudwarden a stáhněte si licenční soubor. Poté se vraťte na tuto obrazovku a nahrajte jej níže."
   },
   "alreadyHaveSubscriptionSelfHostedMessageV3": {
-    "message": "Ve svém cloudovém prostředí se přihlaste ke svému účtu Bitwarden, otevřete stránku předplatného a stáhněte si licenční soubor. Poté se vraťte na tuto obrazovku a soubor nahrajte."
+    "message": "Ve svém cloudovém prostředí se přihlaste ke svému účtu Cloudwarden, otevřete stránku předplatného a stáhněte si licenční soubor. Poté se vraťte na tuto obrazovku a soubor nahrajte."
   },
   "viewAllPlans": {
     "message": "Zobraz všechny plány"
@@ -16635,10 +16635,10 @@
     "message": "Získejte rozšíření pro snadný přístup k trezoru"
   },
   "extensionPromptBody": {
-    "message": "S nainstalovaným rozšířením prohlížeče budete mít Bitwarden všude online. Budou se vyplňovat hesla, takže se můžete přihlásit do svých účtů jediným klepnutím."
+    "message": "S nainstalovaným rozšířením prohlížeče budete mít Cloudwarden všude online. Budou se vyplňovat hesla, takže se můžete přihlásit do svých účtů jediným klepnutím."
   },
   "extensionPromptImageAlt": {
-    "message": "Webový prohlížeč zobrazující rozšíření Bitwarden s položkami automatického vyplňování aktuální webové stránky."
+    "message": "Webový prohlížeč zobrazující rozšíření Cloudwarden s položkami automatického vyplňování aktuální webové stránky."
   },
   "skip": {
     "message": "Přeskočit"
@@ -16689,7 +16689,7 @@
     "message": "Jste u nás! Vítejte v Bitwardenu"
   },
   "vaultWelcomeDialogDescription": {
-    "message": "Uložte všechna Vaše hesla a osobní informace v trezoru Bitwarden. Provedeme Vás tady."
+    "message": "Uložte všechna Vaše hesla a osobní informace v trezoru Cloudwarden. Provedeme Vás tady."
   },
   "vaultWelcomeDialogPrimaryCta": {
     "message": "Zahájit prohlídku"
@@ -16923,7 +16923,7 @@
     "message": "Pomozte členům se zlepšovat"
   },
   "aiCoachmarkHelpMembersDescription": {
-    "message": "Jakmile vyberete klíčové aplikace, vyzvěte členy, aby si změnili ohrožená hesla. Zpráva se jim zobrazí v rozšíření Bitwarden."
+    "message": "Jakmile vyberete klíčové aplikace, vyzvěte členy, aby si změnili ohrožená hesla. Zpráva se jim zobrazí v rozšíření Cloudwarden."
   },
   "aiCoachmarkRunReportTitle": {
     "message": "Mějte přehled o nových rizicích"

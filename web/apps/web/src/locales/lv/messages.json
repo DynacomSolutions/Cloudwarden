@@ -21,7 +21,7 @@
     "message": "All critical apps"
   },
   "appLogoLabel": {
-    "message": "Bitwarden logotips"
+    "message": "Cloudwarden logotips"
   },
   "criticalApplications": {
     "message": "Kritiskās lietotnes"
@@ -847,10 +847,10 @@
     "message": "Padarīt divpakāpju apliecināšanu plūdenu"
   },
   "totpHelper": {
-    "message": "Bitwarden var glabāt un aizpildīt divpakāpju apliecinājuma kodus. Atslēga jāievieto starpliktuvē un jāielīmē šajā laukā."
+    "message": "Cloudwarden var glabāt un aizpildīt divpakāpju apliecinājuma kodus. Atslēga jāievieto starpliktuvē un jāielīmē šajā laukā."
   },
   "totpHelperWithCapture": {
-    "message": "Bitwarden var glabāt un aizpildīt divpakāpju apliecinājuma kodus. Jāizvēlas kameras ikona, lai veiktu tīmekļvietnes autentificētāja kvadrātkoda ekrānuzņēmumu, vai jāievieto starpliktuvē atslēga un jāielīmē šajā laukā."
+    "message": "Cloudwarden var glabāt un aizpildīt divpakāpju apliecinājuma kodus. Jāizvēlas kameras ikona, lai veiktu tīmekļvietnes autentificētāja kvadrātkoda ekrānuzņēmumu, vai jāievieto starpliktuvē atslēga un jāielīmē šajā laukā."
   },
   "totpCapture": {
     "message": "Scan authenticator QR code from current webpage"
@@ -2222,7 +2222,7 @@
     "message": "Pieteikties ar ierīci"
   },
   "loginWithDeviceEnabledNote": {
-    "message": "Ir jāuzstāda pieteikšanās ar ierīci Bitwarden lietotnes iestatījumos. Nepieciešama cita iespēja?"
+    "message": "Ir jāuzstāda pieteikšanās ar ierīci Cloudwarden lietotnes iestatījumos. Nepieciešama cita iespēja?"
   },
   "needAnotherOptionV1": {
     "message": "Nepieciešama cita iespēja?"
@@ -2339,7 +2339,7 @@
     "message": "Izveidot kontu"
   },
   "newToBitwarden": {
-    "message": "Bitwarden iepriekš nav izmantots?"
+    "message": "Cloudwarden iepriekš nav izmantots?"
   },
   "setAStrongPassword": {
     "message": "Jāiestata droša parole"
@@ -2357,7 +2357,7 @@
     "message": "Pieteikties"
   },
   "loginPageEmailEntryScreenTitle": {
-    "message": "Log in to Bitwarden"
+    "message": "Log in to Cloudwarden"
   },
   "enterTheCodeSentToYourEmail": {
     "message": "Jāievada e-pastā nosūtītais kods"
@@ -2694,7 +2694,7 @@
     "message": "Uz ierīci ir nosūtīts paziņojums."
   },
   "notificationSentDevicePart1": {
-    "message": "Bitwarden jāatslēdz savā ierīcē vai "
+    "message": "Cloudwarden jāatslēdz savā ierīcē vai "
   },
   "accessAttemptBy": {
     "message": "$EMAIL$ piekļuves mēģinājums",
@@ -2718,7 +2718,7 @@
     "message": "Pirms apstiprināšanas jāpārliecinās, ka pirkstu nospieduma vārdkopa atbilst zemāk esošajai."
   },
   "notificationSentDeviceComplete": {
-    "message": "Savā ierīcē jāatslēdz Bitwarden. Pirms apstiprināšanas jāpārliecinās, ka pirkstu nospieduma vārdkopa atbilst zemāk esošajai."
+    "message": "Savā ierīcē jāatslēdz Cloudwarden. Pirms apstiprināšanas jāpārliecinās, ka pirkstu nospieduma vārdkopa atbilst zemāk esošajai."
   },
   "aNotificationWasSentToYourDevice": {
     "message": "Uz ierīci tika nosūtīts paziņojums"
@@ -2932,7 +2932,7 @@
     "message": "Šī izguve šifrē datus ar konta šifrēšanas atslēgu. Ja tā jebkad tiks mainīta, izvadi vajadzētu veikt vēlreiz, jo vairs nebūs iespējams atšifrēt šo datni."
   },
   "encExportAccountWarningDesc": {
-    "message": "Katram Bitwarden kontam ir neatkārtojamas šifrēšanas atslēgas, tādēļ nav iespējams ievietot šifrētu izguvi citā kontā."
+    "message": "Katram Cloudwarden kontam ir neatkārtojamas šifrēšanas atslēgas, tādēļ nav iespējams ievietot šifrētu izguvi citā kontā."
   },
   "exportNoun": {
     "message": "Izgūšana",
@@ -2988,10 +2988,10 @@
     "message": "This KeePass database is too large to import."
   },
   "accountRestrictedOptionDescription": {
-    "message": "Jāizmanto konta šifrēšanas atslēga, kas iegūta no lietotājvārda un galvenās paroles, lai šifrētu izguvi un atļautu ievietošanu tikai pašreizējā Bitwarden kontā."
+    "message": "Jāizmanto konta šifrēšanas atslēga, kas iegūta no lietotājvārda un galvenās paroles, lai šifrētu izguvi un atļautu ievietošanu tikai pašreizējā Cloudwarden kontā."
   },
   "passwordProtectedOptionDescription": {
-    "message": "Uzstādīt paroli, lai šifrētu izguvi un tad to ievietotu jebkurā Bitwarden kontā, izmantojot atšifrēšanas paroli."
+    "message": "Uzstādīt paroli, lai šifrētu izguvi un tad to ievietotu jebkurā Cloudwarden kontā, izmantojot atšifrēšanas paroli."
   },
   "exportTypeHeading": {
     "message": "Izgūšanas veids"
@@ -3162,7 +3162,7 @@
     "message": "Pieprasījums ir apstrādē"
   },
   "logBackInOthersToo": {
-    "message": "Lūgums pieteikties atkārtoti. Ja tiek izmantotas citas Bitwarden lietotnes, ir nepieciešams atteikties un atkārtoti pieteikties arī tajās."
+    "message": "Lūgums pieteikties atkārtoti. Ja tiek izmantotas citas Cloudwarden lietotnes, ir nepieciešams atteikties un atkārtoti pieteikties arī tajās."
   },
   "changeMasterPassword": {
     "message": "Mainīt galveno paroli"
@@ -3195,7 +3195,7 @@
     }
   },
   "kdfIterationsWarning": {
-    "message": "Pārāk liela KDF atkārtojumu skaita iestatīšana var novest pie vājas veiktspējas, kad notiek pieteikšanās Bitwarden (un atslēgšana) lēnākās un vecākās ierīcēs. Ir ieteicams secīgi palielināt vērtību par $INCREMENT$ un tad pārbaudīt ietekmi visās ierīcēs.",
+    "message": "Pārāk liela KDF atkārtojumu skaita iestatīšana var novest pie vājas veiktspējas, kad notiek pieteikšanās Cloudwarden (un atslēgšana) lēnākās un vecākās ierīcēs. Ir ieteicams secīgi palielināt vērtību par $INCREMENT$ un tad pārbaudīt ietekmi visās ierīcēs.",
     "placeholders": {
       "increment": {
         "content": "$1",
@@ -3208,7 +3208,7 @@
     "description": "Memory refers to computer memory (RAM). MB is short for megabytes."
   },
   "argon2Warning": {
-    "message": "Pārāk liela KDF atkārtojumu skaita, atmiņas un paralelitātes iestatīšana var novest pie vājas veiktspējas, kad notiek pieteikšanās Bitwarden (un atslēgšana) lēnākās un vecākās ierīcēs. Ir ieteicams secīgi palielināt vērtību par $INCREMENT$ un tad pārbaudīt ietekmi visās ierīcēs."
+    "message": "Pārāk liela KDF atkārtojumu skaita, atmiņas un paralelitātes iestatīšana var novest pie vājas veiktspējas, kad notiek pieteikšanās Cloudwarden (un atslēgšana) lēnākās un vecākās ierīcēs. Ir ieteicams secīgi palielināt vērtību par $INCREMENT$ un tad pārbaudīt ietekmi visās ierīcēs."
   },
   "kdfParallelism": {
     "message": "KDF paralelitāte"
@@ -3241,10 +3241,10 @@
     "message": "Ieslēgt pieteikšanās jaunā ierīcē aizsardzību"
   },
   "turnOffNewDeviceLoginProtectionModalDesc": {
-    "message": "Turpināt zemāk, lai izslēgtu apliecinājuma e-pasta ziņojumus, ko Bitwarden sūta, kad notiek pieteikšanās jaunā ierīcē."
+    "message": "Turpināt zemāk, lai izslēgtu apliecinājuma e-pasta ziņojumus, ko Cloudwarden sūta, kad notiek pieteikšanās jaunā ierīcē."
   },
   "turnOnNewDeviceLoginProtectionModalDesc": {
-    "message": "Turpināt zemāk, lai Bitwarden sūtītu apliecinājuma e-pasta ziņojumus, kad notiek pieteikšanās jaunā ierīcē."
+    "message": "Turpināt zemāk, lai Cloudwarden sūtītu apliecinājuma e-pasta ziņojumus, kad notiek pieteikšanās jaunā ierīcē."
   },
   "turnOffNewDeviceLoginProtectionWarning": {
     "message": "Ar izslēgtu pieteikšanās jaunā ierīcē aizsardzību ikviens ar Tavu galveno paroli var piekļūt kontam no jebkuras ierīces. Lai aizsargātu savu kontu bez apliecinājuma e-pasta ziņojumiem, jāiestata divpakāpju pieteikšanās."
@@ -3694,7 +3694,7 @@
     "description": "Followed by a literal filename (my_passwords.json) rendered as code."
   },
   "importGnomeInstructionsFileHere": {
-    "message": "file here to Bitwarden.",
+    "message": "file here to Cloudwarden.",
     "description": "Follows the my_passwords.json filename."
   },
   "importPasswordagentInstructions": {
@@ -3827,7 +3827,7 @@
     "message": "Domēnu nosacījumi"
   },
   "domainRulesDesc": {
-    "message": "Ja viens pieteikšanās vienums tiek izmantots dažādos tīmekļvietņu domēnos, tīmekļa vietni var atzīmēt kā \"līdzvērtīgu\". \"Vispārējie\" domēni jau ir Bitwarden izveidoti."
+    "message": "Ja viens pieteikšanās vienums tiek izmantots dažādos tīmekļvietņu domēnos, tīmekļa vietni var atzīmēt kā \"līdzvērtīgu\". \"Vispārējie\" domēni jau ir Cloudwarden izveidoti."
   },
   "globalEqDomains": {
     "message": "Vispārēji vienlīdzīgie domēni"
@@ -3878,7 +3878,7 @@
     "message": "Iespējo divpakāpju pieteikšanaos savai apvienībai."
   },
   "twoStepLoginEnterpriseDescStart": {
-    "message": "Piemērot Bitwarden divpakāpju pieteikšanās iespējas dalībniekiem ar ",
+    "message": "Piemērot Cloudwarden divpakāpju pieteikšanās iespējas dalībniekiem ar ",
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Enforce Bitwarden Two-step Login options for members by using the Two-step Login Policy.'"
   },
   "twoStepLoginPolicy": {
@@ -3891,7 +3891,7 @@
     "message": "Ja ir uzstādīta vienotā pieteikšanās vai tas ir iecerēts, identitātes nodrošinātājs jau var būt piemērojis divpakāpju pieteikšanos."
   },
   "twoStepLoginRecoveryWarning": {
-    "message": "Divpakāpju pieteikšanās var pastāvīgi liegt piekļuvi Bitwarden kontam. Atkopes kods ļauj piekļūt tam gadījumā, kad vairs nav iespējams izmantot ierasto divpakāpju pieteikšanās nodrošinātāju (piemēram, ir pazaudēta ierīce). Bitwarden atbalsts nevarēs palīdzēt, ja tiks pazaudēta piekļuve kontam. Ir ieteicams, ka atkopes kods tiek pierakstīts vai izdrukāts un turēts drošā vietā."
+    "message": "Divpakāpju pieteikšanās var pastāvīgi liegt piekļuvi Cloudwarden kontam. Atkopes kods ļauj piekļūt tam gadījumā, kad vairs nav iespējams izmantot ierasto divpakāpju pieteikšanās nodrošinātāju (piemēram, ir pazaudēta ierīce). Cloudwarden atbalsts nevarēs palīdzēt, ja tiks pazaudēta piekļuve kontam. Ir ieteicams, ka atkopes kods tiek pierakstīts vai izdrukāts un turēts drošā vietā."
   },
   "restrictedItemTypePolicy": {
     "message": "Noņemt karšu vienumu veidu"
@@ -3913,7 +3913,7 @@
     "message": "Pamatnostādne, ko ir iestatījusi viena vai vairākas apvienības, liedz karšu ievietošanu savās glabātavās."
   },
   "yourSingleUseRecoveryCode": {
-    "message": "Vienreizējas izmantošanas atkopes kodu var izmantot, lai izslēgtu divpakāpju pieteikšanos gadījumā, ja tiek zaudēta piekļuve savam divpakāpju pieteikšanās nodrošinātājam. Bitwarden iesaka pierakstīt atkopes kodu un glabāt to drošā vietā."
+    "message": "Vienreizējas izmantošanas atkopes kodu var izmantot, lai izslēgtu divpakāpju pieteikšanos gadījumā, ja tiek zaudēta piekļuve savam divpakāpju pieteikšanās nodrošinātājam. Cloudwarden iesaka pierakstīt atkopes kodu un glabāt to drošā vietā."
   },
   "viewRecoveryCode": {
     "message": "Apskatīt atkopes kodu"
@@ -4011,13 +4011,13 @@
     }
   },
   "continueToExternalUrlDesc": {
-    "message": "Tiks pamests Bitwarden un jaunā logā tiks atvērta ārēja tīmekļvietne."
+    "message": "Tiks pamests Cloudwarden un jaunā logā tiks atvērta ārēja tīmekļvietne."
   },
   "twoStepContinueToBitwardenUrlTitle": {
     "message": "Pāriet uz bitwarden.com?"
   },
   "twoStepContinueToBitwardenUrlDesc": {
-    "message": "Bitwarden autentificētājs ļauj glabāt autentificētāja atslēgas un izveidot TOTP kodus divpakāpju apliecināšanas plūsmām. Vairāk var uzzināt tīmekļvietnē bitwarden.com."
+    "message": "Cloudwarden autentificētājs ļauj glabāt autentificētāja atslēgas un izveidot TOTP kodus divpakāpju apliecināšanas plūsmām. Vairāk var uzzināt tīmekļvietnē bitwarden.com."
   },
   "twoStepAuthenticatorScanCodeV2": {
     "message": "Zemāk esošais kvadrātkods jānolasa ar autnetificētāja lietotni vai jāievada atslēga."
@@ -4059,7 +4059,7 @@
     "message": "Saglabāt veidlapu."
   },
   "twoFactorYubikeyWarning": {
-    "message": "Platformas ierobežojumu dēļ YubiKey nevar izmantot visās Bitwarden lietotnēs. Ir ieteicams iespējot vēl kādu divpakāpju pieteikšanās nodrošinātāju, lai varētu piekļūt kontam, kad nevar izmantot YubiKey. Atbalstītās platformas:"
+    "message": "Platformas ierobežojumu dēļ YubiKey nevar izmantot visās Cloudwarden lietotnēs. Ir ieteicams iespējot vēl kādu divpakāpju pieteikšanās nodrošinātāju, lai varētu piekļūt kontam, kad nevar izmantot YubiKey. Atbalstītās platformas:"
   },
   "twoFactorYubikeySupportUsb": {
     "message": "Tīmekļa glabātava, darbvirsmas lietotne, CLI un visi pārlūku paplašinājumi ierīcēs ar USB ligzdu, kas pieņem YubiKey."
@@ -4110,7 +4110,7 @@
     "message": "Atspējot visas atslēgas"
   },
   "twoFactorDuoDesc": {
-    "message": "Ievadīt Bitwarden lietotnes informāciju no Duo pārvaldības rīka."
+    "message": "Ievadīt Cloudwarden lietotnes informāciju no Duo pārvaldības rīka."
   },
   "twoFactorDuoClientId": {
     "message": "Klienta Id"
@@ -4161,7 +4161,7 @@
     "message": "Saglabāt veidlapu."
   },
   "twoFactorU2fWarning": {
-    "message": "Platformas ierobežojumu dēļ FIDO U2F nevar izmantot visās Bitwarden lietotnēs. Ir Ieteicams iespējot vēl kādu divpakāpju pieteikšanās nodrošinātāju, lai varētu piekļūt kontam, kad FIDO U2F nevar izmantot. Atbalstītās platformas:"
+    "message": "Platformas ierobežojumu dēļ FIDO U2F nevar izmantot visās Cloudwarden lietotnēs. Ir Ieteicams iespējot vēl kādu divpakāpju pieteikšanās nodrošinātāju, lai varētu piekļūt kontam, kad FIDO U2F nevar izmantot. Atbalstītās platformas:"
   },
   "twoFactorU2fSupportWeb": {
     "message": "Tīmekļa glabātava un pārlūku paplašinājums galddatorā/klēpjdatorā ar U2F iespējotu pārlūku (Chrome, Opera, Vivaldi vai Firefox ar iespējotu FIDO U2F)."
@@ -4176,7 +4176,7 @@
     "message": "Radās sarežģījumi, nolasot drošības atslēgu. Jāmēģina vēlreiz."
   },
   "twoFactorRecoveryYourCode": {
-    "message": "Bitwarden divpakāpju pieteikšanās atkopes kods"
+    "message": "Cloudwarden divpakāpju pieteikšanās atkopes kods"
   },
   "twoFactorRecoveryNoCode": {
     "message": "Vēl nav iespējots neviens divpakāpju pieteikšanās nodrošinātājs. Kad tas būs izdarīts, šeit varēs apskatīt atkopes kodu."
@@ -4229,7 +4229,7 @@
     "message": "Pieteikšanās vienumi bez divpakāpju pārbaudes"
   },
   "inactive2faReportDesc": {
-    "message": "Divpakāpju pieteikšanās kontiem nodrošina papildu aizsardzības slāni. Jāuzstāda divpakāpju pierakstīšanos ar Bitwarden autentificētāju šiem kontiem vai jāizmanto cits veids."
+    "message": "Divpakāpju pieteikšanās kontiem nodrošina papildu aizsardzības slāni. Jāuzstāda divpakāpju pierakstīšanos ar Cloudwarden autentificētāju šiem kontiem vai jāizmanto cits veids."
   },
   "inactive2faFound": {
     "message": "Atrastie pieteikšanās vienumi bez 2FA"
@@ -4266,7 +4266,7 @@
     "message": "and "
   },
   "passkeyLoginReportHowToUse": {
-    "message": "how to use them in Bitwarden."
+    "message": "how to use them in Cloudwarden."
   },
   "passkeyLoginFound": {
     "message": "Logins that support passkeys"
@@ -4526,7 +4526,7 @@
     }
   },
   "bitwardenFamiliesPlan": {
-    "message": "Bitwarden ģimenēm."
+    "message": "Cloudwarden ģimenēm."
   },
   "addons": {
     "message": "Papildinājumi"
@@ -4738,7 +4738,7 @@
     }
   },
   "churnOfferDiscountBody": {
-    "message": "As a thank-you for being a long-time Bitwarden customer, we'd like to offer you a $DISCOUNT$ discount on your next $DURATION$ of service.",
+    "message": "As a thank-you for being a long-time Cloudwarden customer, we'd like to offer you a $DISCOUNT$ discount on your next $DURATION$ of service.",
     "description": "Body copy on the churn-mitigation offer card. DISCOUNT = discount amount; DURATION = service duration (e.g. 'year' or '6 months')",
     "placeholders": {
       "discount": {
@@ -4800,7 +4800,7 @@
     }
   },
   "churnOfferDiscountBodyRecurringAmount": {
-    "message": "As a thank-you for being a long-time Bitwarden customer, we'd like to offer you $AMOUNT$ off each $INTERVAL$ for the next $DURATION$.",
+    "message": "As a thank-you for being a long-time Cloudwarden customer, we'd like to offer you $AMOUNT$ off each $INTERVAL$ for the next $DURATION$.",
     "description": "Body copy on the churn-mitigation offer card for a fixed-amount discount that repeats each billing period. AMOUNT = discount amount (e.g. '$15.00'); INTERVAL = billing interval unit (e.g. 'month'); DURATION = discount duration (e.g. 'year' or '6 months')",
     "placeholders": {
       "amount": {
@@ -5249,7 +5249,7 @@
     }
   },
   "trialThankYou": {
-    "message": "Paldies par pieteikšanos Bitwarden $PLAN$!",
+    "message": "Paldies par pieteikšanos Cloudwarden $PLAN$!",
     "placeholders": {
       "plan": {
         "content": "$1",
@@ -5258,7 +5258,7 @@
     }
   },
   "trialSecretsManagerThankYou": {
-    "message": "Paldies par pieteikšanos Bitwarden noslēpumu pārvaldnieka $PLAN$!",
+    "message": "Paldies par pieteikšanos Cloudwarden noslēpumu pārvaldnieka $PLAN$!",
     "placeholders": {
       "plan": {
         "content": "$1",
@@ -5397,7 +5397,7 @@
     "message": "SSO ārējais Id"
   },
   "ssoExternalIdDesc": {
-    "message": "SSO ārējais Id ir nešifrēta atsauce starp Bitwarden un konfigurēto SSO nodrošinātāju."
+    "message": "SSO ārējais Id ir nešifrēta atsauce starp Cloudwarden un konfigurēto SSO nodrošinātāju."
   },
   "nestCollectionUnder": {
     "message": "Ievietot krājumu zem"
@@ -5454,13 +5454,13 @@
     "message": "Invite"
   },
   "inviteUserDesc": {
-    "message": "Uziacināt apvienībā jaunu lietotāju, zemāk esošajā laukā ievadot viņa Bitwarden konta e-pasta adresi. Ja viņam vēl nav Bitwarden konta, tiks vaicāts izveidot jaunu."
+    "message": "Uziacināt apvienībā jaunu lietotāju, zemāk esošajā laukā ievadot viņa Cloudwarden konta e-pasta adresi. Ja viņam vēl nav Cloudwarden konta, tiks vaicāts izveidot jaunu."
   },
   "inviteUserDescription": {
     "message": "Invite new users to your organization by entering their email address below."
   },
   "inviteUserDescSharedFolders": {
-    "message": "Invite a new user to your organization vault by entering their Bitwarden account email address below. If they do not have a Bitwarden account already, they will be prompted to create a new account.",
+    "message": "Invite a new user to your organization vault by entering their Cloudwarden account email address below. If they do not have a Cloudwarden account already, they will be prompted to create a new account.",
     "description": "VFO1 (shared folder terminology) variant of inviteUserDesc, shown when the vfo1-foundation flag is enabled."
   },
   "inviteMultipleEmailDesc": {
@@ -5603,10 +5603,10 @@
     "message": "CLI"
   },
   "bitWebVault": {
-    "message": "Bitwarden tīmekļa glabātava"
+    "message": "Cloudwarden tīmekļa glabātava"
   },
   "bitSecretsManager": {
-    "message": "Bitwarden noslēpumu pārvaldnieks"
+    "message": "Cloudwarden noslēpumu pārvaldnieks"
   },
   "loggedIn": {
     "message": "Pieteicies"
@@ -6925,7 +6925,7 @@
     "message": "Return to registration"
   },
   "joinOrganizationDesc": {
-    "message": "Tu esi uzaicināts pievienoties augstāk norādītajai apvienībai. Lai to pieņemtu, jāpiesakās vai jāizveido jauns Bitwarden konts."
+    "message": "Tu esi uzaicināts pievienoties augstāk norādītajai apvienībai. Lai to pieņemtu, jāpiesakās vai jāizveido jauns Cloudwarden konts."
   },
   "finishJoiningThisOrganizationBySettingAMasterPassword": {
     "message": "Pabeigt pievienošanos šai apvienībai ar galvenās paroles iestatīšanu."
@@ -7066,10 +7066,10 @@
     "message": "Ja konts pastāv, tika nosūtīts e-pasta ziņojums ar turpmākām norādēm."
   },
   "deleteRecoverConfirmDesc": {
-    "message": "Tika pieprasīts izdzēst Bitwarden kontu. Jāizmanto zemāk esošā poga, lai apstiprinātu."
+    "message": "Tika pieprasīts izdzēst Cloudwarden kontu. Jāizmanto zemāk esošā poga, lai apstiprinātu."
   },
   "deleteRecoverOrgConfirmDesc": {
-    "message": "Tu pieprasīji izdzēst savu Bitwarden apvienību."
+    "message": "Tu pieprasīji izdzēst savu Cloudwarden apvienību."
   },
   "myOrganization": {
     "message": "Mana apvienība"
@@ -7403,7 +7403,7 @@
     }
   },
   "updateEncryptionKeyWarning": {
-    "message": "Pēc šifrēšanas atslēgas atjaunināšanas ir nepieciešams atteikties un tad pieteikties visās Bitwarden lietotnēs, kas pašreiz tiek izmantotas (piemēram, tālruņa lietotnē vai pārlūku paplašinājumā). Ja tas netiks darīts (tā tiek lejupielādēta jaunā šifrēšanas atslēga), dati var tikt bojāti. Tiks veikts automātisks atteikšanās mēģinājums, tomēr tas var notikt ar aizkavi."
+    "message": "Pēc šifrēšanas atslēgas atjaunināšanas ir nepieciešams atteikties un tad pieteikties visās Cloudwarden lietotnēs, kas pašreiz tiek izmantotas (piemēram, tālruņa lietotnē vai pārlūku paplašinājumā). Ja tas netiks darīts (tā tiek lejupielādēta jaunā šifrēšanas atslēga), dati var tikt bojāti. Tiks veikts automātisks atteikšanās mēģinājums, tomēr tas var notikt ar aizkavi."
   },
   "updateEncryptionKeyAccountExportWarning": {
     "message": "Jebkuras konta ierobežotās izguves, kas ir saglabātas, kļūs nederīgas."
@@ -7439,7 +7439,7 @@
     "message": "Nekas nav atlasīts."
   },
   "receiveMarketingEmails": {
-    "message": "Receive updates from Bitwarden in your inbox."
+    "message": "Receive updates from Cloudwarden in your inbox."
   },
   "subscribe": {
     "message": "Abonēt"
@@ -7546,7 +7546,7 @@
     "message": "Copy and paste the link where your team will find it: your onboarding checklist, a Slack #new-joiners channel, Notion docs, or an email template."
   },
   "viewBitwardenOnboardingGuide": {
-    "message": "View Bitwarden onboarding guide"
+    "message": "View Cloudwarden onboarding guide"
   },
   "coachMarkStepOfTotal": {
     "message": "$CURRENT$ of $TOTAL$",
@@ -7725,7 +7725,7 @@
     "message": "Vāja galvenā parole"
   },
   "weakMasterPasswordDesc": {
-    "message": "Izvēlētā galvenā parole ir vāja. Ir ieteicams izmantot spēcīgu galveno paroli (vai paroles vārdu salikumu), lai pienācīgi aizsargātu Bitwarden kontu. Vai tiešām izmanto šo galveno paroli?"
+    "message": "Izvēlētā galvenā parole ir vāja. Ir ieteicams izmantot spēcīgu galveno paroli (vai paroles vārdu salikumu), lai pienācīgi aizsargātu Cloudwarden kontu. Vai tiešām izmanto šo galveno paroli?"
   },
   "rotateAccountEncKey": {
     "message": "Mainīt arī konta šifrēšanas atslēgu"
@@ -7790,7 +7790,7 @@
     "message": "API atslēga"
   },
   "apiKeyDesc": {
-    "message": "API atslēga var tikt izmantota, lai autentificētos Bitwarden publiskā API izmantošanai."
+    "message": "API atslēga var tikt izmantota, lai autentificētos Cloudwarden publiskā API izmantošanai."
   },
   "apiKeyRotateDesc": {
     "message": "API atslēgas mainīšana padarīs nederīgu iepriekšējo. Pašreizējo API atslēgu var mainīt, ja ir aizdomas, ka tā vairs nav droša izmantošanai."
@@ -8149,7 +8149,7 @@
     "description": "VFO1 terminology variant of 'singleOrgPolicyDescV2'"
   },
   "singleOrgBlockCreateMessage": {
-    "message": "Pašreizējā apvienībā ir nosacījums, kas neļauj pievienoties vairāk kā vienai apvienībai. Lūgums sazināties ar savas apvienības pārvaldītājiem vai pieteikties no cita Bitwarden konta."
+    "message": "Pašreizējā apvienībā ir nosacījums, kas neļauj pievienoties vairāk kā vienai apvienībai. Lūgums sazināties ar savas apvienības pārvaldītājiem vai pieteikties no cita Cloudwarden konta."
   },
   "singleOrgPolicyMemberWarning": {
     "message": "Pamatnostādnei neatbilstoši dalībniekiem tiks piešķirts stāvoklis \"Atsaukts\", līdz viņī pametīs visas pārējās apvienības. Pārvaldītāji ir izņēmums, un viņi var atjaunot dalībniekus, tiklīdz ir īstenota atbilstība pamatnostādnei."
@@ -8400,7 +8400,7 @@
     "message": "Experiencing an issue? Download then share the diagnostic report with"
   },
   "bitwardenSupport": {
-    "message": "Bitwarden support",
+    "message": "Cloudwarden support",
     "description": "Link text that follows the troubleshooting description sentence. 'Bitwarden' should not be translated."
   },
   "download": {
@@ -8457,7 +8457,7 @@
     "message": "Labot ārkārtas kontaktpersonu"
   },
   "inviteEmergencyContactDesc": {
-    "message": "Uzaicināt jaunu ārkārtas kontaktpersonu, norādot tās Bitwarden konta e-pasta adresi zemāk esošajā ievades laukā. Ja kontaktpersonai vēl nav Bitwarden konta, tai tiks vaicāts izveidot jaunu."
+    "message": "Uzaicināt jaunu ārkārtas kontaktpersonu, norādot tās Cloudwarden konta e-pasta adresi zemāk esošajā ievades laukā. Ja kontaktpersonai vēl nav Cloudwarden konta, tai tiks vaicāts izveidot jaunu."
   },
   "emergencyAccessRecoveryInitiated": {
     "message": "Uzsākta ārkārtas piekļuve"
@@ -8496,7 +8496,7 @@
     "message": "Lietotājs uzaicināts."
   },
   "acceptEmergencyAccess": {
-    "message": "Tu esi uzaicināts kļūt par ārkārtas kontaktpersonu augstāk norādītajam lietotājam. Lai apstiprinātu uzaicinājumu, ir nepieciešams pieteikties vai izveidot jaunu Bitwarden kontu."
+    "message": "Tu esi uzaicināts kļūt par ārkārtas kontaktpersonu augstāk norādītajam lietotājam. Lai apstiprinātu uzaicinājumu, ir nepieciešams pieteikties vai izveidot jaunu Cloudwarden kontu."
   },
   "emergencyInviteAcceptFailed": {
     "message": "Nav iespējams apstiprināt uzaicinājumu. Lūdz lietotājam nosūtīt jaunu!"
@@ -8682,7 +8682,7 @@
     "message": "Kā ieslēgt automātisku lietotōtāju apstiprināšanu"
   },
   "autoConfirmExtension1": {
-    "message": "Jāatver Bitwarden paplašinājums"
+    "message": "Jāatver Cloudwarden paplašinājums"
   },
   "autoConfirmExtension2": {
     "message": "Jāatlasa",
@@ -8693,7 +8693,7 @@
     "description": "This is a fragment of a larger sencence. The whole sentence will read: 'Select Turn on'"
   },
   "autoConfirmExtensionOpened": {
-    "message": "Bitwarden pārlūka paplašīnājums atvērts sekmīgi. Tagad var ieslēgt automātisko lietotāju apstiprināšanas iestatījumu."
+    "message": "Cloudwarden pārlūka paplašīnājums atvērts sekmīgi. Tagad var ieslēgt automātisko lietotāju apstiprināšanas iestatījumu."
   },
   "autoConfirmPolicyEditDescription": {
     "message": "Jauni apvienībā uzaicinātie lietotāji tiks automātiski apstiprināti, kad pārvaldītāja ierīce tiks atslēgta. Pirms šīs pamatnostādnes ieslēgšanas lūgums pārskatīt un piekrist šim: ",
@@ -8906,7 +8906,7 @@
     "description": "VFO1 terminology variant of 'uriMatchDetectionPolicyDesc', shown in the policies list"
   },
   "uriMatchDetectionPolicyDescV2": {
-    "message": "Set a default for which parts of a website address (URI) need to match for Bitwarden to suggest a login for autofill. This policy won't be enforced for owners and admins."
+    "message": "Set a default for which parts of a website address (URI) need to match for Cloudwarden to suggest a login for autofill. This policy won't be enforced for owners and admins."
   },
   "uriMatchDetectionOptionsLabel": {
     "message": "Noklusējuma URI atbilstības noteikšana"
@@ -8926,7 +8926,7 @@
     "message": "Custom autofill rule set"
   },
   "fillAssistRulesUrlHint": {
-    "message": "By default, fill assist uses Bitwarden's curated rule set. Enter a URL here to override it with your own."
+    "message": "By default, fill assist uses Cloudwarden's curated rule set. Enter a URL here to override it with your own."
   },
   "invalidFillAssistRulesUrl": {
     "message": "Enter a valid URL",
@@ -9039,7 +9039,7 @@
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "sendAccessTaglineProductDesc": {
-    "message": "Bitwarden Send vienkārši un droši pārsūta slepenu pagaidu informāciju citiem.",
+    "message": "Cloudwarden Send vienkārši un droši pārsūta slepenu pagaidu informāciju citiem.",
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "sendAccessTaglineLearnMore": {
@@ -9066,7 +9066,7 @@
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Learn more, see how it works, **or** try it now.'"
   },
   "developmentDevOpsAndITTeamsChooseBWSecret": {
-    "message": "Izstrādes, DevOps un IT komandas izvēlas Bitwarden noslēpumu pārvaldnieku, lai droši pārvaldītu un izvietotu savus infrastruktūras un mašīnu noslēpumus."
+    "message": "Izstrādes, DevOps un IT komandas izvēlas Cloudwarden noslēpumu pārvaldnieku, lai droši pārvaldītu un izvietotu savus infrastruktūras un mašīnu noslēpumus."
   },
   "centralizeSecretsManagement": {
     "message": "Noslēpumu pārvaldības centralizēšana."
@@ -9102,10 +9102,10 @@
     "message": "Pievienot piezīmi"
   },
   "bitwardenSecretsManager": {
-    "message": "Bitwarden noslēpumu pārvaldnieks"
+    "message": "Cloudwarden noslēpumu pārvaldnieks"
   },
   "moreProductsFromBitwarden": {
-    "message": "Vairāk izstrādājumu no Bitwarden"
+    "message": "Vairāk izstrādājumu no Cloudwarden"
   },
   "requestAccessToSecretsManager": {
     "message": "Pieprasīt piekļuvi Noslēpumu pārvaldniekam"
@@ -9117,7 +9117,7 @@
     "message": "Piekļuves pieprasījuma Noslēpumu pārvaldniekam e-pasta ziņojumus ir nosūtīts pārvaldītājiem."
   },
   "requestAccessSMDefaultEmailContent": {
-    "message": "Sveiki!\n\nEs lūdzu Bitwarden noslēpumu pārvaldnieka abonementu mūsu komandai. Jūsu atbalsts būs ļoti nozīmīgs.\n\nBitwarden noslēpumu pārvaldnieks ir pilnībā šifrēts noslēpumu pārvaldības risinājumus tādu mašīnu piekļuves datu kā API atslēgu, datubāžu paroļu un autentifikācijas sertifikātu drošai uzglabāšanai, kopīgošanai un izvietošanai.\n\nNoslēpumu pārvaldnieks palīdzēs mums:\n\n- uzlabot drošību;\n- pilnveidot darbības;\n- novērst dārgas noslēpumu noplūdes.\n\nLai pieprasītu bezmaksas izmēģinājumu mūsu komandai, lūgums vērsties pie Bitwarden.\n\nPaldies par palīdzību!"
+    "message": "Sveiki!\n\nEs lūdzu Cloudwarden noslēpumu pārvaldnieka abonementu mūsu komandai. Jūsu atbalsts būs ļoti nozīmīgs.\n\nBitwarden noslēpumu pārvaldnieks ir pilnībā šifrēts noslēpumu pārvaldības risinājumus tādu mašīnu piekļuves datu kā API atslēgu, datubāžu paroļu un autentifikācijas sertifikātu drošai uzglabāšanai, kopīgošanai un izvietošanai.\n\nNoslēpumu pārvaldnieks palīdzēs mums:\n\n- uzlabot drošību;\n- pilnveidot darbības;\n- novērst dārgas noslēpumu noplūdes.\n\nLai pieprasītu bezmaksas izmēģinājumu mūsu komandai, lūgums vērsties pie Cloudwarden.\n\nPaldies par palīdzību!"
   },
   "giveMembersAccess": {
     "message": "Piešķirt dalībniekiem piekļuvi:"
@@ -9151,7 +9151,7 @@
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Learn more about Bitwarden Send or sign up to **try it today.**'"
   },
   "sendAccessCreatorIdentifier": {
-    "message": "Bitwarden dalībnieks $USER_IDENTIFIER$ kopīgoja sekojošo",
+    "message": "Cloudwarden dalībnieks $USER_IDENTIFIER$ kopīgoja sekojošo",
     "placeholders": {
       "user_identifier": {
         "content": "$1",
@@ -9176,7 +9176,7 @@
     "description": "Toast message shown when a user clicks the resend code link on the Send access page. 'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "viewSendHiddenEmailWarning": {
-    "message": "Bitwarden lietotājs, kurš izveidoja šo Send, ir izvēlējies slēpt savu e-pasta adresi. Ir jāpārliecinās par šīs saites avota uzticamību, pirms saturs tiek izmantots vai lejupielādēts.",
+    "message": "Cloudwarden lietotājs, kurš izveidoja šo Send, ir izvēlējies slēpt savu e-pasta adresi. Ir jāpārliecinās par šīs saites avota uzticamību, pirms saturs tiek izmantots vai lejupielādēts.",
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "expirationDateIsInvalid": {
@@ -9548,10 +9548,10 @@
     "message": "Atšifrēšanas kļūda"
   },
   "couldNotDecryptVaultItem": {
-    "message": "Bitwarden could not decrypt the vault item listed below. Contact Bitwarden Customer Support and provide the item ID below to see if it can be recovered."
+    "message": "Cloudwarden could not decrypt the vault item listed below. Contact Cloudwarden Customer Support and provide the item ID below to see if it can be recovered."
   },
   "couldNotDecryptVaultItems": {
-    "message": "Bitwarden could not decrypt the vault items listed below. Contact Bitwarden Customer Support and provide the item IDs below to see if they can be recovered."
+    "message": "Cloudwarden could not decrypt the vault items listed below. Contact Cloudwarden Customer Support and provide the item IDs below to see if they can be recovered."
   },
   "itemId": {
     "message": "Item ID",
@@ -9574,7 +9574,7 @@
     "message": "Nodrošinātāja iestatīšana"
   },
   "setupProviderLoginDesc": {
-    "message": "Ir saņemts uzaicinājums iestatīt jaunu nodrošinātāju. Lai turpinātu, ir nepieciešams pieteikties vai izveidot jaunu Bitwarden kontu."
+    "message": "Ir saņemts uzaicinājums iestatīt jaunu nodrošinātāju. Lai turpinātu, ir nepieciešams pieteikties vai izveidot jaunu Cloudwarden kontu."
   },
   "setupProviderDesc": {
     "message": "Lūgums zemāk norādīt nepieciešamo, lai pabeigtu nodrošinātāja iestatīšanu. Jautājumu gadījumā jāsazinās ar klientu atbalstu."
@@ -9605,13 +9605,13 @@
     "message": "Apkalpes lietotāji var piekļūt visām pasūtītāju apvienībām un tās pārvaldīt."
   },
   "providerInviteUserDesc": {
-    "message": "Uziacināt jaunu nodrošinātāja lietotāju, zemāk esošajā laukā ievadot tā Bitwarden konta e-pasta adresi. Ja tam vēl nav Bitwarden konta, tiks vaicāts izveidot jaunu."
+    "message": "Uziacināt jaunu nodrošinātāja lietotāju, zemāk esošajā laukā ievadot tā Cloudwarden konta e-pasta adresi. Ja tam vēl nav Cloudwarden konta, tiks vaicāts izveidot jaunu."
   },
   "joinProvider": {
     "message": "Pievienoties nodrošinātāju"
   },
   "joinProviderDesc": {
-    "message": "Tu esi uzaicināts pievienoties augstāk norādītajam nodrošinātājam. Lai to pieņemtu, jāpiesakās vai jāizveido jauns Bitwarden konts."
+    "message": "Tu esi uzaicināts pievienoties augstāk norādītajam nodrošinātājam. Lai to pieņemtu, jāpiesakās vai jāizveido jauns Cloudwarden konts."
   },
   "providerInviteAcceptFailed": {
     "message": "Nav iespējams pieņemt uzaicinājumu. Jālūdz nodrošinātāja pārvaldniekam nosūtīt jaunu."
@@ -10018,7 +10018,7 @@
     "message": "Vienotās pieteikšanās uzstādījumi tika saglabāti."
   },
   "sponsoredFamilies": {
-    "message": "Bezmaksas Bitwarden ģimenēm"
+    "message": "Bezmaksas Cloudwarden ģimenēm"
   },
   "sponsoredBitwardenFamilies": {
     "message": "Atbalstītas ģimenes"
@@ -10039,28 +10039,28 @@
     "message": "No non-members have redeemed the Sponsored Family Plan."
   },
   "sponsorshipFreeBitwardenFamilies": {
-    "message": "Tavas apvienības dalībnieki ir tiesīgi uz bezmaksas Bitwarden ģimenēm. Var atbalstīt bezmaksas Bitwarden ģimenēm darbiniekiem, kuri nav Tavas Bitwarden apvienības dalībnieki. Ne-dalībnieka atbalstīšanai ir nepieciešama brīva vieta apvienībā."
+    "message": "Tavas apvienības dalībnieki ir tiesīgi uz bezmaksas Cloudwarden ģimenēm. Var atbalstīt bezmaksas Cloudwarden ģimenēm darbiniekiem, kuri nav Tavas Cloudwarden apvienības dalībnieki. Ne-dalībnieka atbalstīšanai ir nepieciešama brīva vieta apvienībā."
   },
   "sponsorshipFreeBitwardenFamiliesV2": {
-    "message": "Your members are eligible to redeem a Sponsored Families Plan. You can sponsor a Families plan for employees who are not members of your Bitwarden organization, but this will require available seats within your organization."
+    "message": "Your members are eligible to redeem a Sponsored Families Plan. You can sponsor a Families plan for employees who are not members of your Cloudwarden organization, but this will require available seats within your organization."
   },
   "sponsoredFamiliesRemoveActiveSponsorship": {
     "message": "Kad tiek noņemta izmantota atbalsta dalība, apvienībā atbrīvosies vieta pēc atbalstītāš apvienības atjaunošanas datuma."
   },
   "sponsoredFamiliesEligible": {
-    "message": "Tu un Tava ģimene esat atbilstīgi bezmaksas Bitwarden Families. Piesakies ar personīgo e-pasta adresi, lai turētu datus drošībā pat tad, kad neesi darbā!"
+    "message": "Tu un Tava ģimene esat atbilstīgi bezmaksas Cloudwarden Families. Piesakies ar personīgo e-pasta adresi, lai turētu datus drošībā pat tad, kad neesi darbā!"
   },
   "sponsoredFamiliesEligibleV2": {
-    "message": "You and your family are eligible for a Sponsored Families Plan at no additional cost to you. Redeem this plan with your personal email to keep your data secure and separate from your Bitwarden work account."
+    "message": "You and your family are eligible for a Sponsored Families Plan at no additional cost to you. Redeem this plan with your personal email to keep your data secure and separate from your Cloudwarden work account."
   },
   "sponsoredFamiliesEligibleCard": {
-    "message": "Izmanto savu bezmaksas Bitwarden ģimenēm šodien, lai turētu datus drošībā pat tad, kad neesi darbā."
+    "message": "Izmanto savu bezmaksas Cloudwarden ģimenēm šodien, lai turētu datus drošībā pat tad, kad neesi darbā."
   },
   "sponsoredFamiliesIncludeMessage": {
-    "message": "Bitwarden ģimenēm iekļauj"
+    "message": "Cloudwarden ģimenēm iekļauj"
   },
   "sponsoredFamiliesIncludeMessageV2": {
-    "message": "The Bitwarden Families plan includes"
+    "message": "The Cloudwarden Families plan includes"
   },
   "sponsoredFamiliesPremiumAccess": {
     "message": "Premium piekļuve līdz 6 lietotājiem"
@@ -10081,7 +10081,7 @@
     "message": "Šeit tiks attēloti dalībnieki, kuri ir pieteikušies ģimeņu plāniem"
   },
   "membersWithSponsoredFamilies": {
-    "message": "Apvienības dalībnieki ir tiesīgi uz bezmaksas Bitwarden ģimenēm. Šeit var redzēt dalībniekus, kuri ir atbalstījuši ģimeņu apvienību."
+    "message": "Apvienības dalībnieki ir tiesīgi uz bezmaksas Cloudwarden ģimenēm. Šeit var redzēt dalībniekus, kuri ir atbalstījuši ģimeņu apvienību."
   },
   "organizationHasMemberMessage": {
     "message": "Atbalsta dalību nevar nosūtīt uz $EMAIL$, jo tā īpašnieks ir apvienības dalībnieks.",
@@ -10108,7 +10108,7 @@
     "message": "Kuru bezmaksas ģimeņu piedāvājumu Tu vēlies izmantot?"
   },
   "sponsoredFamiliesEmail": {
-    "message": "Ievadīt personīgo e-pasta adresi, lai izmantotu Bitwarden ģimenēm"
+    "message": "Ievadīt personīgo e-pasta adresi, lai izmantotu Cloudwarden ģimenēm"
   },
   "sponsoredFamiliesLeaveCopy": {
     "message": "Ja Tu pamet vai tiec noņemts no atbalstošās apvienības, Tavs ģimeņu plāns beigsies apmaksas laika posma beigās."
@@ -10117,7 +10117,7 @@
     "message": "Pieņemt piedāvājumu esošai apvienībai vai izveidot jaunu ģimenes apvienību."
   },
   "setupSponsoredFamiliesLoginDesc": {
-    "message": "Tev ir piedāvāta bezmaksas Bitwarden ģimenēm apvienība. Lai turpinātu, ir nepieciešams pieteikties kontā, kas saņēma piedāvājumu."
+    "message": "Tev ir piedāvāta bezmaksas Cloudwarden ģimenēm apvienība. Lai turpinātu, ir nepieciešams pieteikties kontā, kas saņēma piedāvājumu."
   },
   "sponsoredFamiliesAcceptFailed": {
     "message": "Nav iespējams pieņemt piedāvājumu. Lūgums pārsūtīt piedāvājuma e-pasta ziņu no uzņēmējdarbības konta un mēģināt vēlreiz."
@@ -10132,10 +10132,10 @@
     }
   },
   "sponsoredFamiliesOffer": {
-    "message": "Pieņemt bezmaksas Bitwarden ģimenēm"
+    "message": "Pieņemt bezmaksas Cloudwarden ģimenēm"
   },
   "sponsoredFamiliesOfferRedeemed": {
-    "message": "Bezmaksas Bitwarden ģimenēm piedāvājums veiksmīgi izmantots"
+    "message": "Bezmaksas Cloudwarden ģimenēm piedāvājums veiksmīgi izmantots"
   },
   "redeemed": {
     "message": "Izmantots"
@@ -10266,7 +10266,7 @@
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Connect login with SSO to your self-hosted decryption key server. Using this option, members won’t need to use their master passwords to decrypt vault data. The require SSO authentication and single organization policies are required to set up Key Connector decryption. Contact Bitwarden Support for set up assistance.'"
   },
   "memberDecryptionKeyConnectorDescEnd": {
-    "message": "ir nepieciešami, lai uzstādītu Key Connector atšifrēšanu. Jāsazinās ar Bitwarden atbalstu, lai iegūtu palīdzību uzstādīšanā.",
+    "message": "ir nepieciešami, lai uzstādītu Key Connector atšifrēšanu. Jāsazinās ar Cloudwarden atbalstu, lai iegūtu palīdzību uzstādīšanā.",
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Connect login with SSO to your self-hosted decryption key server. Using this option, members won’t need to use their master passwords to decrypt vault data. The require SSO authentication and single organization policies are required to set up Key Connector decryption. Contact Bitwarden Support for set up assistance.'"
   },
   "keyConnectorPolicyRestriction": {
@@ -10414,7 +10414,7 @@
     "message": "Norēķinu sinhronizēšanas pilnvara"
   },
   "automaticBillingSyncDesc": {
-    "message": "Automātiska sinhronizēšana atslēdz Ģimenēm pabalstītājdarbību un ļauj sinhronizēt savu licenci bez datnes augšupielādes. Pēc atjauninājumu veikšanas Bitwarden mākoņa serverī jāatlasa \"Sinhronizēt licenci\", lai pielietotu izmaiņas."
+    "message": "Automātiska sinhronizēšana atslēdz Ģimenēm pabalstītājdarbību un ļauj sinhronizēt savu licenci bez datnes augšupielādes. Pēc atjauninājumu veikšanas Cloudwarden mākoņa serverī jāatlasa \"Sinhronizēt licenci\", lai pielietotu izmaiņas."
   },
   "active": {
     "message": "Izmantots"
@@ -10777,11 +10777,11 @@
     }
   },
   "forwarderGeneratedBy": {
-    "message": "Izveidoja Bitwarden.",
+    "message": "Izveidoja Cloudwarden.",
     "description": "Displayed with the address on the forwarding service's configuration screen."
   },
   "forwarderGeneratedByWithWebsite": {
-    "message": "Tīmekļvietne: $WEBSITE$. Izveidoja Bitwarden.",
+    "message": "Tīmekļvietne: $WEBSITE$. Izveidoja Cloudwarden.",
     "description": "Displayed with the address on the forwarding service's configuration screen.",
     "placeholders": {
       "WEBSITE": {
@@ -11981,7 +11981,7 @@
     "message": "More settings"
   },
   "moreFromBitwarden": {
-    "message": "Vairāk no Bitwarden"
+    "message": "Vairāk no Cloudwarden"
   },
   "switchProducts": {
     "message": "Pārslēgt pakalpojumus"
@@ -12032,7 +12032,7 @@
     }
   },
   "freeOrgMaxCollectionReachedManageBilling": {
-    "message": "Apvienībās, kuras izmanto Bitwarden bez maksas, var būt līdz $COLLECTIONCOUNT$ krājumiem. Jāpāriet uz maksas plānu, lai pievienotu vairāk krājumu.",
+    "message": "Apvienībās, kuras izmanto Cloudwarden bez maksas, var būt līdz $COLLECTIONCOUNT$ krājumiem. Jāpāriet uz maksas plānu, lai pievienotu vairāk krājumu.",
     "placeholders": {
       "COLLECTIONCOUNT": {
         "content": "$1",
@@ -12041,7 +12041,7 @@
     }
   },
   "freeOrgMaxCollectionReachedNoManageBilling": {
-    "message": "Apvienībās, kuras izmanto Bitwarden bez maksas, var būt līdz $COLLECTIONCOUNT$ krājumiem. Jāsazinās ar apvienības īpašnieku, lai pārietu uz maksas plānu.",
+    "message": "Apvienībās, kuras izmanto Cloudwarden bez maksas, var būt līdz $COLLECTIONCOUNT$ krājumiem. Jāsazinās ar apvienības īpašnieku, lai pārietu uz maksas plānu.",
     "placeholders": {
       "COLLECTIONCOUNT": {
         "content": "$1",
@@ -12877,7 +12877,7 @@
     "message": "Lietotājs iestatīja galveno paroli uzticamo ierīču šifrēšanas atstāšanas laikā."
   },
   "startYour7DayFreeTrialOfBitwardenFor": {
-    "message": "Uzsāc savu 7 dienu bezmaksas Bitwarden izmēģinājumu $ORG$!",
+    "message": "Uzsāc savu 7 dienu bezmaksas Cloudwarden izmēģinājumu $ORG$!",
     "placeholders": {
       "org": {
         "content": "$1",
@@ -12886,7 +12886,7 @@
     }
   },
   "startYour7DayFreeTrialOfBitwardenSecretsManagerFor": {
-    "message": "Uzsāc savu 7 dienu bezmaksas Bitwarden noslēpumu pārvaldnieka izmēģinājumu $ORG$",
+    "message": "Uzsāc savu 7 dienu bezmaksas Cloudwarden noslēpumu pārvaldnieka izmēģinājumu $ORG$",
     "placeholders": {
       "org": {
         "content": "$1",
@@ -13291,7 +13291,7 @@
     "message": "Get started with your vault"
   },
   "onboardingChecklistSubtitle": {
-    "message": "Complete these steps to secure your personal data and get the most out of Bitwarden"
+    "message": "Complete these steps to secure your personal data and get the most out of Cloudwarden"
   },
   "dismissThisChecklist": {
     "message": "Dismiss this checklist"
@@ -13388,7 +13388,7 @@
     "description": "Label indicating the most common import formats"
   },
   "uriMatchDefaultStrategyHint": {
-    "message": "URI atbilstības noteikšana ir veids, kā Bitwarden atpazīst automātiskās aizpildes ieteikumus.",
+    "message": "URI atbilstības noteikšana ir veids, kā Cloudwarden atpazīst automātiskās aizpildes ieteikumus.",
     "description": "Explains to the user that URI match detection determines how Bitwarden suggests autofill options, and clarifies that this default strategy applies when no specific match detection is set for a login item."
   },
   "regExAdvancedOptionWarning": {
@@ -13432,13 +13432,13 @@
     "message": "Apstiprinājuma izvērsums"
   },
   "smFreeTrialThankYou": {
-    "message": "Paldies par pieteikšanos Bitwarden noslēpumu pārvaldniekā!"
+    "message": "Paldies par pieteikšanos Cloudwarden noslēpumu pārvaldniekā!"
   },
   "smFreeTrialConfirmationEmail": {
     "message": "Mēs esam nosūtījuši apstiprinājuma e-pasta ziņojumu uz "
   },
   "sorryToSeeYouGo": {
-    "message": "Žēl redzēt Tevi aizejam. Palīdzi uzlabot Bitwarden, daloties ar atcelšanas iemeslu!",
+    "message": "Žēl redzēt Tevi aizejam. Palīdzi uzlabot Cloudwarden, daloties ar atcelšanas iemeslu!",
     "description": "A message shown to users as part of an offboarding survey asking them to provide more information on their subscription cancelation."
   },
   "selectCancellationReason": {
@@ -14000,20 +14000,20 @@
     "message": "Integrācijas"
   },
   "integrationsDesc": {
-    "message": "Automātiski sinhronizēt noslēpumus no Bitwarden Noslēpumu pārvaldnieka uz trešās puses pakalpojumu."
+    "message": "Automātiski sinhronizēt noslēpumus no Cloudwarden Noslēpumu pārvaldnieka uz trešās puses pakalpojumu."
   },
   "sdks": {
     "message": "Izstrādātāju rīkkopas"
   },
   "sdksDesc": {
-    "message": "Bitwarden Noslēpumu pārvaldnieka izstrādātāju rīkkopa ir izmantojama ar zemāk esošajām programmēšanas valodām, lai veidotu pats savas lietotnes."
+    "message": "Cloudwarden Noslēpumu pārvaldnieka izstrādātāju rīkkopa ir izmantojama ar zemāk esošajām programmēšanas valodām, lai veidotu pats savas lietotnes."
   },
   "ssoDescStart": {
     "message": "Konfigurēt",
     "description": "This represents the beginning of a sentence, broken up to include links. The full sentence will be 'Configure single sign-on for Bitwarden using the implementation guide for your Identity Provider."
   },
   "ssoDescEnd": {
-    "message": "Bitwarden, izmantojot sava identitāšu nodrošinātāja ieviešanas norādes.",
+    "message": "Cloudwarden, izmantojot sava identitāšu nodrošinātāja ieviešanas norādes.",
     "description": "This represents the end of a sentence, broken up to include links. The full sentence will be 'Configure single sign-on for Bitwarden using the implementation guide for your Identity Provider."
   },
   "userProvisioning": {
@@ -14027,26 +14027,26 @@
     "description": "This represents the beginning of a sentence, broken up to include links. The full sentence will be 'Configure SCIM (System for Cross-domain Identity Management) to automatically provision users and groups to Bitwarden using the implementation guide for your Identity Provider"
   },
   "scimIntegrationDescEnd": {
-    "message": "(System for Cross-domain Identity Management), lai automātiski nodrošinātu lietotājus un kopas Bitwarden, izmantojot sava identitāšu nodrošinātāja ieviešanas norādes.",
+    "message": "(System for Cross-domain Identity Management), lai automātiski nodrošinātu lietotājus un kopas Cloudwarden, izmantojot sava identitāšu nodrošinātāja ieviešanas norādes.",
     "description": "This represents the end of a sentence, broken up to include links. The full sentence will be 'Configure SCIM (System for Cross-domain Identity Management) to automatically provision users and groups to Bitwarden using the implementation guide for your Identity Provider"
   },
   "bwdc": {
-    "message": "Bitwarden Directory Connector"
+    "message": "Cloudwarden Directory Connector"
   },
   "bwdcDesc": {
-    "message": "Konfigurēt Bitwarden Directory Connector, lai automātiski nodrošinātu lietotājus un kopas, izmantojot sava identitāšu nodrošinātāja ieviešanas norādes."
+    "message": "Konfigurēt Cloudwarden Directory Connector, lai automātiski nodrošinātu lietotājus un kopas, izmantojot sava identitāšu nodrošinātāja ieviešanas norādes."
   },
   "eventManagement": {
     "message": "Notikumu pārvaldība"
   },
   "eventManagementDesc": {
-    "message": "Iekļaut Bitwarden notikumu žurnālus savā SIEM (System Information and Event Management) sistēmā, izmantojot operētājsistēmai atbilstošas ieviešanas norādes."
+    "message": "Iekļaut Cloudwarden notikumu žurnālus savā SIEM (System Information and Event Management) sistēmā, izmantojot operētājsistēmai atbilstošas ieviešanas norādes."
   },
   "deviceManagement": {
     "message": "Ierīču pārvaldība"
   },
   "deviceManagementDesc": {
-    "message": "Konfigurēt ierīču pārvaldību Bitwarden, izmantojot operētājsistēmai atbilstošas ieviešanas norādes."
+    "message": "Konfigurēt ierīču pārvaldību Cloudwarden, izmantojot operētājsistēmai atbilstošas ieviešanas norādes."
   },
   "crowdstrikeEventIntegrationDesc": {
     "message": "Nosūtīt notikum udatus uz savu Logscale instanci"
@@ -14265,22 +14265,22 @@
     "message": "Norēķinus var pārvaldīt Nodrošinātāju portālā"
   },
   "continueSettingUp": {
-    "message": "Turpināt Bitwarden iestatīšanu"
+    "message": "Turpināt Cloudwarden iestatīšanu"
   },
   "continueSettingUpFreeTrial": {
-    "message": "Turpināt iestatīt savu Bitwarden bezmaksas izmēģinājumu"
+    "message": "Turpināt iestatīt savu Cloudwarden bezmaksas izmēģinājumu"
   },
   "continueSettingUpPasswordManager": {
-    "message": "Turpināt Bitwarden paroļu pārvaldnieka iestatīšanu"
+    "message": "Turpināt Cloudwarden paroļu pārvaldnieka iestatīšanu"
   },
   "continueSettingUpFreeTrialPasswordManager": {
-    "message": "Turpināt iestatīt savu Bitwarden paroļu pārvaldnieka bezmaksas izmēģinājumu"
+    "message": "Turpināt iestatīt savu Cloudwarden paroļu pārvaldnieka bezmaksas izmēģinājumu"
   },
   "continueSettingUpSecretsManager": {
-    "message": "Turpināt Bitwarden noslēpumu pārvaldnieka iestatīšanu"
+    "message": "Turpināt Cloudwarden noslēpumu pārvaldnieka iestatīšanu"
   },
   "continueSettingUpFreeTrialSecretsManager": {
-    "message": "Turpināt iestatīt savu Bitwarden noslēpumu pārvaldnieka bezmaksas izmēģinājumu"
+    "message": "Turpināt iestatīt savu Cloudwarden noslēpumu pārvaldnieka bezmaksas izmēģinājumu"
   },
   "enterTeamsOrgInfo": {
     "message": "Jāievada informācija par savas komandas apvienību"
@@ -14556,14 +14556,14 @@
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'Notice: Later this month, client vault privacy will be improved and provider members will no longer have direct access to client vault items. For questions, please contact Bitwarden support'."
   },
   "contactBitwardenSupport": {
-    "message": "vērsties pie Bitwarden atbalsta.",
+    "message": "vērsties pie Cloudwarden atbalsta.",
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'Notice: Later this month, client vault privacy will be improved and provider members will no longer have direct access to client vault items. For questions, please contact Bitwarden support'. 'Bitwarden' should not be translated"
   },
   "sponsored": {
     "message": "Sponsorēts"
   },
   "licenseAndBillingManagementDesc": {
-    "message": "Pēc atjauninājumu veikšanas Bitwarden mākoņa serverī jāaugšupielādē sava licences datne, lai pielietotu nesenākās izmaiņas."
+    "message": "Pēc atjauninājumu veikšanas Cloudwarden mākoņa serverī jāaugšupielādē sava licences datne, lai pielietotu nesenākās izmaiņas."
   },
   "addToFolder": {
     "message": "Pievienot mapei"
@@ -14681,7 +14681,7 @@
     "message": "Kas ir CVV numurs?"
   },
   "learnMoreAboutApi": {
-    "message": "Uzzināt vairāk par Bitwarden API"
+    "message": "Uzzināt vairāk par Cloudwarden API"
   },
   "fileSends": {
     "message": "Datņu Send"
@@ -14858,7 +14858,7 @@
     "message": "Noslēpumu pārvaldnieka abonements tiks uzlabots atbilstoši izvēlētajam plānam"
   },
   "bitwardenPasswordManager": {
-    "message": "Bitwarden paroļu pārvaldnieks"
+    "message": "Cloudwarden paroļu pārvaldnieks"
   },
   "secretsManagerComplimentaryPasswordManager": {
     "message": "Bezmaksas viena gada Paroļu pārvaldnieka abonements tiks uzlabots uz izvēlēto plānu. Maksa netiks ieturēta līdz bezmaksas izmantošanas laika beigām."
@@ -14936,7 +14936,7 @@
     "description": "This represents the beginning of a sentence. The full sentence will be 'Manage subscription from the Provider Portal', but 'Provider Portal' will be a link and thus cannot be included in the translation file."
   },
   "toHostBitwardenOnYourOwnServer": {
-    "message": "Lai mitinātu Bitwarden savā serverī, ir nepieciešams augšupielādēt licences datni. Lai nodrošinātu bezmaksas ģimeņu plānus un papildu norēķinu iespējas pašmitinātajai apvienībai, tajā ir nepieciešams uzstādīt automātisku sinhronizēšanu."
+    "message": "Lai mitinātu Cloudwarden savā serverī, ir nepieciešams augšupielādēt licences datni. Lai nodrošinātu bezmaksas ģimeņu plānus un papildu norēķinu iespējas pašmitinātajai apvienībai, tajā ir nepieciešams uzstādīt automātisku sinhronizēšanu."
   },
   "selfHostingTitleProper": {
     "message": "Pašmitināšana"
@@ -15060,7 +15060,7 @@
     "message": "Veiksmīgi izdzēsts"
   },
   "freeFamiliesSponsorship": {
-    "message": "Noņemt bezmaksas Bitwarden ģimeņu pabalstītājdarbību"
+    "message": "Noņemt bezmaksas Cloudwarden ģimeņu pabalstītājdarbību"
   },
   "freeFamiliesSponsorshipPolicyTitleV2": {
     "message": "Remove sponsored Families plan"
@@ -15138,10 +15138,10 @@
     "message": "Automātiski pieteiktie domēni"
   },
   "automaticDomainClaimProcess": {
-    "message": "Bitwarden mēģinās pārbaudīt domēnu 3 reizes pirmajās 72 stundās. Ja domēnu nevarēs pieteikt, būs jāpārbauda DNS ieraksts saimniekdatorā un tas pašrocīgi jāpiesaka. Domēns tiks noņemts no apvienības pēc 7 dienām, ja tas nebūs pieteikts."
+    "message": "Cloudwarden mēģinās pārbaudīt domēnu 3 reizes pirmajās 72 stundās. Ja domēnu nevarēs pieteikt, būs jāpārbauda DNS ieraksts saimniekdatorā un tas pašrocīgi jāpiesaka. Domēns tiks noņemts no apvienības pēc 7 dienām, ja tas nebūs pieteikts."
   },
   "automaticDomainClaimProcess1": {
-    "message": "Bitwarden will attempt to claim the domain within 72 hours. If the domain can't be claimed, verify your DNS record and claim manually. Unclaimed domains are removed after 7 days."
+    "message": "Cloudwarden will attempt to claim the domain within 72 hours. If the domain can't be claimed, verify your DNS record and claim manually. Unclaimed domains are removed after 7 days."
   },
   "automaticDomainClaimProcess2": {
     "message": "Once claimed, existing members with claimed domains will be emailed about the "
@@ -15309,19 +15309,19 @@
     "message": "Ievietot privāto atslēgu starpliktuvē"
   },
   "openingExtension": {
-    "message": "Atver Bitwarden pārlūka paplašinājumu"
+    "message": "Atver Cloudwarden pārlūka paplašinājumu"
   },
   "somethingWentWrong": {
     "message": "Kaut kas nogāja greizi..."
   },
   "openingExtensionError": {
-    "message": "Mums bija sarežģījumi Bitwarden pārlūka paplašinājuma atvēršanā. Klikšķināt uz pogas, lai to tagad atvērtu."
+    "message": "Mums bija sarežģījumi Cloudwarden pārlūka paplašinājuma atvēršanā. Klikšķināt uz pogas, lai to tagad atvērtu."
   },
   "openExtension": {
     "message": "Atvērt paplašinājumu"
   },
   "doNotHaveExtension": {
-    "message": "Nav Bitwarden pārlūka paplašinājuma?"
+    "message": "Nav Cloudwarden pārlūka paplašinājuma?"
   },
   "installExtension": {
     "message": "Uzstādīt paplašinājumu"
@@ -15330,7 +15330,7 @@
     "message": "Atvērt pārlūka paplašinājumu"
   },
   "openedExtensionViewAtRiskPasswords": {
-    "message": "Bitwarden pārlūka paplašinājums tika veiksmīgi atvērts. Tagad var pārskatīt savas riskam pakļautās paroles."
+    "message": "Cloudwarden pārlūka paplašinājums tika veiksmīgi atvērts. Tagad var pārskatīt savas riskam pakļautās paroles."
   },
   "resellerRenewalWarningMsg": {
     "message": "Abonements drīz tiks atjaunots. Lai nodrošinātu nepārtrauktu pakalpojumu, pirms $RENEWAL_DATE$ jāsazinās ar $RESELLER$, lai apstiprinātu atjaunošanu.",
@@ -15346,7 +15346,7 @@
     }
   },
   "resellerRenewalWarningMsgV2": {
-    "message": "Your subscription will renew soon. To ensure uninterrupted service, contact your Bitwarden provider to confirm your renewal before $RENEWAL_DATE$.",
+    "message": "Your subscription will renew soon. To ensure uninterrupted service, contact your Cloudwarden provider to confirm your renewal before $RENEWAL_DATE$.",
     "placeholders": {
       "renewal_date": {
         "content": "$1",
@@ -15385,7 +15385,7 @@
     }
   },
   "resellerPastDueWarningMsgV2": {
-    "message": "The invoice for your subscription has not been paid. To ensure uninterrupted service, contact your Bitwarden provider before $GRACE_PERIOD_END$.",
+    "message": "The invoice for your subscription has not been paid. To ensure uninterrupted service, contact your Cloudwarden provider before $GRACE_PERIOD_END$.",
     "placeholders": {
       "grace_period_end": {
         "content": "$1",
@@ -15546,13 +15546,13 @@
     "message": "Jāuzlabo, lai redzētu savas apvienības notikumu žurnālus."
   },
   "upgradeEventLogMessage": {
-    "message": "Šie notikumu ir tikai piemēri, un tie neatspoguļo īstus notikumus Bitwarden apvienībā."
+    "message": "Šie notikumu ir tikai piemēri, un tie neatspoguļo īstus notikumus Cloudwarden apvienībā."
   },
   "viewEvents": {
     "message": "Apskatīt notikumus"
   },
   "cannotCreateCollection": {
-    "message": "Apvienībās, kuras izmanto Bitwarden bez maksas, var būt līdz 2 krājumiem. Jāpāriet uz maksas plānu, lai pievienotu vairāk krājumu."
+    "message": "Apvienībās, kuras izmanto Cloudwarden bez maksas, var būt līdz 2 krājumiem. Jāpāriet uz maksas plānu, lai pievienotu vairāk krājumu."
   },
   "cannotCreateSharedFolder": {
     "message": "Free organizations may have up to 2 shared folders. Upgrade to a paid plan to add more shared folders.",
@@ -15727,7 +15727,7 @@
     "message": "Droša paroļu automātiska aizpilde ar vienu klikšķi"
   },
   "setupExtensionPageDescription": {
-    "message": "Iegūsti Bitwarden pārlūka paplašinājumu un uzsāc automātisko aizpildi jau šodien"
+    "message": "Iegūsti Cloudwarden pārlūka paplašinājumu un uzsāc automātisko aizpildi jau šodien"
   },
   "getTheExtension": {
     "message": "Iegūt paplašinājumu"
@@ -15745,19 +15745,19 @@
     "message": "Pārcelties uz tīmekļa lietotni"
   },
   "bitwardenExtensionInstalled": {
-    "message": "Bitwarden paplašinājums uzstādīts."
+    "message": "Cloudwarden paplašinājums uzstādīts."
   },
   "bitwardenExtensionIsInstalled": {
-    "message": "Bitwarden paplašinājums ir uzstādīts."
+    "message": "Cloudwarden paplašinājums ir uzstādīts."
   },
   "openExtensionToAutofill": {
     "message": "Jāatver paplašinājums, lai pieteiktos un uzsāktu automātisko aizpildi."
   },
   "openBitwardenExtension": {
-    "message": "Atvērt Bitwarden paplašinājumu"
+    "message": "Atvērt Cloudwarden paplašinājumu"
   },
   "gettingStartedWithBitwardenPart1": {
-    "message": "Lai iegūtu padomus par Bitwarden izmantošanas uzsākšanu, jāapmeklē",
+    "message": "Lai iegūtu padomus par Cloudwarden izmantošanas uzsākšanu, jāapmeklē",
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'For tips on getting started with Bitwarden visit the Learning Center and Help Center'"
   },
   "gettingStartedWithBitwardenPart2": {
@@ -15765,7 +15765,7 @@
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'For tips on getting started with Bitwarden visit the Learning Center and Help Center'"
   },
   "openExtensionFromToolbarPart1": {
-    "message": "Ja paplašinājums neatvērās, var būt nepieciešams atvērt Bitwarden ar ikonu ",
+    "message": "Ja paplašinājums neatvērās, var būt nepieciešams atvērt Cloudwarden ar ikonu ",
     "description": "This will be used as part of a larger sentence, broken up to include the Bitwarden icon. The full sentence will read 'If the extension didn't open, you may need to open Bitwarden from the icon [Bitwarden Icon] on the toolbar.'"
   },
   "openExtensionFromToolbarPart2": {
@@ -15777,7 +15777,7 @@
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'For tips on getting started with Bitwarden visit the Learning Center and Help Center'"
   },
   "setupExtensionContentAlt": {
-    "message": "Ar Bitwarden pārlūka paplašinājumu var vienkārši izveidot jaunus pieteikšanās vienumus, piekļūt tiem tieši no pārlūka rīkjoslas un ātri pieteikties kontos ar Bitwarden automātisko aizpildi."
+    "message": "Ar Cloudwarden pārlūka paplašinājumu var vienkārši izveidot jaunus pieteikšanās vienumus, piekļūt tiem tieši no pārlūka rīkjoslas un ātri pieteikties kontos ar Cloudwarden automātisko aizpildi."
   },
   "restart": {
     "message": "Palaist no jauna"
@@ -15809,7 +15809,7 @@
     "message": "Par šo iestatījumu"
   },
   "permitCipherDetailsDescription": {
-    "message": "Bitwarden izmantos saglabātos pieteikšanās vienuma URI, lai noteiktu, kuru ikonu vai paroles nomaiņas URL izmantot, lai uzlabotu pieredzi. Šī pakalpojuma izmantošanas laikā nekāda informācija netiek ievākta vai saglabāta."
+    "message": "Cloudwarden izmantos saglabātos pieteikšanās vienuma URI, lai noteiktu, kuru ikonu vai paroles nomaiņas URL izmantot, lai uzlabotu pieredzi. Šī pakalpojuma izmantošanas laikā nekāda informācija netiek ievākta vai saglabāta."
   },
   "showQuickCopyActionsDetailsDescription": {
     "message": "Add 3 quick copy buttons next to items to copy your username, password, or verification code to the clipboard."
@@ -15879,7 +15879,7 @@
     }
   },
   "restoreProviderPortalAccessViaCustomerSupport": {
-    "message": "Lai atjaunotu piekļuvi savam pakalpojuma sniedzēja portālam, jāsazinās ar Bitwarden klientu atbalstu, lai atjaunotu savu abonementu.",
+    "message": "Lai atjaunotu piekļuvi savam pakalpojuma sniedzēja portālam, jāsazinās ar Cloudwarden klientu atbalstu, lai atjaunotu savu abonementu.",
     "description": "A message shown in a non-dismissible dialog to any user of a suspended providers."
   },
   "restoreProviderPortalAccessViaPaymentMethod": {
@@ -15921,7 +15921,7 @@
     "message": "Abonements atcelts"
   },
   "providersubCanceledmessage": {
-    "message": "Lai abonētu no jauna, jāsazināš ar Bitwarden klientu atbalstu."
+    "message": "Lai abonētu no jauna, jāsazināš ar Cloudwarden klientu atbalstu."
   },
   "showAll": {
     "message": "Rādīt visu"
@@ -16064,7 +16064,7 @@
     "message": "Pielāgots plāns"
   },
   "planDescCustom": {
-    "message": "Bitwarden piemērojas visu lielumu uzņēmējdarbībai, lai aizsargātu paroles un jūtīgu informāciju. Ja esi daļa no liela uzņēmuma, sazinies ar pārdošanas nodaļu, lai pieprasītu cenu piedāvājumu!"
+    "message": "Cloudwarden piemērojas visu lielumu uzņēmējdarbībai, lai aizsargātu paroles un jūtīgu informāciju. Ja esi daļa no liela uzņēmuma, sazinies ar pārdošanas nodaļu, lai pieprasītu cenu piedāvājumu!"
   },
   "builtInAuthenticator": {
     "message": "Iebūvēts autentificētājs"
@@ -16181,7 +16181,7 @@
     "message": "Bija kļūda Tavas atrašanās vietas nodokļu aprēķināšanā. Lūgums mēģināt vēlreiz."
   },
   "individualUpgradeWelcomeMessage": {
-    "message": "Laipni lūdzam Bitwarden"
+    "message": "Laipni lūdzam Cloudwarden"
   },
   "individualUpgradeDescriptionMessage": {
     "message": "Atslēdz vairāk drošības iespēju ar “Premium” vai uzsāc vienumu kopīgošanu ar plānu ģimenēm"
@@ -16202,7 +16202,7 @@
     "message": "Uzlabot tagad"
   },
   "getAdvancedOnlineSecurityWithBitwardenPremium": {
-    "message": "Get advanced online security with Bitwarden premium."
+    "message": "Get advanced online security with Cloudwarden premium."
   },
   "formWillCreateNewFamiliesOrgMessage": {
     "message": "Šīs veidlapas pabeigšana izveidos jaunu ģimeņu apvienību. Uzlabot savu bezmaksas apvienību var pārvaldības konsolē."
@@ -16211,7 +16211,7 @@
     "message": "Mēs saskārāmies ar kļūdu uzlabošanas apstrādes laikā. Lūgums mēģināt vēlreiz."
   },
   "bitwardenFreeplanMessage": {
-    "message": "Tev ir Bitwarden bezmaksas plāns"
+    "message": "Tev ir Cloudwarden bezmaksas plāns"
   },
   "upgradeCompleteSecurity": {
     "message": "Uzlabo pilnīgas drošības iegūšanai"
@@ -16229,7 +16229,7 @@
     "message": "Algoritms"
   },
   "encryptionKeySettingsHowShouldWeEncryptYourData": {
-    "message": "Jāizvēlas, kā Bitwarden vajadzētu šifrēt glabātavas datus. Visas iespējas ir drošanas, bet spēcīgāki veidi sniedz labāku aizsardzību ‒ jo īpaši pret pārlases uzbrukumiem. Bitwarden vairumam lietotāju iesaka noklusējuma iestatījumu."
+    "message": "Jāizvēlas, kā Cloudwarden vajadzētu šifrēt glabātavas datus. Visas iespējas ir drošanas, bet spēcīgāki veidi sniedz labāku aizsardzību ‒ jo īpaši pret pārlases uzbrukumiem. Cloudwarden vairumam lietotāju iesaka noklusējuma iestatījumu."
   },
   "encryptionKeySettingsIncreaseImproveSecurity": {
     "message": "Vērtību palielināšana virs noklusējuma uzlabos drošību, bet iznākumā var būt nepieciešams ilgāks laiks glabātavas atslēgšanai."
@@ -16260,10 +16260,10 @@
     "description": "VFO1 terminology variant of 'blockClaimedDomainAccountCreationDesc', shown in the policies list"
   },
   "blockClaimedDomainAccountCreationDescV2": {
-    "message": "Block members from using your claimed domain to create Bitwarden accounts outside your organization."
+    "message": "Block members from using your claimed domain to create Cloudwarden accounts outside your organization."
   },
   "blockClaimedDomainAccountCreationDescV2Vfo1": {
-    "message": "Block members from using your claimed domain to create Bitwarden accounts outside of your organization vault.",
+    "message": "Block members from using your claimed domain to create Cloudwarden accounts outside of your organization vault.",
     "description": "VFO1 terminology variant of 'blockClaimedDomainAccountCreationDescV2'"
   },
   "blockClaimedDomainAccountCreationPrerequisiteV2": {
@@ -16301,7 +16301,7 @@
     }
   },
   "removeMasterPasswordForOrgUserKeyConnector": {
-    "message": "Apvienība vairs neizmanto galvenās paroles, lai pieteiktos Bitwarden. Lai turpinātu, jāapliecina apvienība un domēns."
+    "message": "Apvienība vairs neizmanto galvenās paroles, lai pieteiktos Cloudwarden. Lai turpinātu, jāapliecina apvienība un domēns."
   },
   "continueWithLogIn": {
     "message": "Turpināt ar pieteikšanos"
@@ -16504,7 +16504,7 @@
     "message": "Decline and leave"
   },
   "youHaveBitwardenPremium": {
-    "message": "Tev ir Bitwarden Premium"
+    "message": "Tev ir Cloudwarden Premium"
   },
   "viewAndManagePremiumSubscription": {
     "message": "Apskatīt un pārvaldīt savu Premium abonementu"
@@ -16543,13 +16543,13 @@
     "message": "Jau ir abonements?"
   },
   "alreadyHaveSubscriptionSelfHostedMessage": {
-    "message": "Jāatver abonementu lapa Bitwarden mākoņa kontā un jālejupielādē licences datne. Tad jāatgriežas šajā skatā un zemāk jāaugšupielādē."
+    "message": "Jāatver abonementu lapa Cloudwarden mākoņa kontā un jālejupielādē licences datne. Tad jāatgriežas šajā skatā un zemāk jāaugšupielādē."
   },
   "alreadyHaveSubscriptionSelfHostedMessageV2": {
-    "message": "Open the subscription page on your Bitwarden account and download your license file. Then return to this screen and upload it below."
+    "message": "Open the subscription page on your Cloudwarden account and download your license file. Then return to this screen and upload it below."
   },
   "alreadyHaveSubscriptionSelfHostedMessageV3": {
-    "message": "Savā mākoņvidē jāpiesakās savā Bitwarden kontā, jāatver abonementu lapa un jālejupielādē licences datnes. Tad jāatgriežas šajā skatā un jāaugšupielādē tā."
+    "message": "Savā mākoņvidē jāpiesakās savā Cloudwarden kontā, jāatver abonementu lapa un jālejupielādē licences datnes. Tad jāatgriežas šajā skatā un jāaugšupielādē tā."
   },
   "viewAllPlans": {
     "message": "Apskatīt visus plānus"
@@ -16635,7 +16635,7 @@
     "message": "Get the extension for easy vault access"
   },
   "extensionPromptBody": {
-    "message": "With the browser extension installed, you'll take Bitwarden everywhere online. It'll fill in passwords, so you can log into your accounts with a single click."
+    "message": "With the browser extension installed, you'll take Cloudwarden everywhere online. It'll fill in passwords, so you can log into your accounts with a single click."
   },
   "extensionPromptImageAlt": {
     "message": "A web browser showing the Bitwarden extension with autofill items for the current webpage."
@@ -16686,10 +16686,10 @@
     "message": "Invalid Send password"
   },
   "vaultWelcomeDialogTitle": {
-    "message": "You're in! Welcome to Bitwarden"
+    "message": "You're in! Welcome to Cloudwarden"
   },
   "vaultWelcomeDialogDescription": {
-    "message": "Store all your passwords and personal info in your Bitwarden vault. We'll show you around."
+    "message": "Store all your passwords and personal info in your Cloudwarden vault. We'll show you around."
   },
   "vaultWelcomeDialogPrimaryCta": {
     "message": "Start tour"
@@ -17689,7 +17689,7 @@
     "message": "Payment successful"
   },
   "paymentSuccessfulProcessingMessage": {
-    "message": "Your upgrade is being processed. It may be a few minutes before you see Premium features in Bitwarden."
+    "message": "Your upgrade is being processed. It may be a few minutes before you see Premium features in Cloudwarden."
   },
   "planPurchased": {
     "message": "Plan purchased"

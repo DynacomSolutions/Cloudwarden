@@ -21,7 +21,7 @@
     "message": "Sve kritične aplikacije"
   },
   "appLogoLabel": {
-    "message": "Bitwarden logo"
+    "message": "Cloudwarden logo"
   },
   "criticalApplications": {
     "message": "Kritične aplikacije"
@@ -399,7 +399,7 @@
     }
   },
   "membersWillReceiveSecurityTask": {
-    "message": "Članovima tvoje organizacije biti će dodijeljen zadatak promjene ranjivih lozinki. Primiti će obavijest unutar Bitwarden proširenja preglednika."
+    "message": "Članovima tvoje organizacije biti će dodijeljen zadatak promjene ranjivih lozinki. Primiti će obavijest unutar Cloudwarden proširenja preglednika."
   },
   "membersAtRiskCount": {
     "message": "Rizičnih članova: $COUNT$",
@@ -847,10 +847,10 @@
     "message": "Učini dvostruku autentifikaciju besprijekornom"
   },
   "totpHelper": {
-    "message": "Bitwarden može pohraniti i ispuniti kodove za dvostruku autentifikaciju. Kopiraj i zalijepi ključ u ovo polje."
+    "message": "Cloudwarden može pohraniti i ispuniti kodove za dvostruku autentifikaciju. Kopiraj i zalijepi ključ u ovo polje."
   },
   "totpHelperWithCapture": {
-    "message": "Bitwarden može pohraniti i ispuniti kodove provjeru dvostruke autentifikacije. Odaberi ikonu kamere i označi QR kôd za provjeru autentičnosti ove web stranice ili kopiraj i zalijepi ključ u ovo polje."
+    "message": "Cloudwarden može pohraniti i ispuniti kodove provjeru dvostruke autentifikacije. Odaberi ikonu kamere i označi QR kôd za provjeru autentičnosti ove web stranice ili kopiraj i zalijepi ključ u ovo polje."
   },
   "totpCapture": {
     "message": "Skeniraj QR kôd autentifikatora s trenutne web stranice"
@@ -2222,7 +2222,7 @@
     "message": "Prijava uređajem"
   },
   "loginWithDeviceEnabledNote": {
-    "message": "Prijava uređajem mora biti namještena u postavka Bitwarden mobilne aplikacije. Trebaš drugu opciju?"
+    "message": "Prijava uređajem mora biti namještena u postavka Cloudwarden mobilne aplikacije. Trebaš drugu opciju?"
   },
   "needAnotherOptionV1": {
     "message": "Trebaš drugu opciju?"
@@ -2357,7 +2357,7 @@
     "message": "Prijavi se"
   },
   "loginPageEmailEntryScreenTitle": {
-    "message": "Log in to Bitwarden"
+    "message": "Log in to Cloudwarden"
   },
   "enterTheCodeSentToYourEmail": {
     "message": "Unesi kôd poslan e-poštom"
@@ -2387,7 +2387,7 @@
     "message": "Što je uređaj?"
   },
   "aDeviceIs": {
-    "message": "Uređaj je jedinstvena instalacija Bitwarden aplikacije gdje si prijavljen/a. Ponovna instalacija, brisanje podataka aplikacije ili kolačića može rezultirati višestrukim prikazom uređaja."
+    "message": "Uređaj je jedinstvena instalacija Cloudwarden aplikacije gdje si prijavljen/a. Ponovna instalacija, brisanje podataka aplikacije ili kolačića može rezultirati višestrukim prikazom uređaja."
   },
   "logInInitiated": {
     "message": "Pokrenuta prijava"
@@ -2694,7 +2694,7 @@
     "message": "Obavijest je poslana na tvoj uređaj."
   },
   "notificationSentDevicePart1": {
-    "message": "Otključaj Bitwarden na svojem uređaju ili na "
+    "message": "Otključaj Cloudwarden na svojem uređaju ili na "
   },
   "accessAttemptBy": {
     "message": "$EMAIL$ pokušava pristupiti",
@@ -2718,7 +2718,7 @@
     "message": "Provjeri slaže li se jedinstvena fraza s ovdje prikazanom prije odobravanja."
   },
   "notificationSentDeviceComplete": {
-    "message": "Otključaj Bitwarden na svojem uređaju. Provjeri slaže li se jedinstvena fraza s ovdje prikazanom prije odobravanja."
+    "message": "Otključaj Cloudwarden na svojem uređaju. Provjeri slaže li se jedinstvena fraza s ovdje prikazanom prije odobravanja."
   },
   "aNotificationWasSentToYourDevice": {
     "message": "Obavijest je poslana na tvoj uređaj"
@@ -2779,7 +2779,7 @@
     "message": "Autentifikatorska aplikacija"
   },
   "authenticatorAppDescV2": {
-    "message": "Unesi kôd generiran autentifikatorskom aplikacijom kao npr. Bitwarden Authenticatorom.",
+    "message": "Unesi kôd generiran autentifikatorskom aplikacijom kao npr. Cloudwarden Authenticatorom.",
     "description": "'Bitwarden Authenticator' is a product name and should not be translated."
   },
   "yubiKeyTitleV2": {
@@ -2932,7 +2932,7 @@
     "message": "Ovaj izvoz šifrira tvoje podatke koristeći ključ za šifriranje. Promijeniš li naknadno ključ za šifriranje, potrebno je ponovno napraviti izvoz jer nećeš moći dešifrirati ovu izvezenu datoteku."
   },
   "encExportAccountWarningDesc": {
-    "message": "Ključ za šifriranje jedinstven je za svakog Bitwarden korisnika, kako bi se šifrirani izvoz mogao uvesti u drugi korisnički račun."
+    "message": "Ključ za šifriranje jedinstven je za svakog Cloudwarden korisnika, kako bi se šifrirani izvoz mogao uvesti u drugi korisnički račun."
   },
   "exportNoun": {
     "message": "Izvoz",
@@ -2988,10 +2988,10 @@
     "message": "This KeePass database is too large to import."
   },
   "accountRestrictedOptionDescription": {
-    "message": "Upotrijebi svoj ključ za šifriranje računa, izveden iz korisničkog imena i glavne lozinke za šifriranje izvoza i ograničavanje uvoza samo na trenutni Bitwarden račun."
+    "message": "Upotrijebi svoj ključ za šifriranje računa, izveden iz korisničkog imena i glavne lozinke za šifriranje izvoza i ograničavanje uvoza samo na trenutni Cloudwarden račun."
   },
   "passwordProtectedOptionDescription": {
-    "message": "Postavi lozinku za šifriranje izvozne datoteke. Datoteku uvezi u u bilo koji Bitwarden račun koristeći lozinku."
+    "message": "Postavi lozinku za šifriranje izvozne datoteke. Datoteku uvezi u u bilo koji Cloudwarden račun koristeći lozinku."
   },
   "exportTypeHeading": {
     "message": "Tip izvoza"
@@ -3162,7 +3162,7 @@
     "message": "Zahtjev u tijeku"
   },
   "logBackInOthersToo": {
-    "message": "Molimo, ponovno se prijavi. Ako koristiš druge aplikacije Bitwarden i u njima napravi odjavu/prijavu."
+    "message": "Molimo, ponovno se prijavi. Ako koristiš druge aplikacije Cloudwarden i u njima napravi odjavu/prijavu."
   },
   "changeMasterPassword": {
     "message": "Promjeni glavnu lozinku"
@@ -3208,7 +3208,7 @@
     "description": "Memory refers to computer memory (RAM). MB is short for megabytes."
   },
   "argon2Warning": {
-    "message": "Postavljanje previsokih KDF iteracija, memorije i paralelizama može rezultirati slabijom izvedbom prilikom prijave/odjave u Bitwarden na starijim ili slabijim uređajima. Predlažemo da vrijednost povećavaš malo po malo i isprobaš na svim svojim uređajima."
+    "message": "Postavljanje previsokih KDF iteracija, memorije i paralelizama može rezultirati slabijom izvedbom prilikom prijave/odjave u Cloudwarden na starijim ili slabijim uređajima. Predlažemo da vrijednost povećavaš malo po malo i isprobaš na svim svojim uređajima."
   },
   "kdfParallelism": {
     "message": "KDF paralelizam"
@@ -3694,7 +3694,7 @@
     "description": "Followed by a literal filename (my_passwords.json) rendered as code."
   },
   "importGnomeInstructionsFileHere": {
-    "message": "file here to Bitwarden.",
+    "message": "file here to Cloudwarden.",
     "description": "Follows the my_passwords.json filename."
   },
   "importPasswordagentInstructions": {
@@ -3827,7 +3827,7 @@
     "message": "Pravila domene"
   },
   "domainRulesDesc": {
-    "message": "Ako imaš iste pristupne podatke na više web domena, možeš web mjesto označiti kao „ekvivalentno”. Globalne domene su one koje je za tebe već stvorio Bitwarden."
+    "message": "Ako imaš iste pristupne podatke na više web domena, možeš web mjesto označiti kao „ekvivalentno”. Globalne domene su one koje je za tebe već stvorio Cloudwarden."
   },
   "globalEqDomains": {
     "message": "Globalne ekvivalentne domene"
@@ -3891,7 +3891,7 @@
     "message": "Ako je uključen SSO, prijava dvofaktorskom autentifikacijom može biti nametnuta od strane davatelja usluga."
   },
   "twoStepLoginRecoveryWarning": {
-    "message": "Uključivanje prijave dvostrukom autentifikacijom može ti trajno onemogućiti pristup Bitwarden računu. Kôd za oporavak ti omogućuje pristup računu u slučaju kada više ne možeš koristiti redovnog pružatelja prijave dvostrukom autentifikacijom (npr. izgubiš svoj uređaj). Bitwarden podrška neće ti moći pomoći ako izgubiš pristup svojem računu. Savjetujemo da zapišeš ili ispišeš kôd za oporavak i spremiš ga na sigurno mjesto."
+    "message": "Uključivanje prijave dvostrukom autentifikacijom može ti trajno onemogućiti pristup Cloudwarden računu. Kôd za oporavak ti omogućuje pristup računu u slučaju kada više ne možeš koristiti redovnog pružatelja prijave dvostrukom autentifikacijom (npr. izgubiš svoj uređaj). Cloudwarden podrška neće ti moći pomoći ako izgubiš pristup svojem računu. Savjetujemo da zapišeš ili ispišeš kôd za oporavak i spremiš ga na sigurno mjesto."
   },
   "restrictedItemTypePolicy": {
     "message": "Ukloni stavku Platna kartica"
@@ -3913,7 +3913,7 @@
     "message": "Pravila jedne ili više organizacija onemogućuju uvoz stavke vrste Platna kartica u tvoj trezor."
   },
   "yourSingleUseRecoveryCode": {
-    "message": "Tvoj jednokratni kôd za oporavak može se koristiti za isključivanje prijave dvostruke autentifikacije u slučaju da izgubiš pristup svom davatelju usluge dvostruke autentifikacije. Bitwarden preporučuje da zapišeš kôd za oporavak i čuvaš ga na sigurnom mjestu."
+    "message": "Tvoj jednokratni kôd za oporavak može se koristiti za isključivanje prijave dvostruke autentifikacije u slučaju da izgubiš pristup svom davatelju usluge dvostruke autentifikacije. Cloudwarden preporučuje da zapišeš kôd za oporavak i čuvaš ga na sigurnom mjestu."
   },
   "viewRecoveryCode": {
     "message": "Kôd za oporavak"
@@ -4011,13 +4011,13 @@
     }
   },
   "continueToExternalUrlDesc": {
-    "message": "Napuštaš Bitwarden i otvaraš vanjsku web stranicu u novom prozoru."
+    "message": "Napuštaš Cloudwarden i otvaraš vanjsku web stranicu u novom prozoru."
   },
   "twoStepContinueToBitwardenUrlTitle": {
     "message": "Nastavi na bitwarden.com?"
   },
   "twoStepContinueToBitwardenUrlDesc": {
-    "message": "Bitwarden autentifikator omogućuje pohranu ključeva za autentifikator i generiranje TOTP kodova za provjeru dvostruke autentifikacije. Saznaj više na bitwarden.com."
+    "message": "Cloudwarden autentifikator omogućuje pohranu ključeva za autentifikator i generiranje TOTP kodova za provjeru dvostruke autentifikacije. Saznaj više na bitwarden.com."
   },
   "twoStepAuthenticatorScanCodeV2": {
     "message": "Skeniraj donji QR kôd svojom autentifikatorskom aplikacijom ili unesi ključ."
@@ -4059,7 +4059,7 @@
     "message": "Spremite obrazac."
   },
   "twoFactorYubikeyWarning": {
-    "message": "Zbog platformskih ograničenja, YubiKey nije moguće koristiti s Bitwarden aplikacijama na svim platformama. Za pristup računu kada nije moguće koristiti YubiKey, trebalo bi uključiti drugog pružatelja prijave dvostrukom autentifikacijom. Platforme na kojima je YubiKey podržan:"
+    "message": "Zbog platformskih ograničenja, YubiKey nije moguće koristiti s Cloudwarden aplikacijama na svim platformama. Za pristup računu kada nije moguće koristiti YubiKey, trebalo bi uključiti drugog pružatelja prijave dvostrukom autentifikacijom. Platforme na kojima je YubiKey podržan:"
   },
   "twoFactorYubikeySupportUsb": {
     "message": "Web trezor, desktop aplikacija, CLI i sva proširenja preglednika na uređajima s USB priključkom na koji se može spojiti tvoj YubiKey."
@@ -4110,7 +4110,7 @@
     "message": "Onemogući sve ključeve"
   },
   "twoFactorDuoDesc": {
-    "message": "Unesi podatke o Bitwarden aplikaciji iz svoje Duo Admin ploče."
+    "message": "Unesi podatke o Cloudwarden aplikaciji iz svoje Duo Admin ploče."
   },
   "twoFactorDuoClientId": {
     "message": "ID klijenta"
@@ -4161,7 +4161,7 @@
     "message": "Spremi obrazac."
   },
   "twoFactorU2fWarning": {
-    "message": "Zbog platformskih ograničenja, FIDO U2F nije moguće koristiti s Bitwarden aplikacijama na svim platformama. Za pristup računu kada nije moguće koristiti FIDO U2F trebalo bi uključiti drugog pružatelja prijave dvostrukom autentifikacijom. Platforme na kojima je FIDO U2F podržan:"
+    "message": "Zbog platformskih ograničenja, FIDO U2F nije moguće koristiti s Cloudwarden aplikacijama na svim platformama. Za pristup računu kada nije moguće koristiti FIDO U2F trebalo bi uključiti drugog pružatelja prijave dvostrukom autentifikacijom. Platforme na kojima je FIDO U2F podržan:"
   },
   "twoFactorU2fSupportWeb": {
     "message": "Web trezor i proširenja preglednika na stolnim/prijenosnim računalima s U2F podržanim preglednikom (npr. Chrome, Opera, Vivaldi ili Firefox s omogućenim FIDO U2F)."
@@ -4176,7 +4176,7 @@
     "message": "Došlo je do pogreške kod očitavanja sigurnosnog ključa. Pokušaj ponovno."
   },
   "twoFactorRecoveryYourCode": {
-    "message": "Tvoj kôd za oporavak Bitwarden prijave dvostrukom autentifikacijom"
+    "message": "Tvoj kôd za oporavak Cloudwarden prijave dvostrukom autentifikacijom"
   },
   "twoFactorRecoveryNoCode": {
     "message": "Još nije omogućen niti jedan pružatelj prijave dvostrukom autentifikacijom. Nakon omogućavanja, ovdje ćeš pronaći svoj kôd za oporavak."
@@ -4266,7 +4266,7 @@
     "message": "and "
   },
   "passkeyLoginReportHowToUse": {
-    "message": "how to use them in Bitwarden."
+    "message": "how to use them in Cloudwarden."
   },
   "passkeyLoginFound": {
     "message": "Logins that support passkeys"
@@ -4526,7 +4526,7 @@
     }
   },
   "bitwardenFamiliesPlan": {
-    "message": "Paket Bitwarden Families."
+    "message": "Paket Cloudwarden Families."
   },
   "addons": {
     "message": "Dodaci"
@@ -4738,7 +4738,7 @@
     }
   },
   "churnOfferDiscountBody": {
-    "message": "As a thank-you for being a long-time Bitwarden customer, we'd like to offer you a $DISCOUNT$ discount on your next $DURATION$ of service.",
+    "message": "As a thank-you for being a long-time Cloudwarden customer, we'd like to offer you a $DISCOUNT$ discount on your next $DURATION$ of service.",
     "description": "Body copy on the churn-mitigation offer card. DISCOUNT = discount amount; DURATION = service duration (e.g. 'year' or '6 months')",
     "placeholders": {
       "discount": {
@@ -4800,7 +4800,7 @@
     }
   },
   "churnOfferDiscountBodyRecurringAmount": {
-    "message": "As a thank-you for being a long-time Bitwarden customer, we'd like to offer you $AMOUNT$ off each $INTERVAL$ for the next $DURATION$.",
+    "message": "As a thank-you for being a long-time Cloudwarden customer, we'd like to offer you $AMOUNT$ off each $INTERVAL$ for the next $DURATION$.",
     "description": "Body copy on the churn-mitigation offer card for a fixed-amount discount that repeats each billing period. AMOUNT = discount amount (e.g. '$15.00'); INTERVAL = billing interval unit (e.g. 'month'); DURATION = discount duration (e.g. 'year' or '6 months')",
     "placeholders": {
       "amount": {
@@ -5391,7 +5391,7 @@
     "message": "Vanjski Id"
   },
   "externalIdDesc": {
-    "message": "Vanjski id je nešifrirana referenca koju koristi Bitwarden Directory Connector i API."
+    "message": "Vanjski id je nešifrirana referenca koju koristi Cloudwarden Directory Connector i API."
   },
   "ssoExternalId": {
     "message": "SSO vanjski Id"
@@ -5454,13 +5454,13 @@
     "message": "Pozovi"
   },
   "inviteUserDesc": {
-    "message": "Pozovi novog korisnika u svoju organizaciju unosom njihove Bitwarden adrese e-pošte. Ako još nemaju Bitwarden račun, biti će pozvani da stvore novi."
+    "message": "Pozovi novog korisnika u svoju organizaciju unosom njihove Cloudwarden adrese e-pošte. Ako još nemaju Cloudwarden račun, biti će pozvani da stvore novi."
   },
   "inviteUserDescription": {
     "message": "Pozovi nove korisnike u svoju organizaciju unosom njihove adrese e-pošte."
   },
   "inviteUserDescSharedFolders": {
-    "message": "Invite a new user to your organization vault by entering their Bitwarden account email address below. If they do not have a Bitwarden account already, they will be prompted to create a new account.",
+    "message": "Invite a new user to your organization vault by entering their Cloudwarden account email address below. If they do not have a Cloudwarden account already, they will be prompted to create a new account.",
     "description": "VFO1 (shared folder terminology) variant of inviteUserDesc, shown when the vfo1-foundation flag is enabled."
   },
   "inviteMultipleEmailDesc": {
@@ -5603,7 +5603,7 @@
     "message": "CLI"
   },
   "bitWebVault": {
-    "message": "Bitwarden Web trezor"
+    "message": "Cloudwarden Web trezor"
   },
   "bitSecretsManager": {
     "message": "Bitwarden Secrets Manager"
@@ -6925,7 +6925,7 @@
     "message": "Return to registration"
   },
   "joinOrganizationDesc": {
-    "message": "Primljen je poziv za pridruživanje gore navedenoj organizaciji. Za prihvaćanje poziva potrebno je prijaviti se na svoj postojeći Bitwarden račun ili stvoriti novi."
+    "message": "Primljen je poziv za pridruživanje gore navedenoj organizaciji. Za prihvaćanje poziva potrebno je prijaviti se na svoj postojeći Cloudwarden račun ili stvoriti novi."
   },
   "finishJoiningThisOrganizationBySettingAMasterPassword": {
     "message": "Dovrši pridruživanje organizaciji postavljanjem glavne lozinke."
@@ -7066,10 +7066,10 @@
     "message": "Ako tvoj račun postoji, poslali smo ti e-poštu s daljnjim uputama."
   },
   "deleteRecoverConfirmDesc": {
-    "message": "Zatraženo je brisanje tvojeg Bitwarden računa. Klikni u nastavku za potvrdu brisanja računa."
+    "message": "Zatraženo je brisanje tvojeg Cloudwarden računa. Klikni u nastavku za potvrdu brisanja računa."
   },
   "deleteRecoverOrgConfirmDesc": {
-    "message": "Zatraženo je brisanje tvoje Bitwarden organizacije."
+    "message": "Zatraženo je brisanje tvoje Cloudwarden organizacije."
   },
   "myOrganization": {
     "message": "Moja organizacija"
@@ -7403,7 +7403,7 @@
     }
   },
   "updateEncryptionKeyWarning": {
-    "message": "Nakon ažuriranja svojeg ključa za šifriranje, obavezno se trebaš odjaviti i ponovno prijaviti u sve Bitwarden aplikacije koje trenutno koristiš (npr. mobilna aplikacija, proširenje preglednika, ...). Ako se ne odjaviš i ponovno prijaviš (čime se preuzima tvoj novi ključ za šifriranje) može doći do oštećenja spremljenih podataka. Pokušati ćemo te automatski odjaviti, no, to bi možda moglo potrajati."
+    "message": "Nakon ažuriranja svojeg ključa za šifriranje, obavezno se trebaš odjaviti i ponovno prijaviti u sve Cloudwarden aplikacije koje trenutno koristiš (npr. mobilna aplikacija, proširenje preglednika, ...). Ako se ne odjaviš i ponovno prijaviš (čime se preuzima tvoj novi ključ za šifriranje) može doći do oštećenja spremljenih podataka. Pokušati ćemo te automatski odjaviti, no, to bi možda moglo potrajati."
   },
   "updateEncryptionKeyAccountExportWarning": {
     "message": "Svi prethodni izvozi ograničeni ovim računom postati će nevažeći."
@@ -7439,7 +7439,7 @@
     "message": "Ništa nije odabrano."
   },
   "receiveMarketingEmails": {
-    "message": "Receive updates from Bitwarden in your inbox."
+    "message": "Receive updates from Cloudwarden in your inbox."
   },
   "subscribe": {
     "message": "Pretplati se"
@@ -7546,7 +7546,7 @@
     "message": "Copy and paste the link where your team will find it: your onboarding checklist, a Slack #new-joiners channel, Notion docs, or an email template."
   },
   "viewBitwardenOnboardingGuide": {
-    "message": "View Bitwarden onboarding guide"
+    "message": "View Cloudwarden onboarding guide"
   },
   "coachMarkStepOfTotal": {
     "message": "$CURRENT$ of $TOTAL$",
@@ -7790,7 +7790,7 @@
     "message": "API ključ"
   },
   "apiKeyDesc": {
-    "message": "API ključ se može koristiti za autentifikaciju prema javnom Bitwarden API-ju."
+    "message": "API ključ se može koristiti za autentifikaciju prema javnom Cloudwarden API-ju."
   },
   "apiKeyRotateDesc": {
     "message": "Rotacija API ključa poništiti će prethodno važeći ključ. Možeš napraviti rotaciju svog API ključa ako misliš da treutni ključ više nije siguran za upotrebu."
@@ -8149,7 +8149,7 @@
     "description": "VFO1 terminology variant of 'singleOrgPolicyDescV2'"
   },
   "singleOrgBlockCreateMessage": {
-    "message": "Tvoja organizacija ima pravilo koje ti ne dozvoljava pridruživanje drugim organizacijama. Molimo kontaktiraj administratora svoje organizacije ili se prijavi s privatnim Bitwarden računom."
+    "message": "Tvoja organizacija ima pravilo koje ti ne dozvoljava pridruživanje drugim organizacijama. Molimo kontaktiraj administratora svoje organizacije ili se prijavi s privatnim Cloudwarden računom."
   },
   "singleOrgPolicyMemberWarning": {
     "message": "Nesukladni članovi bit će opozvani dok ne napuste sve druge organizacije. Administratori su izuzeti i mogu vratiti članove nakon što se ispuni usklađenost."
@@ -8400,7 +8400,7 @@
     "message": "Imaš problem? Preuzmi dijagnostičko izvješće i podijeli ga s"
   },
   "bitwardenSupport": {
-    "message": "Bitwarden podrškom",
+    "message": "Cloudwarden podrškom",
     "description": "Link text that follows the troubleshooting description sentence. 'Bitwarden' should not be translated."
   },
   "download": {
@@ -8457,7 +8457,7 @@
     "message": "Uredi kontakt u nuždi"
   },
   "inviteEmergencyContactDesc": {
-    "message": "Pozovi novi kontakt u nuždi unosom njihove Bitwarden adrese e-pošte. Ako još nemaju Bitwarden račun, biti će pozvani da stvore novi."
+    "message": "Pozovi novi kontakt u nuždi unosom njihove Cloudwarden adrese e-pošte. Ako još nemaju Cloudwarden račun, biti će pozvani da stvore novi."
   },
   "emergencyAccessRecoveryInitiated": {
     "message": "Pokrenut pristup u nuždi"
@@ -8496,7 +8496,7 @@
     "message": "Pozvani korisnik."
   },
   "acceptEmergencyAccess": {
-    "message": "Pozvani ste da postanete kontakt u nuždi za našeg gore navedenog korisnika. Za prihvat poziva, prijavite se u Bitwarden. Ako još nemate Bitwarden račun, možete jednostavno stvoriti novi."
+    "message": "Pozvani ste da postanete kontakt u nuždi za našeg gore navedenog korisnika. Za prihvat poziva, prijavite se u Cloudwarden. Ako još nemate Cloudwarden račun, možete jednostavno stvoriti novi."
   },
   "emergencyInviteAcceptFailed": {
     "message": "Nije moguće prihvatiti poziv. Zamolite korisnika da pošalje novi poziv."
@@ -8682,7 +8682,7 @@
     "message": "Kako uključiti automatsku potvrdu korisnika"
   },
   "autoConfirmExtension1": {
-    "message": "Otvori svoje Bitwarden proširenje"
+    "message": "Otvori svoje Cloudwarden proširenje"
   },
   "autoConfirmExtension2": {
     "message": "Odaberi",
@@ -8693,7 +8693,7 @@
     "description": "This is a fragment of a larger sencence. The whole sentence will read: 'Select Turn on'"
   },
   "autoConfirmExtensionOpened": {
-    "message": "Uspješno otvoreno Bitwarden proširenje za preglednik. Sada možeš aktivirati postavku automatske potvrde korisnika."
+    "message": "Uspješno otvoreno Cloudwarden proširenje za preglednik. Sada možeš aktivirati postavku automatske potvrde korisnika."
   },
   "autoConfirmPolicyEditDescription": {
     "message": "Novi korisnici pozvani u organizaciju bit će automatski potvrđeni kada se uređaj administratora otključa. Prije uključivanja ove politike, pregledaj i prihvati sljedeće: ",
@@ -8906,7 +8906,7 @@
     "description": "VFO1 terminology variant of 'uriMatchDetectionPolicyDesc', shown in the policies list"
   },
   "uriMatchDetectionPolicyDescV2": {
-    "message": "Set a default for which parts of a website address (URI) need to match for Bitwarden to suggest a login for autofill. This policy won't be enforced for owners and admins."
+    "message": "Set a default for which parts of a website address (URI) need to match for Cloudwarden to suggest a login for autofill. This policy won't be enforced for owners and admins."
   },
   "uriMatchDetectionOptionsLabel": {
     "message": "Zadano otkrivanje podudaranja URI-ja"
@@ -8926,7 +8926,7 @@
     "message": "Custom autofill rule set"
   },
   "fillAssistRulesUrlHint": {
-    "message": "By default, fill assist uses Bitwarden's curated rule set. Enter a URL here to override it with your own."
+    "message": "By default, fill assist uses Cloudwarden's curated rule set. Enter a URL here to override it with your own."
   },
   "invalidFillAssistRulesUrl": {
     "message": "Enter a valid URL",
@@ -9039,7 +9039,7 @@
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "sendAccessTaglineProductDesc": {
-    "message": "Pomoću Bitwarden Send jednostavno i sigurno pošalji osjetljive, privremene podatke.",
+    "message": "Pomoću Cloudwarden Send jednostavno i sigurno pošalji osjetljive, privremene podatke.",
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "sendAccessTaglineLearnMore": {
@@ -9105,7 +9105,7 @@
     "message": "Bitwarden Secrets Manager"
   },
   "moreProductsFromBitwarden": {
-    "message": "Više Bitwarden proizvoda"
+    "message": "Više Cloudwarden proizvoda"
   },
   "requestAccessToSecretsManager": {
     "message": "Zatraži pristup za Secrets Manager"
@@ -9151,7 +9151,7 @@
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Learn more about Bitwarden Send or sign up to **try it today.**'"
   },
   "sendAccessCreatorIdentifier": {
-    "message": "Bitwarden korisnik $USER_IDENTIFIER$ je s tobom podijelio/la",
+    "message": "Cloudwarden korisnik $USER_IDENTIFIER$ je s tobom podijelio/la",
     "placeholders": {
       "user_identifier": {
         "content": "$1",
@@ -9176,7 +9176,7 @@
     "description": "Toast message shown when a user clicks the resend code link on the Send access page. 'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "viewSendHiddenEmailWarning": {
-    "message": "Bitwarden korisnik koji je stvorio ovaj Send odabrao/la je sakriti svoju e-poštu. Koristi i/ili preuzmi ove podatke samo ako vjeruješ izvoru iz kojeg je primljena ova vezu.",
+    "message": "Cloudwarden korisnik koji je stvorio ovaj Send odabrao/la je sakriti svoju e-poštu. Koristi i/ili preuzmi ove podatke samo ako vjeruješ izvoru iz kojeg je primljena ova vezu.",
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "expirationDateIsInvalid": {
@@ -9548,10 +9548,10 @@
     "message": "Pogreška pri dešifriranju"
   },
   "couldNotDecryptVaultItem": {
-    "message": "Bitwarden could not decrypt the vault item listed below. Contact Bitwarden Customer Support and provide the item ID below to see if it can be recovered."
+    "message": "Cloudwarden could not decrypt the vault item listed below. Contact Cloudwarden Customer Support and provide the item ID below to see if it can be recovered."
   },
   "couldNotDecryptVaultItems": {
-    "message": "Bitwarden could not decrypt the vault items listed below. Contact Bitwarden Customer Support and provide the item IDs below to see if they can be recovered."
+    "message": "Cloudwarden could not decrypt the vault items listed below. Contact Cloudwarden Customer Support and provide the item IDs below to see if they can be recovered."
   },
   "itemId": {
     "message": "Item ID",
@@ -9574,7 +9574,7 @@
     "message": "Postavke davatelja"
   },
   "setupProviderLoginDesc": {
-    "message": "Trebaš postaviti novog davatelja usluga. Za nastavak, potrebno se prijaviti ili stvoriti novi Bitwarden račun."
+    "message": "Trebaš postaviti novog davatelja usluga. Za nastavak, potrebno se prijaviti ili stvoriti novi Cloudwarden račun."
   },
   "setupProviderDesc": {
     "message": "Unesi detalje u nastavku za dovršetak postavljanja davatelja usluga. Obrati se korisničkoj podršci ako imaš pitanja."
@@ -9605,13 +9605,13 @@
     "message": "Servisni korisnik može pristupiti i upravljati svim organizacijama."
   },
   "providerInviteUserDesc": {
-    "message": "Pozovi novog korisnika svom davatelju usluga unosom adrese e-pošte Bitwarden računa. Ako nemaju Bitwarden račun, trebati će napraviti novi."
+    "message": "Pozovi novog korisnika svom davatelju usluga unosom adrese e-pošte Cloudwarden računa. Ako nemaju Cloudwarden račun, trebati će napraviti novi."
   },
   "joinProvider": {
     "message": "Pridruži se davatelju usluga"
   },
   "joinProviderDesc": {
-    "message": "Pozvan/a si da se pridružiš gore navedenom davatelju usluga. Za prihvat poziva, moraš se prijaviti ili stvoriti novi Bitwarden račun."
+    "message": "Pozvan/a si da se pridružiš gore navedenom davatelju usluga. Za prihvat poziva, moraš se prijaviti ili stvoriti novi Cloudwarden račun."
   },
   "providerInviteAcceptFailed": {
     "message": "Nije moguće prihvatiti poziv. Zamoli administratora davatelja usluge da pošalje novu pozivnicu."
@@ -9763,7 +9763,7 @@
     "message": "Radnja kod isteka sesije"
   },
   "sessionTimeoutSuppressedByConnectedDevice": {
-    "message": "Upravlja se Bitwarden proširenjem. Za uređivanje, otvori web Bitwarden."
+    "message": "Upravlja se Cloudwarden proširenjem. Za uređivanje, otvori web Cloudwarden."
   },
   "immediately": {
     "message": "Odmah"
@@ -10018,7 +10018,7 @@
     "message": "Konfiguracija za jedinstvenu prijavu (SSO) je spremljena."
   },
   "sponsoredFamilies": {
-    "message": "Besplatan Bitwarden Families"
+    "message": "Besplatan Cloudwarden Families"
   },
   "sponsoredBitwardenFamilies": {
     "message": "Sponzorirani obiteljski paket"
@@ -10039,28 +10039,28 @@
     "message": "No non-members have redeemed the Sponsored Family Plan."
   },
   "sponsorshipFreeBitwardenFamilies": {
-    "message": "Članovi tvoje organizacije ispunjavaju uvjete za besplatni Bitwarden Families paket. Možeš sponzorirati besplatni Bitwarden Families paket za zaposlenike koji nisu članovi tvoje Bitwarden organizacije. Sponzoriranje ne-člana zahtijeva dostupno mjesto unutar vaše organizacije."
+    "message": "Članovi tvoje organizacije ispunjavaju uvjete za besplatni Cloudwarden Families paket. Možeš sponzorirati besplatni Cloudwarden Families paket za zaposlenike koji nisu članovi tvoje Cloudwarden organizacije. Sponzoriranje ne-člana zahtijeva dostupno mjesto unutar vaše organizacije."
   },
   "sponsorshipFreeBitwardenFamiliesV2": {
-    "message": "Your members are eligible to redeem a Sponsored Families Plan. You can sponsor a Families plan for employees who are not members of your Bitwarden organization, but this will require available seats within your organization."
+    "message": "Your members are eligible to redeem a Sponsored Families Plan. You can sponsor a Families plan for employees who are not members of your Cloudwarden organization, but this will require available seats within your organization."
   },
   "sponsoredFamiliesRemoveActiveSponsorship": {
     "message": "Kada ukloniš aktivno sponzorstvo, mjesto unutar tvoje organizacije bit će dostupno nakon datuma obnove sponzorirane organizacije."
   },
   "sponsoredFamiliesEligible": {
-    "message": "Ti i tvoja obitelj ispunjavate uvjete za besplatni Bitwarden Families. Iskoristiti ponudu svojom e-poštom kako bi zaštitio svoje podatke čak i kada nisi na poslu."
+    "message": "Ti i tvoja obitelj ispunjavate uvjete za besplatni Cloudwarden Families. Iskoristiti ponudu svojom e-poštom kako bi zaštitio svoje podatke čak i kada nisi na poslu."
   },
   "sponsoredFamiliesEligibleV2": {
-    "message": "You and your family are eligible for a Sponsored Families Plan at no additional cost to you. Redeem this plan with your personal email to keep your data secure and separate from your Bitwarden work account."
+    "message": "You and your family are eligible for a Sponsored Families Plan at no additional cost to you. Redeem this plan with your personal email to keep your data secure and separate from your Cloudwarden work account."
   },
   "sponsoredFamiliesEligibleCard": {
-    "message": "Iskoristi svoju ponudu za besplatni Bitwarden Families paket već danas kako bi tvoji podaci bili sigurni čak i kada nisi na poslu."
+    "message": "Iskoristi svoju ponudu za besplatni Cloudwarden Families paket već danas kako bi tvoji podaci bili sigurni čak i kada nisi na poslu."
   },
   "sponsoredFamiliesIncludeMessage": {
-    "message": "Bitwarden Families paket uključuje"
+    "message": "Cloudwarden Families paket uključuje"
   },
   "sponsoredFamiliesIncludeMessageV2": {
-    "message": "The Bitwarden Families plan includes"
+    "message": "The Cloudwarden Families plan includes"
   },
   "sponsoredFamiliesPremiumAccess": {
     "message": "Premium pristup do 6 korisnika"
@@ -10081,7 +10081,7 @@
     "message": "Članovi koji su iskoristili obiteljske pakete biti će prikazani ovdje"
   },
   "membersWithSponsoredFamilies": {
-    "message": "Članovi tvoje organizacije ispunjavaju uvjete za besplatni Bitwarden Families paket. Ovdje možeš vidjeti članove koji su sponzorirali Families organizaciju."
+    "message": "Članovi tvoje organizacije ispunjavaju uvjete za besplatni Cloudwarden Families paket. Ovdje možeš vidjeti članove koji su sponzorirali Families organizaciju."
   },
   "organizationHasMemberMessage": {
     "message": "Nije moguće poslati sponzorstvo na $EMAIL$ jer je taj korisnik član tvoje organizacije.",
@@ -10108,7 +10108,7 @@
     "message": "Koju ponudu besplatnog Families paketa želiš iskoristiti?"
   },
   "sponsoredFamiliesEmail": {
-    "message": "Unesi svoju privatnu e-poštu za korištenje Bitwarden Families"
+    "message": "Unesi svoju privatnu e-poštu za korištenje Cloudwarden Families"
   },
   "sponsoredFamiliesLeaveCopy": {
     "message": "Ako ukloniš ponudu ili budeš uklonjen/a iz sponzorske organizacije, tvoje će sponzorstvo Families paketa isteći na sljedeći datum obnove."
@@ -10117,7 +10117,7 @@
     "message": "Prihavati ponudu postojeće organizacije ili stvori novu Families organizaciju."
   },
   "setupSponsoredFamiliesLoginDesc": {
-    "message": "Ponuđen ti je besplatni Bitwarden Families paket. Za nastavak, prijavi se korisničkim računom koji je dobio ponudu."
+    "message": "Ponuđen ti je besplatni Cloudwarden Families paket. Za nastavak, prijavi se korisničkim računom koji je dobio ponudu."
   },
   "sponsoredFamiliesAcceptFailed": {
     "message": "Nije moguće prihvatiti ponudu. Ponovo pošalji e-poštu ponude sa svog poslovnog računa i pokušaj ponovno."
@@ -10132,10 +10132,10 @@
     }
   },
   "sponsoredFamiliesOffer": {
-    "message": "Prihvati besplatan Bitwarden Families"
+    "message": "Prihvati besplatan Cloudwarden Families"
   },
   "sponsoredFamiliesOfferRedeemed": {
-    "message": "Besplatna ponuda Bitwarden Families je uspješno iskorištena"
+    "message": "Besplatna ponuda Cloudwarden Families je uspješno iskorištena"
   },
   "redeemed": {
     "message": "Kôd iskorišten"
@@ -10266,7 +10266,7 @@
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Connect login with SSO to your self-hosted decryption key server. Using this option, members won’t need to use their master passwords to decrypt vault data. The require SSO authentication and single organization policies are required to set up Key Connector decryption. Contact Bitwarden Support for set up assistance.'"
   },
   "memberDecryptionKeyConnectorDescEnd": {
-    "message": "su potrebni za postavljanje Key Connector dekripcije. Kontaktiraj Bitwarden podršku za pomoć pri postavljanju.",
+    "message": "su potrebni za postavljanje Key Connector dekripcije. Kontaktiraj Cloudwarden podršku za pomoć pri postavljanju.",
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Connect login with SSO to your self-hosted decryption key server. Using this option, members won’t need to use their master passwords to decrypt vault data. The require SSO authentication and single organization policies are required to set up Key Connector decryption. Contact Bitwarden Support for set up assistance.'"
   },
   "keyConnectorPolicyRestriction": {
@@ -10366,7 +10366,7 @@
     "message": "Prilagođeno okruženje"
   },
   "selfHostedBaseUrlHint": {
-    "message": "Navedi osnovni URL svoje lokalne Bitwarden instalacije, npr.: https://bitwarden.company.com"
+    "message": "Navedi osnovni URL svoje lokalne Cloudwarden instalacije, npr.: https://bitwarden.company.com"
   },
   "selfHostedCustomEnvHeader": {
     "message": "Kao naprednu postavku, možeš odrediti osnovni URL svake usluge zasebno."
@@ -10414,7 +10414,7 @@
     "message": "Token za sinkronizaciju naplate"
   },
   "automaticBillingSyncDesc": {
-    "message": "Automatska sinkronizacija otključava Families sponzorstva i omogućuje sinkronizaciju licence bez učitavanja datoteke. Nakon ažuriranja Bitwarden poslužitelja u oblaku, odaberi Sinkronizacija Licence za primjenu promjena."
+    "message": "Automatska sinkronizacija otključava Families sponzorstva i omogućuje sinkronizaciju licence bez učitavanja datoteke. Nakon ažuriranja Cloudwarden poslužitelja u oblaku, odaberi Sinkronizacija Licence za primjenu promjena."
   },
   "active": {
     "message": "Aktivno"
@@ -10777,11 +10777,11 @@
     }
   },
   "forwarderGeneratedBy": {
-    "message": "Generirao Bitwarden.",
+    "message": "Generirao Cloudwarden.",
     "description": "Displayed with the address on the forwarding service's configuration screen."
   },
   "forwarderGeneratedByWithWebsite": {
-    "message": "Web: $WEBSITE$. Generirao Bitwarden.",
+    "message": "Web: $WEBSITE$. Generirao Cloudwarden.",
     "description": "Displayed with the address on the forwarding service's configuration screen.",
     "placeholders": {
       "WEBSITE": {
@@ -13291,7 +13291,7 @@
     "message": "Get started with your vault"
   },
   "onboardingChecklistSubtitle": {
-    "message": "Complete these steps to secure your personal data and get the most out of Bitwarden"
+    "message": "Complete these steps to secure your personal data and get the most out of Cloudwarden"
   },
   "dismissThisChecklist": {
     "message": "Dismiss this checklist"
@@ -13388,7 +13388,7 @@
     "description": "Label indicating the most common import formats"
   },
   "uriMatchDefaultStrategyHint": {
-    "message": "Otkrivanje podudaranja URI-ja je način na koji Bitwarden identificira prijedloge za auto-ispunu.",
+    "message": "Otkrivanje podudaranja URI-ja je način na koji Cloudwarden identificira prijedloge za auto-ispunu.",
     "description": "Explains to the user that URI match detection determines how Bitwarden suggests autofill options, and clarifies that this default strategy applies when no specific match detection is set for a login item."
   },
   "regExAdvancedOptionWarning": {
@@ -14013,7 +14013,7 @@
     "description": "This represents the beginning of a sentence, broken up to include links. The full sentence will be 'Configure single sign-on for Bitwarden using the implementation guide for your Identity Provider."
   },
   "ssoDescEnd": {
-    "message": "za Bitwarden koristeći vodič za implementaciju za tvojeg davatelja identiteta.",
+    "message": "za Cloudwarden koristeći vodič za implementaciju za tvojeg davatelja identiteta.",
     "description": "This represents the end of a sentence, broken up to include links. The full sentence will be 'Configure single sign-on for Bitwarden using the implementation guide for your Identity Provider."
   },
   "userProvisioning": {
@@ -14031,22 +14031,22 @@
     "description": "This represents the end of a sentence, broken up to include links. The full sentence will be 'Configure SCIM (System for Cross-domain Identity Management) to automatically provision users and groups to Bitwarden using the implementation guide for your Identity Provider"
   },
   "bwdc": {
-    "message": "Bitwarden Directory Connector"
+    "message": "Cloudwarden Directory Connector"
   },
   "bwdcDesc": {
-    "message": "Konfiguriraj Bitwarden Directory Connector za automatsko dodjeljivanje korisnika i grupa pomoću vodiča za implementaciju za vašeg pružatelja identiteta."
+    "message": "Konfiguriraj Cloudwarden Directory Connector za automatsko dodjeljivanje korisnika i grupa pomoću vodiča za implementaciju za vašeg pružatelja identiteta."
   },
   "eventManagement": {
     "message": "Upravljanje događajima"
   },
   "eventManagementDesc": {
-    "message": "Integrirajte Bitwarden zapisnike događaja sa svojim SIEM (system information and event management) sustavom pomoću vodiča za implementaciju za vašu platformu."
+    "message": "Integrirajte Cloudwarden zapisnike događaja sa svojim SIEM (system information and event management) sustavom pomoću vodiča za implementaciju za vašu platformu."
   },
   "deviceManagement": {
     "message": "Upravljanje uređajima"
   },
   "deviceManagementDesc": {
-    "message": "Konfiguriraj upravljanje uređajima za Bitwarden pomoću vodiča za implementaciju za svoju platformu."
+    "message": "Konfiguriraj upravljanje uređajima za Cloudwarden pomoću vodiča za implementaciju za svoju platformu."
   },
   "crowdstrikeEventIntegrationDesc": {
     "message": "Pošaljite podatke o događajima svojoj Logscale instanci"
@@ -14265,16 +14265,16 @@
     "message": "Upravljanje naplatom s Portala pružatelja usluga"
   },
   "continueSettingUp": {
-    "message": "Nastavi Bitwarden postavljanje"
+    "message": "Nastavi Cloudwarden postavljanje"
   },
   "continueSettingUpFreeTrial": {
     "message": "Nastavi s postavljanjem besplatne probe Bitwardena"
   },
   "continueSettingUpPasswordManager": {
-    "message": "Nastavi postavljanje Bitwarden upravitelja lozinki"
+    "message": "Nastavi postavljanje Cloudwarden upravitelja lozinki"
   },
   "continueSettingUpFreeTrialPasswordManager": {
-    "message": "Nastavi s postavljanjem besplatne probe Bitwarden Upravitelja Lozinki"
+    "message": "Nastavi s postavljanjem besplatne probe Cloudwarden Upravitelja Lozinki"
   },
   "continueSettingUpSecretsManager": {
     "message": "Nastavi postavljanje Bitwarden Secrets Managera"
@@ -14556,14 +14556,14 @@
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'Notice: Later this month, client vault privacy will be improved and provider members will no longer have direct access to client vault items. For questions, please contact Bitwarden support'."
   },
   "contactBitwardenSupport": {
-    "message": "kontaktiraj Bitwarden podršku.",
+    "message": "kontaktiraj Cloudwarden podršku.",
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'Notice: Later this month, client vault privacy will be improved and provider members will no longer have direct access to client vault items. For questions, please contact Bitwarden support'. 'Bitwarden' should not be translated"
   },
   "sponsored": {
     "message": "Sponzorirano"
   },
   "licenseAndBillingManagementDesc": {
-    "message": "Nakon ažuriranja Bitwarden poslužitelja u oblaku, prenesite datoteku licence za primjenu najnovijih izmjena."
+    "message": "Nakon ažuriranja Cloudwarden poslužitelja u oblaku, prenesite datoteku licence za primjenu najnovijih izmjena."
   },
   "addToFolder": {
     "message": "Dodaj u mapu"
@@ -14681,7 +14681,7 @@
     "message": "Što je CVV broj?"
   },
   "learnMoreAboutApi": {
-    "message": "Saznaj više o Bitwarden API"
+    "message": "Saznaj više o Cloudwarden API"
   },
   "fileSends": {
     "message": "Send datoteke"
@@ -14858,7 +14858,7 @@
     "message": "Tvoja pretplata na Secrets Manager će se nadograditi na temelju odabranog plana"
   },
   "bitwardenPasswordManager": {
-    "message": "Bitwarden upravitelj lozinki"
+    "message": "Cloudwarden upravitelj lozinki"
   },
   "secretsManagerComplimentaryPasswordManager": {
     "message": "Tvoja besplatna jednogodišnja pretplata na Password Manager nadogradit će se na odabrani plan. Neće ti ništa biti naplaćeno dok besplatno razdoblje ne završi."
@@ -15060,7 +15060,7 @@
     "message": "Uspješno izbrisano"
   },
   "freeFamiliesSponsorship": {
-    "message": "Ukloni besplatno sponzorstvo Bitwarden Families"
+    "message": "Ukloni besplatno sponzorstvo Cloudwarden Families"
   },
   "freeFamiliesSponsorshipPolicyTitleV2": {
     "message": "Remove sponsored Families plan"
@@ -15138,10 +15138,10 @@
     "message": "Automatski potvrđene domene"
   },
   "automaticDomainClaimProcess": {
-    "message": "Bitwarden će pokušati potvrditi domenu 3 puta tijekom prva 72 sata. Ako se domena ne može potvrditi, provjeri DNS zapis na svom poslužitelju i ručno potvrdi. Domena će, ako se ne potvrdi, biti uklonjena iz vaše organizacije nakon 7 dana."
+    "message": "Cloudwarden će pokušati potvrditi domenu 3 puta tijekom prva 72 sata. Ako se domena ne može potvrditi, provjeri DNS zapis na svom poslužitelju i ručno potvrdi. Domena će, ako se ne potvrdi, biti uklonjena iz vaše organizacije nakon 7 dana."
   },
   "automaticDomainClaimProcess1": {
-    "message": "Bitwarden će pokušati preuzeti domenu u roku od 72 sata. Ako se domena ne može preuzeti, provjeri DNS zapis i ručno zatraži. Nepreuzete domene uklanjaju se nakon 7 dana."
+    "message": "Cloudwarden će pokušati preuzeti domenu u roku od 72 sata. Ako se domena ne može preuzeti, provjeri DNS zapis i ručno zatraži. Nepreuzete domene uklanjaju se nakon 7 dana."
   },
   "automaticDomainClaimProcess2": {
     "message": "Nakon preuzimanja, postojeći članovi sa zatraženim domenama bit će obaviješteni e-poštom o "
@@ -15309,19 +15309,19 @@
     "message": "Kopiraj privatni ključ"
   },
   "openingExtension": {
-    "message": "Otvaranje Bitwarden proširenja preglednika"
+    "message": "Otvaranje Cloudwarden proširenja preglednika"
   },
   "somethingWentWrong": {
     "message": "Dogodila se greška..."
   },
   "openingExtensionError": {
-    "message": "Nismo mogli otvoriti Bitwarden proširenje preglednika. Klikni na tipku za otvaranje."
+    "message": "Nismo mogli otvoriti Cloudwarden proširenje preglednika. Klikni na tipku za otvaranje."
   },
   "openExtension": {
     "message": "Otvori proširenje"
   },
   "doNotHaveExtension": {
-    "message": "Nemaš Bitwarden proširenje preglednika?"
+    "message": "Nemaš Cloudwarden proširenje preglednika?"
   },
   "installExtension": {
     "message": "Instaliraj proširenje"
@@ -15330,7 +15330,7 @@
     "message": "Proširenje preglednika otvoreno"
   },
   "openedExtensionViewAtRiskPasswords": {
-    "message": "Uspjšeno otvoreno Bitwarden proširenje preglednika. Sada možeš pregledati svoje rizične lozinke."
+    "message": "Uspjšeno otvoreno Cloudwarden proširenje preglednika. Sada možeš pregledati svoje rizične lozinke."
   },
   "resellerRenewalWarningMsg": {
     "message": "Tvoja će se pretplata uskoro obnoviti. Za neprekinutu uslugu, kontaktiraj $RESELLER$ za potvrdu obnove prije $RENEWAL_DATE$.",
@@ -15385,7 +15385,7 @@
     }
   },
   "resellerPastDueWarningMsgV2": {
-    "message": "Faktura za tvoju pretplatu nije plaćena. Za neprekinutu uslugu, kontaktiraj svog davatelja usluga Bitwarden za potvrdu obnovu prije $GRACE_PERIOD_END$.",
+    "message": "Faktura za tvoju pretplatu nije plaćena. Za neprekinutu uslugu, kontaktiraj svog davatelja usluga Cloudwarden za potvrdu obnovu prije $GRACE_PERIOD_END$.",
     "placeholders": {
       "grace_period_end": {
         "content": "$1",
@@ -15546,7 +15546,7 @@
     "message": "Nadogradi za pregled zapisnika događaja tvoje organizacije."
   },
   "upgradeEventLogMessage": {
-    "message": "Ovi događaji su samo primjeri i ne odražavaju stvarne događaje unutar tvoje Bitwarden organizacije."
+    "message": "Ovi događaji su samo primjeri i ne odražavaju stvarne događaje unutar tvoje Cloudwarden organizacije."
   },
   "viewEvents": {
     "message": "Pregled događaja"
@@ -15727,7 +15727,7 @@
     "message": "Siguerno auto-ispuni svoje lozinke jednim klikom"
   },
   "setupExtensionPageDescription": {
-    "message": "Nabavi Bitwarden proširenje za preglednik za jednostavnu auto-ispunu lozinki"
+    "message": "Nabavi Cloudwarden proširenje za preglednik za jednostavnu auto-ispunu lozinki"
   },
   "getTheExtension": {
     "message": "Nabavi prošitenje"
@@ -15745,16 +15745,16 @@
     "message": "Preskoči na web stranicu"
   },
   "bitwardenExtensionInstalled": {
-    "message": "Bitwarden proširenje je instalirano!"
+    "message": "Cloudwarden proširenje je instalirano!"
   },
   "bitwardenExtensionIsInstalled": {
-    "message": "Bitwarden proširenje je instalirano!"
+    "message": "Cloudwarden proširenje je instalirano!"
   },
   "openExtensionToAutofill": {
     "message": "Otvori proširenje i prijavi se za početak korištenja auto-ispune."
   },
   "openBitwardenExtension": {
-    "message": "Otvori Bitwarden proširenje"
+    "message": "Otvori Cloudwarden proširenje"
   },
   "gettingStartedWithBitwardenPart1": {
     "message": "Za savjete o korištenju Bitwardena posjeti",
@@ -15765,7 +15765,7 @@
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'For tips on getting started with Bitwarden visit the Learning Center and Help Center'"
   },
   "openExtensionFromToolbarPart1": {
-    "message": "Ako se proširenje nije otvorilo, možda ćeš trebati otvoriti Bitwarden iz ikone ",
+    "message": "Ako se proširenje nije otvorilo, možda ćeš trebati otvoriti Cloudwarden iz ikone ",
     "description": "This will be used as part of a larger sentence, broken up to include the Bitwarden icon. The full sentence will read 'If the extension didn't open, you may need to open Bitwarden from the icon [Bitwarden Icon] on the toolbar.'"
   },
   "openExtensionFromToolbarPart2": {
@@ -15777,7 +15777,7 @@
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'For tips on getting started with Bitwarden visit the Learning Center and Help Center'"
   },
   "setupExtensionContentAlt": {
-    "message": "Pomoću Bitwarden proširenja za preglednik možeš jednostavno stvoriti nove prijave, pristupiti spremljenim prijavama izravno s alatne trake preglednika i brzo se prijaviti na svoje račune pomoću Bitwarden auto-ispune."
+    "message": "Pomoću Cloudwarden proširenja za preglednik možeš jednostavno stvoriti nove prijave, pristupiti spremljenim prijavama izravno s alatne trake preglednika i brzo se prijaviti na svoje račune pomoću Cloudwarden auto-ispune."
   },
   "restart": {
     "message": "Saznaj više o SSH agentu"
@@ -15809,7 +15809,7 @@
     "message": "O ovoj postavci"
   },
   "permitCipherDetailsDescription": {
-    "message": "Bitwarden će koristiti spremljene URI-je za prijavu kako bi identificirao ikonu ili URL za promjenu lozinke koji treba koristiti za poboljšanje tvojeg iskustva. Nikakvi podaci se ne prikupljaju, niti spremaju kada koristiš ovu uslugu."
+    "message": "Cloudwarden će koristiti spremljene URI-je za prijavu kako bi identificirao ikonu ili URL za promjenu lozinke koji treba koristiti za poboljšanje tvojeg iskustva. Nikakvi podaci se ne prikupljaju, niti spremaju kada koristiš ovu uslugu."
   },
   "showQuickCopyActionsDetailsDescription": {
     "message": "Add 3 quick copy buttons next to items to copy your username, password, or verification code to the clipboard."
@@ -15921,7 +15921,7 @@
     "message": "Pretplata otkazana"
   },
   "providersubCanceledmessage": {
-    "message": "Za ponovnu pretplatu, kontaktiraj Bitwarden korisničku podršku."
+    "message": "Za ponovnu pretplatu, kontaktiraj Cloudwarden korisničku podršku."
   },
   "showAll": {
     "message": "Show all"
@@ -16064,7 +16064,7 @@
     "message": "Vlastiti paket"
   },
   "planDescCustom": {
-    "message": "Bitwarden se prilagođava tvrtkama svih veličina kako bi osigurao lozinke i osjetljive podatke. Ako si dio velike tvrtke, zatraži ponudu od odjela prodaje."
+    "message": "Cloudwarden se prilagođava tvrtkama svih veličina kako bi osigurao lozinke i osjetljive podatke. Ako si dio velike tvrtke, zatraži ponudu od odjela prodaje."
   },
   "builtInAuthenticator": {
     "message": "Ugrađeni autentifikator"
@@ -16181,7 +16181,7 @@
     "message": "Došlo je do pogreške prilikom izračuna poreza za tvoju lokaciju. Pokušaj ponovno."
   },
   "individualUpgradeWelcomeMessage": {
-    "message": "Dobrodošli u Bitwarden"
+    "message": "Dobrodošli u Cloudwarden"
   },
   "individualUpgradeDescriptionMessage": {
     "message": "Otključaj više sigurnosnih značajki uz Premium ili počni dijeliti stavke s obitelji pomoću Families"
@@ -16202,7 +16202,7 @@
     "message": "Nadogradi sada"
   },
   "getAdvancedOnlineSecurityWithBitwardenPremium": {
-    "message": "Get advanced online security with Bitwarden premium."
+    "message": "Get advanced online security with Cloudwarden premium."
   },
   "formWillCreateNewFamiliesOrgMessage": {
     "message": "Ispunjavanjem ovog obrasca stvorit ćeš novu obiteljsku organizaciju. Svoju besplatnu organizaciju možeš nadograditi u administratorskoj konzoli."
@@ -16211,7 +16211,7 @@
     "message": "Došlo je do pogreške prilikom obrade nadogradnje. Pokušaj ponovno."
   },
   "bitwardenFreeplanMessage": {
-    "message": "Imaš besplatni Bitwarden paket"
+    "message": "Imaš besplatni Cloudwarden paket"
   },
   "upgradeCompleteSecurity": {
     "message": "Nadogradi za potpunu sigurnost"
@@ -16229,7 +16229,7 @@
     "message": "Algoritam"
   },
   "encryptionKeySettingsHowShouldWeEncryptYourData": {
-    "message": "Odaberi kako Bitwarden treba šifrirati podatke tvojeg trezora. Sve opcije su sigurne, ali jače metode nude bolju zaštitu - posebno od napada grubom silom. Bitwarden preporučuje zadanu postavku za većinu korisnika."
+    "message": "Odaberi kako Cloudwarden treba šifrirati podatke tvojeg trezora. Sve opcije su sigurne, ali jače metode nude bolju zaštitu - posebno od napada grubom silom. Cloudwarden preporučuje zadanu postavku za većinu korisnika."
   },
   "encryptionKeySettingsIncreaseImproveSecurity": {
     "message": "Povećanje vrijednosti iznad zadanih poboljšat će sigurnost, ali će zbog toga otključavanje tvojeg trezora možda trajati dulje."
@@ -16260,10 +16260,10 @@
     "description": "VFO1 terminology variant of 'blockClaimedDomainAccountCreationDesc', shown in the policies list"
   },
   "blockClaimedDomainAccountCreationDescV2": {
-    "message": "Block members from using your claimed domain to create Bitwarden accounts outside your organization."
+    "message": "Block members from using your claimed domain to create Cloudwarden accounts outside your organization."
   },
   "blockClaimedDomainAccountCreationDescV2Vfo1": {
-    "message": "Block members from using your claimed domain to create Bitwarden accounts outside of your organization vault.",
+    "message": "Block members from using your claimed domain to create Cloudwarden accounts outside of your organization vault.",
     "description": "VFO1 terminology variant of 'blockClaimedDomainAccountCreationDescV2'"
   },
   "blockClaimedDomainAccountCreationPrerequisiteV2": {
@@ -16301,7 +16301,7 @@
     }
   },
   "removeMasterPasswordForOrgUserKeyConnector": {
-    "message": "Tvoja organizacija više ne koristi glavne lozinke za prijavu u Bitwarden. Za nastavak, potvrdi orgnaizaciju i domenu."
+    "message": "Tvoja organizacija više ne koristi glavne lozinke za prijavu u Cloudwarden. Za nastavak, potvrdi orgnaizaciju i domenu."
   },
   "continueWithLogIn": {
     "message": "Nastavi s prijavom"
@@ -16504,7 +16504,7 @@
     "message": "Odbij i napusti"
   },
   "youHaveBitwardenPremium": {
-    "message": "Imaš Bitwarden Premium"
+    "message": "Imaš Cloudwarden Premium"
   },
   "viewAndManagePremiumSubscription": {
     "message": "Pogledaj i upravljaj svojom Premium pretplatom"
@@ -16543,13 +16543,13 @@
     "message": "Već imaš pretplatu?"
   },
   "alreadyHaveSubscriptionSelfHostedMessage": {
-    "message": "Otvori stranicu pretplate na svom Bitwarden računu i preuzmi datoteku licence. Zatim se vrati i ovdje je prenesi."
+    "message": "Otvori stranicu pretplate na svom Cloudwarden računu i preuzmi datoteku licence. Zatim se vrati i ovdje je prenesi."
   },
   "alreadyHaveSubscriptionSelfHostedMessageV2": {
-    "message": "Open the subscription page on your Bitwarden account and download your license file. Then return to this screen and upload it below."
+    "message": "Open the subscription page on your Cloudwarden account and download your license file. Then return to this screen and upload it below."
   },
   "alreadyHaveSubscriptionSelfHostedMessageV3": {
-    "message": "On your cloud environment, log in to your Bitwarden account, open the subscription page, and download your license file. Then, return to this screen and upload it."
+    "message": "On your cloud environment, log in to your Cloudwarden account, open the subscription page, and download your license file. Then, return to this screen and upload it."
   },
   "viewAllPlans": {
     "message": "Prikaži sve pakete"
@@ -16635,10 +16635,10 @@
     "message": "Za jednostavan pristup trezoru, preuzmi proširenje"
   },
   "extensionPromptBody": {
-    "message": "S instaliranim proširenjem za preglednik, Bitwarden ćeš moći koristiti svugdje na internetu. Ispunjavat će lozinke tako da ćeš se moći prijaviti na svoje račune jednim klikom."
+    "message": "S instaliranim proširenjem za preglednik, Cloudwarden ćeš moći koristiti svugdje na internetu. Ispunjavat će lozinke tako da ćeš se moći prijaviti na svoje račune jednim klikom."
   },
   "extensionPromptImageAlt": {
-    "message": "Web preglednik koji prikazuje Bitwarden ekstenziju s auto-ispunom stavki za trenutnu web stranicu."
+    "message": "Web preglednik koji prikazuje Cloudwarden ekstenziju s auto-ispunom stavki za trenutnu web stranicu."
   },
   "skip": {
     "message": "Preskoči"
@@ -16686,10 +16686,10 @@
     "message": "Neispravna Send lozinka"
   },
   "vaultWelcomeDialogTitle": {
-    "message": "Želimo ti dobrodošlicu u Bitwarden"
+    "message": "Želimo ti dobrodošlicu u Cloudwarden"
   },
   "vaultWelcomeDialogDescription": {
-    "message": "Spremi sve svoje lozinke i osobne podatke u Bitwarden trezor. Pokazat ćemo ti ga."
+    "message": "Spremi sve svoje lozinke i osobne podatke u Cloudwarden trezor. Pokazat ćemo ti ga."
   },
   "vaultWelcomeDialogPrimaryCta": {
     "message": "Započni obilazak"
@@ -17689,7 +17689,7 @@
     "message": "Payment successful"
   },
   "paymentSuccessfulProcessingMessage": {
-    "message": "Your upgrade is being processed. It may be a few minutes before you see Premium features in Bitwarden."
+    "message": "Your upgrade is being processed. It may be a few minutes before you see Premium features in Cloudwarden."
   },
   "planPurchased": {
     "message": "Plan purchased"

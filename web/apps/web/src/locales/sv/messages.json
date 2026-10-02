@@ -847,10 +847,10 @@
     "message": "Gör tvåstegsverifiering sömlös"
   },
   "totpHelper": {
-    "message": "Bitwarden kan lagra och fylla tvåstegsverifieringskoder. Kopiera och klistra in nyckeln i detta fält."
+    "message": "Cloudwarden kan lagra och fylla tvåstegsverifieringskoder. Kopiera och klistra in nyckeln i detta fält."
   },
   "totpHelperWithCapture": {
-    "message": "Bitwarden kan lagra och fylla i 2-stegsverifieringskoder. Välj kameraikonen för att ta en skärmdump av den här webbplatsens QR-kod för autentisering, eller kopiera och klistra in nyckeln i det här fältet."
+    "message": "Cloudwarden kan lagra och fylla i 2-stegsverifieringskoder. Välj kameraikonen för att ta en skärmdump av den här webbplatsens QR-kod för autentisering, eller kopiera och klistra in nyckeln i det här fältet."
   },
   "totpCapture": {
     "message": "Skanna autentiserarens QR-kod från den aktuella webbsidan"
@@ -2339,7 +2339,7 @@
     "message": "Skapa konto"
   },
   "newToBitwarden": {
-    "message": "Ny på Bitwarden?"
+    "message": "Ny på Cloudwarden?"
   },
   "setAStrongPassword": {
     "message": "Ställ in ett starkt lösenord"
@@ -2357,7 +2357,7 @@
     "message": "Logga in"
   },
   "loginPageEmailEntryScreenTitle": {
-    "message": "Log in to Bitwarden"
+    "message": "Log in to Cloudwarden"
   },
   "enterTheCodeSentToYourEmail": {
     "message": "Ange koden som skickats till din e-post"
@@ -2694,7 +2694,7 @@
     "message": "En avisering har skickats till din enhet."
   },
   "notificationSentDevicePart1": {
-    "message": "Lås upp Bitwarden på din enhet eller på "
+    "message": "Lås upp Cloudwarden på din enhet eller på "
   },
   "accessAttemptBy": {
     "message": "Åtkomstförsök via $EMAIL$",
@@ -2718,7 +2718,7 @@
     "message": "Kontrollera att fingeravtrycksfrasen stämmer överens med den nedan innan du godkänner."
   },
   "notificationSentDeviceComplete": {
-    "message": "Lås upp Bitwarden på din enhet. Kontrollera att fingeravtrycksfrasen matchar den nedan innan du godkänner."
+    "message": "Lås upp Cloudwarden på din enhet. Kontrollera att fingeravtrycksfrasen matchar den nedan innan du godkänner."
   },
   "aNotificationWasSentToYourDevice": {
     "message": "Ett meddelande har skickats till din enhet"
@@ -3195,7 +3195,7 @@
     }
   },
   "kdfIterationsWarning": {
-    "message": "Att ställa in dina KDF-iterationer för högt kan resultera i dålig prestanda när du loggar in (och låser upp) Bitwarden på enheter med långsammare processorer. Vi rekommenderar att du ökar värdet i steg om $INCREMENT$ och sedan testar alla dina enheter.",
+    "message": "Att ställa in dina KDF-iterationer för högt kan resultera i dålig prestanda när du loggar in (och låser upp) Cloudwarden på enheter med långsammare processorer. Vi rekommenderar att du ökar värdet i steg om $INCREMENT$ och sedan testar alla dina enheter.",
     "placeholders": {
       "increment": {
         "content": "$1",
@@ -3208,7 +3208,7 @@
     "description": "Memory refers to computer memory (RAM). MB is short for megabytes."
   },
   "argon2Warning": {
-    "message": "Att ställa in dina KDF-iterationer, minne och parallellism för högt kan resultera i dålig prestanda när du loggar in (och låser upp) Bitwarden på långsammare eller äldre enheter. Vi rekommenderar att du ändrar dessa individuellt i små steg och sedan testar alla dina enheter."
+    "message": "Att ställa in dina KDF-iterationer, minne och parallellism för högt kan resultera i dålig prestanda när du loggar in (och låser upp) Cloudwarden på långsammare eller äldre enheter. Vi rekommenderar att du ändrar dessa individuellt i små steg och sedan testar alla dina enheter."
   },
   "kdfParallelism": {
     "message": "KDF-parallellism"
@@ -3694,7 +3694,7 @@
     "description": "Followed by a literal filename (my_passwords.json) rendered as code."
   },
   "importGnomeInstructionsFileHere": {
-    "message": "file here to Bitwarden.",
+    "message": "file here to Cloudwarden.",
     "description": "Follows the my_passwords.json filename."
   },
   "importPasswordagentInstructions": {
@@ -3827,7 +3827,7 @@
     "message": "Domänregler"
   },
   "domainRulesDesc": {
-    "message": "Om du har samma inloggningsinformation på flera olika domäner kan du markera webbplatsen som \"motsvarande\". \"Globala\" domäner är de som redan skapats åt dig av Bitwarden."
+    "message": "Om du har samma inloggningsinformation på flera olika domäner kan du markera webbplatsen som \"motsvarande\". \"Globala\" domäner är de som redan skapats åt dig av Cloudwarden."
   },
   "globalEqDomains": {
     "message": "Globala motsvarande domäner"
@@ -3913,7 +3913,7 @@
     "message": "En policy som har fastställts av en eller flera organisationer hindrar dig från att importera kort till dina valv."
   },
   "yourSingleUseRecoveryCode": {
-    "message": "Din återställningskod för engångsbruk kan användas för att stänga av tvåstegsinloggning i händelse av att du förlorar åtkomst till din leverantör av tvåstegsinloggning. Bitwarden rekommenderar att du skriver ner återställningskoden och förvarar den på en säker plats."
+    "message": "Din återställningskod för engångsbruk kan användas för att stänga av tvåstegsinloggning i händelse av att du förlorar åtkomst till din leverantör av tvåstegsinloggning. Cloudwarden rekommenderar att du skriver ner återställningskoden och förvarar den på en säker plats."
   },
   "viewRecoveryCode": {
     "message": "Visa återställningskod"
@@ -4011,7 +4011,7 @@
     }
   },
   "continueToExternalUrlDesc": {
-    "message": "Du lämnar Bitwarden och startar en extern webbplats i ett nytt fönster."
+    "message": "Du lämnar Cloudwarden och startar en extern webbplats i ett nytt fönster."
   },
   "twoStepContinueToBitwardenUrlTitle": {
     "message": "Fortsätt till bitwarden.com?"
@@ -4266,7 +4266,7 @@
     "message": "and "
   },
   "passkeyLoginReportHowToUse": {
-    "message": "how to use them in Bitwarden."
+    "message": "how to use them in Cloudwarden."
   },
   "passkeyLoginFound": {
     "message": "Logins that support passkeys"
@@ -4526,7 +4526,7 @@
     }
   },
   "bitwardenFamiliesPlan": {
-    "message": "Bitwarden Familjeplan."
+    "message": "Cloudwarden Familjeplan."
   },
   "addons": {
     "message": "Tillägg"
@@ -4738,7 +4738,7 @@
     }
   },
   "churnOfferDiscountBody": {
-    "message": "As a thank-you for being a long-time Bitwarden customer, we'd like to offer you a $DISCOUNT$ discount on your next $DURATION$ of service.",
+    "message": "As a thank-you for being a long-time Cloudwarden customer, we'd like to offer you a $DISCOUNT$ discount on your next $DURATION$ of service.",
     "description": "Body copy on the churn-mitigation offer card. DISCOUNT = discount amount; DURATION = service duration (e.g. 'year' or '6 months')",
     "placeholders": {
       "discount": {
@@ -4800,7 +4800,7 @@
     }
   },
   "churnOfferDiscountBodyRecurringAmount": {
-    "message": "As a thank-you for being a long-time Bitwarden customer, we'd like to offer you $AMOUNT$ off each $INTERVAL$ for the next $DURATION$.",
+    "message": "As a thank-you for being a long-time Cloudwarden customer, we'd like to offer you $AMOUNT$ off each $INTERVAL$ for the next $DURATION$.",
     "description": "Body copy on the churn-mitigation offer card for a fixed-amount discount that repeats each billing period. AMOUNT = discount amount (e.g. '$15.00'); INTERVAL = billing interval unit (e.g. 'month'); DURATION = discount duration (e.g. 'year' or '6 months')",
     "placeholders": {
       "amount": {
@@ -5249,7 +5249,7 @@
     }
   },
   "trialThankYou": {
-    "message": "Tack för att du registrerar dig för Bitwarden för $PLAN$!",
+    "message": "Tack för att du registrerar dig för Cloudwarden för $PLAN$!",
     "placeholders": {
       "plan": {
         "content": "$1",
@@ -5258,7 +5258,7 @@
     }
   },
   "trialSecretsManagerThankYou": {
-    "message": "Tack för att du registrerar dig för Bitwarden hemlighetshanterare för $PLAN$!",
+    "message": "Tack för att du registrerar dig för Cloudwarden hemlighetshanterare för $PLAN$!",
     "placeholders": {
       "plan": {
         "content": "$1",
@@ -5397,7 +5397,7 @@
     "message": "SSO Externt ID"
   },
   "ssoExternalIdDesc": {
-    "message": "SSO Externt ID är en okrypterad referens mellan Bitwarden och din konfigurerade SSO-leverantör."
+    "message": "SSO Externt ID är en okrypterad referens mellan Cloudwarden och din konfigurerade SSO-leverantör."
   },
   "nestCollectionUnder": {
     "message": "Kapsla samling under"
@@ -5460,7 +5460,7 @@
     "message": "Invite new users to your organization by entering their email address below."
   },
   "inviteUserDescSharedFolders": {
-    "message": "Invite a new user to your organization vault by entering their Bitwarden account email address below. If they do not have a Bitwarden account already, they will be prompted to create a new account.",
+    "message": "Invite a new user to your organization vault by entering their Cloudwarden account email address below. If they do not have a Cloudwarden account already, they will be prompted to create a new account.",
     "description": "VFO1 (shared folder terminology) variant of inviteUserDesc, shown when the vfo1-foundation flag is enabled."
   },
   "inviteMultipleEmailDesc": {
@@ -5603,7 +5603,7 @@
     "message": "CLI"
   },
   "bitWebVault": {
-    "message": "Bitwarden Webbvalv"
+    "message": "Cloudwarden Webbvalv"
   },
   "bitSecretsManager": {
     "message": "Bitwarden Secrets Manager"
@@ -7439,7 +7439,7 @@
     "message": "Du har inte markerat något."
   },
   "receiveMarketingEmails": {
-    "message": "Receive updates from Bitwarden in your inbox."
+    "message": "Receive updates from Cloudwarden in your inbox."
   },
   "subscribe": {
     "message": "Abonnera"
@@ -7546,7 +7546,7 @@
     "message": "Copy and paste the link where your team will find it: your onboarding checklist, a Slack #new-joiners channel, Notion docs, or an email template."
   },
   "viewBitwardenOnboardingGuide": {
-    "message": "View Bitwarden onboarding guide"
+    "message": "View Cloudwarden onboarding guide"
   },
   "coachMarkStepOfTotal": {
     "message": "$CURRENT$ of $TOTAL$",
@@ -8400,7 +8400,7 @@
     "message": "Experiencing an issue? Download then share the diagnostic report with"
   },
   "bitwardenSupport": {
-    "message": "Bitwarden support",
+    "message": "Cloudwarden support",
     "description": "Link text that follows the troubleshooting description sentence. 'Bitwarden' should not be translated."
   },
   "download": {
@@ -8906,7 +8906,7 @@
     "description": "VFO1 terminology variant of 'uriMatchDetectionPolicyDesc', shown in the policies list"
   },
   "uriMatchDetectionPolicyDescV2": {
-    "message": "Set a default for which parts of a website address (URI) need to match for Bitwarden to suggest a login for autofill. This policy won't be enforced for owners and admins."
+    "message": "Set a default for which parts of a website address (URI) need to match for Cloudwarden to suggest a login for autofill. This policy won't be enforced for owners and admins."
   },
   "uriMatchDetectionOptionsLabel": {
     "message": "Standardmatchning för URI"
@@ -8926,7 +8926,7 @@
     "message": "Custom autofill rule set"
   },
   "fillAssistRulesUrlHint": {
-    "message": "By default, fill assist uses Bitwarden's curated rule set. Enter a URL here to override it with your own."
+    "message": "By default, fill assist uses Cloudwarden's curated rule set. Enter a URL here to override it with your own."
   },
   "invalidFillAssistRulesUrl": {
     "message": "Enter a valid URL",
@@ -9039,7 +9039,7 @@
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "sendAccessTaglineProductDesc": {
-    "message": "Bitwarden Send förmedlar känslig, tillfällig information till andra på ett enkelt och säkert sätt.",
+    "message": "Cloudwarden Send förmedlar känslig, tillfällig information till andra på ett enkelt och säkert sätt.",
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "sendAccessTaglineLearnMore": {
@@ -9102,10 +9102,10 @@
     "message": "Lägg till en anteckning"
   },
   "bitwardenSecretsManager": {
-    "message": "Bitwarden Hemlighetshanterare"
+    "message": "Cloudwarden Hemlighetshanterare"
   },
   "moreProductsFromBitwarden": {
-    "message": "Fler produkter från Bitwarden"
+    "message": "Fler produkter från Cloudwarden"
   },
   "requestAccessToSecretsManager": {
     "message": "Begär tillgång till Secrets Manager"
@@ -9117,7 +9117,7 @@
     "message": "Begäran om åtkomst för hemligheter manager e-post skickad till administratörer."
   },
   "requestAccessSMDefaultEmailContent": {
-    "message": "Hej, \n\nJag vill prenumerera på Bitwarden Secrets Manager för vårt team. Er hjälp skulle betyda mycket för oss!\n\nBitwarden Secrets Manager är en helt krypterad lösning för hantering av hemlig information som gör det möjligt att säkert lagra, dela och distribuera maskinuppgifter som API-nycklar, databaslösenord och autentiseringscertifikat. \n\nSecrets Manager hjälper oss att: \n\n- förbättra säkerheten \n- effektivisera verksamheten \n- förhindra kostsamma läckor av hemlig information.\n\nFör att begära en kostnadsfri testversion för vårt team, vänligen kontakta Bitwarden. \n\nTack för er hjälp!"
+    "message": "Hej, \n\nJag vill prenumerera på Bitwarden Secrets Manager för vårt team. Er hjälp skulle betyda mycket för oss!\n\nBitwarden Secrets Manager är en helt krypterad lösning för hantering av hemlig information som gör det möjligt att säkert lagra, dela och distribuera maskinuppgifter som API-nycklar, databaslösenord och autentiseringscertifikat. \n\nSecrets Manager hjälper oss att: \n\n- förbättra säkerheten \n- effektivisera verksamheten \n- förhindra kostsamma läckor av hemlig information.\n\nFör att begära en kostnadsfri testversion för vårt team, vänligen kontakta Cloudwarden. \n\nTack för er hjälp!"
   },
   "giveMembersAccess": {
     "message": "Ge medlemmarna tillgång:"
@@ -9548,10 +9548,10 @@
     "message": "Dekrypteringsfel"
   },
   "couldNotDecryptVaultItem": {
-    "message": "Bitwarden could not decrypt the vault item listed below. Contact Bitwarden Customer Support and provide the item ID below to see if it can be recovered."
+    "message": "Cloudwarden could not decrypt the vault item listed below. Contact Cloudwarden Customer Support and provide the item ID below to see if it can be recovered."
   },
   "couldNotDecryptVaultItems": {
-    "message": "Bitwarden could not decrypt the vault items listed below. Contact Bitwarden Customer Support and provide the item IDs below to see if they can be recovered."
+    "message": "Cloudwarden could not decrypt the vault items listed below. Contact Cloudwarden Customer Support and provide the item IDs below to see if they can be recovered."
   },
   "itemId": {
     "message": "Item ID",
@@ -10018,7 +10018,7 @@
     "message": "Konfiguration för enkel inloggning sparad"
   },
   "sponsoredFamilies": {
-    "message": "Gratis Bitwarden Familjer"
+    "message": "Gratis Cloudwarden Familjer"
   },
   "sponsoredBitwardenFamilies": {
     "message": "Sponsrade familjer"
@@ -10039,28 +10039,28 @@
     "message": "No non-members have redeemed the Sponsored Family Plan."
   },
   "sponsorshipFreeBitwardenFamilies": {
-    "message": "Medlemmar i din organisation är berättigade till Free Bitwarden Families. Du kan sponsra Free Bitwarden Families för anställda som inte är medlemmar i din Bitwarden-organisation. För att sponsra en icke-medlem krävs en ledig plats inom din organisation."
+    "message": "Medlemmar i din organisation är berättigade till Free Cloudwarden Families. Du kan sponsra Free Cloudwarden Families för anställda som inte är medlemmar i din Bitwarden-organisation. För att sponsra en icke-medlem krävs en ledig plats inom din organisation."
   },
   "sponsorshipFreeBitwardenFamiliesV2": {
-    "message": "Your members are eligible to redeem a Sponsored Families Plan. You can sponsor a Families plan for employees who are not members of your Bitwarden organization, but this will require available seats within your organization."
+    "message": "Your members are eligible to redeem a Sponsored Families Plan. You can sponsor a Families plan for employees who are not members of your Cloudwarden organization, but this will require available seats within your organization."
   },
   "sponsoredFamiliesRemoveActiveSponsorship": {
     "message": "När du tar bort ett aktivt sponsorskap kommer en plats inom din organisation att bli tillgänglig efter förnyelsedatumet för den sponsrade organisationen."
   },
   "sponsoredFamiliesEligible": {
-    "message": "Du och din familj är berättigade till gratis Bitwarden Families. Lös in med din personliga e-post för att hålla dina uppgifter säkra även när du inte är på jobbet."
+    "message": "Du och din familj är berättigade till gratis Cloudwarden Families. Lös in med din personliga e-post för att hålla dina uppgifter säkra även när du inte är på jobbet."
   },
   "sponsoredFamiliesEligibleV2": {
-    "message": "You and your family are eligible for a Sponsored Families Plan at no additional cost to you. Redeem this plan with your personal email to keep your data secure and separate from your Bitwarden work account."
+    "message": "You and your family are eligible for a Sponsored Families Plan at no additional cost to you. Redeem this plan with your personal email to keep your data secure and separate from your Cloudwarden work account."
   },
   "sponsoredFamiliesEligibleCard": {
-    "message": "Lös in din kostnadsfria Bitwarden for Families-plan idag för att skydda dina data även när du inte är på jobbet."
+    "message": "Lös in din kostnadsfria Cloudwarden for Families-plan idag för att skydda dina data även när du inte är på jobbet."
   },
   "sponsoredFamiliesIncludeMessage": {
-    "message": "Bitwarden for Families-planen omfattar"
+    "message": "Cloudwarden for Families-planen omfattar"
   },
   "sponsoredFamiliesIncludeMessageV2": {
-    "message": "The Bitwarden Families plan includes"
+    "message": "The Cloudwarden Families plan includes"
   },
   "sponsoredFamiliesPremiumAccess": {
     "message": "Premiumåtkomst för upp till 6 användare"
@@ -10081,7 +10081,7 @@
     "message": "Medlemmar som har löst in familjeplaner visas här"
   },
   "membersWithSponsoredFamilies": {
-    "message": "Medlemmar i din organisation är berättigade till Free Bitwarden Families. Här kan du se medlemmar som har sponsrat en Families-organisation."
+    "message": "Medlemmar i din organisation är berättigade till Free Cloudwarden Families. Här kan du se medlemmar som har sponsrat en Families-organisation."
   },
   "organizationHasMemberMessage": {
     "message": "En sponsring kan inte skickas till $EMAIL$ eftersom de är medlemmar i din organisation.",
@@ -10108,7 +10108,7 @@
     "message": "Vilket Free Families-erbjudande skulle du vilja utnyttja?"
   },
   "sponsoredFamiliesEmail": {
-    "message": "Ange din personliga e-postadress för att lösa in Bitwarden Families"
+    "message": "Ange din personliga e-postadress för att lösa in Cloudwarden Families"
   },
   "sponsoredFamiliesLeaveCopy": {
     "message": "Om du tar bort ett erbjudande eller tas bort från den sponsrande organisationen upphör din Families-sponsring att gälla vid nästa förnyelsedatum."
@@ -10117,7 +10117,7 @@
     "message": "Acceptera erbjudandet för en befintlig organisation eller skapa en ny Families-organisation."
   },
   "setupSponsoredFamiliesLoginDesc": {
-    "message": "Du har blivit erbjuden en gratis Bitwarden Families planorganisation. För att fortsätta måste du logga in på det konto som fick erbjudandet."
+    "message": "Du har blivit erbjuden en gratis Cloudwarden Families planorganisation. För att fortsätta måste du logga in på det konto som fick erbjudandet."
   },
   "sponsoredFamiliesAcceptFailed": {
     "message": "Det gick inte att acceptera erbjudandet. Skicka erbjudandet på nytt från ditt Enterprise-konto och försök igen."
@@ -10132,10 +10132,10 @@
     }
   },
   "sponsoredFamiliesOffer": {
-    "message": "Acceptera gratis Bitwarden Familjer"
+    "message": "Acceptera gratis Cloudwarden Familjer"
   },
   "sponsoredFamiliesOfferRedeemed": {
-    "message": "Gratis Bitwarden Families-erbjudande framgångsrikt inlöst"
+    "message": "Gratis Cloudwarden Families-erbjudande framgångsrikt inlöst"
   },
   "redeemed": {
     "message": "Inlöst"
@@ -10266,7 +10266,7 @@
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Connect login with SSO to your self-hosted decryption key server. Using this option, members won’t need to use their master passwords to decrypt vault data. The require SSO authentication and single organization policies are required to set up Key Connector decryption. Contact Bitwarden Support for set up assistance.'"
   },
   "memberDecryptionKeyConnectorDescEnd": {
-    "message": "krävs för att konfigurera dekryptering med Key Connector. Kontakta Bitwarden Support för hjälp med installationen.",
+    "message": "krävs för att konfigurera dekryptering med Key Connector. Kontakta Cloudwarden Support för hjälp med installationen.",
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Connect login with SSO to your self-hosted decryption key server. Using this option, members won’t need to use their master passwords to decrypt vault data. The require SSO authentication and single organization policies are required to set up Key Connector decryption. Contact Bitwarden Support for set up assistance.'"
   },
   "keyConnectorPolicyRestriction": {
@@ -10777,11 +10777,11 @@
     }
   },
   "forwarderGeneratedBy": {
-    "message": "Genereras av Bitwarden.",
+    "message": "Genereras av Cloudwarden.",
     "description": "Displayed with the address on the forwarding service's configuration screen."
   },
   "forwarderGeneratedByWithWebsite": {
-    "message": "Webbplats: $WEBSITE$. Genererad av Bitwarden.",
+    "message": "Webbplats: $WEBSITE$. Genererad av Cloudwarden.",
     "description": "Displayed with the address on the forwarding service's configuration screen.",
     "placeholders": {
       "WEBSITE": {
@@ -11981,7 +11981,7 @@
     "message": "More settings"
   },
   "moreFromBitwarden": {
-    "message": "Mer från Bitwarden"
+    "message": "Mer från Cloudwarden"
   },
   "switchProducts": {
     "message": "Produkter för växlar"
@@ -12877,7 +12877,7 @@
     "message": "Användaren ställde in ett huvudlösenord under TDE-offboarding."
   },
   "startYour7DayFreeTrialOfBitwardenFor": {
-    "message": "Starta din 7-dagars gratis provperiod av Bitwarden för $ORG$",
+    "message": "Starta din 7-dagars gratis provperiod av Cloudwarden för $ORG$",
     "placeholders": {
       "org": {
         "content": "$1",
@@ -13291,7 +13291,7 @@
     "message": "Get started with your vault"
   },
   "onboardingChecklistSubtitle": {
-    "message": "Complete these steps to secure your personal data and get the most out of Bitwarden"
+    "message": "Complete these steps to secure your personal data and get the most out of Cloudwarden"
   },
   "dismissThisChecklist": {
     "message": "Dismiss this checklist"
@@ -13388,7 +13388,7 @@
     "description": "Label indicating the most common import formats"
   },
   "uriMatchDefaultStrategyHint": {
-    "message": "Detektering av URI-matchning är hur Bitwarden identifierar autofyllförslag.",
+    "message": "Detektering av URI-matchning är hur Cloudwarden identifierar autofyllförslag.",
     "description": "Explains to the user that URI match detection determines how Bitwarden suggests autofill options, and clarifies that this default strategy applies when no specific match detection is set for a login item."
   },
   "regExAdvancedOptionWarning": {
@@ -13438,7 +13438,7 @@
     "message": "Vi har skickat ett bekräftelsemail till din e-postadress på "
   },
   "sorryToSeeYouGo": {
-    "message": "Ledsen att se dig gå! Hjälp till att förbättra Bitwarden genom att dela med dig av varför du avbokar.",
+    "message": "Ledsen att se dig gå! Hjälp till att förbättra Cloudwarden genom att dela med dig av varför du avbokar.",
     "description": "A message shown to users as part of an offboarding survey asking them to provide more information on their subscription cancelation."
   },
   "selectCancellationReason": {
@@ -14013,7 +14013,7 @@
     "description": "This represents the beginning of a sentence, broken up to include links. The full sentence will be 'Configure single sign-on for Bitwarden using the implementation guide for your Identity Provider."
   },
   "ssoDescEnd": {
-    "message": "för Bitwarden med hjälp av implementeringsguiden för din Identity Provider.",
+    "message": "för Cloudwarden med hjälp av implementeringsguiden för din Identity Provider.",
     "description": "This represents the end of a sentence, broken up to include links. The full sentence will be 'Configure single sign-on for Bitwarden using the implementation guide for your Identity Provider."
   },
   "userProvisioning": {
@@ -14027,14 +14027,14 @@
     "description": "This represents the beginning of a sentence, broken up to include links. The full sentence will be 'Configure SCIM (System for Cross-domain Identity Management) to automatically provision users and groups to Bitwarden using the implementation guide for your Identity Provider"
   },
   "scimIntegrationDescEnd": {
-    "message": "(System for Cross-domain Identity Management) för att automatiskt tillhandahålla användare och grupper till Bitwarden med hjälp av implementeringsguiden för din Identity Provider.",
+    "message": "(System for Cross-domain Identity Management) för att automatiskt tillhandahålla användare och grupper till Cloudwarden med hjälp av implementeringsguiden för din Identity Provider.",
     "description": "This represents the end of a sentence, broken up to include links. The full sentence will be 'Configure SCIM (System for Cross-domain Identity Management) to automatically provision users and groups to Bitwarden using the implementation guide for your Identity Provider"
   },
   "bwdc": {
-    "message": "Bitwarden Directory Connector"
+    "message": "Cloudwarden Directory Connector"
   },
   "bwdcDesc": {
-    "message": "Konfigurera Bitwarden Directory Connector för automatisk provisionering av användare och grupper med hjälp av implementeringsguiden för din Identity Provider."
+    "message": "Konfigurera Cloudwarden Directory Connector för automatisk provisionering av användare och grupper med hjälp av implementeringsguiden för din Identity Provider."
   },
   "eventManagement": {
     "message": "Eventhantering"
@@ -14046,7 +14046,7 @@
     "message": "Hantering av enheter"
   },
   "deviceManagementDesc": {
-    "message": "Konfigurera enhetshanteringen för Bitwarden med hjälp av implementeringsguiden för din plattform."
+    "message": "Konfigurera enhetshanteringen för Cloudwarden med hjälp av implementeringsguiden för din plattform."
   },
   "crowdstrikeEventIntegrationDesc": {
     "message": "Skicka händelsedata till din Logscale-instans"
@@ -14265,16 +14265,16 @@
     "message": "Hantera fakturering från Provider Portal"
   },
   "continueSettingUp": {
-    "message": "Fortsätt att ställa i ordning Bitwarden"
+    "message": "Fortsätt att ställa i ordning Cloudwarden"
   },
   "continueSettingUpFreeTrial": {
-    "message": "Fortsätt att konfigurera din kostnadsfria testversion av Bitwarden"
+    "message": "Fortsätt att konfigurera din kostnadsfria testversion av Cloudwarden"
   },
   "continueSettingUpPasswordManager": {
-    "message": "Fortsätt konfigurera Bitwarden Password Manager"
+    "message": "Fortsätt konfigurera Cloudwarden Password Manager"
   },
   "continueSettingUpFreeTrialPasswordManager": {
-    "message": "Fortsätt att konfigurera din kostnadsfria testversion av Bitwarden Password Manager"
+    "message": "Fortsätt att konfigurera din kostnadsfria testversion av Cloudwarden Password Manager"
   },
   "continueSettingUpSecretsManager": {
     "message": "Fortsätt konfigurera Bitwarden Secrets Manager"
@@ -14556,7 +14556,7 @@
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'Notice: Later this month, client vault privacy will be improved and provider members will no longer have direct access to client vault items. For questions, please contact Bitwarden support'."
   },
   "contactBitwardenSupport": {
-    "message": "kontakt Bitwarden support.",
+    "message": "kontakt Cloudwarden support.",
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'Notice: Later this month, client vault privacy will be improved and provider members will no longer have direct access to client vault items. For questions, please contact Bitwarden support'. 'Bitwarden' should not be translated"
   },
   "sponsored": {
@@ -14858,7 +14858,7 @@
     "message": "Din prenumeration på Secrets Manager kommer att uppgraderas baserat på den valda planen"
   },
   "bitwardenPasswordManager": {
-    "message": "Bitwarden Lösenordshanterare"
+    "message": "Cloudwarden Lösenordshanterare"
   },
   "secretsManagerComplimentaryPasswordManager": {
     "message": "Din kostnadsfria ettåriga prenumeration på Password Manager kommer att uppgraderas till den valda planen. Du kommer inte att debiteras förrän den kostnadsfria perioden är över."
@@ -14936,7 +14936,7 @@
     "description": "This represents the beginning of a sentence. The full sentence will be 'Manage subscription from the Provider Portal', but 'Provider Portal' will be a link and thus cannot be included in the translation file."
   },
   "toHostBitwardenOnYourOwnServer": {
-    "message": "Om du vill vara värd för Bitwarden på din egen server måste du ladda upp din licensfil. För att stödja Free Families-planer och avancerade faktureringsfunktioner för din egenhostade organisation måste du ställa in automatisk synkronisering i din egenhostade organisation."
+    "message": "Om du vill vara värd för Cloudwarden på din egen server måste du ladda upp din licensfil. För att stödja Free Families-planer och avancerade faktureringsfunktioner för din egenhostade organisation måste du ställa in automatisk synkronisering i din egenhostade organisation."
   },
   "selfHostingTitleProper": {
     "message": "Självhosting"
@@ -15060,7 +15060,7 @@
     "message": "Raderad framgångsrikt"
   },
   "freeFamiliesSponsorship": {
-    "message": "Ta bort Free Bitwarden Families sponsring"
+    "message": "Ta bort Free Cloudwarden Families sponsring"
   },
   "freeFamiliesSponsorshipPolicyTitleV2": {
     "message": "Remove sponsored Families plan"
@@ -15138,10 +15138,10 @@
     "message": "Automatiskt hävdade domäner"
   },
   "automaticDomainClaimProcess": {
-    "message": "Bitwarden kommer att försöka göra anspråk på domänen 3 gånger under de första 72 timmarna. Om domänen inte kan göras anspråk på, kontrollera DNS-posten i din host och gör anspråk manuellt. Domänen kommer att tas bort från din organisation inom 7 dagar om den inte görs anspråk på."
+    "message": "Cloudwarden kommer att försöka göra anspråk på domänen 3 gånger under de första 72 timmarna. Om domänen inte kan göras anspråk på, kontrollera DNS-posten i din host och gör anspråk manuellt. Domänen kommer att tas bort från din organisation inom 7 dagar om den inte görs anspråk på."
   },
   "automaticDomainClaimProcess1": {
-    "message": "Bitwarden kommer att försöka göra anspråk på domänen inom 72 timmar. Om domänen inte kan hävdas, kontrollera din DNS-post och anspråk manuellt. Domäner som inte gjorts anspråk på tas bort efter 7 dagar."
+    "message": "Cloudwarden kommer att försöka göra anspråk på domänen inom 72 timmar. Om domänen inte kan hävdas, kontrollera din DNS-post och anspråk manuellt. Domäner som inte gjorts anspråk på tas bort efter 7 dagar."
   },
   "automaticDomainClaimProcess2": {
     "message": "När de har gjorts anspråk på kommer befintliga medlemmar med dessa domäner kommer att mailas om "
@@ -15309,19 +15309,19 @@
     "message": "Kopiera privat nyckel"
   },
   "openingExtension": {
-    "message": "Öppna webbläsartillägget Bitwarden"
+    "message": "Öppna webbläsartillägget Cloudwarden"
   },
   "somethingWentWrong": {
     "message": "Något gick fel …"
   },
   "openingExtensionError": {
-    "message": "Vi hade problem med att öppna webbläsartillägget Bitwarden. Klicka på knappen för att öppna det nu."
+    "message": "Vi hade problem med att öppna webbläsartillägget Cloudwarden. Klicka på knappen för att öppna det nu."
   },
   "openExtension": {
     "message": "Öppna tillägg"
   },
   "doNotHaveExtension": {
-    "message": "Har du inte webbläsartillägget Bitwarden?"
+    "message": "Har du inte webbläsartillägget Cloudwarden?"
   },
   "installExtension": {
     "message": "Installera tillägg"
@@ -15330,7 +15330,7 @@
     "message": "Öppnade webbläsartillägget"
   },
   "openedExtensionViewAtRiskPasswords": {
-    "message": "Framgångsrikt öppnat webbläsartillägget Bitwarden. Du kan nu granska dina risklösenord."
+    "message": "Framgångsrikt öppnat webbläsartillägget Cloudwarden. Du kan nu granska dina risklösenord."
   },
   "resellerRenewalWarningMsg": {
     "message": "Din prenumeration kommer snart att förnyas. För att säkerställa oavbruten service, kontakta $RESELLER$ för att bekräfta din förnyelse före $RENEWAL_DATE$.",
@@ -15346,7 +15346,7 @@
     }
   },
   "resellerRenewalWarningMsgV2": {
-    "message": "Your subscription will renew soon. To ensure uninterrupted service, contact your Bitwarden provider to confirm your renewal before $RENEWAL_DATE$.",
+    "message": "Your subscription will renew soon. To ensure uninterrupted service, contact your Cloudwarden provider to confirm your renewal before $RENEWAL_DATE$.",
     "placeholders": {
       "renewal_date": {
         "content": "$1",
@@ -15385,7 +15385,7 @@
     }
   },
   "resellerPastDueWarningMsgV2": {
-    "message": "The invoice for your subscription has not been paid. To ensure uninterrupted service, contact your Bitwarden provider before $GRACE_PERIOD_END$.",
+    "message": "The invoice for your subscription has not been paid. To ensure uninterrupted service, contact your Cloudwarden provider before $GRACE_PERIOD_END$.",
     "placeholders": {
       "grace_period_end": {
         "content": "$1",
@@ -15727,7 +15727,7 @@
     "message": "Autofyll dina lösenord på ett säkert sätt med ett klick"
   },
   "setupExtensionPageDescription": {
-    "message": "Skaffa webbläsartillägget Bitwarden och börja autofylla redan idag"
+    "message": "Skaffa webbläsartillägget Cloudwarden och börja autofylla redan idag"
   },
   "getTheExtension": {
     "message": "Hämta tillägget"
@@ -15757,7 +15757,7 @@
     "message": "Öppna Bitwarden-tillägget"
   },
   "gettingStartedWithBitwardenPart1": {
-    "message": "För tips om hur du kommer igång med Bitwarden besök",
+    "message": "För tips om hur du kommer igång med Cloudwarden besök",
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'For tips on getting started with Bitwarden visit the Learning Center and Help Center'"
   },
   "gettingStartedWithBitwardenPart2": {
@@ -15765,7 +15765,7 @@
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'For tips on getting started with Bitwarden visit the Learning Center and Help Center'"
   },
   "openExtensionFromToolbarPart1": {
-    "message": "Om tillägget inte öppnades kan du behöva öppna Bitwarden från ikonen ",
+    "message": "Om tillägget inte öppnades kan du behöva öppna Cloudwarden från ikonen ",
     "description": "This will be used as part of a larger sentence, broken up to include the Bitwarden icon. The full sentence will read 'If the extension didn't open, you may need to open Bitwarden from the icon [Bitwarden Icon] on the toolbar.'"
   },
   "openExtensionFromToolbarPart2": {
@@ -15777,7 +15777,7 @@
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'For tips on getting started with Bitwarden visit the Learning Center and Help Center'"
   },
   "setupExtensionContentAlt": {
-    "message": "Med webbläsartillägget Bitwarden kan du enkelt skapa nya inloggningar, komma åt dina sparade inloggningar direkt från webbläsarens verktygsfält och logga in på konton snabbt med hjälp av Bitwardens autofyll."
+    "message": "Med webbläsartillägget Cloudwarden kan du enkelt skapa nya inloggningar, komma åt dina sparade inloggningar direkt från webbläsarens verktygsfält och logga in på konton snabbt med hjälp av Bitwardens autofyll."
   },
   "restart": {
     "message": "Starta om"
@@ -15809,7 +15809,7 @@
     "message": "Om denna inställning"
   },
   "permitCipherDetailsDescription": {
-    "message": "Bitwarden använder sparade inloggnings-URI: er för att identifiera vilken ikon eller URL för lösenordsändring som ska användas för att förbättra din upplevelse. Ingen information samlas in eller sparas när du använder denna tjänst."
+    "message": "Cloudwarden använder sparade inloggnings-URI: er för att identifiera vilken ikon eller URL för lösenordsändring som ska användas för att förbättra din upplevelse. Ingen information samlas in eller sparas när du använder denna tjänst."
   },
   "showQuickCopyActionsDetailsDescription": {
     "message": "Add 3 quick copy buttons next to items to copy your username, password, or verification code to the clipboard."
@@ -16064,7 +16064,7 @@
     "message": "Anpassad plan"
   },
   "planDescCustom": {
-    "message": "Bitwarden skalar med företag i alla storlekar för att säkra lösenord och känslig information. Om du är en del av ett stort företag, kontakta vår försäljningsavdelning för att begära en offert."
+    "message": "Cloudwarden skalar med företag i alla storlekar för att säkra lösenord och känslig information. Om du är en del av ett stort företag, kontakta vår försäljningsavdelning för att begära en offert."
   },
   "builtInAuthenticator": {
     "message": "Inbyggd authenticator"
@@ -16181,7 +16181,7 @@
     "message": "Ett fel uppstod vid beräkning av skatt för din plats. Försök igen."
   },
   "individualUpgradeWelcomeMessage": {
-    "message": "Välkommen till Bitwarden"
+    "message": "Välkommen till Cloudwarden"
   },
   "individualUpgradeDescriptionMessage": {
     "message": "Lås upp fler säkerhetsfunktioner med Premium, eller börja dela objekt med Families"
@@ -16202,7 +16202,7 @@
     "message": "Uppgradera nu"
   },
   "getAdvancedOnlineSecurityWithBitwardenPremium": {
-    "message": "Get advanced online security with Bitwarden premium."
+    "message": "Get advanced online security with Cloudwarden premium."
   },
   "formWillCreateNewFamiliesOrgMessage": {
     "message": "Genom att fylla i detta formulär skapas en ny Familjer-organisation. Du kan uppgradera din kostnadsfria organisation från administratörskonsolen."
@@ -16211,7 +16211,7 @@
     "message": "Vi stötte på ett fel vid bearbetningen av din uppgradering. Försök igen."
   },
   "bitwardenFreeplanMessage": {
-    "message": "Du har Bitwarden Free-planen"
+    "message": "Du har Cloudwarden Free-planen"
   },
   "upgradeCompleteSecurity": {
     "message": "Uppgradera för fullständig säkerhet"
@@ -16229,7 +16229,7 @@
     "message": "Algoritm"
   },
   "encryptionKeySettingsHowShouldWeEncryptYourData": {
-    "message": "Välj hur Bitwarden ska kryptera dina valvdata. Alla alternativ är säkra, men starkare metoder ger bättre skydd - särskilt mot uttömmande attacker. Bitwarden rekommenderar standardinställningen för de flesta användare."
+    "message": "Välj hur Cloudwarden ska kryptera dina valvdata. Alla alternativ är säkra, men starkare metoder ger bättre skydd - särskilt mot uttömmande attacker. Cloudwarden rekommenderar standardinställningen för de flesta användare."
   },
   "encryptionKeySettingsIncreaseImproveSecurity": {
     "message": "Att öka värdena ovanför standard kommer att förbättra säkerheten, men ditt valv kan ta längre tid att låsa upp som ett resultat."
@@ -16260,10 +16260,10 @@
     "description": "VFO1 terminology variant of 'blockClaimedDomainAccountCreationDesc', shown in the policies list"
   },
   "blockClaimedDomainAccountCreationDescV2": {
-    "message": "Block members from using your claimed domain to create Bitwarden accounts outside your organization."
+    "message": "Block members from using your claimed domain to create Cloudwarden accounts outside your organization."
   },
   "blockClaimedDomainAccountCreationDescV2Vfo1": {
-    "message": "Block members from using your claimed domain to create Bitwarden accounts outside of your organization vault.",
+    "message": "Block members from using your claimed domain to create Cloudwarden accounts outside of your organization vault.",
     "description": "VFO1 terminology variant of 'blockClaimedDomainAccountCreationDescV2'"
   },
   "blockClaimedDomainAccountCreationPrerequisiteV2": {
@@ -16301,7 +16301,7 @@
     }
   },
   "removeMasterPasswordForOrgUserKeyConnector": {
-    "message": "Din organisation använder inte längre huvudlösenord för att logga in på Bitwarden. För att fortsätta, verifiera organisationen och domänen."
+    "message": "Din organisation använder inte längre huvudlösenord för att logga in på Cloudwarden. För att fortsätta, verifiera organisationen och domänen."
   },
   "continueWithLogIn": {
     "message": "Fortsätt med inloggning"
@@ -16504,7 +16504,7 @@
     "message": "Avböj och lämna"
   },
   "youHaveBitwardenPremium": {
-    "message": "Du har Bitwarden Premium"
+    "message": "Du har Cloudwarden Premium"
   },
   "viewAndManagePremiumSubscription": {
     "message": "Visa och hantera ditt Premium-abonnemang"
@@ -16546,10 +16546,10 @@
     "message": "Öppna prenumerationssidan på ditt Bitwarden-molnkonto och ladda ner din licensfil. Återvänd sedan till den här skärmen och ladda upp den nedan."
   },
   "alreadyHaveSubscriptionSelfHostedMessageV2": {
-    "message": "Open the subscription page on your Bitwarden account and download your license file. Then return to this screen and upload it below."
+    "message": "Open the subscription page on your Cloudwarden account and download your license file. Then return to this screen and upload it below."
   },
   "alreadyHaveSubscriptionSelfHostedMessageV3": {
-    "message": "On your cloud environment, log in to your Bitwarden account, open the subscription page, and download your license file. Then, return to this screen and upload it."
+    "message": "On your cloud environment, log in to your Cloudwarden account, open the subscription page, and download your license file. Then, return to this screen and upload it."
   },
   "viewAllPlans": {
     "message": "Visa alla planer"
@@ -16635,7 +16635,7 @@
     "message": "Skaffa tillägget för enkel åtkomst till valv"
   },
   "extensionPromptBody": {
-    "message": "Med webbläsartillägget installerat tar du Bitwarden överallt på nätet. Det fyller i lösenord, så att du kan logga in på dina konton med ett enda klick."
+    "message": "Med webbläsartillägget installerat tar du Cloudwarden överallt på nätet. Det fyller i lösenord, så att du kan logga in på dina konton med ett enda klick."
   },
   "extensionPromptImageAlt": {
     "message": "En webbläsare som visar Bitwarden-tillägget med autofyll objekt för den aktuella webbsidan."
@@ -16686,10 +16686,10 @@
     "message": "Ogiltigt Send-lösenord"
   },
   "vaultWelcomeDialogTitle": {
-    "message": "Du är klar! Välkommen till Bitwarden"
+    "message": "Du är klar! Välkommen till Cloudwarden"
   },
   "vaultWelcomeDialogDescription": {
-    "message": "Store all your passwords and personal info in your Bitwarden vault. We'll show you around."
+    "message": "Store all your passwords and personal info in your Cloudwarden vault. We'll show you around."
   },
   "vaultWelcomeDialogPrimaryCta": {
     "message": "Starta rundtur"
@@ -17689,7 +17689,7 @@
     "message": "Payment successful"
   },
   "paymentSuccessfulProcessingMessage": {
-    "message": "Your upgrade is being processed. It may be a few minutes before you see Premium features in Bitwarden."
+    "message": "Your upgrade is being processed. It may be a few minutes before you see Premium features in Cloudwarden."
   },
   "planPurchased": {
     "message": "Plan purchased"

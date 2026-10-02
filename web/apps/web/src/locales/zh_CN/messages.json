@@ -21,7 +21,7 @@
     "message": "所有关键 App"
   },
   "appLogoLabel": {
-    "message": "Bitwarden logo"
+    "message": "Cloudwarden logo"
   },
   "criticalApplications": {
     "message": "关键应用程序"
@@ -236,7 +236,7 @@
     "message": "跟踪整个团队的改进情况"
   },
   "membersAreAutomaticallyNotified": {
-    "message": "成员会在他们的 Bitwarden 扩展中自动收到风险密码通知，无需您逐个提醒。"
+    "message": "成员会在他们的 Cloudwarden 扩展中自动收到风险密码通知，无需您逐个提醒。"
   },
   "importYourOrgDataToGetStarted": {
     "message": "导入您的组织数据以开始使用"
@@ -399,7 +399,7 @@
     }
   },
   "membersWillReceiveSecurityTask": {
-    "message": "您的组织成员将被分配更改易受攻击的密码的任务。他们将在 Bitwarden 浏览器扩展中收到通知。"
+    "message": "您的组织成员将被分配更改易受攻击的密码的任务。他们将在 Cloudwarden 浏览器扩展中收到通知。"
   },
   "membersAtRiskCount": {
     "message": "$COUNT$ 位成员存在风险",
@@ -847,10 +847,10 @@
     "message": "无缝两步验证"
   },
   "totpHelper": {
-    "message": "Bitwarden 可以存储并填充两步验证码。复制并粘贴密钥到此字段中。"
+    "message": "Cloudwarden 可以存储并填充两步验证码。复制并粘贴密钥到此字段中。"
   },
   "totpHelperWithCapture": {
-    "message": "Bitwarden 可以存储并填充两步验证码。选择相机图标来拍摄此网站的验证器二维码，或复制并粘贴密钥到此字段中。"
+    "message": "Cloudwarden 可以存储并填充两步验证码。选择相机图标来拍摄此网站的验证器二维码，或复制并粘贴密钥到此字段中。"
   },
   "totpCapture": {
     "message": "从当前网页扫描验证器二维码"
@@ -2222,7 +2222,7 @@
     "message": "使用设备登录"
   },
   "loginWithDeviceEnabledNote": {
-    "message": "必须在 Bitwarden App 的设置中设置设备登录。需要其他选项吗？"
+    "message": "必须在 Cloudwarden App 的设置中设置设备登录。需要其他选项吗？"
   },
   "needAnotherOptionV1": {
     "message": "需要其他选项吗？"
@@ -2339,7 +2339,7 @@
     "message": "创建账户"
   },
   "newToBitwarden": {
-    "message": "Bitwarden 新手吗？"
+    "message": "Cloudwarden 新手吗？"
   },
   "setAStrongPassword": {
     "message": "设置强密码"
@@ -2357,7 +2357,7 @@
     "message": "登录"
   },
   "loginPageEmailEntryScreenTitle": {
-    "message": "登录到 Bitwarden"
+    "message": "登录到 Cloudwarden"
   },
   "enterTheCodeSentToYourEmail": {
     "message": "输入发送到您的电子邮箱的代码"
@@ -2387,7 +2387,7 @@
     "message": "什么是设备？"
   },
   "aDeviceIs": {
-    "message": "设备是您登录过的 Bitwarden App 的独立安装。重新安装、清除 App 数据或清除 Cookie，可能会导致设备多次出现。"
+    "message": "设备是您登录过的 Cloudwarden App 的独立安装。重新安装、清除 App 数据或清除 Cookie，可能会导致设备多次出现。"
   },
   "logInInitiated": {
     "message": "登录已发起"
@@ -2694,7 +2694,7 @@
     "message": "通知已发送到您的设备。"
   },
   "notificationSentDevicePart1": {
-    "message": "解锁您设备上的 Bitwarden 或解锁"
+    "message": "解锁您设备上的 Cloudwarden 或解锁"
   },
   "accessAttemptBy": {
     "message": "$EMAIL$ 的访问尝试",
@@ -2718,7 +2718,7 @@
     "message": "批准前，请确保指纹短语与下面的相匹配。"
   },
   "notificationSentDeviceComplete": {
-    "message": "解锁您设备上的 Bitwarden。批准前，请确保指纹短语与下面的相匹配。"
+    "message": "解锁您设备上的 Cloudwarden。批准前，请确保指纹短语与下面的相匹配。"
   },
   "aNotificationWasSentToYourDevice": {
     "message": "通知已发送到您的设备"
@@ -2932,7 +2932,7 @@
     "message": "此导出将使用您的账户加密密钥来加密您的数据。如果您曾经轮换过您的账户加密密钥，您应将其重新导出，否则您将无法解密导出的文件。"
   },
   "encExportAccountWarningDesc": {
-    "message": "每个 Bitwarden 用户账户的账户加密密钥都是唯一的，因此您无法将加密的导出导入到另一个账户。"
+    "message": "每个 Cloudwarden 用户账户的账户加密密钥都是唯一的，因此您无法将加密的导出导入到另一个账户。"
   },
   "exportNoun": {
     "message": "导出",
@@ -2988,10 +2988,10 @@
     "message": "此 KeePass 数据库过大，无法导入。"
   },
   "accountRestrictedOptionDescription": {
-    "message": "使用衍生自您账户用户名和主密码的账户加密密钥以加密此导出，并限制只能导入到当前 Bitwarden 账户。"
+    "message": "使用衍生自您账户用户名和主密码的账户加密密钥以加密此导出，并限制只能导入到当前 Cloudwarden 账户。"
   },
   "passwordProtectedOptionDescription": {
-    "message": "设置一个文件密码以加密此导出，并使用此密码解密以导入到任意 Bitwarden 账户。"
+    "message": "设置一个文件密码以加密此导出，并使用此密码解密以导入到任意 Cloudwarden 账户。"
   },
   "exportTypeHeading": {
     "message": "导出类型"
@@ -3162,7 +3162,7 @@
     "message": "请求待处理"
   },
   "logBackInOthersToo": {
-    "message": "请重新登录。如果您正在使用其他 Bitwarden 应用程序，也请注销然后重新登录。"
+    "message": "请重新登录。如果您正在使用其他 Cloudwarden 应用程序，也请注销然后重新登录。"
   },
   "changeMasterPassword": {
     "message": "更改主密码"
@@ -3195,7 +3195,7 @@
     }
   },
   "kdfIterationsWarning": {
-    "message": "如果将 KDF 迭代次数设置得太高，可能导致在相对老旧的设备上登录（以及解锁）Bitwarden 时性能不佳。我们建议您以 $INCREMENT$ 的增量值递增，然后测试您的所有设备。",
+    "message": "如果将 KDF 迭代次数设置得太高，可能导致在相对老旧的设备上登录（以及解锁）Cloudwarden 时性能不佳。我们建议您以 $INCREMENT$ 的增量值递增，然后测试您的所有设备。",
     "placeholders": {
       "increment": {
         "content": "$1",
@@ -3208,7 +3208,7 @@
     "description": "Memory refers to computer memory (RAM). MB is short for megabytes."
   },
   "argon2Warning": {
-    "message": "如果将 KDF 迭代次数、内存和并行线程数设置得太高，可能导致在相对老旧的设备上登录（以及解锁）Bitwarden 时性能不佳。我们建议以小量递增的方式更改这些设置，然后测试您的所有设备。"
+    "message": "如果将 KDF 迭代次数、内存和并行线程数设置得太高，可能导致在相对老旧的设备上登录（以及解锁）Cloudwarden 时性能不佳。我们建议以小量递增的方式更改这些设置，然后测试您的所有设备。"
   },
   "kdfParallelism": {
     "message": "KDF 并行线程数"
@@ -3241,10 +3241,10 @@
     "message": "启用新设备登录保护"
   },
   "turnOffNewDeviceLoginProtectionModalDesc": {
-    "message": "继续下面的操作以停用从新设备登录 Bitwarden 时发送验证电子邮件的功能。"
+    "message": "继续下面的操作以停用从新设备登录 Cloudwarden 时发送验证电子邮件的功能。"
   },
   "turnOnNewDeviceLoginProtectionModalDesc": {
-    "message": "继续下面的操作以启用从新设备登录 Bitwarden 时发送验证电子邮件的功能。"
+    "message": "继续下面的操作以启用从新设备登录 Cloudwarden 时发送验证电子邮件的功能。"
   },
   "turnOffNewDeviceLoginProtectionWarning": {
     "message": "停用新设备登录保护后，拥有您的主密码的任何人都可以从任意设备访问您的账户。要在无需验证电子邮件的情况下保护您的账户，请设置两步登录。"
@@ -3694,7 +3694,7 @@
     "description": "Followed by a literal filename (my_passwords.json) rendered as code."
   },
   "importGnomeInstructionsFileHere": {
-    "message": "文件上传到 Bitwarden。",
+    "message": "文件上传到 Cloudwarden。",
     "description": "Follows the my_passwords.json filename."
   },
   "importPasswordagentInstructions": {
@@ -3827,7 +3827,7 @@
     "message": "域名规则"
   },
   "domainRulesDesc": {
-    "message": "如果您在多个不同网站域名中使用同一个登录，您可以把这些网站标记为「等效」。「全局」域名是由 Bitwarden 为您预先创建的域名。"
+    "message": "如果您在多个不同网站域名中使用同一个登录，您可以把这些网站标记为「等效」。「全局」域名是由 Cloudwarden 为您预先创建的域名。"
   },
   "globalEqDomains": {
     "message": "全局等效域名"
@@ -3878,7 +3878,7 @@
     "message": "为您的组织启用两步登录。"
   },
   "twoStepLoginEnterpriseDescStart": {
-    "message": "要为成员强制实施 Bitwarden 两步登录选项，请使用",
+    "message": "要为成员强制实施 Cloudwarden 两步登录选项，请使用",
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Enforce Bitwarden Two-step Login options for members by using the Two-step Login Policy.'"
   },
   "twoStepLoginPolicy": {
@@ -3891,7 +3891,7 @@
     "message": "如果您已设置 SSO 或计划设置 SSO，两步登录可能已经通过您的身份提供程序强制实施了。"
   },
   "twoStepLoginRecoveryWarning": {
-    "message": "启用两步登录可能会将您永久锁定在 Bitwarden 账户之外。当您无法使用常规的两步登录提供程序（例如您丢失了设备）时，可以使用恢复代码访问您的账户。如果您失去对您账户的访问，Bitwarden 支持也无法帮助您。我们建议您写下或打印恢复代码，并将其妥善保管。"
+    "message": "启用两步登录可能会将您永久锁定在 Cloudwarden 账户之外。当您无法使用常规的两步登录提供程序（例如您丢失了设备）时，可以使用恢复代码访问您的账户。如果您失去对您账户的访问，Cloudwarden 支持也无法帮助您。我们建议您写下或打印恢复代码，并将其妥善保管。"
   },
   "restrictedItemTypePolicy": {
     "message": "禁用支付卡项目类型"
@@ -3913,7 +3913,7 @@
     "message": "由 1 个或多个组织设置的策略阻止您将支付卡导入您的密码库。"
   },
   "yourSingleUseRecoveryCode": {
-    "message": "当您无法访问两步登录提供程序时，您的一次性恢复代码可用于停用两步登录。Bitwarden 建议您写下恢复代码，并将其妥善保管。"
+    "message": "当您无法访问两步登录提供程序时，您的一次性恢复代码可用于停用两步登录。Cloudwarden 建议您写下恢复代码，并将其妥善保管。"
   },
   "viewRecoveryCode": {
     "message": "查看恢复代码"
@@ -4011,7 +4011,7 @@
     }
   },
   "continueToExternalUrlDesc": {
-    "message": "您将离开 Bitwarden 并将在新窗口中打开一个外部网站。"
+    "message": "您将离开 Cloudwarden 并将在新窗口中打开一个外部网站。"
   },
   "twoStepContinueToBitwardenUrlTitle": {
     "message": "前往 bitwarden.com 吗？"
@@ -4059,7 +4059,7 @@
     "message": "保存表单。"
   },
   "twoFactorYubikeyWarning": {
-    "message": "由于平台限制，YubiKey 不能在所有 Bitwarden 应用程序上使用。您应该设置其他两步登录提供程序，以便在无法使用 YubiKey 时可以访问您的账户。支持的平台："
+    "message": "由于平台限制，YubiKey 不能在所有 Cloudwarden 应用程序上使用。您应该设置其他两步登录提供程序，以便在无法使用 YubiKey 时可以访问您的账户。支持的平台："
   },
   "twoFactorYubikeySupportUsb": {
     "message": "具有可使用 YubiKey 的 USB 端口的设备上的网页密码库、桌面应用程序、CLI 以及浏览器扩展。"
@@ -4110,7 +4110,7 @@
     "message": "停用全部密钥"
   },
   "twoFactorDuoDesc": {
-    "message": "输入 Duo 管理面板提供的 Bitwarden 应用程序信息。"
+    "message": "输入 Duo 管理面板提供的 Cloudwarden 应用程序信息。"
   },
   "twoFactorDuoClientId": {
     "message": "Client ID"
@@ -4161,7 +4161,7 @@
     "message": "保存表单。"
   },
   "twoFactorU2fWarning": {
-    "message": "由于平台限制，FIDO U2F 不能在所有 Bitwarden 应用程序上使用。您应该设置其他两步登录提供程序，以便在无法使用 FIDO U2F 时可以访问您的账户。支持的平台："
+    "message": "由于平台限制，FIDO U2F 不能在所有 Cloudwarden 应用程序上使用。您应该设置其他两步登录提供程序，以便在无法使用 FIDO U2F 时可以访问您的账户。支持的平台："
   },
   "twoFactorU2fSupportWeb": {
     "message": "桌面/笔记本电脑上支持 U2F 的浏览器（启用了 FIDO U2F 的 Chrome、Opera、Vivaldi 或 Firefox）中的网页密码库和浏览器扩展。"
@@ -4176,7 +4176,7 @@
     "message": "读取安全密钥时出现问题。请重试。"
   },
   "twoFactorRecoveryYourCode": {
-    "message": "您的 Bitwarden 两步登录恢复代码"
+    "message": "您的 Cloudwarden 两步登录恢复代码"
   },
   "twoFactorRecoveryNoCode": {
     "message": "您尚未设置任何两步登录提供程序。设置两步登录提供程序后，返回这里查看您的恢复代码。"
@@ -4266,7 +4266,7 @@
     "message": "以及"
   },
   "passkeyLoginReportHowToUse": {
-    "message": "如何在 Bitwarden 中使用它们。"
+    "message": "如何在 Cloudwarden 中使用它们。"
   },
   "passkeyLoginFound": {
     "message": "支持通行密钥的登录"
@@ -4526,7 +4526,7 @@
     }
   },
   "bitwardenFamiliesPlan": {
-    "message": "Bitwarden 家庭版方案。"
+    "message": "Cloudwarden 家庭版方案。"
   },
   "addons": {
     "message": "附加项目"
@@ -4738,7 +4738,7 @@
     }
   },
   "churnOfferDiscountBody": {
-    "message": "作为对 Bitwarden 长期客户的感谢，我们愿为您的下一次 $DURATION$ 服务提供 $DISCOUNT$ 折扣。",
+    "message": "作为对 Cloudwarden 长期客户的感谢，我们愿为您的下一次 $DURATION$ 服务提供 $DISCOUNT$ 折扣。",
     "description": "Body copy on the churn-mitigation offer card. DISCOUNT = discount amount; DURATION = service duration (e.g. 'year' or '6 months')",
     "placeholders": {
       "discount": {
@@ -4800,7 +4800,7 @@
     }
   },
   "churnOfferDiscountBodyRecurringAmount": {
-    "message": "作为对 Bitwarden 长期客户的感谢，我们愿为您的下一次 $DURATION$ 订阅每 $INTERVAL$ 提供 $AMOUNT$ 减免。",
+    "message": "作为对 Cloudwarden 长期客户的感谢，我们愿为您的下一次 $DURATION$ 订阅每 $INTERVAL$ 提供 $AMOUNT$ 减免。",
     "description": "Body copy on the churn-mitigation offer card for a fixed-amount discount that repeats each billing period. AMOUNT = discount amount (e.g. '$15.00'); INTERVAL = billing interval unit (e.g. 'month'); DURATION = discount duration (e.g. 'year' or '6 months')",
     "placeholders": {
       "amount": {
@@ -5249,7 +5249,7 @@
     }
   },
   "trialThankYou": {
-    "message": "感谢您注册 $PLAN$ Bitwarden！",
+    "message": "感谢您注册 $PLAN$ Cloudwarden！",
     "placeholders": {
       "plan": {
         "content": "$1",
@@ -5391,13 +5391,13 @@
     "message": "外部 ID"
   },
   "externalIdDesc": {
-    "message": "外部 ID 是 Bitwarden Directory Connector 和 API 使用的未经加密的参考。"
+    "message": "外部 ID 是 Cloudwarden Directory Connector 和 API 使用的未经加密的参考。"
   },
   "ssoExternalId": {
     "message": "SSO 外部 ID"
   },
   "ssoExternalIdDesc": {
-    "message": "SSO 外部 ID 是 Bitwarden 与您配置的 SSO 提供程序之间的未经加密的参考。"
+    "message": "SSO 外部 ID 是 Cloudwarden 与您配置的 SSO 提供程序之间的未经加密的参考。"
   },
   "nestCollectionUnder": {
     "message": "嵌套于集合下"
@@ -5454,13 +5454,13 @@
     "message": "邀请"
   },
   "inviteUserDesc": {
-    "message": "在下面输入他们的 Bitwarden 账户电子邮箱地址，以邀请新用户加入您的组织。如果他们还没有 Bitwarden 账户，将提示他们创建一个新账户。"
+    "message": "在下面输入他们的 Cloudwarden 账户电子邮箱地址，以邀请新用户加入您的组织。如果他们还没有 Cloudwarden 账户，将提示他们创建一个新账户。"
   },
   "inviteUserDescription": {
     "message": "在下面输入他们的电子邮箱地址，以邀请新用户加入您的组织。"
   },
   "inviteUserDescSharedFolders": {
-    "message": "在下面输入他们的 Bitwarden 账户电子邮箱地址，以邀请新用户加入您的组织密码库。如果他们还没有 Bitwarden 账户，将提示他们创建一个新账户。",
+    "message": "在下面输入他们的 Cloudwarden 账户电子邮箱地址，以邀请新用户加入您的组织密码库。如果他们还没有 Cloudwarden 账户，将提示他们创建一个新账户。",
     "description": "VFO1 (shared folder terminology) variant of inviteUserDesc, shown when the vfo1-foundation flag is enabled."
   },
   "inviteMultipleEmailDesc": {
@@ -5603,7 +5603,7 @@
     "message": "CLI"
   },
   "bitWebVault": {
-    "message": "Bitwarden 网页密码库"
+    "message": "Cloudwarden 网页密码库"
   },
   "bitSecretsManager": {
     "message": "Bitwarden Secrets Manager"
@@ -6925,7 +6925,7 @@
     "message": "返回注册"
   },
   "joinOrganizationDesc": {
-    "message": "您已被邀请加入上面的组织。要接受邀请，您需要登录或者创建一个新的 Bitwarden 账户。"
+    "message": "您已被邀请加入上面的组织。要接受邀请，您需要登录或者创建一个新的 Cloudwarden 账户。"
   },
   "finishJoiningThisOrganizationBySettingAMasterPassword": {
     "message": "通过设置主密码完成加入此组织。"
@@ -7066,10 +7066,10 @@
     "message": "如果您的账户存在，我们已经向您发送了电子邮件，其中包含了进一步说明。"
   },
   "deleteRecoverConfirmDesc": {
-    "message": "您已请求删除您的 Bitwarden 账户。单击下面的按钮以确认。"
+    "message": "您已请求删除您的 Cloudwarden 账户。单击下面的按钮以确认。"
   },
   "deleteRecoverOrgConfirmDesc": {
-    "message": "您已请求删除您的 Bitwarden 组织。"
+    "message": "您已请求删除您的 Cloudwarden 组织。"
   },
   "myOrganization": {
     "message": "我的组织"
@@ -7403,7 +7403,7 @@
     }
   },
   "updateEncryptionKeyWarning": {
-    "message": "更新加密密钥后，您需要注销当前正在使用的所有 Bitwarden 应用程序（例如移动 App 或浏览器扩展）然后重新登录。注销然后重新登录（这将下载新的加密密钥）失败可能会导致数据损坏。我们会尝试自动为您注销，但可能会有所延迟。"
+    "message": "更新加密密钥后，您需要注销当前正在使用的所有 Cloudwarden 应用程序（例如移动 App 或浏览器扩展）然后重新登录。注销然后重新登录（这将下载新的加密密钥）失败可能会导致数据损坏。我们会尝试自动为您注销，但可能会有所延迟。"
   },
   "updateEncryptionKeyAccountExportWarning": {
     "message": "所有您已保存的账户限制的导出文件将失效。"
@@ -7439,7 +7439,7 @@
     "message": "您没有选择任何内容。"
   },
   "receiveMarketingEmails": {
-    "message": "通过电子邮件接收 Bitwarden 的最新动态。"
+    "message": "通过电子邮件接收 Cloudwarden 的最新动态。"
   },
   "subscribe": {
     "message": "订阅"
@@ -7546,7 +7546,7 @@
     "message": "复制并粘贴此链接到您的团队可找到的地方：您的入职清单、Slack #new-joiners 频道、Notion 文档或电子邮件模板。"
   },
   "viewBitwardenOnboardingGuide": {
-    "message": "查看 Bitwarden 入职指南"
+    "message": "查看 Cloudwarden 入职指南"
   },
   "coachMarkStepOfTotal": {
     "message": "$CURRENT$ / $TOTAL$",
@@ -7790,7 +7790,7 @@
     "message": "API 密钥"
   },
   "apiKeyDesc": {
-    "message": "您的 API 密钥可用于验证 Bitwarden 公共 API。"
+    "message": "您的 API 密钥可用于验证 Cloudwarden 公共 API。"
   },
   "apiKeyRotateDesc": {
     "message": "轮换 API 密钥将使之前的密钥失效。如果您认为当前密钥不再安全，您可以轮换您的 API 密钥。"
@@ -8149,7 +8149,7 @@
     "description": "VFO1 terminology variant of 'singleOrgPolicyDescV2'"
   },
   "singleOrgBlockCreateMessage": {
-    "message": "您当前的组织策略禁止您加入多个组织。请联系您的组织管理员，或从其他 Bitwarden 账户注册。"
+    "message": "您当前的组织策略禁止您加入多个组织。请联系您的组织管理员，或从其他 Cloudwarden 账户注册。"
   },
   "singleOrgPolicyMemberWarning": {
     "message": "不符合要求的成员将被置于已撤销状态，直到他们退出所有其他组织，管理员不受此约束。达到要求后，管理员可以恢复他们的成员资格。"
@@ -8400,7 +8400,7 @@
     "message": "遇到问题了吗？下载诊断报告然后将其分享给"
   },
   "bitwardenSupport": {
-    "message": "Bitwarden 支持",
+    "message": "Cloudwarden 支持",
     "description": "Link text that follows the troubleshooting description sentence. 'Bitwarden' should not be translated."
   },
   "download": {
@@ -8457,7 +8457,7 @@
     "message": "编辑紧急联系人"
   },
   "inviteEmergencyContactDesc": {
-    "message": "在下面输入他们的 Bitwarden 账户电子邮箱地址，以邀请新的紧急联系人。如果他们还没有 Bitwarden 账户，将提示他们创建一个新账户。"
+    "message": "在下面输入他们的 Cloudwarden 账户电子邮箱地址，以邀请新的紧急联系人。如果他们还没有 Cloudwarden 账户，将提示他们创建一个新账户。"
   },
   "emergencyAccessRecoveryInitiated": {
     "message": "紧急访问已发起"
@@ -8496,7 +8496,7 @@
     "message": "已邀请用户。"
   },
   "acceptEmergencyAccess": {
-    "message": "您已被邀请成为上面所列用户的紧急联系人。要接受邀请，您需要登录或创建一个新的 Bitwarden 账户。"
+    "message": "您已被邀请成为上面所列用户的紧急联系人。要接受邀请，您需要登录或创建一个新的 Cloudwarden 账户。"
   },
   "emergencyInviteAcceptFailed": {
     "message": "无法接受邀请。请向用户请求发送新的邀请。"
@@ -8682,7 +8682,7 @@
     "message": "如何启用自动用户确认"
   },
   "autoConfirmExtension1": {
-    "message": "打开您的 Bitwarden 扩展"
+    "message": "打开您的 Cloudwarden 扩展"
   },
   "autoConfirmExtension2": {
     "message": "选择",
@@ -8693,7 +8693,7 @@
     "description": "This is a fragment of a larger sencence. The whole sentence will read: 'Select Turn on'"
   },
   "autoConfirmExtensionOpened": {
-    "message": "成功打开 Bitwarden 浏览器扩展。您现在可以激活自动用户确认设置了。"
+    "message": "成功打开 Cloudwarden 浏览器扩展。您现在可以激活自动用户确认设置了。"
   },
   "autoConfirmPolicyEditDescription": {
     "message": "当管理员的设备解锁时，邀请加入组织的新用户将被自动确认。启用此策略前，请审阅并同意以下内容：",
@@ -8906,7 +8906,7 @@
     "description": "VFO1 terminology variant of 'uriMatchDetectionPolicyDesc', shown in the policies list"
   },
   "uriMatchDetectionPolicyDescV2": {
-    "message": "设置网站地址 (URI) 中需要匹配的默认部分，以便 Bitwarden 在自动填充时建议登录项目。所有者和管理员不受此策略的约束。"
+    "message": "设置网站地址 (URI) 中需要匹配的默认部分，以便 Cloudwarden 在自动填充时建议登录项目。所有者和管理员不受此策略的约束。"
   },
   "uriMatchDetectionOptionsLabel": {
     "message": "默认 URI 匹配检测"
@@ -8926,7 +8926,7 @@
     "message": "自定义自动填充规则集"
   },
   "fillAssistRulesUrlHint": {
-    "message": "默认情况下，填充辅助使用 Bitwarden 精选的规则集。在此处输入 URL 以使用您自己的规则集覆盖默认规则集。"
+    "message": "默认情况下，填充辅助使用 Cloudwarden 精选的规则集。在此处输入 URL 以使用您自己的规则集覆盖默认规则集。"
   },
   "invalidFillAssistRulesUrl": {
     "message": "请输入有效的 URL",
@@ -9039,7 +9039,7 @@
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "sendAccessTaglineProductDesc": {
-    "message": "Bitwarden Send 能轻松、安全地向他人传送敏感的临时信息。",
+    "message": "Cloudwarden Send 能轻松、安全地向他人传送敏感的临时信息。",
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "sendAccessTaglineLearnMore": {
@@ -9105,7 +9105,7 @@
     "message": "Bitwarden Secrets Manager"
   },
   "moreProductsFromBitwarden": {
-    "message": "更多来自 Bitwarden 的产品"
+    "message": "更多来自 Cloudwarden 的产品"
   },
   "requestAccessToSecretsManager": {
     "message": "请求访问 Secrets Manager"
@@ -9117,7 +9117,7 @@
     "message": "对 Secrets Manager 的访问请求电子邮件已发送给管理员。"
   },
   "requestAccessSMDefaultEmailContent": {
-    "message": "您好，\n\n我请求为我们的团队订阅 Bitwarden Secrets Manager。您的支持对我们来说意义重大！\n\nBitwarden Secrets Manager 是一个端到端加密的机密管理解决方案，用于安全地存储、共享和部署机器凭证，如 API 密钥、数据库密码和身份验证证书等。\n\nSecrets Manager 将帮助我们：\n\n- 提高安全性\n- 简化操作\n- 防止重要的机密遭泄漏\n\n请联系 Bitwarden 为我们的团队申请免费试用。\n\n感谢您的帮助！"
+    "message": "您好，\n\n我请求为我们的团队订阅 Bitwarden Secrets Manager。您的支持对我们来说意义重大！\n\nBitwarden Secrets Manager 是一个端到端加密的机密管理解决方案，用于安全地存储、共享和部署机器凭证，如 API 密钥、数据库密码和身份验证证书等。\n\nSecrets Manager 将帮助我们：\n\n- 提高安全性\n- 简化操作\n- 防止重要的机密遭泄漏\n\n请联系 Cloudwarden 为我们的团队申请免费试用。\n\n感谢您的帮助！"
   },
   "giveMembersAccess": {
     "message": "授予成员访问权限："
@@ -9151,7 +9151,7 @@
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Learn more about Bitwarden Send or sign up to **try it today.**'"
   },
   "sendAccessCreatorIdentifier": {
-    "message": "Bitwarden 成员 $USER_IDENTIFIER$ 与您分享了以下内容",
+    "message": "Cloudwarden 成员 $USER_IDENTIFIER$ 与您分享了以下内容",
     "placeholders": {
       "user_identifier": {
         "content": "$1",
@@ -9176,7 +9176,7 @@
     "description": "Toast message shown when a user clicks the resend code link on the Send access page. 'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "viewSendHiddenEmailWarning": {
-    "message": "创建此 Send 的 Bitwarden 用户已选择隐藏他们的电子邮箱地址。在使用或下载其内容之前，您应确保信任此链接的来源。",
+    "message": "创建此 Send 的 Cloudwarden 用户已选择隐藏他们的电子邮箱地址。在使用或下载其内容之前，您应确保信任此链接的来源。",
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "expirationDateIsInvalid": {
@@ -9548,10 +9548,10 @@
     "message": "解密错误"
   },
   "couldNotDecryptVaultItem": {
-    "message": "Bitwarden 无法解密下面列出的密码库项目。请联系 Bitwarden 客户支持并提供下面的项目 ID，以查看它是否可以恢复。"
+    "message": "Cloudwarden 无法解密下面列出的密码库项目。请联系 Cloudwarden 客户支持并提供下面的项目 ID，以查看它是否可以恢复。"
   },
   "couldNotDecryptVaultItems": {
-    "message": "Bitwarden 无法解密下面列出的密码库项目。请联系 Bitwarden 客户支持并提供下面的项目 ID，以查看它们是否可以恢复。"
+    "message": "Cloudwarden 无法解密下面列出的密码库项目。请联系 Cloudwarden 客户支持并提供下面的项目 ID，以查看它们是否可以恢复。"
   },
   "itemId": {
     "message": "项目 ID",
@@ -9574,7 +9574,7 @@
     "message": "提供商设置"
   },
   "setupProviderLoginDesc": {
-    "message": "您已被邀请设置一个新的提供商。要继续，您需要登录或创建一个新的 Bitwarden 账户。"
+    "message": "您已被邀请设置一个新的提供商。要继续，您需要登录或创建一个新的 Cloudwarden 账户。"
   },
   "setupProviderDesc": {
     "message": "请在下面输入详细信息以完成提供商设置。如果您有任何疑问，请联系客户支持。"
@@ -9605,13 +9605,13 @@
     "message": "服务用户可以访问和管理所有客户组织。"
   },
   "providerInviteUserDesc": {
-    "message": "在下面输入他们的 Bitwarden 账户电子邮箱地址，以邀请新用户加入您的提供商。如果他们还没有 Bitwarden 账户，将提示他们创建一个新账户。"
+    "message": "在下面输入他们的 Cloudwarden 账户电子邮箱地址，以邀请新用户加入您的提供商。如果他们还没有 Cloudwarden 账户，将提示他们创建一个新账户。"
   },
   "joinProvider": {
     "message": "加入提供商"
   },
   "joinProviderDesc": {
-    "message": "您已被邀请加入上面列出的提供商。要接受邀请，您需要登录或创建一个新的 Bitwarden 账户。"
+    "message": "您已被邀请加入上面列出的提供商。要接受邀请，您需要登录或创建一个新的 Cloudwarden 账户。"
   },
   "providerInviteAcceptFailed": {
     "message": "无法接受邀请。请向提供商管理员请求发送新的邀请。"
@@ -9763,7 +9763,7 @@
     "message": "会话超时动作"
   },
   "sessionTimeoutSuppressedByConnectedDevice": {
-    "message": "由 Bitwarden 浏览器扩展 App 管理。打开浏览器 App 进行编辑。"
+    "message": "由 Cloudwarden 浏览器扩展 App 管理。打开浏览器 App 进行编辑。"
   },
   "immediately": {
     "message": "立即"
@@ -10018,7 +10018,7 @@
     "message": "单点登录 (SSO) 配置已保存"
   },
   "sponsoredFamilies": {
-    "message": "免费 Bitwarden 家庭版"
+    "message": "免费 Cloudwarden 家庭版"
   },
   "sponsoredBitwardenFamilies": {
     "message": "赞助的家庭"
@@ -10039,28 +10039,28 @@
     "message": "没有非成员兑现赞助的家庭版方案。"
   },
   "sponsorshipFreeBitwardenFamilies": {
-    "message": "您的组织成员有资格获得免费的 Bitwarden 家庭版。您可以为不是您的 Bitwarden 组织成员的员工赞助免费的 Bitwarden 家庭版。赞助非成员要求您的组织内有可用的席位。"
+    "message": "您的组织成员有资格获得免费的 Cloudwarden 家庭版。您可以为不是您的 Cloudwarden 组织成员的员工赞助免费的 Cloudwarden 家庭版。赞助非成员要求您的组织内有可用的席位。"
   },
   "sponsorshipFreeBitwardenFamiliesV2": {
-    "message": "您的成员有资格兑换赞助的家庭版方案。您可以为不是您的 Bitwarden 组织成员的员工赞助家庭版方案，但这要求您的组织内有可用的席位。"
+    "message": "您的成员有资格兑换赞助的家庭版方案。您可以为不是您的 Cloudwarden 组织成员的员工赞助家庭版方案，但这要求您的组织内有可用的席位。"
   },
   "sponsoredFamiliesRemoveActiveSponsorship": {
     "message": "当您移除某个活动赞助，在被赞助组织的续费日期之后，您的组织中将释放一个可用的席位。"
   },
   "sponsoredFamiliesEligible": {
-    "message": "您和您的家人有资格获得免费的 Bitwarden 家庭版。使用您的个人电子邮箱兑换，即使您不在工作中，也能确保您的数据安全。"
+    "message": "您和您的家人有资格获得免费的 Cloudwarden 家庭版。使用您的个人电子邮箱兑换，即使您不在工作中，也能确保您的数据安全。"
   },
   "sponsoredFamiliesEligibleV2": {
-    "message": "您和您的家人有资格获得赞助的家庭版方案，而无需额外的费用。使用您的个人电子邮箱兑换此方案，以确保您的数据安全，并将其与您的 Bitwarden 工作账户分开。"
+    "message": "您和您的家人有资格获得赞助的家庭版方案，而无需额外的费用。使用您的个人电子邮箱兑换此方案，以确保您的数据安全，并将其与您的 Cloudwarden 工作账户分开。"
   },
   "sponsoredFamiliesEligibleCard": {
-    "message": "立即兑换免费的 Bitwarden 家庭版方案，即使您不在工作中，也能确保您的数据安全。"
+    "message": "立即兑换免费的 Cloudwarden 家庭版方案，即使您不在工作中，也能确保您的数据安全。"
   },
   "sponsoredFamiliesIncludeMessage": {
-    "message": "Bitwarden 家庭版方案包含"
+    "message": "Cloudwarden 家庭版方案包含"
   },
   "sponsoredFamiliesIncludeMessageV2": {
-    "message": "Bitwarden 家庭版方案包含"
+    "message": "Cloudwarden 家庭版方案包含"
   },
   "sponsoredFamiliesPremiumAccess": {
     "message": "最多 6 位高级版访问权限的用户"
@@ -10081,7 +10081,7 @@
     "message": "已兑换家庭版方案的成员将在这里显示"
   },
   "membersWithSponsoredFamilies": {
-    "message": "您的组织成员有资格获得免费的 Bitwarden 家庭版。在这里，您可以看到已赞助了家庭版组织的成员。"
+    "message": "您的组织成员有资格获得免费的 Cloudwarden 家庭版。在这里，您可以看到已赞助了家庭版组织的成员。"
   },
   "organizationHasMemberMessage": {
     "message": "由于他们是您组织的成员，因此不能将赞助发送给 $EMAIL$。",
@@ -10108,7 +10108,7 @@
     "message": "您想兑换哪一个免费家庭版邀请？"
   },
   "sponsoredFamiliesEmail": {
-    "message": "输入您的个人电子邮箱以兑换 Bitwarden 家庭版"
+    "message": "输入您的个人电子邮箱以兑换 Cloudwarden 家庭版"
   },
   "sponsoredFamiliesLeaveCopy": {
     "message": "如果您移除邀请或您被移出赞助组织，您的家庭版赞助将在下一次续费日期到期。"
@@ -10117,7 +10117,7 @@
     "message": "接受现有组织的邀请或创建一个新的家庭版组织。"
   },
   "setupSponsoredFamiliesLoginDesc": {
-    "message": "您已被邀请加入免费的 Bitwarden 家庭版方案组织。要继续，您需要登录到接收邀请的账户。"
+    "message": "您已被邀请加入免费的 Cloudwarden 家庭版方案组织。要继续，您需要登录到接收邀请的账户。"
   },
   "sponsoredFamiliesAcceptFailed": {
     "message": "无法接受邀请。请通过您的企业账户重新发送邀请邮件，然后重试。"
@@ -10132,10 +10132,10 @@
     }
   },
   "sponsoredFamiliesOffer": {
-    "message": "接受免费的 Bitwarden 家庭版"
+    "message": "接受免费的 Cloudwarden 家庭版"
   },
   "sponsoredFamiliesOfferRedeemed": {
-    "message": "免费的 Bitwarden 家庭版邀请已成功兑换"
+    "message": "免费的 Cloudwarden 家庭版邀请已成功兑换"
   },
   "redeemed": {
     "message": "已兑换"
@@ -10266,7 +10266,7 @@
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Connect login with SSO to your self-hosted decryption key server. Using this option, members won’t need to use their master passwords to decrypt vault data. The require SSO authentication and single organization policies are required to set up Key Connector decryption. Contact Bitwarden Support for set up assistance.'"
   },
   "memberDecryptionKeyConnectorDescEnd": {
-    "message": "才能设置 Key Connector 解密。联系 Bitwarden 支持寻求设置帮助。",
+    "message": "才能设置 Key Connector 解密。联系 Cloudwarden 支持寻求设置帮助。",
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Connect login with SSO to your self-hosted decryption key server. Using this option, members won’t need to use their master passwords to decrypt vault data. The require SSO authentication and single organization policies are required to set up Key Connector decryption. Contact Bitwarden Support for set up assistance.'"
   },
   "keyConnectorPolicyRestriction": {
@@ -10366,7 +10366,7 @@
     "message": "自定义环境"
   },
   "selfHostedBaseUrlHint": {
-    "message": "指定您的本地托管 Bitwarden 安装的基础 URL。示例：https://bitwarden.company.com"
+    "message": "指定您的本地托管 Cloudwarden 安装的基础 URL。示例：https://bitwarden.company.com"
   },
   "selfHostedCustomEnvHeader": {
     "message": "对于高级配置，您可以单独指定每个服务的基础 URL。"
@@ -10414,7 +10414,7 @@
     "message": "计费同步令牌"
   },
   "automaticBillingSyncDesc": {
-    "message": "自动同步将解锁家庭版赞助，并允许您同步许可证而无需上传文件。在 Bitwarden 云服务器中进行更新后，选择「同步许可证」以应用更改。"
+    "message": "自动同步将解锁家庭版赞助，并允许您同步许可证而无需上传文件。在 Cloudwarden 云服务器中进行更新后，选择「同步许可证」以应用更改。"
   },
   "active": {
     "message": "已激活"
@@ -10777,11 +10777,11 @@
     }
   },
   "forwarderGeneratedBy": {
-    "message": "由 Bitwarden 生成。",
+    "message": "由 Cloudwarden 生成。",
     "description": "Displayed with the address on the forwarding service's configuration screen."
   },
   "forwarderGeneratedByWithWebsite": {
-    "message": "网站：$WEBSITE$。由 Bitwarden 生成。",
+    "message": "网站：$WEBSITE$。由 Cloudwarden 生成。",
     "description": "Displayed with the address on the forwarding service's configuration screen.",
     "placeholders": {
       "WEBSITE": {
@@ -11981,7 +11981,7 @@
     "message": "更多设置"
   },
   "moreFromBitwarden": {
-    "message": "更多来自 Bitwarden 的产品"
+    "message": "更多来自 Cloudwarden 的产品"
   },
   "switchProducts": {
     "message": "切换产品"
@@ -12877,7 +12877,7 @@
     "message": "用户在 TDE 卸载期间设置了主密码。"
   },
   "startYour7DayFreeTrialOfBitwardenFor": {
-    "message": "开始 $ORG$ 的 Bitwarden 7 天免费试用",
+    "message": "开始 $ORG$ 的 Cloudwarden 7 天免费试用",
     "placeholders": {
       "org": {
         "content": "$1",
@@ -13291,7 +13291,7 @@
     "message": "开始使用您的密码库"
   },
   "onboardingChecklistSubtitle": {
-    "message": "完成这些步骤以保护您的个人数据，并充分发挥 Bitwarden 的价值"
+    "message": "完成这些步骤以保护您的个人数据，并充分发挥 Cloudwarden 的价值"
   },
   "dismissThisChecklist": {
     "message": "忽略此清单"
@@ -13388,7 +13388,7 @@
     "description": "Label indicating the most common import formats"
   },
   "uriMatchDefaultStrategyHint": {
-    "message": "Bitwarden 根据 URI 匹配检测来识别自动填充建议。",
+    "message": "Cloudwarden 根据 URI 匹配检测来识别自动填充建议。",
     "description": "Explains to the user that URI match detection determines how Bitwarden suggests autofill options, and clarifies that this default strategy applies when no specific match detection is set for a login item."
   },
   "regExAdvancedOptionWarning": {
@@ -13438,7 +13438,7 @@
     "message": "我们已经发送了一封确认电子邮件到 "
   },
   "sorryToSeeYouGo": {
-    "message": "很遗憾看到您离开！请分享您取消的原因，以帮助改进 Bitwarden。",
+    "message": "很遗憾看到您离开！请分享您取消的原因，以帮助改进 Cloudwarden。",
     "description": "A message shown to users as part of an offboarding survey asking them to provide more information on their subscription cancelation."
   },
   "selectCancellationReason": {
@@ -14009,7 +14009,7 @@
     "message": "在以下编程语言中使用 Bitwarden Secrets Manager SDK 来构建您自己的应用程序。"
   },
   "ssoDescStart": {
-    "message": "使用适合您的身份提供程序的实施指南为 Bitwarden 配置",
+    "message": "使用适合您的身份提供程序的实施指南为 Cloudwarden 配置",
     "description": "This represents the beginning of a sentence, broken up to include links. The full sentence will be 'Configure single sign-on for Bitwarden using the implementation guide for your Identity Provider."
   },
   "ssoDescEnd": {
@@ -14027,26 +14027,26 @@
     "description": "This represents the beginning of a sentence, broken up to include links. The full sentence will be 'Configure SCIM (System for Cross-domain Identity Management) to automatically provision users and groups to Bitwarden using the implementation guide for your Identity Provider"
   },
   "scimIntegrationDescEnd": {
-    "message": "（跨域身份管理系统）以自动向 Bitwarden 配置用户和群组。",
+    "message": "（跨域身份管理系统）以自动向 Cloudwarden 配置用户和群组。",
     "description": "This represents the end of a sentence, broken up to include links. The full sentence will be 'Configure SCIM (System for Cross-domain Identity Management) to automatically provision users and groups to Bitwarden using the implementation guide for your Identity Provider"
   },
   "bwdc": {
-    "message": "Bitwarden Directory Connector"
+    "message": "Cloudwarden Directory Connector"
   },
   "bwdcDesc": {
-    "message": "使用适合您的身份提供程序的实施指南配置 Bitwarden Directory Connector 以自动配置用户和群组。"
+    "message": "使用适合您的身份提供程序的实施指南配置 Cloudwarden Directory Connector 以自动配置用户和群组。"
   },
   "eventManagement": {
     "message": "事件管理"
   },
   "eventManagementDesc": {
-    "message": "使用适合您的平台的实施指南将 Bitwarden 事件日志与您的 SIEM（系统信息和事件管理）系统集成。"
+    "message": "使用适合您的平台的实施指南将 Cloudwarden 事件日志与您的 SIEM（系统信息和事件管理）系统集成。"
   },
   "deviceManagement": {
     "message": "设备管理"
   },
   "deviceManagementDesc": {
-    "message": "使用适合您的平台的实施指南为 Bitwarden 配置设备管理。"
+    "message": "使用适合您的平台的实施指南为 Cloudwarden 配置设备管理。"
   },
   "crowdstrikeEventIntegrationDesc": {
     "message": "将事件数据发送到您的 Logscale 实例"
@@ -14265,16 +14265,16 @@
     "message": "从提供商门户管理计费"
   },
   "continueSettingUp": {
-    "message": "继续设置 Bitwarden"
+    "message": "继续设置 Cloudwarden"
   },
   "continueSettingUpFreeTrial": {
-    "message": "继续设置您的免费试用版 Bitwarden"
+    "message": "继续设置您的免费试用版 Cloudwarden"
   },
   "continueSettingUpPasswordManager": {
-    "message": "继续设置 Bitwarden Password Manager"
+    "message": "继续设置 Cloudwarden Password Manager"
   },
   "continueSettingUpFreeTrialPasswordManager": {
-    "message": "继续设置您的免费试用版 Bitwarden Password Manager"
+    "message": "继续设置您的免费试用版 Cloudwarden Password Manager"
   },
   "continueSettingUpSecretsManager": {
     "message": "继续设置 Bitwarden Secrets Manager"
@@ -14556,14 +14556,14 @@
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'Notice: Later this month, client vault privacy will be improved and provider members will no longer have direct access to client vault items. For questions, please contact Bitwarden support'."
   },
   "contactBitwardenSupport": {
-    "message": "联系 Bitwarden 支持。",
+    "message": "联系 Cloudwarden 支持。",
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'Notice: Later this month, client vault privacy will be improved and provider members will no longer have direct access to client vault items. For questions, please contact Bitwarden support'. 'Bitwarden' should not be translated"
   },
   "sponsored": {
     "message": "赞助"
   },
   "licenseAndBillingManagementDesc": {
-    "message": "在 Bitwarden 云服务器中进行更新后，上传许可证文件以应用最新的更改。"
+    "message": "在 Cloudwarden 云服务器中进行更新后，上传许可证文件以应用最新的更改。"
   },
   "addToFolder": {
     "message": "添加到文件夹"
@@ -14681,7 +14681,7 @@
     "message": "CVV 码是什么？"
   },
   "learnMoreAboutApi": {
-    "message": "进一步了解 Bitwarden API"
+    "message": "进一步了解 Cloudwarden API"
   },
   "fileSends": {
     "message": "文件 Send"
@@ -14858,7 +14858,7 @@
     "message": "您的 Secrets Manager 订阅将基于选择的方案升级"
   },
   "bitwardenPasswordManager": {
-    "message": "Bitwarden Password Manager"
+    "message": "Cloudwarden Password Manager"
   },
   "secretsManagerComplimentaryPasswordManager": {
     "message": "您的一年免费 Password Manager 订阅将升级到所选方案。在免费期结束前，我们不会向您收取费用。"
@@ -14936,7 +14936,7 @@
     "description": "This represents the beginning of a sentence. The full sentence will be 'Manage subscription from the Provider Portal', but 'Provider Portal' will be a link and thus cannot be included in the translation file."
   },
   "toHostBitwardenOnYourOwnServer": {
-    "message": "要在您自己的服务器上托管 Bitwarden，您需要上传您的许可证文件。要支持自托管组织的免费家庭版方案和高级计费功能，您需要在您的自托管组织中设置计费同步。"
+    "message": "要在您自己的服务器上托管 Cloudwarden，您需要上传您的许可证文件。要支持自托管组织的免费家庭版方案和高级计费功能，您需要在您的自托管组织中设置计费同步。"
   },
   "selfHostingTitleProper": {
     "message": "自托管"
@@ -15060,7 +15060,7 @@
     "message": "删除成功"
   },
   "freeFamiliesSponsorship": {
-    "message": "禁用免费的 Bitwarden 家庭版赞助"
+    "message": "禁用免费的 Cloudwarden 家庭版赞助"
   },
   "freeFamiliesSponsorshipPolicyTitleV2": {
     "message": "禁用赞助的家庭版方案"
@@ -15138,10 +15138,10 @@
     "message": "自动声明域名"
   },
   "automaticDomainClaimProcess": {
-    "message": "Bitwarden 将在最初的 72 小时内尝试声明域名 3 次。如果此域名无法声明，请检查您主机中的 DNS 记录并手动声明。如果此域名在 7 天内未声明，它将被从您的组织中移除。"
+    "message": "Cloudwarden 将在最初的 72 小时内尝试声明域名 3 次。如果此域名无法声明，请检查您主机中的 DNS 记录并手动声明。如果此域名在 7 天内未声明，它将被从您的组织中移除。"
   },
   "automaticDomainClaimProcess1": {
-    "message": "Bitwarden 将在 72 小时内尝试声明此域名。如果此域名无法声明，请验证您的 DNS 记录并手动声明。未声明的域名将在 7 天后被移除。"
+    "message": "Cloudwarden 将在 72 小时内尝试声明此域名。如果此域名无法声明，请验证您的 DNS 记录并手动声明。未声明的域名将在 7 天后被移除。"
   },
   "automaticDomainClaimProcess2": {
     "message": "声明后，使用已声明域名的现有成员将收到关于"
@@ -15309,19 +15309,19 @@
     "message": "复制私钥"
   },
   "openingExtension": {
-    "message": "正在打开 Bitwarden 浏览器扩展"
+    "message": "正在打开 Cloudwarden 浏览器扩展"
   },
   "somethingWentWrong": {
     "message": "出错了..."
   },
   "openingExtensionError": {
-    "message": "打开 Bitwarden 浏览器扩展时出现问题。点击按钮立即将其打开。"
+    "message": "打开 Cloudwarden 浏览器扩展时出现问题。点击按钮立即将其打开。"
   },
   "openExtension": {
     "message": "打开扩展"
   },
   "doNotHaveExtension": {
-    "message": "没有 Bitwarden 浏览器扩展吗？"
+    "message": "没有 Cloudwarden 浏览器扩展吗？"
   },
   "installExtension": {
     "message": "安装扩展"
@@ -15330,7 +15330,7 @@
     "message": "已打开浏览器扩展"
   },
   "openedExtensionViewAtRiskPasswords": {
-    "message": "成功打开 Bitwarden 浏览器扩展。您现在可以审查存在风险的密码了。"
+    "message": "成功打开 Cloudwarden 浏览器扩展。您现在可以审查存在风险的密码了。"
   },
   "resellerRenewalWarningMsg": {
     "message": "您的订阅即将续期。为确保服务不会中断，请在 $RENEWAL_DATE$ 之前联系 $RESELLER$ 确认您的续订。",
@@ -15346,7 +15346,7 @@
     }
   },
   "resellerRenewalWarningMsgV2": {
-    "message": "您的订阅即将续期。为确保服务不会中断，请在 $RENEWAL_DATE$ 之前联系您的 Bitwarden 提供商确认您的续订。",
+    "message": "您的订阅即将续期。为确保服务不会中断，请在 $RENEWAL_DATE$ 之前联系您的 Cloudwarden 提供商确认您的续订。",
     "placeholders": {
       "renewal_date": {
         "content": "$1",
@@ -15385,7 +15385,7 @@
     }
   },
   "resellerPastDueWarningMsgV2": {
-    "message": "您的订阅账单尚未支付。为确保服务不会中断，请在 $GRACE_PERIOD_END$ 之前联系您的 Bitwarden 提供商。",
+    "message": "您的订阅账单尚未支付。为确保服务不会中断，请在 $GRACE_PERIOD_END$ 之前联系您的 Cloudwarden 提供商。",
     "placeholders": {
       "grace_period_end": {
         "content": "$1",
@@ -15546,7 +15546,7 @@
     "message": "升级以查看您组织中的事件日志。"
   },
   "upgradeEventLogMessage": {
-    "message": "这些事件仅为示例，并不反映您 Bitwarden 组织内的真实事件。"
+    "message": "这些事件仅为示例，并不反映您 Cloudwarden 组织内的真实事件。"
   },
   "viewEvents": {
     "message": "查看事件"
@@ -15727,7 +15727,7 @@
     "message": "一键安全地自动填充您的密码"
   },
   "setupExtensionPageDescription": {
-    "message": "获取 Bitwarden 浏览器扩展，即刻开启自动填充"
+    "message": "获取 Cloudwarden 浏览器扩展，即刻开启自动填充"
   },
   "getTheExtension": {
     "message": "获取扩展"
@@ -15745,19 +15745,19 @@
     "message": "跳转到网页 App"
   },
   "bitwardenExtensionInstalled": {
-    "message": "Bitwarden 扩展已安装！"
+    "message": "Cloudwarden 扩展已安装！"
   },
   "bitwardenExtensionIsInstalled": {
-    "message": "Bitwarden 扩展已安装！"
+    "message": "Cloudwarden 扩展已安装！"
   },
   "openExtensionToAutofill": {
     "message": "打开扩展以登录并开始自动填充。"
   },
   "openBitwardenExtension": {
-    "message": "打开 Bitwarden 扩展"
+    "message": "打开 Cloudwarden 扩展"
   },
   "gettingStartedWithBitwardenPart1": {
-    "message": "有关开始使用 Bitwarden 的提示，请访问",
+    "message": "有关开始使用 Cloudwarden 的提示，请访问",
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'For tips on getting started with Bitwarden visit the Learning Center and Help Center'"
   },
   "gettingStartedWithBitwardenPart2": {
@@ -15769,7 +15769,7 @@
     "description": "This will be used as part of a larger sentence, broken up to include the Bitwarden icon. The full sentence will read 'If the extension didn't open, you may need to open Bitwarden from the icon [Bitwarden Icon] on the toolbar.'"
   },
   "openExtensionFromToolbarPart2": {
-    "message": " 来打开 Bitwarden。",
+    "message": " 来打开 Cloudwarden。",
     "description": "This will be used as part of a larger sentence, broken up to include the Bitwarden icon. The full sentence will read 'If the extension didn't open, you may need to open Bitwarden from the icon [Bitwarden Icon] on the toolbar.'"
   },
   "gettingStartedWithBitwardenPart3": {
@@ -15777,7 +15777,7 @@
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'For tips on getting started with Bitwarden visit the Learning Center and Help Center'"
   },
   "setupExtensionContentAlt": {
-    "message": "使用 Bitwarden 浏览器扩展，您可以轻松地创建新的登录，直接从您的浏览器工具栏访问已保存的登录，以及使用 Bitwarden 自动填充功能快速登录账户。"
+    "message": "使用 Cloudwarden 浏览器扩展，您可以轻松地创建新的登录，直接从您的浏览器工具栏访问已保存的登录，以及使用 Cloudwarden 自动填充功能快速登录账户。"
   },
   "restart": {
     "message": "重启"
@@ -15809,7 +15809,7 @@
     "message": "关于此设置"
   },
   "permitCipherDetailsDescription": {
-    "message": "Bitwarden 将使用已保存的登录 URI 来确定应使用的图标或更改密码的 URL，以提升您的使用体验。使用此服务时不会收集或保存任何信息。"
+    "message": "Cloudwarden 将使用已保存的登录 URI 来确定应使用的图标或更改密码的 URL，以提升您的使用体验。使用此服务时不会收集或保存任何信息。"
   },
   "showQuickCopyActionsDetailsDescription": {
     "message": "在项目旁边添加 3 个快速复制按钮，以将您的用户名、密码或验证码复制到剪贴板。"
@@ -15879,7 +15879,7 @@
     }
   },
   "restoreProviderPortalAccessViaCustomerSupport": {
-    "message": "要恢复对您的提供商门户的访问权限，请联系 Bitwarden 客户支持续费您的订阅。",
+    "message": "要恢复对您的提供商门户的访问权限，请联系 Cloudwarden 客户支持续费您的订阅。",
     "description": "A message shown in a non-dismissible dialog to any user of a suspended providers."
   },
   "restoreProviderPortalAccessViaPaymentMethod": {
@@ -15921,7 +15921,7 @@
     "message": "订阅已取消"
   },
   "providersubCanceledmessage": {
-    "message": "要重新订阅，请联系 Bitwarden 客户支持。"
+    "message": "要重新订阅，请联系 Cloudwarden 客户支持。"
   },
   "showAll": {
     "message": "显示全部"
@@ -16064,7 +16064,7 @@
     "message": "自定义方案"
   },
   "planDescCustom": {
-    "message": "Bitwarden 适用于各种规模的企业，为密码和敏感信息提供安全保障。若您属于大型企业，请联系销售人员获取报价。"
+    "message": "Cloudwarden 适用于各种规模的企业，为密码和敏感信息提供安全保障。若您属于大型企业，请联系销售人员获取报价。"
   },
   "builtInAuthenticator": {
     "message": "内置身份验证器"
@@ -16181,7 +16181,7 @@
     "message": "计算您所在位置的税费时出错。请重试。"
   },
   "individualUpgradeWelcomeMessage": {
-    "message": "欢迎使用 Bitwarden"
+    "message": "欢迎使用 Cloudwarden"
   },
   "individualUpgradeDescriptionMessage": {
     "message": "使用高级版解锁更多安全功能，或使用家庭版开始共享项目"
@@ -16202,7 +16202,7 @@
     "message": "立即升级"
   },
   "getAdvancedOnlineSecurityWithBitwardenPremium": {
-    "message": "使用 Bitwarden 高级版，获得高级在线安全防护。"
+    "message": "使用 Cloudwarden 高级版，获得高级在线安全防护。"
   },
   "formWillCreateNewFamiliesOrgMessage": {
     "message": "完成此表单将创建一个新的家庭版组织。您可以从 Admin Console 升级您的免费版组织。"
@@ -16211,7 +16211,7 @@
     "message": "我们在处理您的升级时遇到错误。请重试。"
   },
   "bitwardenFreeplanMessage": {
-    "message": "您拥有 Bitwarden 免费版方案"
+    "message": "您拥有 Cloudwarden 免费版方案"
   },
   "upgradeCompleteSecurity": {
     "message": "升级以获得全面的安全防护"
@@ -16229,7 +16229,7 @@
     "message": "算法"
   },
   "encryptionKeySettingsHowShouldWeEncryptYourData": {
-    "message": "选择 Bitwarden 加密您的密码库数据的方式。所有选项都是安全的，但更强大的方式提供了更好的保护 - 特别是针对暴力攻击。Bitwarden 建议大多数用户使用默认设置。"
+    "message": "选择 Cloudwarden 加密您的密码库数据的方式。所有选项都是安全的，但更强大的方式提供了更好的保护 - 特别是针对暴力攻击。Cloudwarden 建议大多数用户使用默认设置。"
   },
   "encryptionKeySettingsIncreaseImproveSecurity": {
     "message": "将值增加为高于默认值将提高安全性，但您的密码库相应需要更长时间才能解锁。"
@@ -16260,10 +16260,10 @@
     "description": "VFO1 terminology variant of 'blockClaimedDomainAccountCreationDesc', shown in the policies list"
   },
   "blockClaimedDomainAccountCreationDescV2": {
-    "message": "阻止成员使用已声明的域名在组织外部创建 Bitwarden 账户。"
+    "message": "阻止成员使用已声明的域名在组织外部创建 Cloudwarden 账户。"
   },
   "blockClaimedDomainAccountCreationDescV2Vfo1": {
-    "message": "阻止成员使用已声明的域名在组织密码库外部创建 Bitwarden 账户。",
+    "message": "阻止成员使用已声明的域名在组织密码库外部创建 Cloudwarden 账户。",
     "description": "VFO1 terminology variant of 'blockClaimedDomainAccountCreationDescV2'"
   },
   "blockClaimedDomainAccountCreationPrerequisiteV2": {
@@ -16301,7 +16301,7 @@
     }
   },
   "removeMasterPasswordForOrgUserKeyConnector": {
-    "message": "您的组织已不再使用主密码登录 Bitwarden。要继续，请验证组织和域名。"
+    "message": "您的组织已不再使用主密码登录 Cloudwarden。要继续，请验证组织和域名。"
   },
   "continueWithLogIn": {
     "message": "继续登录"
@@ -16504,7 +16504,7 @@
     "message": "拒绝并退出"
   },
   "youHaveBitwardenPremium": {
-    "message": "您有 Bitwarden 高级版"
+    "message": "您有 Cloudwarden 高级版"
   },
   "viewAndManagePremiumSubscription": {
     "message": "查看和管理您的高级版订阅"
@@ -16543,13 +16543,13 @@
     "message": "已经有一个订阅了吗？"
   },
   "alreadyHaveSubscriptionSelfHostedMessage": {
-    "message": "打开您的 Bitwarden 云账户的订阅页面，下载您的许可证文件。然后返回此界面，在下方上传该文件。"
+    "message": "打开您的 Cloudwarden 云账户的订阅页面，下载您的许可证文件。然后返回此界面，在下方上传该文件。"
   },
   "alreadyHaveSubscriptionSelfHostedMessageV2": {
-    "message": "打开您的 Bitwarden 账户的订阅页面，下载您的许可证文件。然后返回此界面，在下方上传该文件。"
+    "message": "打开您的 Cloudwarden 账户的订阅页面，下载您的许可证文件。然后返回此界面，在下方上传该文件。"
   },
   "alreadyHaveSubscriptionSelfHostedMessageV3": {
-    "message": "在您的云端环境中，登录您的 Bitwarden 账户，打开订阅页面，下载您的许可证文件。然后返回此界面，上传该文件。"
+    "message": "在您的云端环境中，登录您的 Cloudwarden 账户，打开订阅页面，下载您的许可证文件。然后返回此界面，上传该文件。"
   },
   "viewAllPlans": {
     "message": "查看所有方案"
@@ -16635,10 +16635,10 @@
     "message": "获取扩展以轻松访问密码库"
   },
   "extensionPromptBody": {
-    "message": "安装浏览器扩展后，您可以随时随地在线使用 Bitwarden。它会自动填充密码，只需单击一下即可登录您的账户。"
+    "message": "安装浏览器扩展后，您可以随时随地在线使用 Cloudwarden。它会自动填充密码，只需单击一下即可登录您的账户。"
   },
   "extensionPromptImageAlt": {
-    "message": "一个显示 Bitwarden 扩展的网页浏览器，该扩展为当前网页提供了自动填充项目。"
+    "message": "一个显示 Cloudwarden 扩展的网页浏览器，该扩展为当前网页提供了自动填充项目。"
   },
   "skip": {
     "message": "跳过"
@@ -16686,10 +16686,10 @@
     "message": "无效的 Send 密码"
   },
   "vaultWelcomeDialogTitle": {
-    "message": "您已成功加入！欢迎使用 Bitwarden"
+    "message": "您已成功加入！欢迎使用 Cloudwarden"
   },
   "vaultWelcomeDialogDescription": {
-    "message": "将您的所有密码和个人信息存储在您的 Bitwarden 密码库中。我们将带您熟悉一下。"
+    "message": "将您的所有密码和个人信息存储在您的 Cloudwarden 密码库中。我们将带您熟悉一下。"
   },
   "vaultWelcomeDialogPrimaryCta": {
     "message": "开始导览"
@@ -16923,7 +16923,7 @@
     "message": "帮助成员提升安全性"
   },
   "aiCoachmarkHelpMembersDescription": {
-    "message": "选择关键应用程序后，提醒成员更改存在风险的密码。他们将在 Bitwarden 浏览器扩展中收到通知。"
+    "message": "选择关键应用程序后，提醒成员更改存在风险的密码。他们将在 Cloudwarden 浏览器扩展中收到通知。"
   },
   "aiCoachmarkRunReportTitle": {
     "message": "及时发现新的风险"
@@ -17689,7 +17689,7 @@
     "message": "付款成功"
   },
   "paymentSuccessfulProcessingMessage": {
-    "message": "您的升级正在处理中。可能需要几分钟才能在 Bitwarden 中看到高级版功能。"
+    "message": "您的升级正在处理中。可能需要几分钟才能在 Cloudwarden 中看到高级版功能。"
   },
   "planPurchased": {
     "message": "方案已购买"

@@ -139,16 +139,8 @@ export class ProductSwitcherService {
     FeatureFlag.VFO1Foundation,
   );
 
-  shouldShowPremiumUpgradeButton$: Observable<boolean> = this.accountService.activeAccount$.pipe(
-    switchMap((account) => {
-      if (!account) {
-        return of(false);
-      }
-      return this.billingAccountProfileStateService
-        .hasPremiumFromAnySource$(account.id)
-        .pipe(map((hasPremium) => !hasPremium));
-    }),
-  );
+  // Cloudwarden: no premium upsell; every self-hosted feature is available (web/NOTICE.md).
+  shouldShowPremiumUpgradeButton$: Observable<boolean> = of(false);
 
   products$: Observable<{
     bento: ProductSwitcherItem[];
@@ -276,26 +268,13 @@ export class ProductSwitcherService {
           },
         } satisfies Record<string, ProductSwitcherItem>;
 
+        // Cloudwarden: only Password Manager and the Admin Console. Secrets Manager, the
+        // Provider Portal and marketing links ("More from ...") are not offered (web/NOTICE.md).
         const bento: ProductSwitcherItem[] = [products.pm];
         const other: ProductSwitcherItem[] = [];
 
-        if (smOrg) {
-          bento.push(products.sm);
-        } else if (!shouldDisableSMAds) {
-          // Only show SM in "other" section if ads are not disabled
-          other.push(products.sm);
-        }
-
         if (acOrg) {
           bento.push(products.ac);
-        } else if (!userHasSingleOrgPolicy && !vfo1Enabled) {
-          // Offered only while VFO1 is off — flag-on, "Add plan" in Settings
-          // replaces the Organizations entry point.
-          other.push(products.orgs);
-        }
-
-        if (providers.length > 0) {
-          bento.push(products.provider);
         }
 
         return {

@@ -8149,7 +8149,7 @@
     "description": "VFO1 terminology variant of 'singleOrgPolicyDescV2'"
   },
   "singleOrgBlockCreateMessage": {
-    "message": "Вашата настояща организация има политика, която не позволява да участвате в повече от една организация. Моля свържете се с администратора на организацията или се впишете с друг Bitwarden потребител."
+    "message": "Вашата настояща организация има политика, която не позволява да участвате в повече от една организация. Моля свържете се с администратора на организацията или се впишете с друг Cloudwarden потребител."
   },
   "singleOrgPolicyMemberWarning": {
     "message": "На членовете, които не отговарят на това условие, ще бъдат отнети правомощията, докато не напуснат всички останали организации. Администраторите не подлежат на това ограничение, така че те ще могат да възстановяват правомощията на членовете, след като отговорят на условието."
@@ -10018,7 +10018,7 @@
     "message": "Настройката на еднократната идентификация е запазена."
   },
   "sponsoredFamilies": {
-    "message": "Free Bitwarden Families"
+    "message": "Free Cloudwarden Families"
   },
   "sponsoredBitwardenFamilies": {
     "message": "Sponsored families"
@@ -10048,13 +10048,13 @@
     "message": "When you remove an active sponsorship, a seat within your organization will be available after the renewal date of the sponsored organization."
   },
   "sponsoredFamiliesEligible": {
-    "message": "You and your family are eligible for Free Bitwarden Families. Redeem with your personal email to keep your data secure even when you are not at work."
+    "message": "You and your family are eligible for Free Cloudwarden Families. Redeem with your personal email to keep your data secure even when you are not at work."
   },
   "sponsoredFamiliesEligibleV2": {
     "message": "Вие и Вашето семейство може да се възползвате от спонсориран Семеен план, който няма да Ви струва нищо. Заявете този план с личната си е-поща, за да запазите данните си на сигурно място и отделно от своя служебен акаунт в Битуорден."
   },
   "sponsoredFamiliesEligibleCard": {
-    "message": "Redeem your Free Bitwarden for Families plan today to keep your data secure even when you are not at work."
+    "message": "Redeem your Free Cloudwarden for Families plan today to keep your data secure even when you are not at work."
   },
   "sponsoredFamiliesIncludeMessage": {
     "message": "Семейният план на Битуорден включва"
@@ -10081,7 +10081,7 @@
     "message": "Members who have redeemed family plans will display here"
   },
   "membersWithSponsoredFamilies": {
-    "message": "Members of your organization are eligible for Free Bitwarden Families. Here you can see members who have sponsored a Families organization."
+    "message": "Members of your organization are eligible for Free Cloudwarden Families. Here you can see members who have sponsored a Families organization."
   },
   "organizationHasMemberMessage": {
     "message": "Не можете да приложите спонсориране към $EMAIL$, тъй като този потребител е член на организацията Ви.",
@@ -10108,7 +10108,7 @@
     "message": "От кое предложение за безплатен семеен план искате да се възползвате?"
   },
   "sponsoredFamiliesEmail": {
-    "message": "Enter your personal email to redeem Bitwarden Families"
+    "message": "Enter your personal email to redeem Cloudwarden Families"
   },
   "sponsoredFamiliesLeaveCopy": {
     "message": "If you remove an offer or are removed from the sponsoring organization, your Families sponsorship will expire at the next renewal date."
@@ -10117,7 +10117,7 @@
     "message": "Accept offer for an existing organization or create a new Families organization."
   },
   "setupSponsoredFamiliesLoginDesc": {
-    "message": "You've been offered a free Bitwarden Families plan organization. To continue, you need to log in to the account that received the offer."
+    "message": "You've been offered a free Cloudwarden Families plan organization. To continue, you need to log in to the account that received the offer."
   },
   "sponsoredFamiliesAcceptFailed": {
     "message": "Unable to accept offer. Please resend the offer email from your Enterprise account and try again."
@@ -10132,10 +10132,10 @@
     }
   },
   "sponsoredFamiliesOffer": {
-    "message": "Accept Free Bitwarden Families"
+    "message": "Accept Free Cloudwarden Families"
   },
   "sponsoredFamiliesOfferRedeemed": {
-    "message": "Free Bitwarden Families offer successfully redeemed"
+    "message": "Free Cloudwarden Families offer successfully redeemed"
   },
   "redeemed": {
     "message": "Използван"
@@ -14858,7 +14858,7 @@
     "message": "Вашият абонамент за Управлението на тайни ще бъде надграден според избрания план"
   },
   "bitwardenPasswordManager": {
-    "message": "Bitwarden — управител на пароли"
+    "message": "Cloudwarden — управител на пароли"
   },
   "secretsManagerComplimentaryPasswordManager": {
     "message": "Вашият безплатен едногодишен абонамент за Управлението на пароли ще бъде надграден до избрания план. Няма да бъдете таксуван(а), докато не изтече безплатния период."

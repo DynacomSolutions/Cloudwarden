@@ -21,7 +21,7 @@
     "message": "Toutes les applications critiques"
   },
   "appLogoLabel": {
-    "message": "Logo de Bitwarden"
+    "message": "Logo de Cloudwarden"
   },
   "criticalApplications": {
     "message": "Applications critiques"
@@ -236,7 +236,7 @@
     "message": "Suivez les améliorations dans votre équipe"
   },
   "membersAreAutomaticallyNotified": {
-    "message": "Les membres sont automatiquement informés des mots de passe à risque dans leur extension Bitwarden. Aucune chasse requise."
+    "message": "Les membres sont automatiquement informés des mots de passe à risque dans leur extension Cloudwarden. Aucune chasse requise."
   },
   "importYourOrgDataToGetStarted": {
     "message": "Importez vos données de l'organisation pour commencer"
@@ -399,7 +399,7 @@
     }
   },
   "membersWillReceiveSecurityTask": {
-    "message": "Les membres de votre organisation seront assignés à une tâche pour changer les mots de passe vulnérables. Ils recevront une notification dans leur extension de navigateur Bitwarden."
+    "message": "Les membres de votre organisation seront assignés à une tâche pour changer les mots de passe vulnérables. Ils recevront une notification dans leur extension de navigateur Cloudwarden."
   },
   "membersAtRiskCount": {
     "message": "$COUNT$ membres à risque",
@@ -847,10 +847,10 @@
     "message": "Rendre la vérification en deux étapes transparente"
   },
   "totpHelper": {
-    "message": "Bitwarden peut stocker et remplir des codes de vérification en 2 étapes. Copiez et collez la clé dans ce champ."
+    "message": "Cloudwarden peut stocker et remplir des codes de vérification en 2 étapes. Copiez et collez la clé dans ce champ."
   },
   "totpHelperWithCapture": {
-    "message": "Bitwarden peut stocker et remplir des codes de vérification en 2 étapes. Sélectionnez l'icône caméra pour prendre une capture d'écran du code QR de l'authentificateur de ce site Web, ou copiez et collez la clé dans ce champ."
+    "message": "Cloudwarden peut stocker et remplir des codes de vérification en 2 étapes. Sélectionnez l'icône caméra pour prendre une capture d'écran du code QR de l'authentificateur de ce site Web, ou copiez et collez la clé dans ce champ."
   },
   "totpCapture": {
     "message": "Scannez le code QR de l'authentificateur à partir de la page web actuelle"
@@ -2222,7 +2222,7 @@
     "message": "Se connecter avec l'appareil"
   },
   "loginWithDeviceEnabledNote": {
-    "message": "La connexion avec l'appareil doit être configurée dans les paramètres de l'application Bitwarden. Besoin d'une autre option ?"
+    "message": "La connexion avec l'appareil doit être configurée dans les paramètres de l'application Cloudwarden. Besoin d'une autre option ?"
   },
   "needAnotherOptionV1": {
     "message": "Besoin d'une autre option ?"
@@ -2339,7 +2339,7 @@
     "message": "Créez un compte"
   },
   "newToBitwarden": {
-    "message": "Nouveau sur Bitwarden?"
+    "message": "Nouveau sur Cloudwarden?"
   },
   "setAStrongPassword": {
     "message": "Définir un mot de passe fort"
@@ -2357,7 +2357,7 @@
     "message": "Se connecter"
   },
   "loginPageEmailEntryScreenTitle": {
-    "message": "Se connecter à Bitwarden"
+    "message": "Se connecter à Cloudwarden"
   },
   "enterTheCodeSentToYourEmail": {
     "message": "Entrez le code envoyé à votre adresse courriel"
@@ -2387,7 +2387,7 @@
     "message": "Qu'est-ce qu'un appareil ?"
   },
   "aDeviceIs": {
-    "message": "Un appareil est une installation unique de l'application Bitwarden où vous vous êtes connecté. Réinstaller, effacer les données de l'application ou effacer vos cookies peut entraîner l'apparition d'un appareil plusieurs fois."
+    "message": "Un appareil est une installation unique de l'application Cloudwarden où vous vous êtes connecté. Réinstaller, effacer les données de l'application ou effacer vos cookies peut entraîner l'apparition d'un appareil plusieurs fois."
   },
   "logInInitiated": {
     "message": "Connexion initiée"
@@ -2694,7 +2694,7 @@
     "message": "Une notification a été envoyée à votre appareil."
   },
   "notificationSentDevicePart1": {
-    "message": "Déverrouillez Bitwarden sur votre appareil ou sur le "
+    "message": "Déverrouillez Cloudwarden sur votre appareil ou sur le "
   },
   "accessAttemptBy": {
     "message": "Tentative d'accès par $EMAIL$",
@@ -2718,7 +2718,7 @@
     "message": "Assurez-vous que la phrase d'empreinte correspond à celle ci-dessous avant d'approuver."
   },
   "notificationSentDeviceComplete": {
-    "message": "Déverrouillez Bitwarden sur votre appareil. Assurez-vous que la phrase d'empreinte correspond à celle ci-dessous avant d'approuver."
+    "message": "Déverrouillez Cloudwarden sur votre appareil. Assurez-vous que la phrase d'empreinte correspond à celle ci-dessous avant d'approuver."
   },
   "aNotificationWasSentToYourDevice": {
     "message": "Une notification a été envoyée à votre appareil"
@@ -2932,7 +2932,7 @@
     "message": "Cet export chiffre vos données en utilisant la clé de chiffrement de votre compte. Si jamais vous modifiez la clé de chiffrement de votre compte, vous devriez exporter à nouveau car vous ne pourrez pas déchiffrer ce fichier."
   },
   "encExportAccountWarningDesc": {
-    "message": "Les clés de chiffrement du compte sont spécifiques à chaque utilisateur Bitwarden. Vous ne pouvez donc pas importer d'export chiffré dans un compte différent."
+    "message": "Les clés de chiffrement du compte sont spécifiques à chaque utilisateur Cloudwarden. Vous ne pouvez donc pas importer d'export chiffré dans un compte différent."
   },
   "exportNoun": {
     "message": "Export",
@@ -2988,7 +2988,7 @@
     "message": "Cette base de données KeePass est trop grande pour être importée."
   },
   "accountRestrictedOptionDescription": {
-    "message": "Utilisez la clé de chiffrement de votre compte, dérivée du nom d'utilisateur et du mot de passe principal de votre compte, pour chiffrer l'export et restreindre l'import au seul compte Bitwarden actuel."
+    "message": "Utilisez la clé de chiffrement de votre compte, dérivée du nom d'utilisateur et du mot de passe principal de votre compte, pour chiffrer l'export et restreindre l'import au seul compte Cloudwarden actuel."
   },
   "passwordProtectedOptionDescription": {
     "message": "Créez un mot de passe généré par l'utilisateur pour protéger l'exportation. Utilisez ceci pour créer une exportation qui peut être utilisée dans d'autres comptes."
@@ -3162,7 +3162,7 @@
     "message": "Demande en attente"
   },
   "logBackInOthersToo": {
-    "message": "Veuillez vous reconnecter. Si vous utilisez d'autres applications Bitwarden, déconnectez-vous et reconnectez-vous également de celles-ci."
+    "message": "Veuillez vous reconnecter. Si vous utilisez d'autres applications Cloudwarden, déconnectez-vous et reconnectez-vous également de celles-ci."
   },
   "changeMasterPassword": {
     "message": "Changer le mot de passe principal"
@@ -3195,7 +3195,7 @@
     }
   },
   "kdfIterationsWarning": {
-    "message": "Un réglage trop élevé des itérations, de la mémoire et du parallélisme KDF peut entraîner des performances médiocres lors de la connexion (et du déverrouillage) à Bitwarden sur des appareils plus lents ou plus anciens. Nous vous recommandons d'augmenter la valeur par incréments de $INCREMENT$ et de tester ensuite tous vos appareils.",
+    "message": "Un réglage trop élevé des itérations, de la mémoire et du parallélisme KDF peut entraîner des performances médiocres lors de la connexion (et du déverrouillage) à Cloudwarden sur des appareils plus lents ou plus anciens. Nous vous recommandons d'augmenter la valeur par incréments de $INCREMENT$ et de tester ensuite tous vos appareils.",
     "placeholders": {
       "increment": {
         "content": "$1",
@@ -3208,7 +3208,7 @@
     "description": "Memory refers to computer memory (RAM). MB is short for megabytes."
   },
   "argon2Warning": {
-    "message": "Un réglage trop élevé des itérations, de la mémoire et du parallélisme KDF peut entraîner des performances médiocres lors de la connexion (et du déverrouillage) à Bitwarden sur des appareils plus lents ou plus anciens. Nous vous recommandons de les modifier individuellement par petits incréments, puis de tester tous vos appareils."
+    "message": "Un réglage trop élevé des itérations, de la mémoire et du parallélisme KDF peut entraîner des performances médiocres lors de la connexion (et du déverrouillage) à Cloudwarden sur des appareils plus lents ou plus anciens. Nous vous recommandons de les modifier individuellement par petits incréments, puis de tester tous vos appareils."
   },
   "kdfParallelism": {
     "message": "Parallélisme KDF"
@@ -3241,10 +3241,10 @@
     "message": "Activez la protection de connexion du nouvel appareil"
   },
   "turnOffNewDeviceLoginProtectionModalDesc": {
-    "message": "Procédez ci-dessous pour désactiver les courriels de vérification envoyés par Bitwarden lorsque vous vous connectez à partir d'un nouvel appareil."
+    "message": "Procédez ci-dessous pour désactiver les courriels de vérification envoyés par Cloudwarden lorsque vous vous connectez à partir d'un nouvel appareil."
   },
   "turnOnNewDeviceLoginProtectionModalDesc": {
-    "message": "Procédez ci-dessous pour que Bitwarden vous envoie des courriels de vérification lorsque vous vous connectez à partir d'un nouvel appareil."
+    "message": "Procédez ci-dessous pour que Cloudwarden vous envoie des courriels de vérification lorsque vous vous connectez à partir d'un nouvel appareil."
   },
   "turnOffNewDeviceLoginProtectionWarning": {
     "message": "Avec la protection de connexion d'un nouvel appareil désactivée, toute personne ayant votre mot de passe principal peut accéder à votre compte depuis n'importe quel appareil. Pour protéger votre compte sans courriel de vérification, configurez la connexion en deux étapes."
@@ -3694,7 +3694,7 @@
     "description": "Followed by a literal filename (my_passwords.json) rendered as code."
   },
   "importGnomeInstructionsFileHere": {
-    "message": "fichier obtenu ici vers Bitwarden.",
+    "message": "fichier obtenu ici vers Cloudwarden.",
     "description": "Follows the my_passwords.json filename."
   },
   "importPasswordagentInstructions": {
@@ -3827,7 +3827,7 @@
     "message": "Règles de domaine"
   },
   "domainRulesDesc": {
-    "message": "Si vous avez le même identifiant sur plusieurs domaines de sites web différents, vous pouvez marquer le site web comme \"équivalent\". Les domaines \"globaux\" sont ceux qui ont déjà été créés pour vous par Bitwarden."
+    "message": "Si vous avez le même identifiant sur plusieurs domaines de sites web différents, vous pouvez marquer le site web comme \"équivalent\". Les domaines \"globaux\" sont ceux qui ont déjà été créés pour vous par Cloudwarden."
   },
   "globalEqDomains": {
     "message": "Domaines équivalents globaux"
@@ -3878,7 +3878,7 @@
     "message": "Activez l'authentification à deux facteurs pour votre organisation."
   },
   "twoStepLoginEnterpriseDescStart": {
-    "message": "Imposer les options d'authentification à deux facteurs de Bitwarden pour les membres en utilisant le ",
+    "message": "Imposer les options d'authentification à deux facteurs de Cloudwarden pour les membres en utilisant le ",
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Enforce Bitwarden Two-step Login options for members by using the Two-step Login Policy.'"
   },
   "twoStepLoginPolicy": {
@@ -3891,7 +3891,7 @@
     "message": "Si vous avez configuré SSO ou si vous prévoyez de le faire, l'authentification à deux facteurs peut déjà être imposée via votre fournisseur d'identité."
   },
   "twoStepLoginRecoveryWarning": {
-    "message": "La configuration d'un système d'authentification à deux facteurs peut définitivement vous verrouiller l'accès à votre compte Bitwarden. Un code de récupération vous permet d'accéder à votre compte dans le cas où vous ne pourriez plus utiliser votre fournisseur normal d'authentification à deux facteurs (exemple : vous perdez votre appareil). L'assistance de Bitwarden ne pourra pas vous aider si vous perdez l'accès à votre compte. Nous vous recommandons de noter ou d'imprimer le code de récupération et de le conserver en lieu sûr."
+    "message": "La configuration d'un système d'authentification à deux facteurs peut définitivement vous verrouiller l'accès à votre compte Cloudwarden. Un code de récupération vous permet d'accéder à votre compte dans le cas où vous ne pourriez plus utiliser votre fournisseur normal d'authentification à deux facteurs (exemple : vous perdez votre appareil). L'assistance de Cloudwarden ne pourra pas vous aider si vous perdez l'accès à votre compte. Nous vous recommandons de noter ou d'imprimer le code de récupération et de le conserver en lieu sûr."
   },
   "restrictedItemTypePolicy": {
     "message": "Supprimer le type d'élément de la carte"
@@ -3913,7 +3913,7 @@
     "message": "Une politique de sécurité définie par une organisation ou plus vous empêche d'importer des cartes dans vos coffres."
   },
   "yourSingleUseRecoveryCode": {
-    "message": "Votre code de récupération à usage unique peut être utilisé pour désactiver la connexion en deux étapes si vous perdez l'accès à votre fournisseur de connexion en deux étapes. Bitwarden vous recommande d'écrire le code de récupération et de le conserver dans un endroit sûr."
+    "message": "Votre code de récupération à usage unique peut être utilisé pour désactiver la connexion en deux étapes si vous perdez l'accès à votre fournisseur de connexion en deux étapes. Cloudwarden vous recommande d'écrire le code de récupération et de le conserver dans un endroit sûr."
   },
   "viewRecoveryCode": {
     "message": "Voir le code de récupération"
@@ -4011,7 +4011,7 @@
     }
   },
   "continueToExternalUrlDesc": {
-    "message": "Vous quittez Bitwarden et lancez un site web externe dans une nouvelle fenêtre."
+    "message": "Vous quittez Cloudwarden et lancez un site web externe dans une nouvelle fenêtre."
   },
   "twoStepContinueToBitwardenUrlTitle": {
     "message": "Continuer vers bitwarden.com?"
@@ -4059,7 +4059,7 @@
     "message": "Sauvegarder le formulaire."
   },
   "twoFactorYubikeyWarning": {
-    "message": "En raison des limitations de la plateforme, les YubiKey ne peuvent pas être utilisées sur toutes les applications Bitwarden. Vous devriez mettre en place un autre fournisseur d'authentification à deux facteurs pouvoir accéder à votre compte lorsque les YubiKeys ne peuvent pas être utilisées. Plateformes prises en charge :"
+    "message": "En raison des limitations de la plateforme, les YubiKey ne peuvent pas être utilisées sur toutes les applications Cloudwarden. Vous devriez mettre en place un autre fournisseur d'authentification à deux facteurs pouvoir accéder à votre compte lorsque les YubiKeys ne peuvent pas être utilisées. Plateformes prises en charge :"
   },
   "twoFactorYubikeySupportUsb": {
     "message": "Coffre web, application de bureau, interface ligne de commande (CLI) et toutes les extensions de navigateur sur un appareil doté d'un port USB pouvant accepter votre YubiKey."
@@ -4110,7 +4110,7 @@
     "message": "Désactiver toutes les clés"
   },
   "twoFactorDuoDesc": {
-    "message": "Entrez les informations de l'application Bitwarden provenant de votre panneau Duo Admin."
+    "message": "Entrez les informations de l'application Cloudwarden provenant de votre panneau Duo Admin."
   },
   "twoFactorDuoClientId": {
     "message": "ID du client"
@@ -4161,7 +4161,7 @@
     "message": "Sauvegarder le formulaire."
   },
   "twoFactorU2fWarning": {
-    "message": "En raison des limitations de la plateforme, FIDO U2F ne peut pas être utilisé sur toutes les applications Bitwarden. Vous devriez mettre en place un autre fournisseur d'authentification à deux facteurs pouvoir accéder à votre compte lorsque FIDO U2F ne peut pas être utilisé. Plateformes prises en charge :"
+    "message": "En raison des limitations de la plateforme, FIDO U2F ne peut pas être utilisé sur toutes les applications Cloudwarden. Vous devriez mettre en place un autre fournisseur d'authentification à deux facteurs pouvoir accéder à votre compte lorsque FIDO U2F ne peut pas être utilisé. Plateformes prises en charge :"
   },
   "twoFactorU2fSupportWeb": {
     "message": "Coffre web et extensions sur un ordinateur fixe/portable avec un navigateur compatible U2F (Chrome, Opera, Vivaldi ou Firefox avec FIDO U2F activé)."
@@ -4176,7 +4176,7 @@
     "message": "Un problème est survenu lors de la lecture de la clé de sécurité. Veuillez réessayer."
   },
   "twoFactorRecoveryYourCode": {
-    "message": "Votre code de récupération de d'authentification à deux facteurs Bitwarden"
+    "message": "Votre code de récupération de d'authentification à deux facteurs Cloudwarden"
   },
   "twoFactorRecoveryNoCode": {
     "message": "Vous n'avez pas encore mis en place de fournisseurs d'authentification à deux facteurs. Une fois que vous aurez mis en place un fournisseur d'authentification à deux facteurs, vous pourrez revenir ici pour obtenir votre code de récupération."
@@ -4229,7 +4229,7 @@
     "message": "Authentification à deux facteurs inactive"
   },
   "inactive2faReportDesc": {
-    "message": "L'authentification à deux facteurs ajoute une couche de protection à vos comptes. Mettez en place l'authentification à deux facteurs en utilisant Bitwarden authenticator pour ces comptes ou utilisez une méthode alternative."
+    "message": "L'authentification à deux facteurs ajoute une couche de protection à vos comptes. Mettez en place l'authentification à deux facteurs en utilisant Cloudwarden authenticator pour ces comptes ou utilisez une méthode alternative."
   },
   "inactive2faFound": {
     "message": "Identifiants sans authentification à deux facteurs trouvés"
@@ -4266,7 +4266,7 @@
     "message": "et "
   },
   "passkeyLoginReportHowToUse": {
-    "message": "comment les utiliser dans Bitwarden."
+    "message": "comment les utiliser dans Cloudwarden."
   },
   "passkeyLoginFound": {
     "message": "Identifiants qui supportent les clés d'accès"
@@ -4526,7 +4526,7 @@
     }
   },
   "bitwardenFamiliesPlan": {
-    "message": "Plan Bitwarden Familles."
+    "message": "Plan Cloudwarden Familles."
   },
   "addons": {
     "message": "Add-ons"
@@ -4738,7 +4738,7 @@
     }
   },
   "churnOfferDiscountBody": {
-    "message": "En guise de remerciement pour avoir été un client de longue date de Bitwarden, nous aimerions vous offrir une réduction $DISCOUNT$ sur votre prochain service $DURATION$.",
+    "message": "En guise de remerciement pour avoir été un client de longue date de Cloudwarden, nous aimerions vous offrir une réduction $DISCOUNT$ sur votre prochain service $DURATION$.",
     "description": "Body copy on the churn-mitigation offer card. DISCOUNT = discount amount; DURATION = service duration (e.g. 'year' or '6 months')",
     "placeholders": {
       "discount": {
@@ -4800,7 +4800,7 @@
     }
   },
   "churnOfferDiscountBodyRecurringAmount": {
-    "message": "En guise de remerciement pour avoir été un client de longue date de Bitwarden, nous aimerions vous offrir une réduction de $AMOUNT$ à tous les $INTERVAL$ pour $DURATION$.",
+    "message": "En guise de remerciement pour avoir été un client de longue date de Cloudwarden, nous aimerions vous offrir une réduction de $AMOUNT$ à tous les $INTERVAL$ pour $DURATION$.",
     "description": "Body copy on the churn-mitigation offer card for a fixed-amount discount that repeats each billing period. AMOUNT = discount amount (e.g. '$15.00'); INTERVAL = billing interval unit (e.g. 'month'); DURATION = discount duration (e.g. 'year' or '6 months')",
     "placeholders": {
       "amount": {
@@ -5249,7 +5249,7 @@
     }
   },
   "trialThankYou": {
-    "message": "Merci de vous être inscrit à Bitwarden avec le $PLAN$!",
+    "message": "Merci de vous être inscrit à Cloudwarden avec le $PLAN$!",
     "placeholders": {
       "plan": {
         "content": "$1",
@@ -5258,7 +5258,7 @@
     }
   },
   "trialSecretsManagerThankYou": {
-    "message": "Merci de vous être inscrit au $PLAN$ pour Secrets Manager de Bitwarden !",
+    "message": "Merci de vous être inscrit au $PLAN$ pour Secrets Manager de Cloudwarden !",
     "placeholders": {
       "plan": {
         "content": "$1",
@@ -5397,7 +5397,7 @@
     "message": "ID externe SSO"
   },
   "ssoExternalIdDesc": {
-    "message": "ID externe SSO est une référence non chiffrée entre Bitwarden et votre fournisseur SSO configuré."
+    "message": "ID externe SSO est une référence non chiffrée entre Cloudwarden et votre fournisseur SSO configuré."
   },
   "nestCollectionUnder": {
     "message": "Collection imbriquée sous"
@@ -5454,13 +5454,13 @@
     "message": "Inviter"
   },
   "inviteUserDesc": {
-    "message": "Invitez un nouvel utilisateur dans votre organisation en saisissant l'adresse électronique de son compte Bitwarden ci-dessous. S'il n'a pas encore de compte Bitwarden, il lui sera demandé de créer un nouveau compte."
+    "message": "Invitez un nouvel utilisateur dans votre organisation en saisissant l'adresse électronique de son compte Cloudwarden ci-dessous. S'il n'a pas encore de compte Cloudwarden, il lui sera demandé de créer un nouveau compte."
   },
   "inviteUserDescription": {
     "message": "Invitez de nouveaux utilisateurs à votre organisation en entrant leur adresse courriel ci-dessous."
   },
   "inviteUserDescSharedFolders": {
-    "message": "Invitez un nouvel utilisateur dans le coffre de votre organisation en entrant son adresse courriel de compte Bitwarden ci-dessous. S'ils n'ont pas de compte Bitwarden, ils seront invités à créer un nouveau compte.",
+    "message": "Invitez un nouvel utilisateur dans le coffre de votre organisation en entrant son adresse courriel de compte Cloudwarden ci-dessous. S'ils n'ont pas de compte Cloudwarden, ils seront invités à créer un nouveau compte.",
     "description": "VFO1 (shared folder terminology) variant of inviteUserDesc, shown when the vfo1-foundation flag is enabled."
   },
   "inviteMultipleEmailDesc": {
@@ -5603,10 +5603,10 @@
     "message": "CLI"
   },
   "bitWebVault": {
-    "message": "Coffre web de Bitwarden"
+    "message": "Coffre web de Cloudwarden"
   },
   "bitSecretsManager": {
-    "message": "Secrets Manager de Bitwarden"
+    "message": "Secrets Manager de Cloudwarden"
   },
   "loggedIn": {
     "message": "Connecté."
@@ -6925,7 +6925,7 @@
     "message": "Retourner à l'inscription"
   },
   "joinOrganizationDesc": {
-    "message": "Vous avez été invité à rejoindre l'organisation ci-dessus. Pour accepter l'invitation, vous devez vous connecter ou créer un nouveau compte Bitwarden."
+    "message": "Vous avez été invité à rejoindre l'organisation ci-dessus. Pour accepter l'invitation, vous devez vous connecter ou créer un nouveau compte Cloudwarden."
   },
   "finishJoiningThisOrganizationBySettingAMasterPassword": {
     "message": "Terminer de rejoindre cette organisation en définissant un mot de passe principal."
@@ -7066,10 +7066,10 @@
     "message": "Si votre compte existe, nous vous avons envoyé un courriel avec des instructions supplémentaires."
   },
   "deleteRecoverConfirmDesc": {
-    "message": "Vous avez demandé de supprimer votre compte Bitwarden. Cliquez sur le bouton ci-dessous pour confirmer."
+    "message": "Vous avez demandé de supprimer votre compte Cloudwarden. Cliquez sur le bouton ci-dessous pour confirmer."
   },
   "deleteRecoverOrgConfirmDesc": {
-    "message": "Vous avez demandé à supprimer votre organisation Bitwarden."
+    "message": "Vous avez demandé à supprimer votre organisation Cloudwarden."
   },
   "myOrganization": {
     "message": "Mon organisation"
@@ -7403,7 +7403,7 @@
     }
   },
   "updateEncryptionKeyWarning": {
-    "message": "Après avoir mis à jour votre clé de chiffrement, vous devez vous déconnecter et vous reconnecter à toutes les applications Bitwarden que vous utilisez actuellement (comme l'application mobile ou les extensions de navigateur). Si vous ne vous déconnectez pas et ne vous reconnectez pas (ce qui télécharge votre nouvelle clé de chiffrement), cela peut entraîner une corruption des données. Nous tenterons de vous déconnecter automatiquement, mais cela peut être retardé."
+    "message": "Après avoir mis à jour votre clé de chiffrement, vous devez vous déconnecter et vous reconnecter à toutes les applications Cloudwarden que vous utilisez actuellement (comme l'application mobile ou les extensions de navigateur). Si vous ne vous déconnectez pas et ne vous reconnectez pas (ce qui télécharge votre nouvelle clé de chiffrement), cela peut entraîner une corruption des données. Nous tenterons de vous déconnecter automatiquement, mais cela peut être retardé."
   },
   "updateEncryptionKeyAccountExportWarning": {
     "message": "Toutes les exportations restreintes du compte que vous avez enregistrées seront invalides."
@@ -7439,7 +7439,7 @@
     "message": "Vous n'avez rien sélectionné."
   },
   "receiveMarketingEmails": {
-    "message": "Recevoir des mises à jour de Bitwarden dans votre messagerie."
+    "message": "Recevoir des mises à jour de Cloudwarden dans votre messagerie."
   },
   "subscribe": {
     "message": "Abonnez-vous"
@@ -7546,7 +7546,7 @@
     "message": "Copiez et collez le lien où votre équipe le trouvera : votre liste de contrôle d'intégration, un canal Slack #new-joiners, une documentation de Notion ou un modèle de courriel."
   },
   "viewBitwardenOnboardingGuide": {
-    "message": "Voir le guide d'intégration de Bitwarden"
+    "message": "Voir le guide d'intégration de Cloudwarden"
   },
   "coachMarkStepOfTotal": {
     "message": "$CURRENT$ de $TOTAL$",
@@ -7725,7 +7725,7 @@
     "message": "Mot de passe principal faible"
   },
   "weakMasterPasswordDesc": {
-    "message": "Le mot de passe principal que vous avez choisi est faible. Vous devriez utiliser un mot de passe principal fort (ou une phrase de passe) pour protéger correctement votre compte Bitwarden. Êtes-vous sûr de vouloir utiliser ce mot de passe principal ?"
+    "message": "Le mot de passe principal que vous avez choisi est faible. Vous devriez utiliser un mot de passe principal fort (ou une phrase de passe) pour protéger correctement votre compte Cloudwarden. Êtes-vous sûr de vouloir utiliser ce mot de passe principal ?"
   },
   "rotateAccountEncKey": {
     "message": "Régénérer également la clé de chiffrement de mon compte"
@@ -7790,7 +7790,7 @@
     "message": "Clé API"
   },
   "apiKeyDesc": {
-    "message": "Votre clé API peut être utilisée pour vous authentifier auprès de l'API publique de Bitwarden."
+    "message": "Votre clé API peut être utilisée pour vous authentifier auprès de l'API publique de Cloudwarden."
   },
   "apiKeyRotateDesc": {
     "message": "La régénération de la clé API invalidera la clé précédente. Vous pouvez régénérer votre clé API si vous estimez que la clé actuelle n'est plus utilisable en toute sécurité."
@@ -7799,7 +7799,7 @@
     "message": "Votre clé API possède un accès complet à l'organisation. Elle devrait être tenue secrète."
   },
   "userApiKeyDesc": {
-    "message": "Votre clé API peut être utilisée pour vous authentifier dans la CLI de Bitwarden."
+    "message": "Votre clé API peut être utilisée pour vous authentifier dans la CLI de Cloudwarden."
   },
   "userApiKeyWarning": {
     "message": "Votre clé API est un mécanisme d'authentification alternatif. Elle devrait être tenue secrète."
@@ -8149,7 +8149,7 @@
     "description": "VFO1 terminology variant of 'singleOrgPolicyDescV2'"
   },
   "singleOrgBlockCreateMessage": {
-    "message": "Votre organisation actuelle a une politique qui ne vous permet pas de rejoindre plus d'une organisation. Veuillez contacter les administrateurs de votre organisation ou vous inscrire à partir d'un compte Bitwarden différent."
+    "message": "Votre organisation actuelle a une politique qui ne vous permet pas de rejoindre plus d'une organisation. Veuillez contacter les administrateurs de votre organisation ou vous inscrire à partir d'un compte Cloudwarden différent."
   },
   "singleOrgPolicyMemberWarning": {
     "message": "Les membres non conformes seront placés en statut révoqué jusqu'à ce qu'ils quittent toutes les autres organisations. Les administrateurs sont exemptés et peuvent restaurer les membres une fois que la conformité est respectée."
@@ -8400,7 +8400,7 @@
     "message": "Vous rencontrez un problème ? Téléchargez puis partagez le rapport de diagnostic avec"
   },
   "bitwardenSupport": {
-    "message": "Support Bitwarden",
+    "message": "Support Cloudwarden",
     "description": "Link text that follows the troubleshooting description sentence. 'Bitwarden' should not be translated."
   },
   "download": {
@@ -8457,7 +8457,7 @@
     "message": "Modifier le contact d'urgence"
   },
   "inviteEmergencyContactDesc": {
-    "message": "Invitez un nouveau contact d'urgence en saisissant l'adresse électronique de son compte Bitwarden ci-dessous. S'il n'a pas encore de compte Bitwarden, il lui sera demandé de créer un nouveau compte."
+    "message": "Invitez un nouveau contact d'urgence en saisissant l'adresse électronique de son compte Cloudwarden ci-dessous. S'il n'a pas encore de compte Cloudwarden, il lui sera demandé de créer un nouveau compte."
   },
   "emergencyAccessRecoveryInitiated": {
     "message": "Accès d'urgence initié"
@@ -8496,7 +8496,7 @@
     "message": "Utilisateur invité."
   },
   "acceptEmergencyAccess": {
-    "message": "Vous avez été invité à devenir un contact d'urgence pour l'utilisateur mentionné ci-dessus. Pour accepter l'invitation, vous devez vous connecter ou créer un nouveau compte Bitwarden."
+    "message": "Vous avez été invité à devenir un contact d'urgence pour l'utilisateur mentionné ci-dessus. Pour accepter l'invitation, vous devez vous connecter ou créer un nouveau compte Cloudwarden."
   },
   "emergencyInviteAcceptFailed": {
     "message": "Impossible d'accepter l'invitation. Demandez à l'utilisateur d'envoyer une nouvelle invitation."
@@ -8682,7 +8682,7 @@
     "message": "Comment activer la confirmation automatique de l'utilisateur"
   },
   "autoConfirmExtension1": {
-    "message": "Ouvrez votre extension Bitwarden"
+    "message": "Ouvrez votre extension Cloudwarden"
   },
   "autoConfirmExtension2": {
     "message": "Sélectionner",
@@ -8693,7 +8693,7 @@
     "description": "This is a fragment of a larger sencence. The whole sentence will read: 'Select Turn on'"
   },
   "autoConfirmExtensionOpened": {
-    "message": "Ouverture réussie de l'extension du navigateur Bitwarden. Vous pouvez maintenant activer le paramètre de confirmation automatique de l'utilisateur."
+    "message": "Ouverture réussie de l'extension du navigateur Cloudwarden. Vous pouvez maintenant activer le paramètre de confirmation automatique de l'utilisateur."
   },
   "autoConfirmPolicyEditDescription": {
     "message": "Les nouveaux utilisateurs invités à rejoindre l'organisation seront automatiquement confirmés lorsque l'appareil d'un administrateur est déverrouillé. Avant d'activer cette politique de sécurité, veuillez revoir et accepter les éléments suivants : ",
@@ -8827,7 +8827,7 @@
     "message": "Supprimer le Send"
   },
   "disableSendPolicyDesc": {
-    "message": "Ne pas autoriser les utilisateurs à créer ou modifier un Send Bitwarden. La suppression d'un envoi existant est toujours autorisée.",
+    "message": "Ne pas autoriser les utilisateurs à créer ou modifier un Send Cloudwarden. La suppression d'un envoi existant est toujours autorisée.",
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "disableSendExemption": {
@@ -8906,7 +8906,7 @@
     "description": "VFO1 terminology variant of 'uriMatchDetectionPolicyDesc', shown in the policies list"
   },
   "uriMatchDetectionPolicyDescV2": {
-    "message": "Définir une valeur par défaut pour quelles parties d'une adresse de site web (URI) doivent correspondre pour que Bitwarden suggère une connexion pour le remplissage automatique. Cette politique ne sera pas appliquée pour les propriétaires et les administrateurs."
+    "message": "Définir une valeur par défaut pour quelles parties d'une adresse de site web (URI) doivent correspondre pour que Cloudwarden suggère une connexion pour le remplissage automatique. Cette politique ne sera pas appliquée pour les propriétaires et les administrateurs."
   },
   "uriMatchDetectionOptionsLabel": {
     "message": "Détection de correspondance URL par défaut"
@@ -8926,7 +8926,7 @@
     "message": "Règles de saisie automatique personnalisées"
   },
   "fillAssistRulesUrlHint": {
-    "message": "Par défaut, \"fill assist\" utilise le jeu de règles mises en place par Bitwarden. Entrez une URL ici pour le remplacer par le vôtre."
+    "message": "Par défaut, \"fill assist\" utilise le jeu de règles mises en place par Cloudwarden. Entrez une URL ici pour le remplacer par le vôtre."
   },
   "invalidFillAssistRulesUrl": {
     "message": "Entrez une URL valide",
@@ -9039,7 +9039,7 @@
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "sendAccessTaglineProductDesc": {
-    "message": "Les Send Bitwarden permettent d'envoyer des informations sensibles et temporaires à d'autres, facilement et en toute sécurité.",
+    "message": "Les Send Cloudwarden permettent d'envoyer des informations sensibles et temporaires à d'autres, facilement et en toute sécurité.",
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "sendAccessTaglineLearnMore": {
@@ -9102,10 +9102,10 @@
     "message": "Ajouter une note"
   },
   "bitwardenSecretsManager": {
-    "message": "Secrets Manager de Bitwarden"
+    "message": "Secrets Manager de Cloudwarden"
   },
   "moreProductsFromBitwarden": {
-    "message": "Plus de produits de Bitwarden"
+    "message": "Plus de produits de Cloudwarden"
   },
   "requestAccessToSecretsManager": {
     "message": "Demander l'accès au Secrets Manager"
@@ -9117,7 +9117,7 @@
     "message": "Courriel de demande d'accès au Secrets Manager envoyé aux administrateurs."
   },
   "requestAccessSMDefaultEmailContent": {
-    "message": "Bonjour, \n\nJe demande un abonnement à Secrets Manager de Bitwarden pour mon équipe. Votre support serait très apprécié!\n\nSecrets Manager de Bitwarden est une solution de gestion de chiffrement bout en bout des secrets pour conserver, partager et déployer des identifiants d'appareils comme des clés d'API, des mots de passe de bases de données et des certificats d'authentification de façon sécuritaire.\n\nSecrets Manager nous aidera à :\n\n- Améliorer notre sécurité\n- Accélérer nos opérations\n- Prévenir les fuites coûteuses de nos secrets\n\nPour demander un essai gratuit pour notre équipe, veuillez contacter Bitwarden.\n\nMerci pour votre aide!"
+    "message": "Bonjour, \n\nJe demande un abonnement à Secrets Manager de Cloudwarden pour mon équipe. Votre support serait très apprécié!\n\nSecrets Manager de Cloudwarden est une solution de gestion de chiffrement bout en bout des secrets pour conserver, partager et déployer des identifiants d'appareils comme des clés d'API, des mots de passe de bases de données et des certificats d'authentification de façon sécuritaire.\n\nSecrets Manager nous aidera à :\n\n- Améliorer notre sécurité\n- Accélérer nos opérations\n- Prévenir les fuites coûteuses de nos secrets\n\nPour demander un essai gratuit pour notre équipe, veuillez contacter Cloudwarden.\n\nMerci pour votre aide!"
   },
   "giveMembersAccess": {
     "message": "Donner accès aux membres :"
@@ -9151,7 +9151,7 @@
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Learn more about Bitwarden Send or sign up to **try it today.**'"
   },
   "sendAccessCreatorIdentifier": {
-    "message": "Le membre Bitwarden $USER_IDENTIFIER$ a partagé ce qui suit avec vous",
+    "message": "Le membre Cloudwarden $USER_IDENTIFIER$ a partagé ce qui suit avec vous",
     "placeholders": {
       "user_identifier": {
         "content": "$1",
@@ -9176,7 +9176,7 @@
     "description": "Toast message shown when a user clicks the resend code link on the Send access page. 'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "viewSendHiddenEmailWarning": {
-    "message": "L'utilisateur de Bitwarden qui a créé ce Send a choisi de masquer son adresse électronique. Vous devriez vous assurer que vous faites confiance à la source de ce lien avant d'utiliser ou de télécharger son contenu.",
+    "message": "L'utilisateur de Cloudwarden qui a créé ce Send a choisi de masquer son adresse électronique. Vous devriez vous assurer que vous faites confiance à la source de ce lien avant d'utiliser ou de télécharger son contenu.",
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "expirationDateIsInvalid": {
@@ -9548,10 +9548,10 @@
     "message": "Erreur de déchiffrement"
   },
   "couldNotDecryptVaultItem": {
-    "message": "Bitwarden n'a pas pu déchiffrer l'élément du coffre listé ci-dessous. Contactez l'assistance à la clientèle de Bitwarden et fournissez l'ID de l'élément ci-dessous pour voir s'il peut être récupéré."
+    "message": "Cloudwarden n'a pas pu déchiffrer l'élément du coffre listé ci-dessous. Contactez l'assistance à la clientèle de Cloudwarden et fournissez l'ID de l'élément ci-dessous pour voir s'il peut être récupéré."
   },
   "couldNotDecryptVaultItems": {
-    "message": "Bitwarden n'a pas pu déchiffrer les éléments du coffre listés ci-dessous. Contactez l'assistance à la clientèle de Bitwarden et fournissez les IDs des éléments ci-dessous pour voir s'ils peuvent être récupérés."
+    "message": "Cloudwarden n'a pas pu déchiffrer les éléments du coffre listés ci-dessous. Contactez l'assistance à la clientèle de Cloudwarden et fournissez les IDs des éléments ci-dessous pour voir s'ils peuvent être récupérés."
   },
   "itemId": {
     "message": "ID de l'élément",
@@ -9574,7 +9574,7 @@
     "message": "Configuration du fournisseur"
   },
   "setupProviderLoginDesc": {
-    "message": "Vous avez été invité à configurer un nouveau fournisseur. Pour continuer, vous devez vous connecter ou créer un nouveau compte Bitwarden."
+    "message": "Vous avez été invité à configurer un nouveau fournisseur. Pour continuer, vous devez vous connecter ou créer un nouveau compte Cloudwarden."
   },
   "setupProviderDesc": {
     "message": "Veuillez entrer les détails ci-dessous pour finaliser la configuration du fournisseur. Contactez le support client si vous avez des questions."
@@ -9605,13 +9605,13 @@
     "message": "Les utilisateurs de service peuvent gérer toutes les organisations clientes et y accéder."
   },
   "providerInviteUserDesc": {
-    "message": "Invitez un nouvel utilisateur à votre fournisseur en saisissant l'adresse électronique de son compte Bitwarden ci-dessous. S'il n'a pas encore de compte Bitwarden, il lui sera demandé de créer un nouveau compte."
+    "message": "Invitez un nouvel utilisateur à votre fournisseur en saisissant l'adresse électronique de son compte Cloudwarden ci-dessous. S'il n'a pas encore de compte Cloudwarden, il lui sera demandé de créer un nouveau compte."
   },
   "joinProvider": {
     "message": "Rejoindre le fournisseur"
   },
   "joinProviderDesc": {
-    "message": "Vous avez été invité à rejoindre le fournisseur listé ci-dessus. Pour accepter l'invitation, vous devez vous connecter ou créer un nouveau compte Bitwarden."
+    "message": "Vous avez été invité à rejoindre le fournisseur listé ci-dessus. Pour accepter l'invitation, vous devez vous connecter ou créer un nouveau compte Cloudwarden."
   },
   "providerInviteAcceptFailed": {
     "message": "Impossible d'accepter l'invitation. Demandez à un administrateur du fournisseur d'envoyer une nouvelle invitation."
@@ -9763,7 +9763,7 @@
     "message": "Action après délai d'expiration de la session"
   },
   "sessionTimeoutSuppressedByConnectedDevice": {
-    "message": "Géré par l'extension de navigateur Bitwarden. Ouvrez l'application du navigateur pour l'éditer."
+    "message": "Géré par l'extension de navigateur Cloudwarden. Ouvrez l'application du navigateur pour l'éditer."
   },
   "immediately": {
     "message": "Immédiatement"
@@ -10018,7 +10018,7 @@
     "message": "La configuration SSO a été enregistrée."
   },
   "sponsoredFamilies": {
-    "message": "Bitwarden Familles gratuit"
+    "message": "Cloudwarden Familles gratuit"
   },
   "sponsoredBitwardenFamilies": {
     "message": "Familles parrainées"
@@ -10039,28 +10039,28 @@
     "message": "Aucun non-membre n’a réclamé le Forfait Familles Parrainé."
   },
   "sponsorshipFreeBitwardenFamilies": {
-    "message": "Les membres de votre organisation sont éligibles pour les Familles Gratuites de Bitwarden. Vous pouvez parrainer Familles Gratuites de Bitwarden pour les employés qui ne sont pas membres de votre organisation Bitwarden. Parrainer un non-membre nécessite une licence disponible au sein de votre organisation."
+    "message": "Les membres de votre organisation sont éligibles pour les Familles Gratuites de Cloudwarden. Vous pouvez parrainer Familles Gratuites de Cloudwarden pour les employés qui ne sont pas membres de votre organisation Cloudwarden. Parrainer un non-membre nécessite une licence disponible au sein de votre organisation."
   },
   "sponsorshipFreeBitwardenFamiliesV2": {
-    "message": "Vos membres sont admissibles à réclamer un Forfait Familles Parrainé. Vous pouvez parrainer un forfait Familles pour les employés qui ne sont pas membres de votre organisation Bitwarden, mais cela nécessitera des sièges disponibles au sein de votre organisation."
+    "message": "Vos membres sont admissibles à réclamer un Forfait Familles Parrainé. Vous pouvez parrainer un forfait Familles pour les employés qui ne sont pas membres de votre organisation Cloudwarden, mais cela nécessitera des sièges disponibles au sein de votre organisation."
   },
   "sponsoredFamiliesRemoveActiveSponsorship": {
     "message": "Lorsque vous supprimez un parrainage actif, une licence au sein de votre organisation sera disponible après la date de renouvellement de l'organisation parrainée."
   },
   "sponsoredFamiliesEligible": {
-    "message": "Vous et votre famille êtes éligibles à Bitwarden Familles gratuitement. Réclamez-le avec votre courriel personnel pour sécuriser vos données, même lorsque vous n'êtes pas au travail."
+    "message": "Vous et votre famille êtes éligibles à Cloudwarden Familles gratuitement. Réclamez-le avec votre courriel personnel pour sécuriser vos données, même lorsque vous n'êtes pas au travail."
   },
   "sponsoredFamiliesEligibleV2": {
-    "message": "Vous et votre famille êtes admissibles à un Forfait Familles Parrainé sans frais additionnels. Réclamez ce plan avec votre courriel personnel pour garder vos données sécurisées et séparées de votre compte de travail Bitwarden."
+    "message": "Vous et votre famille êtes admissibles à un Forfait Familles Parrainé sans frais additionnels. Réclamez ce plan avec votre courriel personnel pour garder vos données sécurisées et séparées de votre compte de travail Cloudwarden."
   },
   "sponsoredFamiliesEligibleCard": {
-    "message": "Obtenez votre abonnement Bitwarden Familles gratuit aujourd'hui pour garder vos données en sécurité même lorsque vous n'êtes pas au travail."
+    "message": "Obtenez votre abonnement Cloudwarden Familles gratuit aujourd'hui pour garder vos données en sécurité même lorsque vous n'êtes pas au travail."
   },
   "sponsoredFamiliesIncludeMessage": {
-    "message": "L'abonnement Bitwarden Familles inclut"
+    "message": "L'abonnement Cloudwarden Familles inclut"
   },
   "sponsoredFamiliesIncludeMessageV2": {
-    "message": "Le forfait Familles de Bitwarden inclut"
+    "message": "Le forfait Familles de Cloudwarden inclut"
   },
   "sponsoredFamiliesPremiumAccess": {
     "message": "Accès Premium jusqu'à 6 utilisateurs"
@@ -10081,7 +10081,7 @@
     "message": "Les membres qui ont réclamé des plans familiaux s'afficheront ici"
   },
   "membersWithSponsoredFamilies": {
-    "message": "Les membres de votre organisation sont éligibles à l'abonnement aux Familles Gratuites de Bitwarden. Vous pouvez voir ici les membres qui ont parrainé une organisation Familles."
+    "message": "Les membres de votre organisation sont éligibles à l'abonnement aux Familles Gratuites de Cloudwarden. Vous pouvez voir ici les membres qui ont parrainé une organisation Familles."
   },
   "organizationHasMemberMessage": {
     "message": "Un parrainage ne peut pas être envoyé à $EMAIL$ car il est membre de votre organisation.",
@@ -10108,7 +10108,7 @@
     "message": "Quelle offre Familles gratuite aimeriez-vous obtenir ?"
   },
   "sponsoredFamiliesEmail": {
-    "message": "Saisissez votre courriel personnel pour réclamer Bitwarden Familles"
+    "message": "Saisissez votre courriel personnel pour réclamer Cloudwarden Familles"
   },
   "sponsoredFamiliesLeaveCopy": {
     "message": "Si vous supprimez une offre ou si vous n'êtes plus membre de l'organisation de parrainage, votre parrainage Familles expirera à la prochaine date de renouvellement."
@@ -10117,7 +10117,7 @@
     "message": "Acceptez l'offre pour une organisation existante ou créer une nouvelle organisation Familles."
   },
   "setupSponsoredFamiliesLoginDesc": {
-    "message": "Il vous a été offert un plan organisation Bitwarden \"Families\" gratuit. Pour continuer, vous devez vous connecter au compte qui a reçu l'offre."
+    "message": "Il vous a été offert un plan organisation Cloudwarden \"Families\" gratuit. Pour continuer, vous devez vous connecter au compte qui a reçu l'offre."
   },
   "sponsoredFamiliesAcceptFailed": {
     "message": "Impossible d'accepter l'offre. Veuillez renvoyer le courriel de l'offre depuis votre compte Entreprise et réessayer."
@@ -10132,10 +10132,10 @@
     }
   },
   "sponsoredFamiliesOffer": {
-    "message": "Accepter l'offre Bitwarden Familles gratuite"
+    "message": "Accepter l'offre Cloudwarden Familles gratuite"
   },
   "sponsoredFamiliesOfferRedeemed": {
-    "message": "L'offre gratuite de Bitwarden Familles a été récupérée avec succès"
+    "message": "L'offre gratuite de Cloudwarden Familles a été récupérée avec succès"
   },
   "redeemed": {
     "message": "Obtenue"
@@ -10162,7 +10162,7 @@
     }
   },
   "freeFamiliesPlan": {
-    "message": "Abonnement gratuit à Bitwarden Familles"
+    "message": "Abonnement gratuit à Cloudwarden Familles"
   },
   "redeemNow": {
     "message": "Obtenir maintenant"
@@ -10258,7 +10258,7 @@
     "message": "Key Connector"
   },
   "memberDecryptionKeyConnectorDescStart": {
-    "message": "Connectez l'identifiant par SSO à votre serveur de clés de déchiffrement auto-hébergé. En utilisant cette option, les membres n'auront pas besoin d'utiliser leur mot de passe principal pour déchiffrer les données du coffre. Contactez le support Bitwarden pour une assistance à la configuration. L'",
+    "message": "Connectez l'identifiant par SSO à votre serveur de clés de déchiffrement auto-hébergé. En utilisant cette option, les membres n'auront pas besoin d'utiliser leur mot de passe principal pour déchiffrer les données du coffre. Contactez le support Cloudwarden pour une assistance à la configuration. L'",
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Connect login with SSO to your self-hosted decryption key server. Using this option, members won’t need to use their master passwords to decrypt vault data. The require SSO authentication and single organization policies are required to set up Key Connector decryption. Contact Bitwarden Support for set up assistance.'"
   },
   "memberDecryptionKeyConnectorDescLink": {
@@ -10266,7 +10266,7 @@
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Connect login with SSO to your self-hosted decryption key server. Using this option, members won’t need to use their master passwords to decrypt vault data. The require SSO authentication and single organization policies are required to set up Key Connector decryption. Contact Bitwarden Support for set up assistance.'"
   },
   "memberDecryptionKeyConnectorDescEnd": {
-    "message": "sont nécessaires pour configurer le déchiffrement de Key Connector. Contactez le support Bitwarden pour obtenir de l'aide.",
+    "message": "sont nécessaires pour configurer le déchiffrement de Key Connector. Contactez le support Cloudwarden pour obtenir de l'aide.",
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Connect login with SSO to your self-hosted decryption key server. Using this option, members won’t need to use their master passwords to decrypt vault data. The require SSO authentication and single organization policies are required to set up Key Connector decryption. Contact Bitwarden Support for set up assistance.'"
   },
   "keyConnectorPolicyRestriction": {
@@ -10366,7 +10366,7 @@
     "message": "Environnement personnalisé"
   },
   "selfHostedBaseUrlHint": {
-    "message": "Spécifiez l'URL de base de votre installation auto-hébergée par Bitwarden. Exemple: https://bitwarden.compagnie.com"
+    "message": "Spécifiez l'URL de base de votre installation auto-hébergée par Cloudwarden. Exemple: https://bitwarden.compagnie.com"
   },
   "selfHostedCustomEnvHeader": {
     "message": "Pour un configuration avancée. Vous pouvez spécifier l'URL de base indépendamment pour chaque service."
@@ -10414,7 +10414,7 @@
     "message": "Jeton de Synchronisation de Facturation"
   },
   "automaticBillingSyncDesc": {
-    "message": "La synchronisation automatique déverrouille les parrainages des Familles et vous permet de synchroniser votre licence sans téléverser de fichier. Après avoir effectué des mises à jour sur le serveur cloud de Bitwarden, sélectionnez la licence de synchronisation pour appliquer les modifications."
+    "message": "La synchronisation automatique déverrouille les parrainages des Familles et vous permet de synchroniser votre licence sans téléverser de fichier. Après avoir effectué des mises à jour sur le serveur cloud de Cloudwarden, sélectionnez la licence de synchronisation pour appliquer les modifications."
   },
   "active": {
     "message": "Actif"
@@ -10777,11 +10777,11 @@
     }
   },
   "forwarderGeneratedBy": {
-    "message": "Généré par Bitwarden.",
+    "message": "Généré par Cloudwarden.",
     "description": "Displayed with the address on the forwarding service's configuration screen."
   },
   "forwarderGeneratedByWithWebsite": {
-    "message": "Site web : $WEBSITE$. Généré par Bitwarden.",
+    "message": "Site web : $WEBSITE$. Généré par Cloudwarden.",
     "description": "Displayed with the address on the forwarding service's configuration screen.",
     "placeholders": {
       "WEBSITE": {
@@ -11981,7 +11981,7 @@
     "message": "Plus de paramètres"
   },
   "moreFromBitwarden": {
-    "message": "Plus de Bitwarden"
+    "message": "Plus de Cloudwarden"
   },
   "switchProducts": {
     "message": "Changer de Produits"
@@ -12877,7 +12877,7 @@
     "message": "L'utilisateur a défini un mot de passe principal lors de la prise en charge TDE."
   },
   "startYour7DayFreeTrialOfBitwardenFor": {
-    "message": "Commencez votre essai gratuit de 7 jours de Bitwarden pour $ORG$",
+    "message": "Commencez votre essai gratuit de 7 jours de Cloudwarden pour $ORG$",
     "placeholders": {
       "org": {
         "content": "$1",
@@ -12886,7 +12886,7 @@
     }
   },
   "startYour7DayFreeTrialOfBitwardenSecretsManagerFor": {
-    "message": "Commencez votre essai gratuit de 7 jours pour Secrets Manager de Bitwarden pour $ORG$",
+    "message": "Commencez votre essai gratuit de 7 jours pour Secrets Manager de Cloudwarden pour $ORG$",
     "placeholders": {
       "org": {
         "content": "$1",
@@ -13291,7 +13291,7 @@
     "message": "Commencez avec votre coffre"
   },
   "onboardingChecklistSubtitle": {
-    "message": "Complétez ces étapes pour sécuriser vos données personnelles et tirer le meilleur parti de Bitwarden"
+    "message": "Complétez ces étapes pour sécuriser vos données personnelles et tirer le meilleur parti de Cloudwarden"
   },
   "dismissThisChecklist": {
     "message": "Rejeter cette liste de contrôle"
@@ -13388,7 +13388,7 @@
     "description": "Label indicating the most common import formats"
   },
   "uriMatchDefaultStrategyHint": {
-    "message": "La détection de correspondance d'URI est la façon dont Bitwarden identifie les suggestions de remplissage automatique.",
+    "message": "La détection de correspondance d'URI est la façon dont Cloudwarden identifie les suggestions de remplissage automatique.",
     "description": "Explains to the user that URI match detection determines how Bitwarden suggests autofill options, and clarifies that this default strategy applies when no specific match detection is set for a login item."
   },
   "regExAdvancedOptionWarning": {
@@ -13432,13 +13432,13 @@
     "message": "Détails de la confirmation"
   },
   "smFreeTrialThankYou": {
-    "message": "Merci de vous être inscrit au Secrets Manager de Bitwarden !"
+    "message": "Merci de vous être inscrit au Secrets Manager de Cloudwarden !"
   },
   "smFreeTrialConfirmationEmail": {
     "message": "Nous avons envoyé un courriel de confirmation à votre adresse de messagerie à "
   },
   "sorryToSeeYouGo": {
-    "message": "Désolé de vous voir partir! Aidez à améliorer Bitwarden en partageant pourquoi vous annulez.",
+    "message": "Désolé de vous voir partir! Aidez à améliorer Cloudwarden en partageant pourquoi vous annulez.",
     "description": "A message shown to users as part of an offboarding survey asking them to provide more information on their subscription cancelation."
   },
   "selectCancellationReason": {
@@ -14000,7 +14000,7 @@
     "message": "Intégrations"
   },
   "integrationsDesc": {
-    "message": "Synchroniser automatiquement les secrets à partir du Secrets Manager de Bitwarden vers un service tiers."
+    "message": "Synchroniser automatiquement les secrets à partir du Secrets Manager de Cloudwarden vers un service tiers."
   },
   "sdks": {
     "message": "SDK"
@@ -14013,7 +14013,7 @@
     "description": "This represents the beginning of a sentence, broken up to include links. The full sentence will be 'Configure single sign-on for Bitwarden using the implementation guide for your Identity Provider."
   },
   "ssoDescEnd": {
-    "message": "pour Bitwarden en utilisant le guide d'implémentation pour votre Fournisseut d'Identités.",
+    "message": "pour Cloudwarden en utilisant le guide d'implémentation pour votre Fournisseut d'Identités.",
     "description": "This represents the end of a sentence, broken up to include links. The full sentence will be 'Configure single sign-on for Bitwarden using the implementation guide for your Identity Provider."
   },
   "userProvisioning": {
@@ -14027,26 +14027,26 @@
     "description": "This represents the beginning of a sentence, broken up to include links. The full sentence will be 'Configure SCIM (System for Cross-domain Identity Management) to automatically provision users and groups to Bitwarden using the implementation guide for your Identity Provider"
   },
   "scimIntegrationDescEnd": {
-    "message": "(Système de gestion des identités inter-domaines) pour fournir automatiquement des utilisateurs et des groupes à Bitwarden en utilisant le guide d'implémentation de votre fournisseur d'identité.",
+    "message": "(Système de gestion des identités inter-domaines) pour fournir automatiquement des utilisateurs et des groupes à Cloudwarden en utilisant le guide d'implémentation de votre fournisseur d'identité.",
     "description": "This represents the end of a sentence, broken up to include links. The full sentence will be 'Configure SCIM (System for Cross-domain Identity Management) to automatically provision users and groups to Bitwarden using the implementation guide for your Identity Provider"
   },
   "bwdc": {
-    "message": "Connecteur de répertoire Bitwarden"
+    "message": "Connecteur de répertoire Cloudwarden"
   },
   "bwdcDesc": {
-    "message": "Configurez le Connecteur de Répertoire Bitwarden pour fournir automatiquement les utilisateurs et les groupes en utilisant le guide d'implémentation de votre fournisseur d'identité."
+    "message": "Configurez le Connecteur de Répertoire Cloudwarden pour fournir automatiquement les utilisateurs et les groupes en utilisant le guide d'implémentation de votre fournisseur d'identité."
   },
   "eventManagement": {
     "message": "Gestion des événements"
   },
   "eventManagementDesc": {
-    "message": "Intégrez les journaux d'événements de Bitwarden à votre système SIEM (information système et gestion d'événements) en utilisant le guide d'implémentation de votre plate-forme."
+    "message": "Intégrez les journaux d'événements de Cloudwarden à votre système SIEM (information système et gestion d'événements) en utilisant le guide d'implémentation de votre plate-forme."
   },
   "deviceManagement": {
     "message": "Gestion des appareils"
   },
   "deviceManagementDesc": {
-    "message": "Configurez la gestion des appareils pour Bitwarden en utilisant le guide d'implémentation pour votre plateforme."
+    "message": "Configurez la gestion des appareils pour Cloudwarden en utilisant le guide d'implémentation pour votre plateforme."
   },
   "crowdstrikeEventIntegrationDesc": {
     "message": "Envoyer les données de l'événement à votre instance Logscale"
@@ -14265,19 +14265,19 @@
     "message": "Gérer la facturation depuis le Portail Fournisseur"
   },
   "continueSettingUp": {
-    "message": "Continuer la configuration de Bitwarden"
+    "message": "Continuer la configuration de Cloudwarden"
   },
   "continueSettingUpFreeTrial": {
-    "message": "Continuer à configurer votre essai gratuit de Bitwarden"
+    "message": "Continuer à configurer votre essai gratuit de Cloudwarden"
   },
   "continueSettingUpPasswordManager": {
-    "message": "Continuer la configuration du Gestionnaire de Mots de Passe Bitwarden"
+    "message": "Continuer la configuration du Gestionnaire de Mots de Passe Cloudwarden"
   },
   "continueSettingUpFreeTrialPasswordManager": {
-    "message": "Continuer à configurer votre essai gratuit du gestionnaire de mots de passe Bitwarden"
+    "message": "Continuer à configurer votre essai gratuit du gestionnaire de mots de passe Cloudwarden"
   },
   "continueSettingUpSecretsManager": {
-    "message": "Continuez à configurer votre essai gratuit de Secrets Manager de Bitwarden"
+    "message": "Continuez à configurer votre essai gratuit de Secrets Manager de Cloudwarden"
   },
   "continueSettingUpFreeTrialSecretsManager": {
     "message": "Continuez à configurer votre essai gratuit de Bitwarden Secrets Manager"
@@ -14556,14 +14556,14 @@
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'Notice: Later this month, client vault privacy will be improved and provider members will no longer have direct access to client vault items. For questions, please contact Bitwarden support'."
   },
   "contactBitwardenSupport": {
-    "message": "contactez le support Bitwarden.",
+    "message": "contactez le support Cloudwarden.",
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'Notice: Later this month, client vault privacy will be improved and provider members will no longer have direct access to client vault items. For questions, please contact Bitwarden support'. 'Bitwarden' should not be translated"
   },
   "sponsored": {
     "message": "Parrainé"
   },
   "licenseAndBillingManagementDesc": {
-    "message": "Après avoir fait des mises à jour sur le serveur cloud de Bitwarden, téléversez votre fichier de licence pour appliquer les modifications les plus récentes."
+    "message": "Après avoir fait des mises à jour sur le serveur cloud de Cloudwarden, téléversez votre fichier de licence pour appliquer les modifications les plus récentes."
   },
   "addToFolder": {
     "message": "Ajouter au dossier"
@@ -14681,7 +14681,7 @@
     "message": "Qu'est-ce qu'un numéro CVV ?"
   },
   "learnMoreAboutApi": {
-    "message": "En savoir plus sur l'API de Bitwarden"
+    "message": "En savoir plus sur l'API de Cloudwarden"
   },
   "fileSends": {
     "message": "Déposer des Sends"
@@ -14858,7 +14858,7 @@
     "message": "Votre abonnement au Secrets Manager sera mis à niveau selon le plan sélectionné"
   },
   "bitwardenPasswordManager": {
-    "message": "Gestionnaire de Mots de Passe Bitwarden"
+    "message": "Gestionnaire de Mots de Passe Cloudwarden"
   },
   "secretsManagerComplimentaryPasswordManager": {
     "message": "Votre abonnement offert gratuit d'un an au Gestionnaire de Mots de Passe sera mis à niveau au plan sélectionné. Vous ne serez pas chargé avant la fin de votre période gratuite."
@@ -14936,7 +14936,7 @@
     "description": "This represents the beginning of a sentence. The full sentence will be 'Manage subscription from the Provider Portal', but 'Provider Portal' will be a link and thus cannot be included in the translation file."
   },
   "toHostBitwardenOnYourOwnServer": {
-    "message": "Pour héberger Bitwarden sur votre propre serveur, vous devrez téléverser votre fichier de licence. Pour prendre en charge les abonnements gratuits à Bitwarden Familles et les fonctionnalités de facturation avancées pour votre organisation auto-hébergée, vous devrez configurer la synchronisation automatique dans votre organisation auto-hébergée."
+    "message": "Pour héberger Cloudwarden sur votre propre serveur, vous devrez téléverser votre fichier de licence. Pour prendre en charge les abonnements gratuits à Cloudwarden Familles et les fonctionnalités de facturation avancées pour votre organisation auto-hébergée, vous devrez configurer la synchronisation automatique dans votre organisation auto-hébergée."
   },
   "selfHostingTitleProper": {
     "message": "Auto-Hébergement"
@@ -15060,7 +15060,7 @@
     "message": "Supprimé avec succès"
   },
   "freeFamiliesSponsorship": {
-    "message": "Supprimer le parrainage gratuit de Bitwarden Familles"
+    "message": "Supprimer le parrainage gratuit de Cloudwarden Familles"
   },
   "freeFamiliesSponsorshipPolicyTitleV2": {
     "message": "Supprimer le forfait Familles parrainé"
@@ -15138,10 +15138,10 @@
     "message": "Domaines Réclamés Automatiquement"
   },
   "automaticDomainClaimProcess": {
-    "message": "Bitwarden tentera de récupérer le domaine 3 fois pendant les 72 premières heures. Si le domaine ne peut pas être réclamé, vérifiez l'enregistrement DNS dans votre hôte et réclamez manuellement. Le domaine sera supprimé de votre organisation dans 7 jours s'il n'est pas réclamé."
+    "message": "Cloudwarden tentera de récupérer le domaine 3 fois pendant les 72 premières heures. Si le domaine ne peut pas être réclamé, vérifiez l'enregistrement DNS dans votre hôte et réclamez manuellement. Le domaine sera supprimé de votre organisation dans 7 jours s'il n'est pas réclamé."
   },
   "automaticDomainClaimProcess1": {
-    "message": "Bitwarden tentera de réclamer le domaine dans les 72 heures. Si le domaine ne peut pas être réclamé, vérifiez votre enregistrement DNS et réclamez-le manuellement. Les domaines non réclamés sont supprimés après 7 jours."
+    "message": "Cloudwarden tentera de réclamer le domaine dans les 72 heures. Si le domaine ne peut pas être réclamé, vérifiez votre enregistrement DNS et réclamez-le manuellement. Les domaines non réclamés sont supprimés après 7 jours."
   },
   "automaticDomainClaimProcess2": {
     "message": "Une fois réclamé, les membres existants ayant des domaines réclamés recevrontdes courriels à propos de la "
@@ -15309,19 +15309,19 @@
     "message": "Copier la clé privée"
   },
   "openingExtension": {
-    "message": "Ouverture de l'extension de navigateur Bitwarden"
+    "message": "Ouverture de l'extension de navigateur Cloudwarden"
   },
   "somethingWentWrong": {
     "message": "Quelquechose n'a pas fonctionné..."
   },
   "openingExtensionError": {
-    "message": "Nous avons eu des difficultés à ouvrir l'extension de navigateur Bitwarden. Cliquez sur le bouton pour l'ouvrir maintenant."
+    "message": "Nous avons eu des difficultés à ouvrir l'extension de navigateur Cloudwarden. Cliquez sur le bouton pour l'ouvrir maintenant."
   },
   "openExtension": {
     "message": "Ouvrir l'extension"
   },
   "doNotHaveExtension": {
-    "message": "Vous n'avez pas l'extension de navigateur Bitwarden?"
+    "message": "Vous n'avez pas l'extension de navigateur Cloudwarden?"
   },
   "installExtension": {
     "message": "Installer l'extension"
@@ -15330,7 +15330,7 @@
     "message": "Extension de navigateur ouverte"
   },
   "openedExtensionViewAtRiskPasswords": {
-    "message": "Ouverture réussie de l'extension du navigateur Bitwarden. Vous pouvez maintenant revoir vos mots de passe à risque."
+    "message": "Ouverture réussie de l'extension du navigateur Cloudwarden. Vous pouvez maintenant revoir vos mots de passe à risque."
   },
   "resellerRenewalWarningMsg": {
     "message": "Votre abonnement sera renouvelé bientôt. Pour assurer un service ininterrompu, contactez $RESELLER$ pour confirmer votre renouvellement avant le $RENEWAL_DATE$.",
@@ -15346,7 +15346,7 @@
     }
   },
   "resellerRenewalWarningMsgV2": {
-    "message": "Votre abonnement sera renouvelé bientôt. Pour assurer un service ininterrompu, contactez votre fournisseur Bitwarden pour confirmer votre renouvellement avant $RENEWAL_DATE$.",
+    "message": "Votre abonnement sera renouvelé bientôt. Pour assurer un service ininterrompu, contactez votre fournisseur Cloudwarden pour confirmer votre renouvellement avant $RENEWAL_DATE$.",
     "placeholders": {
       "renewal_date": {
         "content": "$1",
@@ -15385,7 +15385,7 @@
     }
   },
   "resellerPastDueWarningMsgV2": {
-    "message": "La facture de votre abonnement n'a pas été payée. Pour assurer un service ininterrompu, contactez votre fournisseur Bitwarden avant $GRACE_PERIOD_END$.",
+    "message": "La facture de votre abonnement n'a pas été payée. Pour assurer un service ininterrompu, contactez votre fournisseur Cloudwarden avant $GRACE_PERIOD_END$.",
     "placeholders": {
       "grace_period_end": {
         "content": "$1",
@@ -15546,7 +15546,7 @@
     "message": "Mettez à niveau pour voir les journaux d'événements de votre organisation."
   },
   "upgradeEventLogMessage": {
-    "message": "Ces événements sont des exemples et ne reflètent pas les événements réels au sein de votre organisation Bitwarden."
+    "message": "Ces événements sont des exemples et ne reflètent pas les événements réels au sein de votre organisation Cloudwarden."
   },
   "viewEvents": {
     "message": "Afficher les événements"
@@ -15727,7 +15727,7 @@
     "message": "Remplissez automatiquement vos mots de passe en un clic"
   },
   "setupExtensionPageDescription": {
-    "message": "Obtenez l'extension de navigateur Bitwarden et commencez à remplir automatiquement dès aujourd'hui"
+    "message": "Obtenez l'extension de navigateur Cloudwarden et commencez à remplir automatiquement dès aujourd'hui"
   },
   "getTheExtension": {
     "message": "Obtenez l'extension"
@@ -15745,19 +15745,19 @@
     "message": "Passer à l'application web"
   },
   "bitwardenExtensionInstalled": {
-    "message": "L'extension Bitwarden est installée !"
+    "message": "L'extension Cloudwarden est installée !"
   },
   "bitwardenExtensionIsInstalled": {
-    "message": "L'extension Bitwarden est installée !"
+    "message": "L'extension Cloudwarden est installée !"
   },
   "openExtensionToAutofill": {
     "message": "Ouvrez l'extension pour vous connecter et démarrer le remplissage automatique."
   },
   "openBitwardenExtension": {
-    "message": "Ouvrir l'extension Bitwarden"
+    "message": "Ouvrir l'extension Cloudwarden"
   },
   "gettingStartedWithBitwardenPart1": {
-    "message": "Pour des conseils sur les débuts avec Bitwarden, visitez le",
+    "message": "Pour des conseils sur les débuts avec Cloudwarden, visitez le",
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'For tips on getting started with Bitwarden visit the Learning Center and Help Center'"
   },
   "gettingStartedWithBitwardenPart2": {
@@ -15765,7 +15765,7 @@
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'For tips on getting started with Bitwarden visit the Learning Center and Help Center'"
   },
   "openExtensionFromToolbarPart1": {
-    "message": "Si l'extension n'est pas ouverte, vous devrez peut-être ouvrir Bitwarden à partir de l'icône ",
+    "message": "Si l'extension n'est pas ouverte, vous devrez peut-être ouvrir Cloudwarden à partir de l'icône ",
     "description": "This will be used as part of a larger sentence, broken up to include the Bitwarden icon. The full sentence will read 'If the extension didn't open, you may need to open Bitwarden from the icon [Bitwarden Icon] on the toolbar.'"
   },
   "openExtensionFromToolbarPart2": {
@@ -15777,7 +15777,7 @@
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'For tips on getting started with Bitwarden visit the Learning Center and Help Center'"
   },
   "setupExtensionContentAlt": {
-    "message": "Avec l'extension de navigateur Bitwarden, vous pouvez facilement créer de nouveaux identifiants, accéder à vos identifiants enregistrés directement à partir de la barre d'outils de votre navigateur, et vous connecter rapidement aux comptes en utilisant le remplissage automatique de Bitwarden."
+    "message": "Avec l'extension de navigateur Cloudwarden, vous pouvez facilement créer de nouveaux identifiants, accéder à vos identifiants enregistrés directement à partir de la barre d'outils de votre navigateur, et vous connecter rapidement aux comptes en utilisant le remplissage automatique de Cloudwarden."
   },
   "restart": {
     "message": "Redémarrer"
@@ -15809,7 +15809,7 @@
     "message": "À propos de ce paramètre"
   },
   "permitCipherDetailsDescription": {
-    "message": "Bitwarden utilisera les URI de connexion enregistrées pour identifier quelle icône ou URL de changement de mot de passe doit être utilisée pour améliorer votre expérience. Aucune information n'est recueillie ou enregistrée lorsque vous utilisez ce service."
+    "message": "Cloudwarden utilisera les URI de connexion enregistrées pour identifier quelle icône ou URL de changement de mot de passe doit être utilisée pour améliorer votre expérience. Aucune information n'est recueillie ou enregistrée lorsque vous utilisez ce service."
   },
   "showQuickCopyActionsDetailsDescription": {
     "message": "Ajoutez 3 boutons de copie rapide à côté des éléments pour copier votre nom d'utilisateur, votre mot de passe ou votre code de vérification dans le presse-papiers."
@@ -15879,7 +15879,7 @@
     }
   },
   "restoreProviderPortalAccessViaCustomerSupport": {
-    "message": "Pour restaurer l'accès à votre portail de fournisseur, contactez l'assistance clientèle de Bitwarden pour renouveler votre abonnement.",
+    "message": "Pour restaurer l'accès à votre portail de fournisseur, contactez l'assistance clientèle de Cloudwarden pour renouveler votre abonnement.",
     "description": "A message shown in a non-dismissible dialog to any user of a suspended providers."
   },
   "restoreProviderPortalAccessViaPaymentMethod": {
@@ -15921,7 +15921,7 @@
     "message": "Abonnement annulé"
   },
   "providersubCanceledmessage": {
-    "message": "Pour vous réinscrire, contactez l'Assistance Client de Bitwarden."
+    "message": "Pour vous réinscrire, contactez l'Assistance Client de Cloudwarden."
   },
   "showAll": {
     "message": "Tout afficher"
@@ -16064,7 +16064,7 @@
     "message": "Forfait personnalisé"
   },
   "planDescCustom": {
-    "message": "Bitwarden évolue avec des entreprises de toutes tailles pour sécuriser les mots de passe et les informations sensibles. Si vous faites partie d'une grande entreprise, contactez les ventes pour demander une soumission."
+    "message": "Cloudwarden évolue avec des entreprises de toutes tailles pour sécuriser les mots de passe et les informations sensibles. Si vous faites partie d'une grande entreprise, contactez les ventes pour demander une soumission."
   },
   "builtInAuthenticator": {
     "message": "Authentificateur intégré"
@@ -16181,7 +16181,7 @@
     "message": "Une erreur s'est produite lors du calcul de la taxe pour votre emplacement. Veuillez réessayer."
   },
   "individualUpgradeWelcomeMessage": {
-    "message": "Bienvenue sur Bitwarden"
+    "message": "Bienvenue sur Cloudwarden"
   },
   "individualUpgradeDescriptionMessage": {
     "message": "Déverrouillez plus de fonctionnalités de sécurité avec Premium, ou commencez à partager des éléments avec Familles"
@@ -16202,7 +16202,7 @@
     "message": "Mettre à niveau maintenant"
   },
   "getAdvancedOnlineSecurityWithBitwardenPremium": {
-    "message": "Obtenez une sécurité en ligne avancée avec Bitwarden Premium."
+    "message": "Obtenez une sécurité en ligne avancée avec Cloudwarden Premium."
   },
   "formWillCreateNewFamiliesOrgMessage": {
     "message": "Compléter ce formulaire créera une nouvelle organisation Familles. Vous pouvez mettre à niveau votre organisation gratuite à partir de la Console Admin."
@@ -16211,7 +16211,7 @@
     "message": "Nous avons rencontré une erreur lors du traitement de votre mise à niveau. Veuillez réessayer."
   },
   "bitwardenFreeplanMessage": {
-    "message": "Vous avez le forfait Bitwarden Gratuit"
+    "message": "Vous avez le forfait Cloudwarden Gratuit"
   },
   "upgradeCompleteSecurity": {
     "message": "Passez au forfait supérieur pour une sécurité complète"
@@ -16229,7 +16229,7 @@
     "message": "Algorithme"
   },
   "encryptionKeySettingsHowShouldWeEncryptYourData": {
-    "message": "Choisissez comment Bitwarden devrait chiffrer les données de votre coffre. Toutes les options sont sécures, mais les méthodes plus robustes offrent une meilleure protection - en particulier contre les attaques par force brute. Bitwarden recommande le réglage par défaut pour la plupart des utilisateurs."
+    "message": "Choisissez comment Cloudwarden devrait chiffrer les données de votre coffre. Toutes les options sont sécures, mais les méthodes plus robustes offrent une meilleure protection - en particulier contre les attaques par force brute. Cloudwarden recommande le réglage par défaut pour la plupart des utilisateurs."
   },
   "encryptionKeySettingsIncreaseImproveSecurity": {
     "message": "Augmenter les valeurs au-dessus des valeurs par défaut améliorera la sécurité, mais votre coffre peut prendre plus de temps à déverrouiller dû à cela."
@@ -16260,10 +16260,10 @@
     "description": "VFO1 terminology variant of 'blockClaimedDomainAccountCreationDesc', shown in the policies list"
   },
   "blockClaimedDomainAccountCreationDescV2": {
-    "message": "Bloquer les membres d'utiliser votre domaine revendiqué pour créer des comptes Bitwarden en dehors de votre organisation."
+    "message": "Bloquer les membres d'utiliser votre domaine revendiqué pour créer des comptes Cloudwarden en dehors de votre organisation."
   },
   "blockClaimedDomainAccountCreationDescV2Vfo1": {
-    "message": "Bloquer les membres d'utiliser votre domaine revendiqué pour créer des comptes Bitwarden en dehors du coffre de votre organisation.",
+    "message": "Bloquer les membres d'utiliser votre domaine revendiqué pour créer des comptes Cloudwarden en dehors du coffre de votre organisation.",
     "description": "VFO1 terminology variant of 'blockClaimedDomainAccountCreationDescV2'"
   },
   "blockClaimedDomainAccountCreationPrerequisiteV2": {
@@ -16301,7 +16301,7 @@
     }
   },
   "removeMasterPasswordForOrgUserKeyConnector": {
-    "message": "Votre organisation n'utilise plus les mots de passe principaux pour se connecter à Bitwarden. Pour continuer, vérifiez l'organisation et le domaine."
+    "message": "Votre organisation n'utilise plus les mots de passe principaux pour se connecter à Cloudwarden. Pour continuer, vérifiez l'organisation et le domaine."
   },
   "continueWithLogIn": {
     "message": "Continuer avec la connexion"
@@ -16504,7 +16504,7 @@
     "message": "Refuser et quitter"
   },
   "youHaveBitwardenPremium": {
-    "message": "Vous avez Bitwarden Premium"
+    "message": "Vous avez Cloudwarden Premium"
   },
   "viewAndManagePremiumSubscription": {
     "message": "Afficher et gérer votre abonnement Premium"
@@ -16543,13 +16543,13 @@
     "message": "Vous avez déjà un abonnement ?"
   },
   "alreadyHaveSubscriptionSelfHostedMessage": {
-    "message": "Ouvrez la page d'abonnement sur votre compte cloud Bitwarden et téléchargez votre fichier de licence. Puis revenez à cet écran et téléversez-le ci-dessous."
+    "message": "Ouvrez la page d'abonnement sur votre compte cloud Cloudwarden et téléchargez votre fichier de licence. Puis revenez à cet écran et téléversez-le ci-dessous."
   },
   "alreadyHaveSubscriptionSelfHostedMessageV2": {
-    "message": "Ouvrez la page d'abonnement sur votre compte Bitwarden et téléchargez votre fichier de licence. Puis retournez à cet écran et téléversez-le ci-dessous."
+    "message": "Ouvrez la page d'abonnement sur votre compte Cloudwarden et téléchargez votre fichier de licence. Puis retournez à cet écran et téléversez-le ci-dessous."
   },
   "alreadyHaveSubscriptionSelfHostedMessageV3": {
-    "message": "Sur votre environnement cloud, connectez-vous à votre compte Bitwarden, ouvrez la page d'abonnement et téléchargez votre fichier de licence. Ensuite, revenez à cet écran et téléversez-le."
+    "message": "Sur votre environnement cloud, connectez-vous à votre compte Cloudwarden, ouvrez la page d'abonnement et téléchargez votre fichier de licence. Ensuite, revenez à cet écran et téléversez-le."
   },
   "viewAllPlans": {
     "message": "Afficher tous les forfaits"
@@ -16635,10 +16635,10 @@
     "message": "Obtenir l'extension pour un accès facile au coffre"
   },
   "extensionPromptBody": {
-    "message": "Avec l'extension de navigateur installée, vous emmènerez Bitwarden partout en ligne. Il remplira les mots de passe, faisant en sorte que vous puissiez vous connecter à vos comptes en un seul clic."
+    "message": "Avec l'extension de navigateur installée, vous emmènerez Cloudwarden partout en ligne. Il remplira les mots de passe, faisant en sorte que vous puissiez vous connecter à vos comptes en un seul clic."
   },
   "extensionPromptImageAlt": {
-    "message": "Un navigateur web montrant l'extension Bitwarden avec des éléments de saisie automatique pour la page web actuelle."
+    "message": "Un navigateur web montrant l'extension Cloudwarden avec des éléments de saisie automatique pour la page web actuelle."
   },
   "skip": {
     "message": "Ignorer"
@@ -16686,10 +16686,10 @@
     "message": "Mot de passe Send invalide"
   },
   "vaultWelcomeDialogTitle": {
-    "message": "Vous y êtes! Bienvenue sur Bitwarden"
+    "message": "Vous y êtes! Bienvenue sur Cloudwarden"
   },
   "vaultWelcomeDialogDescription": {
-    "message": "Enregistrez tous vos mots de passe et vos informations personnelles dans votre coffre de Bitwarden. Nous vous ferons faire la visite."
+    "message": "Enregistrez tous vos mots de passe et vos informations personnelles dans votre coffre de Cloudwarden. Nous vous ferons faire la visite."
   },
   "vaultWelcomeDialogPrimaryCta": {
     "message": "Commencer la visite"
@@ -16923,7 +16923,7 @@
     "message": "Aider les membres à s'améliorer"
   },
   "aiCoachmarkHelpMembersDescription": {
-    "message": "Une fois que vous avez sélectionné des applications critiques, invitez les membres à changer les mots de passe à risque. Ils recevront un message dans leur extension Bitwarden."
+    "message": "Une fois que vous avez sélectionné des applications critiques, invitez les membres à changer les mots de passe à risque. Ils recevront un message dans leur extension Cloudwarden."
   },
   "aiCoachmarkRunReportTitle": {
     "message": "Restez au courant des nouveaux risques"
@@ -17689,7 +17689,7 @@
     "message": "Paiement réussi"
   },
   "paymentSuccessfulProcessingMessage": {
-    "message": "Votre mise à niveau est en cours de traitement. Il peut s'écouler quelques minutes avant de voir les fonctionnalités Premium dans Bitwarden."
+    "message": "Votre mise à niveau est en cours de traitement. Il peut s'écouler quelques minutes avant de voir les fonctionnalités Premium dans Cloudwarden."
   },
   "planPurchased": {
     "message": "Abonnement souscrit"

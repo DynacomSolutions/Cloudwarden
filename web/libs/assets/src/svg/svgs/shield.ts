@@ -1,15 +1,11 @@
 import { svg } from "../svg";
 
+// Cloudwarden mark (replaces the upstream shield, see web/NOTICE.md).
 const BitwardenShield = svg`
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 26 32" fill="none">
-    <g clip-path="url(#bitwarden-shield-clip)">
-      <path class="tw-fill-fg-nav" d="M22.01 17.055V4.135h-9.063v22.954c1.605-.848 3.041-1.77 4.31-2.766 3.169-2.476 4.753-4.899 4.753-7.268Zm3.884-15.504v15.504a9.256 9.256 0 0 1-.677 3.442 12.828 12.828 0 0 1-1.68 3.029 18.708 18.708 0 0 1-2.386 2.574 27.808 27.808 0 0 1-2.56 2.08 32.251 32.251 0 0 1-2.448 1.564c-.85.49-1.453.824-1.81.999-.357.175-.644.31-.86.404-.162.08-.337.12-.526.12s-.364-.04-.526-.12a22.99 22.99 0 0 1-.86-.404c-.357-.175-.96-.508-1.81-1a32.242 32.242 0 0 1-2.448-1.564 27.796 27.796 0 0 1-2.56-2.08 18.706 18.706 0 0 1-2.386-2.573 12.828 12.828 0 0 1-1.68-3.029A9.256 9.256 0 0 1 0 17.055V1.551C0 1.2.128.898.384.642.641.386.944.26 1.294.26H24.6c.35 0 .654.127.91.383s.384.559.384.909Z"/>
-    </g>
-    <defs>
-      <clipPath id="bitwarden-shield-clip">
-        <path class="tw-fill-fg-nav" d="M0 0h26v32H0z" />
-      </clipPath>
-    </defs>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 42 42" fill="none">
+    <path d="M10 33h21a8.5 8.5 0 0 0 1.4-16.9A12 12 0 0 0 9.5 18.6 7.3 7.3 0 0 0 10 33Z" fill="none" stroke-width="3.4" stroke-linejoin="round" class="tw-stroke-fg-nav"/>
+    <circle cx="21" cy="24.5" r="3" class="cw-accent-fill" style="fill:#e8414a"/>
+    <path d="M21 26.6v4.2" stroke-width="2.8" stroke-linecap="round" style="stroke:#e8414a"/>
   </svg>
 `;
 

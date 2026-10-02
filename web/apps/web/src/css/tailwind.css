@@ -4,6 +4,8 @@
 @import "../../../../libs/angular/src/scss/bwicons/styles/style.css";
 @import "../../../../libs/angular/src/scss/icons.css";
 @import "../../../../libs/components/src/multi-select/scss/bw.theme.css";
+/* Cloudwarden theme overrides, after the upstream tokens (web/NOTICE.md). */
+@import "../../../../libs/components/src/cloudwarden/theme.css";
 
 @import "./braintree.css";
 @import "./vault-filters.css";

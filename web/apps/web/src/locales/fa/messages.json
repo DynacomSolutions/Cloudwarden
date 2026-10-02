@@ -21,7 +21,7 @@
     "message": "همه برنامه‌های مهم"
   },
   "appLogoLabel": {
-    "message": "لوگو Bitwarden"
+    "message": "لوگو Cloudwarden"
   },
   "criticalApplications": {
     "message": "برنامه‌های حیاتی"
@@ -236,7 +236,7 @@
     "message": "پیشرفت‌ها را در سراسر تیم خود پیگیری کنید"
   },
   "membersAreAutomaticallyNotified": {
-    "message": "اعضا به طور خودکار از کلمات عبور در معرض خطر در افزونه Bitwarden خود مطلع می‌شوند. نیازی به پیگیری نیست."
+    "message": "اعضا به طور خودکار از کلمات عبور در معرض خطر در افزونه Cloudwarden خود مطلع می‌شوند. نیازی به پیگیری نیست."
   },
   "importYourOrgDataToGetStarted": {
     "message": "برای شروع، داده‌های سازمانی خود را وارد کنید"
@@ -399,7 +399,7 @@
     }
   },
   "membersWillReceiveSecurityTask": {
-    "message": "به اعضای سازمان شما وظیفه‌ای برای تغییر کلمات عبور آسیب‌پذیر محول خواهد شد. آن‌ها در افزونه مرورگر Bitwarden خود، اعلانی دریافت خواهند کرد."
+    "message": "به اعضای سازمان شما وظیفه‌ای برای تغییر کلمات عبور آسیب‌پذیر محول خواهد شد. آن‌ها در افزونه مرورگر Cloudwarden خود، اعلانی دریافت خواهند کرد."
   },
   "membersAtRiskCount": {
     "message": "$COUNT$ عضو در خطر",
@@ -847,10 +847,10 @@
     "message": "تأیید دو مرحله‌ای را بدون دردسر کنید"
   },
   "totpHelper": {
-    "message": "Bitwarden می‌تواند کدهای تأیید دو مرحله‌ای را ذخیره و پر کند. کلید را کپی کرده و در این فیلد قرار دهید."
+    "message": "Cloudwarden می‌تواند کدهای تأیید دو مرحله‌ای را ذخیره و پر کند. کلید را کپی کرده و در این فیلد قرار دهید."
   },
   "totpHelperWithCapture": {
-    "message": "Bitwarden می‌تواند کدهای تأیید دو مرحله‌ای را ذخیره و پر کند. برای اسکن کد QR احراز هویت کننده این وب‌سایت، روی آیکون دوربین کلیک کنید یا کلید را کپی کرده و در این فیلد قرار دهید."
+    "message": "Cloudwarden می‌تواند کدهای تأیید دو مرحله‌ای را ذخیره و پر کند. برای اسکن کد QR احراز هویت کننده این وب‌سایت، روی آیکون دوربین کلیک کنید یا کلید را کپی کرده و در این فیلد قرار دهید."
   },
   "totpCapture": {
     "message": "اسکن کد QR احراز هویت کننده از صفحه وب فعلی"
@@ -2222,7 +2222,7 @@
     "message": "ورود با دستگاه"
   },
   "loginWithDeviceEnabledNote": {
-    "message": "ورود به سیستم با دستگاه باید در تنظیمات برنامه‌ی Bitwarden تنظیم شود. به گزینه دیگری نیاز دارید؟"
+    "message": "ورود به سیستم با دستگاه باید در تنظیمات برنامه‌ی Cloudwarden تنظیم شود. به گزینه دیگری نیاز دارید؟"
   },
   "needAnotherOptionV1": {
     "message": "به گزینه دیگری نیاز دارید؟"
@@ -2339,7 +2339,7 @@
     "message": "ایجاد حساب کاربری"
   },
   "newToBitwarden": {
-    "message": "در Bitwarden تازه وارد هستید؟"
+    "message": "در Cloudwarden تازه وارد هستید؟"
   },
   "setAStrongPassword": {
     "message": "تنظیم کلمه عبور قوی"
@@ -2357,7 +2357,7 @@
     "message": "ورود"
   },
   "loginPageEmailEntryScreenTitle": {
-    "message": "وارد Bitwarden شوید"
+    "message": "وارد Cloudwarden شوید"
   },
   "enterTheCodeSentToYourEmail": {
     "message": "کدی را که به ایمیل شما ارسال شده وارد کنید"
@@ -2387,7 +2387,7 @@
     "message": "دستگاه چیست؟"
   },
   "aDeviceIs": {
-    "message": "دستگاه، یک نصب منحصربه‌فرد از اپلیکیشن Bitwarden است که در آن وارد حساب کاربری خود شده‌اید. نصب مجدد، پاک کردن داده‌های برنامه یا پاک کردن کوکی‌ها ممکن است باعث شود یک دستگاه چند بار ظاهر شود."
+    "message": "دستگاه، یک نصب منحصربه‌فرد از اپلیکیشن Cloudwarden است که در آن وارد حساب کاربری خود شده‌اید. نصب مجدد، پاک کردن داده‌های برنامه یا پاک کردن کوکی‌ها ممکن است باعث شود یک دستگاه چند بار ظاهر شود."
   },
   "logInInitiated": {
     "message": "ورود به سیستم آغاز شد"
@@ -2694,7 +2694,7 @@
     "message": "یک اعلان به دستگاه شما ارسال شده است."
   },
   "notificationSentDevicePart1": {
-    "message": "قفل Bitwarden را روی دستگاه خود باز کنید یا روی "
+    "message": "قفل Cloudwarden را روی دستگاه خود باز کنید یا روی "
   },
   "accessAttemptBy": {
     "message": "تلاش برای دسترسی به سیستم توسط $EMAIL$",
@@ -2718,7 +2718,7 @@
     "message": "اطمینان حاصل کنید که عبارت اثر انگشت با عبارت زیر مطابقت دارد قبل از تأیید."
   },
   "notificationSentDeviceComplete": {
-    "message": "Bitwarden را در دستگاه خود باز کنید. پیش از تأیید، اطمینان حاصل کنید که عبارت اثر انگشت با عبارت زیر مطابقت دارد."
+    "message": "Cloudwarden را در دستگاه خود باز کنید. پیش از تأیید، اطمینان حاصل کنید که عبارت اثر انگشت با عبارت زیر مطابقت دارد."
   },
   "aNotificationWasSentToYourDevice": {
     "message": "یک اعلان به دستگاه شما ارسال شده است"
@@ -2932,7 +2932,7 @@
     "message": "این برون ریزی با استفاده از کلید رمزگذاری حساب شما، اطلاعاتتان را رمزگذاری می کند. اگر زمانی کلید رمزگذاری حساب خود را بچرخانید، باید دوباره خروجی بگیرید، چون قادر به رمزگشایی این پرونده برون ریزی نخواهید بود."
   },
   "encExportAccountWarningDesc": {
-    "message": "کلیدهای رمزگذاری حساب برای هر حساب کاربری Bitwarden منحصر به فرد است، بنابراین نمی‌توانید برون ریزی رمزگذاری شده را به حساب دیگری وارد کنید."
+    "message": "کلیدهای رمزگذاری حساب برای هر حساب کاربری Cloudwarden منحصر به فرد است، بنابراین نمی‌توانید برون ریزی رمزگذاری شده را به حساب دیگری وارد کنید."
   },
   "exportNoun": {
     "message": "برون ریزی",
@@ -2988,10 +2988,10 @@
     "message": "این پایگاه داده KeePass برای درون ریزی بیش از حد بزرگ است."
   },
   "accountRestrictedOptionDescription": {
-    "message": "برای رمزگذاری برون ریزی و محدود کردن درون ریزی فقط به حساب فعلی Bitwarden، از کلید رمزگذاری حساب خود که از نام کاربری و کلمه عبور اصلی حساب شما مشتق شده است استفاده کنید."
+    "message": "برای رمزگذاری برون ریزی و محدود کردن درون ریزی فقط به حساب فعلی Cloudwarden، از کلید رمزگذاری حساب خود که از نام کاربری و کلمه عبور اصلی حساب شما مشتق شده است استفاده کنید."
   },
   "passwordProtectedOptionDescription": {
-    "message": "یک کلمه عبور برای پرونده به‌منظور رمزگذاری تنظیم کنید تا برون ریزی و درون ریزی آن به هر حساب Bitwarden با استفاده از کلمه عبور رمزگشایی شود."
+    "message": "یک کلمه عبور برای پرونده به‌منظور رمزگذاری تنظیم کنید تا برون ریزی و درون ریزی آن به هر حساب Cloudwarden با استفاده از کلمه عبور رمزگشایی شود."
   },
   "exportTypeHeading": {
     "message": "نوع برون ریزی"
@@ -3162,7 +3162,7 @@
     "message": "درخواست در حال انتظار است"
   },
   "logBackInOthersToo": {
-    "message": "لطفاً دوباره وارد شوید. اگر از سایر برنامه‌های Bitwarden استفاده می‌کنید، از سیستم خارج شوید و دوباره به آن‌ها وارد شوید."
+    "message": "لطفاً دوباره وارد شوید. اگر از سایر برنامه‌های Cloudwarden استفاده می‌کنید، از سیستم خارج شوید و دوباره به آن‌ها وارد شوید."
   },
   "changeMasterPassword": {
     "message": "تغییر کلمه عبور اصلی"
@@ -3195,7 +3195,7 @@
     }
   },
   "kdfIterationsWarning": {
-    "message": "تنظیم تکرارهای KDF شما خیلی زیاد می‌تواند منجر به عملکرد ضعیف هنگام ورود به Bitwarden (و باز کردن قفل) در دستگاه هایی با CPU کندتر شود. توصیه می کنیم که مقدار را با افزایش $INCREMENT$ افزایش دهید و سپس همه دستگاه های خود را آزمایش کنید.",
+    "message": "تنظیم تکرارهای KDF شما خیلی زیاد می‌تواند منجر به عملکرد ضعیف هنگام ورود به Cloudwarden (و باز کردن قفل) در دستگاه هایی با CPU کندتر شود. توصیه می کنیم که مقدار را با افزایش $INCREMENT$ افزایش دهید و سپس همه دستگاه های خود را آزمایش کنید.",
     "placeholders": {
       "increment": {
         "content": "$1",
@@ -3208,7 +3208,7 @@
     "description": "Memory refers to computer memory (RAM). MB is short for megabytes."
   },
   "argon2Warning": {
-    "message": "تنظیم تکرارهای KDF، حافظه و موازی سازی بیش از حد می‌تواند منجر به عملکرد ضعیف هنگام ورود به Bitwarden (و باز کردن قفل) در دستگاه های کندتر یا قدیمی تر شود. توصیه می‌کنیم این موارد را به صورت جداگانه و با افزایش های کوچک تغییر دهید و سپس همه دستگاه های خود را آزمایش کنید."
+    "message": "تنظیم تکرارهای KDF، حافظه و موازی سازی بیش از حد می‌تواند منجر به عملکرد ضعیف هنگام ورود به Cloudwarden (و باز کردن قفل) در دستگاه های کندتر یا قدیمی تر شود. توصیه می‌کنیم این موارد را به صورت جداگانه و با افزایش های کوچک تغییر دهید و سپس همه دستگاه های خود را آزمایش کنید."
   },
   "kdfParallelism": {
     "message": "موازی سازی KDF"
@@ -3241,10 +3241,10 @@
     "message": "محافظت از ورود دستگاه جدید را فعال کنید"
   },
   "turnOffNewDeviceLoginProtectionModalDesc": {
-    "message": "برای غیرفعال‌سازی ایمیل‌های تأییدیه‌ای که Bitwarden هنگام ورود از دستگاه جدید ارسال می‌کند، از بخش زیر ادامه دهید."
+    "message": "برای غیرفعال‌سازی ایمیل‌های تأییدیه‌ای که Cloudwarden هنگام ورود از دستگاه جدید ارسال می‌کند، از بخش زیر ادامه دهید."
   },
   "turnOnNewDeviceLoginProtectionModalDesc": {
-    "message": "برای فعال‌سازی ارسال ایمیل‌های تأیید هنگام ورود از دستگاه جدید توسط Bitwarden، از بخش زیر ادامه دهید."
+    "message": "برای فعال‌سازی ارسال ایمیل‌های تأیید هنگام ورود از دستگاه جدید توسط Cloudwarden، از بخش زیر ادامه دهید."
   },
   "turnOffNewDeviceLoginProtectionWarning": {
     "message": "با غیرفعال بودن محافظت از ورود دستگاه جدید، هر کسی که کلمه عبور اصلی شما را داشته باشد می‌تواند از هر دستگاهی به حسابتان دسترسی پیدا کند. برای محافظت از حساب کاربری بدون استفاده از ایمیل‌های تأیید، ورود دو مرحله‌ای را فعال کنید."
@@ -3694,7 +3694,7 @@
     "description": "Followed by a literal filename (my_passwords.json) rendered as code."
   },
   "importGnomeInstructionsFileHere": {
-    "message": "file here to Bitwarden.",
+    "message": "file here to Cloudwarden.",
     "description": "Follows the my_passwords.json filename."
   },
   "importPasswordagentInstructions": {
@@ -3827,7 +3827,7 @@
     "message": "قوانین دامنه"
   },
   "domainRulesDesc": {
-    "message": "اگر یک ورود در چند دامنه‌ی وب‌سایت مختلف دارید، می‌توانید وب‌سایت را به عنوان \"برابر\" علامت گذاری کنید. دامنه‌های «جهانی» دامنه‌هایی هستند که قبلاً توسط Bitwarden برای شما ایجاد شده‌اند."
+    "message": "اگر یک ورود در چند دامنه‌ی وب‌سایت مختلف دارید، می‌توانید وب‌سایت را به عنوان \"برابر\" علامت گذاری کنید. دامنه‌های «جهانی» دامنه‌هایی هستند که قبلاً توسط Cloudwarden برای شما ایجاد شده‌اند."
   },
   "globalEqDomains": {
     "message": "دامنه‌های برابر جهانی"
@@ -3878,7 +3878,7 @@
     "message": "ورود دو مرحله ای را برای سازمان خود فعال کنید."
   },
   "twoStepLoginEnterpriseDescStart": {
-    "message": "گزینه‌های ورود دو مرحله ای Bitwarden را برای اعضا اعمال کنید با استفاده از ",
+    "message": "گزینه‌های ورود دو مرحله ای Cloudwarden را برای اعضا اعمال کنید با استفاده از ",
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Enforce Bitwarden Two-step Login options for members by using the Two-step Login Policy.'"
   },
   "twoStepLoginPolicy": {
@@ -3891,7 +3891,7 @@
     "message": "اگر SSO را راه‌اندازی کرده‌اید یا قصد دارید، ورود دو مرحله‌ای ممکن است از قبل از طریق ارائه‌دهنده هویت شما اعمال شود."
   },
   "twoStepLoginRecoveryWarning": {
-    "message": "راه‌اندازی ورود دو مرحله‌ای می‌تواند برای همیشه حساب Bitwarden شما را قفل کند. یک کد بازیابی به شما امکان می‌دهد در صورتی که دیگر نمی‌توانید از ارائه‌دهنده‌ی ورود دو مرحله‌ای معمولی خود استفاده کنید (به عنوان مثال: دستگاه خود را گم می‌کنید) به حساب خود دسترسی پیدا کنید. اگر دسترسی به حساب خود را از دست بدهید، پشتیبانی Bitwarden نمی‌تواند به شما کمک کند. توصیه می‌کنیم کد بازیابی را یادداشت یا چاپ کنید و آن را در مکانی امن نگهداری کنید."
+    "message": "راه‌اندازی ورود دو مرحله‌ای می‌تواند برای همیشه حساب Cloudwarden شما را قفل کند. یک کد بازیابی به شما امکان می‌دهد در صورتی که دیگر نمی‌توانید از ارائه‌دهنده‌ی ورود دو مرحله‌ای معمولی خود استفاده کنید (به عنوان مثال: دستگاه خود را گم می‌کنید) به حساب خود دسترسی پیدا کنید. اگر دسترسی به حساب خود را از دست بدهید، پشتیبانی Cloudwarden نمی‌تواند به شما کمک کند. توصیه می‌کنیم کد بازیابی را یادداشت یا چاپ کنید و آن را در مکانی امن نگهداری کنید."
   },
   "restrictedItemTypePolicy": {
     "message": "حذف نوع مورد کارت"
@@ -3913,7 +3913,7 @@
     "message": "یک سیاست تعیین شده توسط یک یا چند سازمان، مانع از درون ریزی کارت‌ها به گاوصندوق‌های شما شده است."
   },
   "yourSingleUseRecoveryCode": {
-    "message": "کد بازیابی یک‌بار مصرف شما می‌تواند در صورت از دست دادن دسترسی به سرویس ورود دو مرحله‌ای، برای غیرفعال کردن آن استفاده شود. Bitwarden توصیه می‌کند این کد را یادداشت کرده و در جای امنی نگهداری کنید."
+    "message": "کد بازیابی یک‌بار مصرف شما می‌تواند در صورت از دست دادن دسترسی به سرویس ورود دو مرحله‌ای، برای غیرفعال کردن آن استفاده شود. Cloudwarden توصیه می‌کند این کد را یادداشت کرده و در جای امنی نگهداری کنید."
   },
   "viewRecoveryCode": {
     "message": "نمایش کد بازیابی"
@@ -4011,13 +4011,13 @@
     }
   },
   "continueToExternalUrlDesc": {
-    "message": "شما در حال ترک Bitwarden و باز کردن یک وب‌سایت خارجی در پنجره جدید هستید."
+    "message": "شما در حال ترک Cloudwarden و باز کردن یک وب‌سایت خارجی در پنجره جدید هستید."
   },
   "twoStepContinueToBitwardenUrlTitle": {
     "message": "به bitwarden.com ادامه می‌دهید؟"
   },
   "twoStepContinueToBitwardenUrlDesc": {
-    "message": "احراز هویت کننده Bitwarden به شما امکان می‌دهد کلیدهای احراز هویت را ذخیره کرده و کدهای TOTP را برای فرآیندهای تأیید دومرحله‌ای تولید کنید. برای اطلاعات بیشتر به وب‌سایت bitwarden.com مراجعه کنید."
+    "message": "احراز هویت کننده Cloudwarden به شما امکان می‌دهد کلیدهای احراز هویت را ذخیره کرده و کدهای TOTP را برای فرآیندهای تأیید دومرحله‌ای تولید کنید. برای اطلاعات بیشتر به وب‌سایت bitwarden.com مراجعه کنید."
   },
   "twoStepAuthenticatorScanCodeV2": {
     "message": "کد QR زیر را با برنامه احراز هویت خود اسکن کنید یا کلید را وارد کنید."
@@ -4059,7 +4059,7 @@
     "message": "فرم را ذخیره کن."
   },
   "twoFactorYubikeyWarning": {
-    "message": "به دلیل محدودیت‌های پلتفرم، YubiKeys نمی‌تواند در همه برنامه‌های Bitwarden استفاده شود. باید یک ارائه‌دهنده‌ی ورود دو مرحله‌ای دیگر راه‌اندازی کنید تا زمانی که YubiKeys قابل استفاده نیست، بتوانید به حساب خود دسترسی داشته باشید. پلتفرم های پشتیبانی شده:"
+    "message": "به دلیل محدودیت‌های پلتفرم، YubiKeys نمی‌تواند در همه برنامه‌های Cloudwarden استفاده شود. باید یک ارائه‌دهنده‌ی ورود دو مرحله‌ای دیگر راه‌اندازی کنید تا زمانی که YubiKeys قابل استفاده نیست، بتوانید به حساب خود دسترسی داشته باشید. پلتفرم های پشتیبانی شده:"
   },
   "twoFactorYubikeySupportUsb": {
     "message": "گاوصندوق وب، برنامه دسکتاپ، CLI و همه برنامه‌های افزودنی مرورگر در دستگاهی با پورت USB که می‌تواند YubiKey شما را بپذیرد."
@@ -4110,7 +4110,7 @@
     "message": "غیرفعال کردن تمام کلیدها"
   },
   "twoFactorDuoDesc": {
-    "message": "اطلاعات برنامه Bitwarden را از پنل مدیریت Duo خود وارد کنید."
+    "message": "اطلاعات برنامه Cloudwarden را از پنل مدیریت Duo خود وارد کنید."
   },
   "twoFactorDuoClientId": {
     "message": "شناسه کاربر"
@@ -4161,7 +4161,7 @@
     "message": "فرم را ذخیره کن."
   },
   "twoFactorU2fWarning": {
-    "message": "به دلیل محدودیت‌های پلتفرم، FIDO U2F نمی‌تواند در همه برنامه‌های Bitwarden استفاده شود. باید یک ارائه‌دهنده‌ی ورود دو مرحله‌ای دیگر راه‌اندازی کنید تا زمانی که FIDO U2F قابل استفاده نیست، بتوانید به حساب خود دسترسی داشته باشید. پلتفرم های پشتیبانی شده:"
+    "message": "به دلیل محدودیت‌های پلتفرم، FIDO U2F نمی‌تواند در همه برنامه‌های Cloudwarden استفاده شود. باید یک ارائه‌دهنده‌ی ورود دو مرحله‌ای دیگر راه‌اندازی کنید تا زمانی که FIDO U2F قابل استفاده نیست، بتوانید به حساب خود دسترسی داشته باشید. پلتفرم های پشتیبانی شده:"
   },
   "twoFactorU2fSupportWeb": {
     "message": "گاوصندوق وب و برنامه‌های افزودنی مرورگر روی دسکتاپ/لپ‌تاپ با مرورگر پشتیبانی‌شده از U2F (Chrome، Opera، Vivaldi یا Firefox با FIDO U2F روشن)."
@@ -4176,7 +4176,7 @@
     "message": "مشکلی در خواندن کلید امنیتی وجود داشت. دوباره امتحان کنید."
   },
   "twoFactorRecoveryYourCode": {
-    "message": "کد بازیابی ورود دو مرحله ای Bitwarden شما"
+    "message": "کد بازیابی ورود دو مرحله ای Cloudwarden شما"
   },
   "twoFactorRecoveryNoCode": {
     "message": "شما هنوز هیچ ارائه دهنده‌ی ورود دو مرحله ای را راه اندازی نکرده اید. پس از راه‌ اندازی یک ارائه‌دهنده ورود به سیستم دو مرحله‌ای، می‌توانید برای کد بازیابی خود دوباره اینجا را بررسی کنید."
@@ -4229,7 +4229,7 @@
     "message": "ورود دو مرحله ای غیر فعال"
   },
   "inactive2faReportDesc": {
-    "message": "ورود دو مرحله ای یک لایه‌ی حفاظتی به حساب‌های شما اضافه می‌کند. با استفاده از احراز کننده‌ی هویت Bitwarden برای این حساب‌ها، ورود دو مرحله ای را تنظیم کنید یا از یک روش جایگزین استفاده کنید."
+    "message": "ورود دو مرحله ای یک لایه‌ی حفاظتی به حساب‌های شما اضافه می‌کند. با استفاده از احراز کننده‌ی هویت Cloudwarden برای این حساب‌ها، ورود دو مرحله ای را تنظیم کنید یا از یک روش جایگزین استفاده کنید."
   },
   "inactive2faFound": {
     "message": "ورود‌های بدون ورود دو مرحله ای یافت شد"
@@ -4266,7 +4266,7 @@
     "message": "and "
   },
   "passkeyLoginReportHowToUse": {
-    "message": "how to use them in Bitwarden."
+    "message": "how to use them in Cloudwarden."
   },
   "passkeyLoginFound": {
     "message": "Logins that support passkeys"
@@ -4526,7 +4526,7 @@
     }
   },
   "bitwardenFamiliesPlan": {
-    "message": "طرح خانواده Bitwarden."
+    "message": "طرح خانواده Cloudwarden."
   },
   "addons": {
     "message": "افزونه‌ها"
@@ -4738,7 +4738,7 @@
     }
   },
   "churnOfferDiscountBody": {
-    "message": "به‌عنوان تشکر از اینکه مشتری قدیمی Bitwarden هستید، می‌خواهیم تخفیف $DISCOUNT$ برای خدمات بعدی شما $DURATION$ ارائه دهیم.",
+    "message": "به‌عنوان تشکر از اینکه مشتری قدیمی Cloudwarden هستید، می‌خواهیم تخفیف $DISCOUNT$ برای خدمات بعدی شما $DURATION$ ارائه دهیم.",
     "description": "Body copy on the churn-mitigation offer card. DISCOUNT = discount amount; DURATION = service duration (e.g. 'year' or '6 months')",
     "placeholders": {
       "discount": {
@@ -4800,7 +4800,7 @@
     }
   },
   "churnOfferDiscountBodyRecurringAmount": {
-    "message": "به عنوان تشکر از اینکه مشتری قدیمی Bitwarden هستید، می‌خواهیم برای $DURATION$ بعدی به شما $AMOUNT$ تخفیف در هر $INTERVAL$ بدهیم.",
+    "message": "به عنوان تشکر از اینکه مشتری قدیمی Cloudwarden هستید، می‌خواهیم برای $DURATION$ بعدی به شما $AMOUNT$ تخفیف در هر $INTERVAL$ بدهیم.",
     "description": "Body copy on the churn-mitigation offer card for a fixed-amount discount that repeats each billing period. AMOUNT = discount amount (e.g. '$15.00'); INTERVAL = billing interval unit (e.g. 'month'); DURATION = discount duration (e.g. 'year' or '6 months')",
     "placeholders": {
       "amount": {
@@ -5249,7 +5249,7 @@
     }
   },
   "trialThankYou": {
-    "message": "از ثبت نام در Bitwarden برای $PLAN$ سپاسگزاریم!",
+    "message": "از ثبت نام در Cloudwarden برای $PLAN$ سپاسگزاریم!",
     "placeholders": {
       "plan": {
         "content": "$1",
@@ -5258,7 +5258,7 @@
     }
   },
   "trialSecretsManagerThankYou": {
-    "message": "از ثبت‌نام شما برای بتا مدیر اسرار Bitwarden در طرح $PLAN$ سپاسگزاریم!",
+    "message": "از ثبت‌نام شما برای بتا مدیر اسرار Cloudwarden در طرح $PLAN$ سپاسگزاریم!",
     "placeholders": {
       "plan": {
         "content": "$1",
@@ -5397,7 +5397,7 @@
     "message": "شناسه خارجی SSO"
   },
   "ssoExternalIdDesc": {
-    "message": "شناسه خارجی SSO یک مرجع بدون رمزگذاری بین Bitwarden و ارائه‌دهنده SSO تنظیم‌شده شما است."
+    "message": "شناسه خارجی SSO یک مرجع بدون رمزگذاری بین Cloudwarden و ارائه‌دهنده SSO تنظیم‌شده شما است."
   },
   "nestCollectionUnder": {
     "message": "مجموعه لانه زیر"
@@ -5454,13 +5454,13 @@
     "message": "دعوت"
   },
   "inviteUserDesc": {
-    "message": "با وارد کردن نشانی ایمیل حساب Bitwarden در زیر، یک کاربر جدید را به سازمان خود دعوت کنید. اگر آنها قبلاً یک حساب Bitwarden نداشته باشند، از آنها خواسته می‌شود یک حساب جدید ایجاد کنند."
+    "message": "با وارد کردن نشانی ایمیل حساب Cloudwarden در زیر، یک کاربر جدید را به سازمان خود دعوت کنید. اگر آنها قبلاً یک حساب Cloudwarden نداشته باشند، از آنها خواسته می‌شود یک حساب جدید ایجاد کنند."
   },
   "inviteUserDescription": {
     "message": "با وارد کردن نشانی ایمیل آن‌ها در زیر، کاربران جدید را به سازمان خود دعوت کنید."
   },
   "inviteUserDescSharedFolders": {
-    "message": "Invite a new user to your organization vault by entering their Bitwarden account email address below. If they do not have a Bitwarden account already, they will be prompted to create a new account.",
+    "message": "Invite a new user to your organization vault by entering their Cloudwarden account email address below. If they do not have a Cloudwarden account already, they will be prompted to create a new account.",
     "description": "VFO1 (shared folder terminology) variant of inviteUserDesc, shown when the vfo1-foundation flag is enabled."
   },
   "inviteMultipleEmailDesc": {
@@ -5603,10 +5603,10 @@
     "message": "CLI"
   },
   "bitWebVault": {
-    "message": "گاوصندوق وب Bitwarden"
+    "message": "گاوصندوق وب Cloudwarden"
   },
   "bitSecretsManager": {
-    "message": "مدیر اسرار Bitwarden"
+    "message": "مدیر اسرار Cloudwarden"
   },
   "loggedIn": {
     "message": "وارد شده"
@@ -6925,7 +6925,7 @@
     "message": "Return to registration"
   },
   "joinOrganizationDesc": {
-    "message": "شما برای پیوستن به سازمان فهرست شده در بالا دعوت شده اید. برای پذیرش دعوت، باید وارد شوید یا یک حساب کاربری جدید در Bitwarden ایجاد کنید."
+    "message": "شما برای پیوستن به سازمان فهرست شده در بالا دعوت شده اید. برای پذیرش دعوت، باید وارد شوید یا یک حساب کاربری جدید در Cloudwarden ایجاد کنید."
   },
   "finishJoiningThisOrganizationBySettingAMasterPassword": {
     "message": "با تعیین یک کلمه عبور اصلی، عضویت خود در این سازمان را کامل کنید."
@@ -7066,10 +7066,10 @@
     "message": "اگر حساب شما وجود دارد، ما یک ایمیل با دستورالعمل های بیشتر برای شما ارسال کرده ایم."
   },
   "deleteRecoverConfirmDesc": {
-    "message": "شما درخواست کرده اید که حساب Bitwarden خود را حذف کنید. برای تأیید از دکمه زیر استفاده کنید."
+    "message": "شما درخواست کرده اید که حساب Cloudwarden خود را حذف کنید. برای تأیید از دکمه زیر استفاده کنید."
   },
   "deleteRecoverOrgConfirmDesc": {
-    "message": "شما درخواست حذف سازمان Bitwarden خود را داده‌اید."
+    "message": "شما درخواست حذف سازمان Cloudwarden خود را داده‌اید."
   },
   "myOrganization": {
     "message": "سازمان من"
@@ -7403,7 +7403,7 @@
     }
   },
   "updateEncryptionKeyWarning": {
-    "message": "پس از به‌روزرسانی کلید رمزگذاری، باید از سیستم خارج شوید و دوباره به همه برنامه‌های Bitwarden که در حال حاضر استفاده می‌کنید (مانند برنامه تلفن همراه یا برنامه‌های افزودنی مرورگر) وارد شوید. عدم خروج و ورود مجدد (که کلید رمزگذاری جدید شما را دانلود می‌کند) ممکن است منجر به خراب شدن داده‌ها شود. ما سعی خواهیم کرد شما را به طور خودکار از سیستم خارج کنیم، اما ممکن است با تأخیر انجام شود."
+    "message": "پس از به‌روزرسانی کلید رمزگذاری، باید از سیستم خارج شوید و دوباره به همه برنامه‌های Cloudwarden که در حال حاضر استفاده می‌کنید (مانند برنامه تلفن همراه یا برنامه‌های افزودنی مرورگر) وارد شوید. عدم خروج و ورود مجدد (که کلید رمزگذاری جدید شما را دانلود می‌کند) ممکن است منجر به خراب شدن داده‌ها شود. ما سعی خواهیم کرد شما را به طور خودکار از سیستم خارج کنیم، اما ممکن است با تأخیر انجام شود."
   },
   "updateEncryptionKeyAccountExportWarning": {
     "message": "هرگونه برون ریزی حساب کاربری با دسترسی محدود که ذخیره کرده‌اید، نامعتبر خواهد شد."
@@ -7439,7 +7439,7 @@
     "message": "شما چیزی را انتخاب نکرده اید."
   },
   "receiveMarketingEmails": {
-    "message": "به‌روزرسانی‌های Bitwarden را در گاوصندوق ورودی خود دریافت کنید."
+    "message": "به‌روزرسانی‌های Cloudwarden را در گاوصندوق ورودی خود دریافت کنید."
   },
   "subscribe": {
     "message": "مشترک شدن"
@@ -7546,7 +7546,7 @@
     "message": "Copy and paste the link where your team will find it: your onboarding checklist, a Slack #new-joiners channel, Notion docs, or an email template."
   },
   "viewBitwardenOnboardingGuide": {
-    "message": "View Bitwarden onboarding guide"
+    "message": "View Cloudwarden onboarding guide"
   },
   "coachMarkStepOfTotal": {
     "message": "$CURRENT$ of $TOTAL$",
@@ -7725,7 +7725,7 @@
     "message": "کلمه عبور اصلی ضعیف"
   },
   "weakMasterPasswordDesc": {
-    "message": "کلمه عبور اصلی که شما انتخاب کرده اید ضعیف است. شما باید یک کلمه عبور اصلی قوی انتخاب کنید (یا یک عبارت عبور) تا به درستی از اکانت Bitwarden خود محافظت کنید. آیا مطمئن هستید می‌خواهید از این کلمه عبور اصلی استفاده کنید؟"
+    "message": "کلمه عبور اصلی که شما انتخاب کرده اید ضعیف است. شما باید یک کلمه عبور اصلی قوی انتخاب کنید (یا یک عبارت عبور) تا به درستی از اکانت Cloudwarden خود محافظت کنید. آیا مطمئن هستید می‌خواهید از این کلمه عبور اصلی استفاده کنید؟"
   },
   "rotateAccountEncKey": {
     "message": "همچنین کلید رمزگذاری حساب من را بچرخان"
@@ -7790,7 +7790,7 @@
     "message": "کلید API"
   },
   "apiKeyDesc": {
-    "message": "کلید API شما می‌تواند برای احراز هویت به API عمومی Bitwarden استفاده شود."
+    "message": "کلید API شما می‌تواند برای احراز هویت به API عمومی Cloudwarden استفاده شود."
   },
   "apiKeyRotateDesc": {
     "message": "چرخاندن کلید API، کلید قبلی را باطل می کند. اگر فکر می‌کنید که کلید فعلی دیگر برای استفاده ایمن نیست، می‌توانید کلید API خود را بچرخانید."
@@ -8149,7 +8149,7 @@
     "description": "VFO1 terminology variant of 'singleOrgPolicyDescV2'"
   },
   "singleOrgBlockCreateMessage": {
-    "message": "سازمان فعلی شما سیاستی دارد که به شما اجازه نمی‌دهد به بیش از یک سازمان بپیوندید. لطفاً با مدیران سازمان خود تماس بگیرید یا از یک حساب Bitwarden دیگر ثبت نام کنید."
+    "message": "سازمان فعلی شما سیاستی دارد که به شما اجازه نمی‌دهد به بیش از یک سازمان بپیوندید. لطفاً با مدیران سازمان خود تماس بگیرید یا از یک حساب Cloudwarden دیگر ثبت نام کنید."
   },
   "singleOrgPolicyMemberWarning": {
     "message": "اعضای غیر مطابق در وضعیت لغو شده قرار می‌گیرند تا زمانی که از تمام سازمان‌های دیگر خارج شوند. مدیران مستثنی بوده و می‌توانند پس از برقراری انطباق، اعضا را بازیابی کنند."
@@ -8400,7 +8400,7 @@
     "message": "با مشکلی مواجه شدید؟ گزارش تشخیصی را بارگیری کنید و سپس با دیگران به اشتراک بگذارید"
   },
   "bitwardenSupport": {
-    "message": "پشتیبانی Bitwarden",
+    "message": "پشتیبانی Cloudwarden",
     "description": "Link text that follows the troubleshooting description sentence. 'Bitwarden' should not be translated."
   },
   "download": {
@@ -8457,7 +8457,7 @@
     "message": "ویرایش مخاطب اضطراری"
   },
   "inviteEmergencyContactDesc": {
-    "message": "با وارد کردن نشانی ایمیل حساب Bitwarden در زیر، یک مخاطب اضطراری جدید را دعوت کنید. اگر آن‌ها قبلاً یک حساب Bitwarden نداشته باشند، از آن‌ها خواسته می‌شود که یک حساب جدید ایجاد کنند."
+    "message": "با وارد کردن نشانی ایمیل حساب Cloudwarden در زیر، یک مخاطب اضطراری جدید را دعوت کنید. اگر آن‌ها قبلاً یک حساب Cloudwarden نداشته باشند، از آن‌ها خواسته می‌شود که یک حساب جدید ایجاد کنند."
   },
   "emergencyAccessRecoveryInitiated": {
     "message": "دسترسی اضطراری آغاز شد"
@@ -8496,7 +8496,7 @@
     "message": "کاربر دعوت شد."
   },
   "acceptEmergencyAccess": {
-    "message": "از شما دعوت شده است که یک مخاطب اضطراری برای کاربر فهرست شده در بالا شوید. برای پذیرش دعوت، باید وارد شوید یا یک حساب کاربری جدید در Bitwarden ایجاد کنید."
+    "message": "از شما دعوت شده است که یک مخاطب اضطراری برای کاربر فهرست شده در بالا شوید. برای پذیرش دعوت، باید وارد شوید یا یک حساب کاربری جدید در Cloudwarden ایجاد کنید."
   },
   "emergencyInviteAcceptFailed": {
     "message": "قادر به پذیرش دعوت نیست. از کاربر بخواهید یک دعوتنامه جدید ارسال کند."
@@ -8682,7 +8682,7 @@
     "message": "نحوه فعال کردن تأیید خودکار کاربر"
   },
   "autoConfirmExtension1": {
-    "message": "افزونه Bitwarden خود را باز کنید"
+    "message": "افزونه Cloudwarden خود را باز کنید"
   },
   "autoConfirmExtension2": {
     "message": "انتخاب",
@@ -8693,7 +8693,7 @@
     "description": "This is a fragment of a larger sencence. The whole sentence will read: 'Select Turn on'"
   },
   "autoConfirmExtensionOpened": {
-    "message": "افزونه مرورگر Bitwarden با موفقیت باز شد. اکنون می‌توانید تنظیمات تأیید خودکار کاربر را فعال کنید."
+    "message": "افزونه مرورگر Cloudwarden با موفقیت باز شد. اکنون می‌توانید تنظیمات تأیید خودکار کاربر را فعال کنید."
   },
   "autoConfirmPolicyEditDescription": {
     "message": "کاربران جدید دعوت‌شده به سازمان، پس از باز شدن قفل دستگاه مدیر، به‌طور خودکار تأیید می‌شوند. قبل از فعال کردن این سیاست، لطفاً موارد زیر را بررسی و با آن‌ها موافقت کنید: ",
@@ -8906,7 +8906,7 @@
     "description": "VFO1 terminology variant of 'uriMatchDetectionPolicyDesc', shown in the policies list"
   },
   "uriMatchDetectionPolicyDescV2": {
-    "message": "Set a default for which parts of a website address (URI) need to match for Bitwarden to suggest a login for autofill. This policy won't be enforced for owners and admins."
+    "message": "Set a default for which parts of a website address (URI) need to match for Cloudwarden to suggest a login for autofill. This policy won't be enforced for owners and admins."
   },
   "uriMatchDetectionOptionsLabel": {
     "message": "بررسی مطابقت نشانی اینترنتی پیش‌فرض"
@@ -8926,7 +8926,7 @@
     "message": "Custom autofill rule set"
   },
   "fillAssistRulesUrlHint": {
-    "message": "By default, fill assist uses Bitwarden's curated rule set. Enter a URL here to override it with your own."
+    "message": "By default, fill assist uses Cloudwarden's curated rule set. Enter a URL here to override it with your own."
   },
   "invalidFillAssistRulesUrl": {
     "message": "Enter a valid URL",
@@ -9039,7 +9039,7 @@
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "sendAccessTaglineProductDesc": {
-    "message": "\"ارسال\" Bitwarden اطلاعات حساس و موقتی را به راحتی و ایمن به دیگران منتقل می‌کند.",
+    "message": "\"ارسال\" Cloudwarden اطلاعات حساس و موقتی را به راحتی و ایمن به دیگران منتقل می‌کند.",
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "sendAccessTaglineLearnMore": {
@@ -9066,7 +9066,7 @@
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Learn more, see how it works, **or** try it now.'"
   },
   "developmentDevOpsAndITTeamsChooseBWSecret": {
-    "message": "تیم‌های توسعه، DevOps و فناوری اطلاعات مدیر اسرار Bitwarden را برای مدیریت و استقرار امن زیرساخت‌ها و اسرار ماشین خود انتخاب می‌کنند."
+    "message": "تیم‌های توسعه، DevOps و فناوری اطلاعات مدیر اسرار Cloudwarden را برای مدیریت و استقرار امن زیرساخت‌ها و اسرار ماشین خود انتخاب می‌کنند."
   },
   "centralizeSecretsManagement": {
     "message": "مدیریت متمرکز اسرار."
@@ -9102,10 +9102,10 @@
     "message": "افزودن يادداشت"
   },
   "bitwardenSecretsManager": {
-    "message": "مدیر اسرار Bitwarden"
+    "message": "مدیر اسرار Cloudwarden"
   },
   "moreProductsFromBitwarden": {
-    "message": "محصولات بیشتر از Bitwarden"
+    "message": "محصولات بیشتر از Cloudwarden"
   },
   "requestAccessToSecretsManager": {
     "message": "درخواست دسترسی به مدیر اسرار"
@@ -9117,7 +9117,7 @@
     "message": "درخواست دسترسی به مدیر اسرار از طریق ایمیل برای مدیران ارسال شد."
   },
   "requestAccessSMDefaultEmailContent": {
-    "message": "سلام،\n\nمن درخواست اشتراک مدیر اسرار Bitwarden را برای تیم‌مان دارم. حمایت شما واقعاً برای ما ارزشمند خواهد بود!\n\nمدیر اسرار Bitwarden یک راه حل مدیریت اسرار با رمزگذاری سرتاسری است که برای ذخیره‌سازی، به اشتراک‌گذاری و استقرار ایمن اطلاعات حساس ماشین مانند کلیدهای API، کلمات عبور پایگاه داده و گواهی‌های احراز هویت طراحی شده است.\n\nمدیر اسرار به ما کمک خواهد کرد تا:\n\n- امنیت را افزایش دهیم\n- عملیات را ساده‌سازی کنیم\n- از نشت‌های پرهزینه اسرار جلوگیری کنیم\n\nبرای درخواست یک دوره آزمایشی رایگان برای تیم‌مان، لطفاً با Bitwarden تماس بگیرید.\n\nاز همکاری شما سپاسگزارم!"
+    "message": "سلام،\n\nمن درخواست اشتراک مدیر اسرار Cloudwarden را برای تیم‌مان دارم. حمایت شما واقعاً برای ما ارزشمند خواهد بود!\n\nمدیر اسرار Cloudwarden یک راه حل مدیریت اسرار با رمزگذاری سرتاسری است که برای ذخیره‌سازی، به اشتراک‌گذاری و استقرار ایمن اطلاعات حساس ماشین مانند کلیدهای API، کلمات عبور پایگاه داده و گواهی‌های احراز هویت طراحی شده است.\n\nمدیر اسرار به ما کمک خواهد کرد تا:\n\n- امنیت را افزایش دهیم\n- عملیات را ساده‌سازی کنیم\n- از نشت‌های پرهزینه اسرار جلوگیری کنیم\n\nبرای درخواست یک دوره آزمایشی رایگان برای تیم‌مان، لطفاً با Cloudwarden تماس بگیرید.\n\nاز همکاری شما سپاسگزارم!"
   },
   "giveMembersAccess": {
     "message": "اعطا کردن دسترسی به اعضا:"
@@ -9151,7 +9151,7 @@
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Learn more about Bitwarden Send or sign up to **try it today.**'"
   },
   "sendAccessCreatorIdentifier": {
-    "message": "عضو Bitwarden $USER_IDENTIFIER$ موارد زیر را با شما به اشتراک گذاشت",
+    "message": "عضو Cloudwarden $USER_IDENTIFIER$ موارد زیر را با شما به اشتراک گذاشت",
     "placeholders": {
       "user_identifier": {
         "content": "$1",
@@ -9176,7 +9176,7 @@
     "description": "Toast message shown when a user clicks the resend code link on the Send access page. 'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "viewSendHiddenEmailWarning": {
-    "message": "کاربر Bitwarden که این ارسال را ایجاد کرده است انتخاب کرده که نشانی ایمیل خود را پنهان کند. قبل از استفاده یا دانلود محتوای این پیوند، باید مطمئن شوید که به منبع این پیوند اعتماد دارید.",
+    "message": "کاربر Cloudwarden که این ارسال را ایجاد کرده است انتخاب کرده که نشانی ایمیل خود را پنهان کند. قبل از استفاده یا دانلود محتوای این پیوند، باید مطمئن شوید که به منبع این پیوند اعتماد دارید.",
     "description": "'Send' is a noun and the name of a feature called 'Bitwarden Send'. It should not be translated."
   },
   "expirationDateIsInvalid": {
@@ -9548,10 +9548,10 @@
     "message": "خطای رمزگشایی"
   },
   "couldNotDecryptVaultItem": {
-    "message": "Bitwarden could not decrypt the vault item listed below. Contact Bitwarden Customer Support and provide the item ID below to see if it can be recovered."
+    "message": "Cloudwarden could not decrypt the vault item listed below. Contact Cloudwarden Customer Support and provide the item ID below to see if it can be recovered."
   },
   "couldNotDecryptVaultItems": {
-    "message": "Bitwarden could not decrypt the vault items listed below. Contact Bitwarden Customer Support and provide the item IDs below to see if they can be recovered."
+    "message": "Cloudwarden could not decrypt the vault items listed below. Contact Cloudwarden Customer Support and provide the item IDs below to see if they can be recovered."
   },
   "itemId": {
     "message": "Item ID",
@@ -9574,7 +9574,7 @@
     "message": "راه اندازی ارائه دهنده"
   },
   "setupProviderLoginDesc": {
-    "message": "شما برای راه اندازی یک ارائه دهنده جدید دعوت شده اید. برای ادامه، باید وارد شوید یا یک حساب Bitwarden جدید ایجاد کنید."
+    "message": "شما برای راه اندازی یک ارائه دهنده جدید دعوت شده اید. برای ادامه، باید وارد شوید یا یک حساب Cloudwarden جدید ایجاد کنید."
   },
   "setupProviderDesc": {
     "message": "لطفاً جزئیات زیر را وارد کنید تا راه اندازی ارائه دهنده کامل شود. اگر سوالی دارید با پشتیبانی مشتری تماس بگیرید."
@@ -9605,13 +9605,13 @@
     "message": "کاربران خدمات می‌توانند به تمام سازمان‌های مشتری دسترسی داشته باشند و مدیریت کنند."
   },
   "providerInviteUserDesc": {
-    "message": "با وارد کردن نشانی ایمیل حساب Bitwarden در زیر، یک کاربر جدید را به ارائه دهنده خود دعوت کنید. اگر آنها قبلاً یک حساب Bitwarden نداشته باشند، از آنها خواسته می‌شود یک حساب جدید ایجاد کنند."
+    "message": "با وارد کردن نشانی ایمیل حساب Cloudwarden در زیر، یک کاربر جدید را به ارائه دهنده خود دعوت کنید. اگر آنها قبلاً یک حساب Cloudwarden نداشته باشند، از آنها خواسته می‌شود یک حساب جدید ایجاد کنند."
   },
   "joinProvider": {
     "message": "پیوستن به ارائه دهنده"
   },
   "joinProviderDesc": {
-    "message": "شما برای پیوستن به ارائه دهنده فهرست شده در بالا دعوت شده اید. برای پذیرش دعوت، باید وارد شوید یا یک حساب کاربری جدید در Bitwarden ایجاد کنید."
+    "message": "شما برای پیوستن به ارائه دهنده فهرست شده در بالا دعوت شده اید. برای پذیرش دعوت، باید وارد شوید یا یک حساب کاربری جدید در Cloudwarden ایجاد کنید."
   },
   "providerInviteAcceptFailed": {
     "message": "قادر به پذیرش دعوت نیست. از مدیر ارائه دهنده بخواهید دعوتنامه جدیدی ارسال کند."
@@ -9763,7 +9763,7 @@
     "message": "نشست را متوقف کن"
   },
   "sessionTimeoutSuppressedByConnectedDevice": {
-    "message": "توسط افزونه مرورگر Bitwarden مدیریت می‌شود. برای ویرایش، برنامه مرورگر را باز کنید."
+    "message": "توسط افزونه مرورگر Cloudwarden مدیریت می‌شود. برای ویرایش، برنامه مرورگر را باز کنید."
   },
   "immediately": {
     "message": "بلافاصله"
@@ -10018,7 +10018,7 @@
     "message": "پیکربندی ورود به سیستم واحد ذخیره شد"
   },
   "sponsoredFamilies": {
-    "message": "خانواده‌های Bitwarden رایگان"
+    "message": "خانواده‌های Cloudwarden رایگان"
   },
   "sponsoredBitwardenFamilies": {
     "message": "خانواده‌های تحت حمایت"
@@ -10039,28 +10039,28 @@
     "message": "No non-members have redeemed the Sponsored Family Plan."
   },
   "sponsorshipFreeBitwardenFamilies": {
-    "message": "اعضای سازمان شما واجد شرایط استفاده از نسخه رایگان خانواده‌های Bitwarden هستند. شما می‌توانید نسخه رایگان خانواده‌های Bitwarden را برای کارمندانی که عضو سازمان Bitwarden شما نیستند، حمایت کنید. حمایت از یک فرد غیر عضو مستلزم وجود صندلی آزاد در سازمان شما است."
+    "message": "اعضای سازمان شما واجد شرایط استفاده از نسخه رایگان خانواده‌های Cloudwarden هستند. شما می‌توانید نسخه رایگان خانواده‌های Cloudwarden را برای کارمندانی که عضو سازمان Cloudwarden شما نیستند، حمایت کنید. حمایت از یک فرد غیر عضو مستلزم وجود صندلی آزاد در سازمان شما است."
   },
   "sponsorshipFreeBitwardenFamiliesV2": {
-    "message": "Your members are eligible to redeem a Sponsored Families Plan. You can sponsor a Families plan for employees who are not members of your Bitwarden organization, but this will require available seats within your organization."
+    "message": "Your members are eligible to redeem a Sponsored Families Plan. You can sponsor a Families plan for employees who are not members of your Cloudwarden organization, but this will require available seats within your organization."
   },
   "sponsoredFamiliesRemoveActiveSponsorship": {
     "message": "زمانی که حمایت فعالی را حذف می‌کنید، پس از تاریخ تمدید سازمان تحت حمایت، یک صندلی در سازمان شما آزاد خواهد شد."
   },
   "sponsoredFamiliesEligible": {
-    "message": "شما و خانواده‌تان واجد شرایط دریافت خانواده‌های Bitwarden رایگان هستید. با ایمیل شخصی خود بازخرید کنید تا اطلاعات خود را حتی زمانی که در محل کار نیستید ایمن نگه دارید."
+    "message": "شما و خانواده‌تان واجد شرایط دریافت خانواده‌های Cloudwarden رایگان هستید. با ایمیل شخصی خود بازخرید کنید تا اطلاعات خود را حتی زمانی که در محل کار نیستید ایمن نگه دارید."
   },
   "sponsoredFamiliesEligibleV2": {
-    "message": "You and your family are eligible for a Sponsored Families Plan at no additional cost to you. Redeem this plan with your personal email to keep your data secure and separate from your Bitwarden work account."
+    "message": "You and your family are eligible for a Sponsored Families Plan at no additional cost to you. Redeem this plan with your personal email to keep your data secure and separate from your Cloudwarden work account."
   },
   "sponsoredFamiliesEligibleCard": {
-    "message": "امروز برنامه رایگان Bitwarden برای خانواده‌های خود را بازخرید کنید تا اطلاعات خود را حتی زمانی که در محل کار نیستید ایمن نگه دارید."
+    "message": "امروز برنامه رایگان Cloudwarden برای خانواده‌های خود را بازخرید کنید تا اطلاعات خود را حتی زمانی که در محل کار نیستید ایمن نگه دارید."
   },
   "sponsoredFamiliesIncludeMessage": {
-    "message": "طرح Bitwarden برای خانواده‌ها شامل"
+    "message": "طرح Cloudwarden برای خانواده‌ها شامل"
   },
   "sponsoredFamiliesIncludeMessageV2": {
-    "message": "The Bitwarden Families plan includes"
+    "message": "The Cloudwarden Families plan includes"
   },
   "sponsoredFamiliesPremiumAccess": {
     "message": "دسترسی پرمیوم برای حداکثر 6 کاربر"
@@ -10081,7 +10081,7 @@
     "message": "اعضایی که طرح‌های خانوادگی را فعال کرده‌اند، در اینجا نمایش داده خواهند شد"
   },
   "membersWithSponsoredFamilies": {
-    "message": "اعضای سازمان شما واجد شرایط استفاده از نسخه رایگان خانواده‌های Bitwarden هستند. در اینجا می‌توانید اعضایی را ببینید که سازمان خانوادگی را حمایت کرده‌اند."
+    "message": "اعضای سازمان شما واجد شرایط استفاده از نسخه رایگان خانواده‌های Cloudwarden هستند. در اینجا می‌توانید اعضایی را ببینید که سازمان خانوادگی را حمایت کرده‌اند."
   },
   "organizationHasMemberMessage": {
     "message": "حمایت مالی نمی‌تواند به $EMAIL$ ارسال شود زیرا او عضو سازمان شما است.",
@@ -10108,7 +10108,7 @@
     "message": "کدام پیشنهاد خانواده رایگان را می‌خواهید پس‌خرید کنید؟"
   },
   "sponsoredFamiliesEmail": {
-    "message": "برای بازخرید خانواده‌های Bitwarden ایمیل شخصی خود را وارد کنید"
+    "message": "برای بازخرید خانواده‌های Cloudwarden ایمیل شخصی خود را وارد کنید"
   },
   "sponsoredFamiliesLeaveCopy": {
     "message": "اگر پیشنهادی را حذف کنید یا از سازمان حامی حذف شوید، حمایت مالی خانواده‌ها در تاریخ تمدید بعدی منقضی می‌شود."
@@ -10117,7 +10117,7 @@
     "message": "پیشنهاد برای یک سازمان موجود را بپذیرید یا یک سازمان خانواده جدید ایجاد کنید."
   },
   "setupSponsoredFamiliesLoginDesc": {
-    "message": "به شما یک سازمان طرح خانواده Bitwarden رایگان پیشنهاد شده است. برای ادامه، باید وارد حسابی شوید که پیشنهاد را دریافت کرده است."
+    "message": "به شما یک سازمان طرح خانواده Cloudwarden رایگان پیشنهاد شده است. برای ادامه، باید وارد حسابی شوید که پیشنهاد را دریافت کرده است."
   },
   "sponsoredFamiliesAcceptFailed": {
     "message": "قادر به پذیرش پیشنهاد نیست. لطفاً ایمیل پیشنهاد را از حساب Enterprise خود دوباره ارسال کنید و مجدداً امتحان کنید."
@@ -10132,10 +10132,10 @@
     }
   },
   "sponsoredFamiliesOffer": {
-    "message": "خانواده‌های رایگان Bitwarden را بپذیرید"
+    "message": "خانواده‌های رایگان Cloudwarden را بپذیرید"
   },
   "sponsoredFamiliesOfferRedeemed": {
-    "message": "پیشنهاد رایگان خانواده‌های Bitwarden با موفقیت بازخرید شد"
+    "message": "پیشنهاد رایگان خانواده‌های Cloudwarden با موفقیت بازخرید شد"
   },
   "redeemed": {
     "message": "بازخرید"
@@ -10266,7 +10266,7 @@
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Connect login with SSO to your self-hosted decryption key server. Using this option, members won’t need to use their master passwords to decrypt vault data. The require SSO authentication and single organization policies are required to set up Key Connector decryption. Contact Bitwarden Support for set up assistance.'"
   },
   "memberDecryptionKeyConnectorDescEnd": {
-    "message": "برای راه اندازی رمزگشایی Key Connector مورد نیاز است. برای راهنمایی راه اندازی با پشتیبانی Bitwarden تماس بگیرید.",
+    "message": "برای راه اندازی رمزگشایی Key Connector مورد نیاز است. برای راهنمایی راه اندازی با پشتیبانی Cloudwarden تماس بگیرید.",
     "description": "This will be used as part of a larger sentence, broken up to include links. The full sentence will read 'Connect login with SSO to your self-hosted decryption key server. Using this option, members won’t need to use their master passwords to decrypt vault data. The require SSO authentication and single organization policies are required to set up Key Connector decryption. Contact Bitwarden Support for set up assistance.'"
   },
   "keyConnectorPolicyRestriction": {
@@ -10366,7 +10366,7 @@
     "message": "محیط سفارشی"
   },
   "selfHostedBaseUrlHint": {
-    "message": "نشانی اینترنتی پایه نصب Bitwarden خود را که به‌صورت داخلی میزبانی شده مشخص کنید.\nمثال: https://bitwarden.company.com"
+    "message": "نشانی اینترنتی پایه نصب Cloudwarden خود را که به‌صورت داخلی میزبانی شده مشخص کنید.\nمثال: https://bitwarden.company.com"
   },
   "selfHostedCustomEnvHeader": {
     "message": "برای پیکربندی پیشرفته، می‌توانید نشانی اینترنتی پایه هر سرویس را به‌صورت مستقل مشخص کنید."
@@ -10414,7 +10414,7 @@
     "message": "توکن همگام‌سازی صورتحساب"
   },
   "automaticBillingSyncDesc": {
-    "message": "همگام‌سازی خودکار، حمایت‌های خانواده‌ها را فعال می‌کند و به شما امکان می‌دهد بدون بارگذاری پرونده، مجوز خود را همگام‌سازی کنید. پس از انجام تغییرات در سرور ابری Bitwarden، گزینه «همگام‌سازی مجوز» را انتخاب کنید تا تغییرات اعمال شود."
+    "message": "همگام‌سازی خودکار، حمایت‌های خانواده‌ها را فعال می‌کند و به شما امکان می‌دهد بدون بارگذاری پرونده، مجوز خود را همگام‌سازی کنید. پس از انجام تغییرات در سرور ابری Cloudwarden، گزینه «همگام‌سازی مجوز» را انتخاب کنید تا تغییرات اعمال شود."
   },
   "active": {
     "message": "فعال"
@@ -10777,11 +10777,11 @@
     }
   },
   "forwarderGeneratedBy": {
-    "message": "تولید شده توسط Bitwarden.",
+    "message": "تولید شده توسط Cloudwarden.",
     "description": "Displayed with the address on the forwarding service's configuration screen."
   },
   "forwarderGeneratedByWithWebsite": {
-    "message": "وب‌سایت: $WEBSITE$. تولید شده توسط Bitwarden.",
+    "message": "وب‌سایت: $WEBSITE$. تولید شده توسط Cloudwarden.",
     "description": "Displayed with the address on the forwarding service's configuration screen.",
     "placeholders": {
       "WEBSITE": {
@@ -11981,7 +11981,7 @@
     "message": "تنظیمات بیشتر"
   },
   "moreFromBitwarden": {
-    "message": "از Bitwarden بیشتر بدانید"
+    "message": "از Cloudwarden بیشتر بدانید"
   },
   "switchProducts": {
     "message": "محصولات را تغییر دهید"
@@ -12877,7 +12877,7 @@
     "message": "کاربر در هنگام خروج از TDE، یک کلمه عبور اصلی تنظیم کرده است."
   },
   "startYour7DayFreeTrialOfBitwardenFor": {
-    "message": "نسخه آزمایشی رایگان ۷ روزه Bitwarden را با $ORG$ شروع کنید",
+    "message": "نسخه آزمایشی رایگان ۷ روزه Cloudwarden را با $ORG$ شروع کنید",
     "placeholders": {
       "org": {
         "content": "$1",
@@ -12886,7 +12886,7 @@
     }
   },
   "startYour7DayFreeTrialOfBitwardenSecretsManagerFor": {
-    "message": "شروع دوره آزمایشی رایگان ۷ روزه مدیر اسرار Bitwarden برای $ORG$",
+    "message": "شروع دوره آزمایشی رایگان ۷ روزه مدیر اسرار Cloudwarden برای $ORG$",
     "placeholders": {
       "org": {
         "content": "$1",
@@ -13291,7 +13291,7 @@
     "message": "با گاوصندوق خود شروع کنید"
   },
   "onboardingChecklistSubtitle": {
-    "message": "برای ایمن‌سازی اطلاعات شخصی خود و بهره‌مندی حداکثری از Bitwarden، این مراحل را انجام دهید"
+    "message": "برای ایمن‌سازی اطلاعات شخصی خود و بهره‌مندی حداکثری از Cloudwarden، این مراحل را انجام دهید"
   },
   "dismissThisChecklist": {
     "message": "این چک لیست را رد کنید"
@@ -13388,7 +13388,7 @@
     "description": "Label indicating the most common import formats"
   },
   "uriMatchDefaultStrategyHint": {
-    "message": "تشخیص تطابق نشانی اینترنتی روشی است که Bitwarden برای شناسایی پیشنهادهای پر کردن خودکار استفاده می‌کند.",
+    "message": "تشخیص تطابق نشانی اینترنتی روشی است که Cloudwarden برای شناسایی پیشنهادهای پر کردن خودکار استفاده می‌کند.",
     "description": "Explains to the user that URI match detection determines how Bitwarden suggests autofill options, and clarifies that this default strategy applies when no specific match detection is set for a login item."
   },
   "regExAdvancedOptionWarning": {
@@ -13432,13 +13432,13 @@
     "message": "تأیید جزئیات"
   },
   "smFreeTrialThankYou": {
-    "message": "متشکریم که در مدیر اسرار Bitwarden ثبت‌نام کردید!"
+    "message": "متشکریم که در مدیر اسرار Cloudwarden ثبت‌نام کردید!"
   },
   "smFreeTrialConfirmationEmail": {
     "message": "ما یک ایمیل تأیید به نشانی ایمیل شما ارسال کرده‌ایم در "
   },
   "sorryToSeeYouGo": {
-    "message": "متأسفیم که می‌روید! با به اشتراک‌گذاری دلیل لغو اشتراک، به بهبود Bitwarden کمک کنید.",
+    "message": "متأسفیم که می‌روید! با به اشتراک‌گذاری دلیل لغو اشتراک، به بهبود Cloudwarden کمک کنید.",
     "description": "A message shown to users as part of an offboarding survey asking them to provide more information on their subscription cancelation."
   },
   "selectCancellationReason": {
@@ -14000,20 +14000,20 @@
     "message": "یکپارچه سازی‌ها"
   },
   "integrationsDesc": {
-    "message": "همگام‌سازی خودکار رمزها از مدیر اسرار Bitwarden به سرویس‌های ثالث."
+    "message": "همگام‌سازی خودکار رمزها از مدیر اسرار Cloudwarden به سرویس‌های ثالث."
   },
   "sdks": {
     "message": "SDK ها"
   },
   "sdksDesc": {
-    "message": "برای ساخت برنامه‌های خود، از کیت توسعه مدیر اسرار (SDK) Bitwarden در زبان‌های برنامه‌نویسی زیر استفاده کنید."
+    "message": "برای ساخت برنامه‌های خود، از کیت توسعه مدیر اسرار (SDK) Cloudwarden در زبان‌های برنامه‌نویسی زیر استفاده کنید."
   },
   "ssoDescStart": {
     "message": "پیکربندی",
     "description": "This represents the beginning of a sentence, broken up to include links. The full sentence will be 'Configure single sign-on for Bitwarden using the implementation guide for your Identity Provider."
   },
   "ssoDescEnd": {
-    "message": "برای Bitwarden با استفاده از راهنمای پیاده‌سازی ارائه‌دهنده هویت خود.",
+    "message": "برای Cloudwarden با استفاده از راهنمای پیاده‌سازی ارائه‌دهنده هویت خود.",
     "description": "This represents the end of a sentence, broken up to include links. The full sentence will be 'Configure single sign-on for Bitwarden using the implementation guide for your Identity Provider."
   },
   "userProvisioning": {
@@ -14027,26 +14027,26 @@
     "description": "This represents the beginning of a sentence, broken up to include links. The full sentence will be 'Configure SCIM (System for Cross-domain Identity Management) to automatically provision users and groups to Bitwarden using the implementation guide for your Identity Provider"
   },
   "scimIntegrationDescEnd": {
-    "message": "سامانه مدیریت هویت بین‌دامنه (Scim) برای تأمین خودکار کاربران و گروه‌ها در Bitwarden با استفاده از راهنمای پیاده‌سازی ارائه‌دهنده هویت شما.",
+    "message": "سامانه مدیریت هویت بین‌دامنه (Scim) برای تأمین خودکار کاربران و گروه‌ها در Cloudwarden با استفاده از راهنمای پیاده‌سازی ارائه‌دهنده هویت شما.",
     "description": "This represents the end of a sentence, broken up to include links. The full sentence will be 'Configure SCIM (System for Cross-domain Identity Management) to automatically provision users and groups to Bitwarden using the implementation guide for your Identity Provider"
   },
   "bwdc": {
-    "message": "کانکتور دایرکتوری Bitwarden"
+    "message": "کانکتور دایرکتوری Cloudwarden"
   },
   "bwdcDesc": {
-    "message": "کانکتور دایرکتوری Bitwarden را برای تأمین خودکار کاربران و گروه‌ها با استفاده از راهنمای پیاده‌سازی ارائه‌دهنده هویت خود تنظیم کنید."
+    "message": "کانکتور دایرکتوری Cloudwarden را برای تأمین خودکار کاربران و گروه‌ها با استفاده از راهنمای پیاده‌سازی ارائه‌دهنده هویت خود تنظیم کنید."
   },
   "eventManagement": {
     "message": "مدیریت رویدادها"
   },
   "eventManagementDesc": {
-    "message": "گزارش‌های رویداد Bitwarden را با سیستم SIEM (مدیریت اطلاعات و رویدادهای امنیتی) خود با استفاده از راهنمای پیاده‌سازی مخصوص پلتفرم خود ادغام کنید."
+    "message": "گزارش‌های رویداد Cloudwarden را با سیستم SIEM (مدیریت اطلاعات و رویدادهای امنیتی) خود با استفاده از راهنمای پیاده‌سازی مخصوص پلتفرم خود ادغام کنید."
   },
   "deviceManagement": {
     "message": "مدیریت دستگاه"
   },
   "deviceManagementDesc": {
-    "message": "مدیریت دستگاه‌ها را برای Bitwarden با استفاده از راهنمای پیاده‌سازی مربوط به پلتفرم خود پیکربندی کنید."
+    "message": "مدیریت دستگاه‌ها را برای Cloudwarden با استفاده از راهنمای پیاده‌سازی مربوط به پلتفرم خود پیکربندی کنید."
   },
   "crowdstrikeEventIntegrationDesc": {
     "message": "ارسال داده‌های رویداد به نمونه Logscale شما"
@@ -14265,22 +14265,22 @@
     "message": "مدیریت صورتحساب از طریق درگاه ارائه‌دهنده"
   },
   "continueSettingUp": {
-    "message": "ادامه راه‌اندازی Bitwarden"
+    "message": "ادامه راه‌اندازی Cloudwarden"
   },
   "continueSettingUpFreeTrial": {
-    "message": "ادامه تنظیم دوره آزمایشی رایگان Bitwarden خود را انجام دهید"
+    "message": "ادامه تنظیم دوره آزمایشی رایگان Cloudwarden خود را انجام دهید"
   },
   "continueSettingUpPasswordManager": {
-    "message": "ادامه راه‌اندازی مدیر کلمه عبور Bitwarden را انجام دهید"
+    "message": "ادامه راه‌اندازی مدیر کلمه عبور Cloudwarden را انجام دهید"
   },
   "continueSettingUpFreeTrialPasswordManager": {
-    "message": "ادامه راه‌اندازی دوره آزمایشی رایگان مدیر کلمه عبور Bitwarden را انجام دهید"
+    "message": "ادامه راه‌اندازی دوره آزمایشی رایگان مدیر کلمه عبور Cloudwarden را انجام دهید"
   },
   "continueSettingUpSecretsManager": {
-    "message": "ادامه راه‌اندازی مدیر اسرار Bitwarden را انجام دهید"
+    "message": "ادامه راه‌اندازی مدیر اسرار Cloudwarden را انجام دهید"
   },
   "continueSettingUpFreeTrialSecretsManager": {
-    "message": "ادامه راه‌اندازی دوره آزمایشی رایگان مدیر اسرار Bitwarden را انجام دهید"
+    "message": "ادامه راه‌اندازی دوره آزمایشی رایگان مدیر اسرار Cloudwarden را انجام دهید"
   },
   "enterTeamsOrgInfo": {
     "message": "اطلاعات سازمان تیم خود را وارد کنید"
@@ -14556,14 +14556,14 @@
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'Notice: Later this month, client vault privacy will be improved and provider members will no longer have direct access to client vault items. For questions, please contact Bitwarden support'."
   },
   "contactBitwardenSupport": {
-    "message": "پیام به پشتیبانی Bitwarden.",
+    "message": "پیام به پشتیبانی Cloudwarden.",
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'Notice: Later this month, client vault privacy will be improved and provider members will no longer have direct access to client vault items. For questions, please contact Bitwarden support'. 'Bitwarden' should not be translated"
   },
   "sponsored": {
     "message": "حمایت شده"
   },
   "licenseAndBillingManagementDesc": {
-    "message": "پس از انجام به‌روزرسانی‌ها در سرور ابری Bitwarden، برای اعمال آخرین تغییرات، فایل لایسنس خود را بارگذاری کنید."
+    "message": "پس از انجام به‌روزرسانی‌ها در سرور ابری Cloudwarden، برای اعمال آخرین تغییرات، فایل لایسنس خود را بارگذاری کنید."
   },
   "addToFolder": {
     "message": "افزودن به پوشه"
@@ -14681,7 +14681,7 @@
     "message": "عدد CVV چیست؟"
   },
   "learnMoreAboutApi": {
-    "message": "بیشتر درباره Bitwarden API بیاموزید"
+    "message": "بیشتر درباره Cloudwarden API بیاموزید"
   },
   "fileSends": {
     "message": "پرونده ارسال‌ها"
@@ -14858,7 +14858,7 @@
     "message": "اشتراک مدیر اسرار شما بر اساس طرح انتخاب شده ارتقا خواهد یافت"
   },
   "bitwardenPasswordManager": {
-    "message": "مدیر کلمه عبور Bitwarden"
+    "message": "مدیر کلمه عبور Cloudwarden"
   },
   "secretsManagerComplimentaryPasswordManager": {
     "message": "اشتراک رایگان یک‌ساله مدیر کلمه عبور شما به طرح انتخاب شده ارتقا خواهد یافت. تا پایان دوره رایگان هیچ هزینه‌ای از شما دریافت نخواهد شد."
@@ -14936,7 +14936,7 @@
     "description": "This represents the beginning of a sentence. The full sentence will be 'Manage subscription from the Provider Portal', but 'Provider Portal' will be a link and thus cannot be included in the translation file."
   },
   "toHostBitwardenOnYourOwnServer": {
-    "message": "برای میزبانی Bitwarden روی سرور خود، باید پرونده لایسنس خود را بارگذاری کنید. برای پشتیبانی از طرح‌های رایگان خانواده‌ها و قابلیت‌های پیشرفته صورتحساب برای سازمان خودمیزبان، لازم است همگام‌سازی خودکار را در سازمان خودمیزبان خود راه‌اندازی کنید."
+    "message": "برای میزبانی Cloudwarden روی سرور خود، باید پرونده لایسنس خود را بارگذاری کنید. برای پشتیبانی از طرح‌های رایگان خانواده‌ها و قابلیت‌های پیشرفته صورتحساب برای سازمان خودمیزبان، لازم است همگام‌سازی خودکار را در سازمان خودمیزبان خود راه‌اندازی کنید."
   },
   "selfHostingTitleProper": {
     "message": "خود میزبانی"
@@ -15060,7 +15060,7 @@
     "message": "با موفقیت حذف شد"
   },
   "freeFamiliesSponsorship": {
-    "message": "حذف حمایت مالی خانواده‌های رایگان Bitwarden"
+    "message": "حذف حمایت مالی خانواده‌های رایگان Cloudwarden"
   },
   "freeFamiliesSponsorshipPolicyTitleV2": {
     "message": "حذف طرح حمایت مالی خانواده‌ها"
@@ -15138,10 +15138,10 @@
     "message": "دامنه‌های ثبت شده خودکار"
   },
   "automaticDomainClaimProcess": {
-    "message": "Bitwarden در ۷۲ ساعت اول سه بار تلاش خواهد کرد دامنه را ثبت کند. اگر دامنه ثبت نشد، رکورد DNS در میزبان خود را بررسی کرده و به‌صورت دستی ثبت کنید. اگر دامنه ثبت نشود، پس از ۷ روز از سازمان شما حذف خواهد شد."
+    "message": "Cloudwarden در ۷۲ ساعت اول سه بار تلاش خواهد کرد دامنه را ثبت کند. اگر دامنه ثبت نشد، رکورد DNS در میزبان خود را بررسی کرده و به‌صورت دستی ثبت کنید. اگر دامنه ثبت نشود، پس از ۷ روز از سازمان شما حذف خواهد شد."
   },
   "automaticDomainClaimProcess1": {
-    "message": "Bitwarden ظرف ۷۲ ساعت برای تصاحب دامنه تلاش خواهد کرد. اگر دامنه قابل تصاحب نبود، رکورد DNS خود را تأیید کنید و به صورت دستی آن را تصاحب کنید. دامنه‌های تصاحب نشده پس از ۷ روز حذف می‌شوند."
+    "message": "Cloudwarden ظرف ۷۲ ساعت برای تصاحب دامنه تلاش خواهد کرد. اگر دامنه قابل تصاحب نبود، رکورد DNS خود را تأیید کنید و به صورت دستی آن را تصاحب کنید. دامنه‌های تصاحب نشده پس از ۷ روز حذف می‌شوند."
   },
   "automaticDomainClaimProcess2": {
     "message": "پس از ثبت دامنه، برای اعضای فعلی که دامنه‌های ثبت شده دارند، ایمیلی در مورد آن ارسال خواهد شد "
@@ -15309,19 +15309,19 @@
     "message": "کپی کلید خصوصی"
   },
   "openingExtension": {
-    "message": "باز کردن افزونه مرورگر Bitwarden"
+    "message": "باز کردن افزونه مرورگر Cloudwarden"
   },
   "somethingWentWrong": {
     "message": "مشکلی پیش آمد..."
   },
   "openingExtensionError": {
-    "message": "در باز کردن افزونه مرورگر Bitwarden مشکلی پیش آمد. برای باز کردن آن اکنون روی دکمه کلیک کنید."
+    "message": "در باز کردن افزونه مرورگر Cloudwarden مشکلی پیش آمد. برای باز کردن آن اکنون روی دکمه کلیک کنید."
   },
   "openExtension": {
     "message": "باز کردن افزونه"
   },
   "doNotHaveExtension": {
-    "message": "افزونه مرورگر Bitwarden را ندارید؟"
+    "message": "افزونه مرورگر Cloudwarden را ندارید؟"
   },
   "installExtension": {
     "message": "نصب افزونه"
@@ -15330,7 +15330,7 @@
     "message": "افزونه مرورگر باز شد"
   },
   "openedExtensionViewAtRiskPasswords": {
-    "message": "افزونه مرورگر Bitwarden با موفقیت باز شد. اکنون می‌توانید کلمات عبور در معرض خطر خود را بررسی کنید."
+    "message": "افزونه مرورگر Cloudwarden با موفقیت باز شد. اکنون می‌توانید کلمات عبور در معرض خطر خود را بررسی کنید."
   },
   "resellerRenewalWarningMsg": {
     "message": "اشتراک شما به‌زودی تمدید می‌شود. برای تضمین ادامه‌ی بدون وقفه‌ی خدمات، قبل از تاریخ $RENEWAL_DATE$ با $RESELLER$ تماس بگیرید و تمدید خود را تأیید کنید.",
@@ -15346,7 +15346,7 @@
     }
   },
   "resellerRenewalWarningMsgV2": {
-    "message": "اشتراک شما به زودی تمدید خواهد شد. برای اطمینان از سرویس بدون وقفه، قبل از تاریخ $RENEWAL_DATE$ با ارائه دهنده Bitwarden خود تماس بگیرید تا تمدید اشتراک شما را تأیید کند.",
+    "message": "اشتراک شما به زودی تمدید خواهد شد. برای اطمینان از سرویس بدون وقفه، قبل از تاریخ $RENEWAL_DATE$ با ارائه دهنده Cloudwarden خود تماس بگیرید تا تمدید اشتراک شما را تأیید کند.",
     "placeholders": {
       "renewal_date": {
         "content": "$1",
@@ -15385,7 +15385,7 @@
     }
   },
   "resellerPastDueWarningMsgV2": {
-    "message": "فاکتور اشتراک شما پرداخت نشده است. برای اطمینان از سرویس بدون وقفه، قبل از $GRACE_PERIOD_END$ با ارائه دهنده Bitwarden خود تماس بگیرید.",
+    "message": "فاکتور اشتراک شما پرداخت نشده است. برای اطمینان از سرویس بدون وقفه، قبل از $GRACE_PERIOD_END$ با ارائه دهنده Cloudwarden خود تماس بگیرید.",
     "placeholders": {
       "grace_period_end": {
         "content": "$1",
@@ -15546,7 +15546,7 @@
     "message": "برای مشاهده گزارش‌های رویدادهای سازمان خود، ارتقا دهید."
   },
   "upgradeEventLogMessage": {
-    "message": "این رویدادها تنها مثال هستند و رویدادهای واقعی درون سازمان Bitwarden شما را نشان نمی‌دهند."
+    "message": "این رویدادها تنها مثال هستند و رویدادهای واقعی درون سازمان Cloudwarden شما را نشان نمی‌دهند."
   },
   "viewEvents": {
     "message": "نمایش رویداد"
@@ -15727,7 +15727,7 @@
     "message": "کلمات عبور خود را با یک کلیک به‌صورت ایمن به‌صورت خودکار وارد کنید"
   },
   "setupExtensionPageDescription": {
-    "message": "افزونه مرورگر Bitwarden را دریافت کنید و از امروز وارد کردن خودکار اطلاعات را آغاز کنید"
+    "message": "افزونه مرورگر Cloudwarden را دریافت کنید و از امروز وارد کردن خودکار اطلاعات را آغاز کنید"
   },
   "getTheExtension": {
     "message": "افزونه را دریافت کنید"
@@ -15745,19 +15745,19 @@
     "message": "رفتن به نسخه وب برنامه"
   },
   "bitwardenExtensionInstalled": {
-    "message": "افزونه Bitwarden نصب شد!"
+    "message": "افزونه Cloudwarden نصب شد!"
   },
   "bitwardenExtensionIsInstalled": {
-    "message": "افزونه Bitwarden نصب شد!"
+    "message": "افزونه Cloudwarden نصب شد!"
   },
   "openExtensionToAutofill": {
     "message": "افزونه را باز کنید تا وارد شوید و پر کردن خودکار را آغاز کنید."
   },
   "openBitwardenExtension": {
-    "message": "افزونه Bitwarden را باز کنید"
+    "message": "افزونه Cloudwarden را باز کنید"
   },
   "gettingStartedWithBitwardenPart1": {
-    "message": "برای دریافت نکات شروع به کار با Bitwarden به صفحه مراجعه کنید",
+    "message": "برای دریافت نکات شروع به کار با Cloudwarden به صفحه مراجعه کنید",
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'For tips on getting started with Bitwarden visit the Learning Center and Help Center'"
   },
   "gettingStartedWithBitwardenPart2": {
@@ -15765,7 +15765,7 @@
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'For tips on getting started with Bitwarden visit the Learning Center and Help Center'"
   },
   "openExtensionFromToolbarPart1": {
-    "message": "اگر افزونه باز نشد، ممکن است لازم باشد Bitwarden را از طریق آیکون باز کنید ",
+    "message": "اگر افزونه باز نشد، ممکن است لازم باشد Cloudwarden را از طریق آیکون باز کنید ",
     "description": "This will be used as part of a larger sentence, broken up to include the Bitwarden icon. The full sentence will read 'If the extension didn't open, you may need to open Bitwarden from the icon [Bitwarden Icon] on the toolbar.'"
   },
   "openExtensionFromToolbarPart2": {
@@ -15777,7 +15777,7 @@
     "description": "This will be displayed as part of a larger sentence. The whole sentence reads: 'For tips on getting started with Bitwarden visit the Learning Center and Help Center'"
   },
   "setupExtensionContentAlt": {
-    "message": "با افزونه مرورگر Bitwarden می‌توانید به‌راحتی ورودهای جدید ایجاد کنید، به ورودهای ذخیره‌شده خود مستقیماً از نوار ابزار مرورگر دسترسی داشته باشید و با استفاده از قابلیت پر کردن خودکار Bitwarden، سریع‌تر وارد حساب‌ها شوید."
+    "message": "با افزونه مرورگر Cloudwarden می‌توانید به‌راحتی ورودهای جدید ایجاد کنید، به ورودهای ذخیره‌شده خود مستقیماً از نوار ابزار مرورگر دسترسی داشته باشید و با استفاده از قابلیت پر کردن خودکار Cloudwarden، سریع‌تر وارد حساب‌ها شوید."
   },
   "restart": {
     "message": "راه اندازی مجدد"
@@ -15809,7 +15809,7 @@
     "message": "درباره این تنظیم"
   },
   "permitCipherDetailsDescription": {
-    "message": "Bitwarden از نشانی‌های اینترنتی ورود ذخیره شده برای شناسایی نماد یا تغییر نشانی‌های اینترنتی کلمه عبور برای بهبود تجربه شما استفاده می‌کند. هنگام استفاده از این سرویس هیچ اطلاعاتی جمع‌آوری یا ذخیره نمی‌شود."
+    "message": "Cloudwarden از نشانی‌های اینترنتی ورود ذخیره شده برای شناسایی نماد یا تغییر نشانی‌های اینترنتی کلمه عبور برای بهبود تجربه شما استفاده می‌کند. هنگام استفاده از این سرویس هیچ اطلاعاتی جمع‌آوری یا ذخیره نمی‌شود."
   },
   "showQuickCopyActionsDetailsDescription": {
     "message": "Add 3 quick copy buttons next to items to copy your username, password, or verification code to the clipboard."
@@ -15879,7 +15879,7 @@
     }
   },
   "restoreProviderPortalAccessViaCustomerSupport": {
-    "message": "برای بازیابی دسترسی به پورتال ارائه دهنده خود، با پشتیبانی مشتری Bitwarden تماس بگیرید تا اشتراک خود را تمدید کنید.",
+    "message": "برای بازیابی دسترسی به پورتال ارائه دهنده خود، با پشتیبانی مشتری Cloudwarden تماس بگیرید تا اشتراک خود را تمدید کنید.",
     "description": "A message shown in a non-dismissible dialog to any user of a suspended providers."
   },
   "restoreProviderPortalAccessViaPaymentMethod": {
@@ -15921,7 +15921,7 @@
     "message": "اشتراک لغو شد"
   },
   "providersubCanceledmessage": {
-    "message": "برای اشتراک مجدد، با پشتیبانی مشتریان Bitwarden تماس بگیرید."
+    "message": "برای اشتراک مجدد، با پشتیبانی مشتریان Cloudwarden تماس بگیرید."
   },
   "showAll": {
     "message": "Show all"
@@ -16064,7 +16064,7 @@
     "message": "طرح سفارشی"
   },
   "planDescCustom": {
-    "message": "Bitwarden برای ایمن‌سازی کلمات عبور و اطلاعات حساس، با کسب‌وکارهایی در هر اندازه‌ای سازگار است. اگر بخشی از یک سازمان بزرگ هستید، برای درخواست قیمت با بخش فروش تماس بگیرید."
+    "message": "Cloudwarden برای ایمن‌سازی کلمات عبور و اطلاعات حساس، با کسب‌وکارهایی در هر اندازه‌ای سازگار است. اگر بخشی از یک سازمان بزرگ هستید، برای درخواست قیمت با بخش فروش تماس بگیرید."
   },
   "builtInAuthenticator": {
     "message": "تولیدکننده رمز دوعاملی داخلی"
@@ -16181,7 +16181,7 @@
     "message": "خطایی در محاسبه مالیات مکان شما رخ داده است. لطفاً دوباره امتحان کنید."
   },
   "individualUpgradeWelcomeMessage": {
-    "message": "به Bitwarden خوش آمدید"
+    "message": "به Cloudwarden خوش آمدید"
   },
   "individualUpgradeDescriptionMessage": {
     "message": "با نسخه پریمیوم، ویژگی‌های امنیتی بیشتری را آزاد کنید، یا اشتراک‌گذاری موارد با خانواده‌ها را شروع کنید"
@@ -16202,7 +16202,7 @@
     "message": "حالا ارتقا دهید"
   },
   "getAdvancedOnlineSecurityWithBitwardenPremium": {
-    "message": "Get advanced online security with Bitwarden premium."
+    "message": "Get advanced online security with Cloudwarden premium."
   },
   "formWillCreateNewFamiliesOrgMessage": {
     "message": "تکمیل این فرم، یک سازمان جدید برای خانواده‌ها ایجاد می‌کند. می‌توانید سازمان رایگان خود را از طریق کنسول مدیریت ارتقا دهید."
@@ -16211,7 +16211,7 @@
     "message": "هنگام پردازش ارتقاء شما با خطایی مواجه شدیم. لطفاً دوباره امتحان کنید."
   },
   "bitwardenFreeplanMessage": {
-    "message": "شما طرح رایگان Bitwarden را دارید"
+    "message": "شما طرح رایگان Cloudwarden را دارید"
   },
   "upgradeCompleteSecurity": {
     "message": "ارتقا برای امنیت کامل"
@@ -16229,7 +16229,7 @@
     "message": "الگوریتم"
   },
   "encryptionKeySettingsHowShouldWeEncryptYourData": {
-    "message": "نحوه رمزگذاری داده‌های گاوصندوق شما توسط Bitwarden را انتخاب کنید. همه گزینه‌ها امن هستند، اما روش‌های قوی‌تر، محافظت بهتری ارائه می‌دهند - به خصوص در برابر حملات جستجوی فراگیر. Bitwarden تنظیمات پیش‌فرض را برای اکثر کاربران توصیه می‌کند."
+    "message": "نحوه رمزگذاری داده‌های گاوصندوق شما توسط Cloudwarden را انتخاب کنید. همه گزینه‌ها امن هستند، اما روش‌های قوی‌تر، محافظت بهتری ارائه می‌دهند - به خصوص در برابر حملات جستجوی فراگیر. Cloudwarden تنظیمات پیش‌فرض را برای اکثر کاربران توصیه می‌کند."
   },
   "encryptionKeySettingsIncreaseImproveSecurity": {
     "message": "افزایش مقادیر بالاتر از مقادیر پیش‌فرض، امنیت را بهبود می‌بخشد، اما در نتیجه ممکن است باز شدن قفل گاوصندوق شما بیشتر طول بکشد."
@@ -16260,10 +16260,10 @@
     "description": "VFO1 terminology variant of 'blockClaimedDomainAccountCreationDesc', shown in the policies list"
   },
   "blockClaimedDomainAccountCreationDescV2": {
-    "message": "اعضا را از استفاده از دامنه ادعایی شما برای ایجاد حساب‌های کاربری Bitwarden در خارج از سازمان خود منع کنید."
+    "message": "اعضا را از استفاده از دامنه ادعایی شما برای ایجاد حساب‌های کاربری Cloudwarden در خارج از سازمان خود منع کنید."
   },
   "blockClaimedDomainAccountCreationDescV2Vfo1": {
-    "message": "Block members from using your claimed domain to create Bitwarden accounts outside of your organization vault.",
+    "message": "Block members from using your claimed domain to create Cloudwarden accounts outside of your organization vault.",
     "description": "VFO1 terminology variant of 'blockClaimedDomainAccountCreationDescV2'"
   },
   "blockClaimedDomainAccountCreationPrerequisiteV2": {
@@ -16301,7 +16301,7 @@
     }
   },
   "removeMasterPasswordForOrgUserKeyConnector": {
-    "message": "سازمان شما دیگر از کلمات عبور اصلی برای ورود به Bitwarden استفاده نمی‌کند. برای ادامه، سازمان و دامنه را تأیید کنید."
+    "message": "سازمان شما دیگر از کلمات عبور اصلی برای ورود به Cloudwarden استفاده نمی‌کند. برای ادامه، سازمان و دامنه را تأیید کنید."
   },
   "continueWithLogIn": {
     "message": "با ورود به سیستم ادامه دهید"
@@ -16504,7 +16504,7 @@
     "message": "رد کردن و خروج"
   },
   "youHaveBitwardenPremium": {
-    "message": "شما Bitwarden پریمیوم دارید"
+    "message": "شما Cloudwarden پریمیوم دارید"
   },
   "viewAndManagePremiumSubscription": {
     "message": "اشتراک ویژه خود را مشاهده و مدیریت کنید"
@@ -16543,13 +16543,13 @@
     "message": "قبلاً اشتراک دارید؟"
   },
   "alreadyHaveSubscriptionSelfHostedMessage": {
-    "message": "صفحه اشتراک را در حساب ابری Bitwarden خود باز کنید و پرونده مجوز خود را بارگیری کنید. سپس به این صفحه برگردید و آن را در زیر بارگذاری کنید."
+    "message": "صفحه اشتراک را در حساب ابری Cloudwarden خود باز کنید و پرونده مجوز خود را بارگیری کنید. سپس به این صفحه برگردید و آن را در زیر بارگذاری کنید."
   },
   "alreadyHaveSubscriptionSelfHostedMessageV2": {
-    "message": "Open the subscription page on your Bitwarden account and download your license file. Then return to this screen and upload it below."
+    "message": "Open the subscription page on your Cloudwarden account and download your license file. Then return to this screen and upload it below."
   },
   "alreadyHaveSubscriptionSelfHostedMessageV3": {
-    "message": "On your cloud environment, log in to your Bitwarden account, open the subscription page, and download your license file. Then, return to this screen and upload it."
+    "message": "On your cloud environment, log in to your Cloudwarden account, open the subscription page, and download your license file. Then, return to this screen and upload it."
   },
   "viewAllPlans": {
     "message": "نمایش همه طرح‌ها"
@@ -16635,10 +16635,10 @@
     "message": "برای دسترسی آسان به گاوصندوق، افزونه را دریافت کنید"
   },
   "extensionPromptBody": {
-    "message": "با نصب افزونه مرورگر، Bitwarden را در تمام فعالیت‌های آنلاین خود همراه خواهید داشت. این افزونه کلمات عبور را به‌صورت خودکار وارد می‌کند تا بتوانید با یک کلیک وارد حساب‌های خود شوید."
+    "message": "با نصب افزونه مرورگر، Cloudwarden را در تمام فعالیت‌های آنلاین خود همراه خواهید داشت. این افزونه کلمات عبور را به‌صورت خودکار وارد می‌کند تا بتوانید با یک کلیک وارد حساب‌های خود شوید."
   },
   "extensionPromptImageAlt": {
-    "message": "یک مرورگر وب که افزونه Bitwarden را نمایش می‌دهد و موارد قابل پر کردن خودکار را برای صفحه وب فعلی نشان می‌دهد."
+    "message": "یک مرورگر وب که افزونه Cloudwarden را نمایش می‌دهد و موارد قابل پر کردن خودکار را برای صفحه وب فعلی نشان می‌دهد."
   },
   "skip": {
     "message": "رد کردن"
@@ -16686,10 +16686,10 @@
     "message": "ارسال کلمه عبور نامعتبر است"
   },
   "vaultWelcomeDialogTitle": {
-    "message": "شما وارد شدید! به Bitwarden خوش آمدید"
+    "message": "شما وارد شدید! به Cloudwarden خوش آمدید"
   },
   "vaultWelcomeDialogDescription": {
-    "message": "تمام کلمات عبور و اطلاعات شخصی خود را در گاوصندوق Bitwarden خود ذخیره کنید. ما به شما نشان خواهیم داد."
+    "message": "تمام کلمات عبور و اطلاعات شخصی خود را در گاوصندوق Cloudwarden خود ذخیره کنید. ما به شما نشان خواهیم داد."
   },
   "vaultWelcomeDialogPrimaryCta": {
     "message": "شروع راهنما"
@@ -16923,7 +16923,7 @@
     "message": "به اعضا کمک کنید تا پیشرفت کنند"
   },
   "aiCoachmarkHelpMembersDescription": {
-    "message": "پس از انتخاب برنامه‌های مهم، از اعضا بخواهید کلمات عبور در معرض خطر را تغییر دهند. آنها پیامی را در افزونه Bitwarden خود دریافت خواهند کرد."
+    "message": "پس از انتخاب برنامه‌های مهم، از اعضا بخواهید کلمات عبور در معرض خطر را تغییر دهند. آنها پیامی را در افزونه Cloudwarden خود دریافت خواهند کرد."
   },
   "aiCoachmarkRunReportTitle": {
     "message": "مراقب خطرات جدید باشید"
@@ -17689,7 +17689,7 @@
     "message": "پرداخت موفق"
   },
   "paymentSuccessfulProcessingMessage": {
-    "message": "ارتقاء شما در حال پردازش است. ممکن است چند دقیقه طول بکشد تا ویژگی‌های پریمیوم را در Bitwarden مشاهده کنید."
+    "message": "ارتقاء شما در حال پردازش است. ممکن است چند دقیقه طول بکشد تا ویژگی‌های پریمیوم را در Cloudwarden مشاهده کنید."
   },
   "planPurchased": {
     "message": "طرح خریداری شده"

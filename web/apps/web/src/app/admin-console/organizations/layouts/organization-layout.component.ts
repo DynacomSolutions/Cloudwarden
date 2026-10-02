@@ -161,7 +161,10 @@ export class OrganizationLayoutComponent {
   }
 
   canShowBillingTab(organization: Organization): boolean {
-    return canAccessBillingTab(organization);
+    // Cloudwarden: organisations are free, there is no billing area (web/NOTICE.md).
+    void canAccessBillingTab;
+    void organization;
+    return false;
   }
 
   canShowAccessIntelligenceTab(organization: Organization): boolean {

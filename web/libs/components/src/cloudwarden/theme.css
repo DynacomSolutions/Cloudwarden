@@ -1,0 +1,142 @@
+/*
+ * Cloudwarden theme (web/NOTICE.md). Loaded after the upstream tokens in tw-theme.css and only
+ * overrides values: pure black and white surfaces, one red accent, Montserrat, 8px radii.
+ * The palette scales below are neutral greys and a red brand scale built around #e8414a.
+ */
+
+@font-face {
+  font-family: Montserrat;
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("~@bitwarden/components/src/cloudwarden/fonts/Montserrat-Regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: Montserrat;
+  font-style: normal;
+  font-weight: 500 800;
+  font-display: swap;
+  src: url("~@bitwarden/components/src/cloudwarden/fonts/Montserrat-Bold.woff2") format("woff2");
+}
+
+:root {
+  --font-sans:
+    Montserrat, Inter, system-ui, -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+
+  /* Brand scale (red) */
+  --color-brand-050: #fff2f2;
+  --color-brand-100: #ffe1e2;
+  --color-brand-200: #ffc8ca;
+  --color-brand-300: #ffa0a4;
+  --color-brand-400: #f2666d;
+  --color-brand-500: #e8414a;
+  --color-brand-600: #d42f38;
+  --color-brand-700: #b8242c;
+  --color-brand-700-rgb: 184, 36, 44;
+  --color-brand-800: #841719;
+  --color-brand-800-rgb: 132, 23, 25;
+  --color-brand-900: #5e1013;
+  --color-brand-950: #2e0809;
+  --color-brand-950-rgb: 46, 8, 9;
+
+  /* Neutral greys */
+  --color-gray-050: #f5f5f5;
+  --color-gray-100: #ebebeb;
+  --color-gray-200: #dbdbdb;
+  --color-gray-300: #bdbdbd;
+  --color-gray-400: #8f8f8f;
+  --color-gray-400-rgb: 143, 143, 143;
+  --color-gray-500: #737373;
+  --color-gray-600: #525252;
+  --color-gray-700: #363636;
+  --color-gray-700-rgb: 54, 54, 54;
+  --color-gray-800: #242424;
+  --color-gray-800-rgb: 36, 36, 36;
+  --color-gray-900: #0a0a0a;
+  --color-gray-950: #000000;
+  --color-gray-950-rgb: 0, 0, 0;
+}
+
+:root,
+.theme_light {
+  --color-background: 255 255 255;
+  --color-background-alt: 245 245 245;
+  --color-background-alt2: 10 10 10;
+  --color-background-alt3: 0 0 0;
+  --color-background-alt4: 0 0 0;
+  --color-primary-100: 255 225 226;
+  --color-primary-300: 242 102 109;
+  --color-primary-600: 184 36 44;
+  --color-primary-700: 132 23 25;
+  --color-secondary-100: 235 235 235;
+  --color-secondary-300: 189 189 189;
+  --color-secondary-500: 115 115 115;
+  --color-secondary-600: 82 82 82;
+  --color-secondary-700: 54 54 54;
+  --color-info-100: 235 235 235;
+  --color-info-600: 82 82 82;
+  --color-info-700: 0 0 0;
+  --color-text-main: 0 0 0;
+  --color-text-muted: 92 92 92;
+  --color-hover-default: rgb(184 36 44 / 0.08);
+  --color-marketing-logo: 0 0 0;
+  --color-bw-blue: 184 36 44;
+  --color-shadow: 0 0 0;
+  --color-illustration-outline: 0 0 0;
+  --color-illustration-bg-primary: 255 225 226;
+  --color-illustration-bg-secondary: 255 200 202;
+  --color-illustration-logo: 232 65 74;
+  --color-illustration-tertiary: 232 65 74;
+
+  --color-nav-bg-brand: #000000;
+  --color-nav-bg-brand-soft: #1a1a1a;
+  --color-nav-bg-brand-hover: rgba(255, 255, 255, 0.08);
+  --color-nav-bg-primary: #000000;
+  --color-nav-bg-primary-strong: #0a0a0a;
+  --color-nav-border-primary: #242424;
+  --color-nav-fg-heading: #8f8f8f;
+}
+
+.theme_dark {
+  --color-background: 0 0 0;
+  --color-background-alt: 10 10 10;
+  --color-background-alt2: 20 20 20;
+  --color-background-alt3: 10 10 10;
+  --color-background-alt4: 0 0 0;
+  --color-primary-100: 46 8 9;
+  --color-primary-300: 132 23 25;
+  --color-primary-600: 242 102 109;
+  --color-primary-700: 255 160 164;
+  --color-secondary-100: 36 36 36;
+  --color-secondary-300: 82 82 82;
+  --color-secondary-500: 143 143 143;
+  --color-secondary-600: 189 189 189;
+  --color-secondary-700: 219 219 219;
+  --color-info-100: 36 36 36;
+  --color-info-600: 189 189 189;
+  --color-info-700: 255 255 255;
+  --color-text-main: 255 255 255;
+  --color-text-muted: 160 160 160;
+  --color-hover-default: rgb(255 255 255 / 0.06);
+  --color-marketing-logo: 255 255 255;
+  --color-bw-blue: 242 102 109;
+  --color-illustration-outline: 255 255 255;
+  --color-illustration-bg-primary: 36 36 36;
+  --color-illustration-bg-secondary: 54 54 54;
+  --color-illustration-bg-tertiary: 0 0 0;
+
+  --color-bg-primary: #000000;
+  --color-bg-secondary: #0a0a0a;
+  --color-bg-tertiary: #000000;
+  --color-nav-bg-brand: #0a0a0a;
+  --color-nav-bg-brand-soft: #1a1a1a;
+  --color-nav-bg-primary: #0a0a0a;
+  --color-nav-bg-primary-strong: #000000;
+  --tw-ring-offset-color: #000000;
+}
+
+/* Radii: 8px for controls and cards, matching the artifacts pages. */
+.tw-rounded-lg,
+.tw-rounded-xl {
+  border-radius: 8px;
+}

@@ -1,5 +1,5 @@
 import { env } from 'cloudflare:workers'
-import { expect, it } from 'vitest'
+import { expect, it, vi } from 'vitest'
 import { authed, login, withEnv } from './helpers'
 import { type Actor, actor, addMember, createOrg, enableRecoveryPolicy } from './org-helpers'
 
@@ -141,10 +141,20 @@ it('keeps federated members and stand-in accounts out of account recovery', asyn
 })
 
 it('rate limits master password checks at enrolment', async () => {
-  const { member, orgId } = await setup('ars-enrol-rl')
-  let last = 0
-  for (let i = 0; i < 25; i++) last = (await enroll(member, orgId, RECOVERY_KEY, 'wrong')).status
-  expect(last).toBe(429)
+  // Freeze time to prevent window boundary races in the rate limiter.
+  // The D1 rate limiter uses fixed 60s windows calculated from Date.now().
+  // Without frozen time, the test can cross a window boundary mid-test, resetting the counter.
+  vi.useFakeTimers()
+  const now = Date.now()
+  vi.setSystemTime(now)
+  try {
+    const { member, orgId } = await setup('ars-enrol-rl')
+    let last = 0
+    for (let i = 0; i < 25; i++) last = (await enroll(member, orgId, RECOVERY_KEY, 'wrong')).status
+    expect(last).toBe(429)
+  } finally {
+    vi.useRealTimers()
+  }
 })
 
 it('rate limits the recovery routes', async () => {

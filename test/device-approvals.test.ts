@@ -1,7 +1,7 @@
 import { env } from 'cloudflare:workers'
 import { expect, it } from 'vitest'
 import { createDb, schema } from '../src/db'
-import { json } from './helpers'
+import { freezeRateLimitWindow, json } from './helpers'
 import { type Actor, actor, addMember, createOrg, enableRecoveryPolicy, mail } from './org-helpers'
 
 /** Enables SSO with trusted device decryption for an organisation (the admin approval context). */
@@ -335,18 +335,23 @@ it('delivers an approved admin approval key once and never after expiry', async 
 })
 
 it('limits admin requests per user and keeps one open request', async () => {
-  const { owner, member, orgId } = await enrolled('da-limit')
-  const ids: string[] = []
-  for (let i = 0; i < 5; i++) {
-    const r = await adminRequest(member, `dev-${i}`)
-    expect(r.status).toBe(200)
-    ids.push(((await r.json()) as { id: string }).id)
+  const restore = freezeRateLimitWindow()
+  try {
+    const { owner, member, orgId } = await enrolled('da-limit')
+    const ids: string[] = []
+    for (let i = 0; i < 5; i++) {
+      const r = await adminRequest(member, `dev-${i}`)
+      expect(r.status).toBe(200)
+      ids.push(((await r.json()) as { id: string }).id)
+    }
+    expect((await adminRequest(member, 'dev-6')).status).toBe(429)
+    // Only the latest request stays open; earlier ones were replaced.
+    const list = await owner.json(`/api/organizations/${orgId}/auth-requests`)
+    expect(list.data.map((r: { id: string }) => r.id)).toEqual([ids[4]])
+    expect((await member.call(`/api/auth-requests/${ids[0]}`)).status).toBe(404)
+  } finally {
+    restore()
   }
-  expect((await adminRequest(member, 'dev-6')).status).toBe(429)
-  // Only the latest request stays open; earlier ones were replaced.
-  const list = await owner.json(`/api/organizations/${orgId}/auth-requests`)
-  expect(list.data.map((r: { id: string }) => r.id)).toEqual([ids[4]])
-  expect((await member.call(`/api/auth-requests/${ids[0]}`)).status).toBe(404)
 })
 
 it('needs trusted device decryption SSO, and refuses federated members', async () => {

@@ -156,3 +156,16 @@ leaked `JWT_SECRET` would then also expose these values. Each value records whic
 it, so setting `DATA_ENCRYPTION_KEY` later keeps older values readable; rotate the API keys and
 re-save the integrations afterwards to move them to the new key. Rotating `JWT_SECRET` while
 `DATA_ENCRYPTION_KEY` is unset makes those values unreadable: set `DATA_ENCRYPTION_KEY` first.
+
+## Client integrations API
+
+`/api/organizations/{orgId}/integrations` and its `/configurations` (the generated clients' API)
+sit on the same storage as `/event-integrations`. Type 5 (Hec) is a Splunk destination, 6 a Datadog
+site (the `uri` must be a Datadog log intake address) and 4 a signed webhook whose address and
+credential arrive on its single configuration. Tokens and keys are write-only: responses carry the
+settings without them, and an update that moves the destination must send the token again.
+Delivery starts with the first configuration and sends the configured event types (a configuration
+without an event type means all). `template` and `filters` are stored and returned, but events keep
+the fixed formats above. Slack and Teams (types 3 and 7, redirect, callback and channel endpoints)
+answer 400: this server has no Slack or Teams app. `POST /api/installations` is a cloud service
+that the official self-hosted server does not expose, so Cloudwarden does not either.

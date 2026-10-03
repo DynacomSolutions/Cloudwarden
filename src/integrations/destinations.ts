@@ -112,18 +112,43 @@ export function guardedFetcher(fetcher: Fetcher, resolve: Resolver): Fetcher {
   }
 }
 
-/** HTTPS URL to a public DNS name (no IP literals, credentials or reserved names). */
-export const httpsUrl = z
-  .string()
-  .max(2048)
-  .refine((s) => {
-    try {
-      const u = new URL(s)
-      return u.protocol === 'https:' && !u.username && !u.password && validateHost(u.hostname).ok
-    } catch {
-      return false
-    }
-  }, 'Enter an https URL on a public host name.')
+/**
+ * HTTPS URL to a public DNS name (no IP literals, credentials or reserved names) on an allowed
+ * port: 443 by default, so a destination cannot probe other services.
+ */
+export const httpsUrlOn = (ports: readonly string[] = ['443']) =>
+  z
+    .string()
+    .max(2048)
+    .refine(
+      (s) => {
+        try {
+          const u = new URL(s)
+          return (
+            u.protocol === 'https:' &&
+            !u.username &&
+            !u.password &&
+            (u.port === '' || ports.includes(u.port)) &&
+            validateHost(u.hostname).ok
+          )
+        } catch {
+          return false
+        }
+      },
+      `Enter an https URL on a public host name, port ${ports.join(' or ')}.`,
+    )
+export const httpsUrl = httpsUrlOn()
+
+/** Printable ASCII with no leading or trailing space: safe in a request header value. */
+export const headerSafe = (max = 4096, spaces = true) =>
+  z
+    .string()
+    .min(1)
+    .max(max)
+    .regex(
+      spaces ? /^[\x21-\x7e](?:[\x20-\x7e]*[\x21-\x7e])?$/ : /^[\x21-\x7e]+$/,
+      'Use printable ASCII characters only.',
+    )
 
 async function check(res: Response, what: string) {
   if (res.ok) return
@@ -163,7 +188,7 @@ const webhookConfig = z.object({
 })
 const webhookSecrets = z.object({
   signingSecret: z.string().min(16).max(256),
-  headerValue: z.string().max(4096).nullish(),
+  headerValue: headerSafe().nullish(),
 })
 
 export const webhook: Destination<z.infer<typeof webhookConfig>, z.infer<typeof webhookSecrets>> = {
@@ -195,13 +220,13 @@ export const webhook: Destination<z.infer<typeof webhookConfig>, z.infer<typeof 
 
 const splunkConfig = z.object({
   ...common,
-  /** HEC base URL, for example `https://splunk.example.com:8088`. */
-  url: httpsUrl,
+  /** HEC base URL, for example `https://splunk.example.com:8088` (ports 443 and 8088). */
+  url: httpsUrlOn(['443', '8088']),
   index: z.string().max(80).nullish(),
   source: z.string().max(200).nullish(),
   sourcetype: z.string().max(200).nullish(),
 })
-const splunkSecrets = z.object({ token: z.string().min(1).max(256) })
+const splunkSecrets = z.object({ token: headerSafe(256, false) })
 
 export function splunkEndpoint(url: string) {
   const u = new URL(url)
@@ -260,7 +285,7 @@ const datadogConfig = z.object({
   service: z.string().max(100).nullish(),
   tags: z.string().max(1000).nullish(),
 })
-const datadogSecrets = z.object({ apiKey: z.string().min(1).max(256) })
+const datadogSecrets = z.object({ apiKey: headerSafe(256, false) })
 
 export const datadog: Destination<z.infer<typeof datadogConfig>, z.infer<typeof datadogSecrets>> = {
   config: datadogConfig,

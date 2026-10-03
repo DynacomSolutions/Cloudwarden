@@ -164,6 +164,8 @@ export const organizations = sqliteTable(
     })
       .notNull()
       .default(true),
+    // Nonce of the latest emailed deletion link (TASKS #330); issuing a new link replaces it.
+    deleteNonce: text('delete_nonce'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -846,6 +848,29 @@ export const orgIntegrations = sqliteTable(
     updatedAt: updatedAt(),
   },
   (t) => [index('org_integrations_organization_idx').on(t.organizationUuid)],
+)
+
+/**
+ * Per-event settings of an event integration as the client integrations API sees them (TASKS
+ * #332): an event type (null for every type), filters, a template and a configuration whose
+ * secret fields are sealed. The owning integration delivers the union of the event types.
+ */
+export const orgIntegrationConfigurations = sqliteTable(
+  'org_integration_configurations',
+  {
+    uuid: id(),
+    integrationUuid: text('integration_uuid')
+      .notNull()
+      .references(() => orgIntegrations.uuid, { onDelete: 'cascade' }),
+    eventType: integer('event_type'),
+    filters: text('filters'),
+    template: text('template'),
+    /** Configuration JSON without secret fields. */
+    config: text('config'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index('org_integration_configurations_integration_idx').on(t.integrationUuid)],
 )
 
 // ----- Notification centre and security tasks (TASKS #231) -----

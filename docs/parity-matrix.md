@@ -18,7 +18,7 @@ Every HTTP call to a Bitwarden server made by the official clients, read from GP
 Status is derived from the routes registered under `src/`. **implemented** means a real handler;
 **self-host** means the endpoint answers with the self-hosted behaviour of the official server (no
 billing provider, no Provider Portal), so clients never see an error page; **not called** means only
-the generated SDK client has the operation and no GPL client calls it.
+the generated SDK client has the operation and no GPL client calls it; **not applicable** means the official self-hosted server does not expose it either.
 
 Owners: A push relay and account emails; B Sends, archive, favourites; C account recovery and device
 approvals; D Duo, YubiKey, Secrets Manager history and import or export, importer, alias forwarders,
@@ -30,8 +30,8 @@ Directory Connector, SCIM, event integrations; G this audit.
 | | Rows |
 |---|---|
 | Distinct method and path pairs | 625 |
-| Implemented (including self-host answers) | 478 |
-| Owned by workstreams A to F, not yet implemented | 55 |
+| Implemented (including self-host answers) | 512 |
+| Owned by workstreams A to F, not yet implemented | 19 |
 | Remaining for G | 0 |
 | Not called by any client (SDK-generated only) | 92 |
 
@@ -117,7 +117,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/accounts/sso/user-identifier` | sdk, web | implemented | E |  |
 | GET | `/api/accounts/subscription` | sdk, web | implemented |  |  |
 | PUT | `/api/accounts/update-tde-offboarding-password` | sdk, web | implemented | E |  |
-| PUT | `/api/accounts/update-temp-password` | android, ios, sdk, web | missing | C | Open: account recovery and device approvals (workstream C) |
+| PUT | `/api/accounts/update-temp-password` | android, ios, sdk, web | implemented | C | Open: account recovery and device approvals (workstream C) |
 | POST | `/api/accounts/verify-devices` | web | implemented |  |  |
 | PUT | `/api/accounts/verify-devices` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | POST | `/api/accounts/verify-email` | sdk, web | implemented | A |  |
@@ -130,7 +130,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/auth-requests/{id}` | android, ios, sdk, web | implemented |  |  |
 | PUT | `/api/auth-requests/{id}` | android, ios, sdk, web | implemented |  |  |
 | GET | `/api/auth-requests/{id}/response` | android, ios, sdk, web | implemented |  |  |
-| POST | `/api/auth-requests/admin-request` | android, ios, sdk, web | missing | C | Open: account recovery and device approvals (workstream C) |
+| POST | `/api/auth-requests/admin-request` | android, ios, sdk, web | implemented | C | Open: account recovery and device approvals (workstream C) |
 | GET | `/api/auth-requests/pending` | sdk, web | implemented |  |  |
 | POST | `/api/billing/preview-invoice/organizations/{orgId}/subscription/plan-change` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | POST | `/api/billing/preview-invoice/organizations/{orgId}/subscription/update` | web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
@@ -247,8 +247,8 @@ Directory Connector, SCIM, event integrations; G this audit.
 | PUT | `/api/folders/{id}` | android, cli, ios, sdk, web | implemented |  |  |
 | DELETE | `/api/folders/all` | sdk, web | implemented |  |  |
 | GET | `/api/hibp/breach` | sdk, web | implemented |  |  |
-| POST | `/api/installations` | sdk | missing | A | Open: push relay registration and web push settings (PR for push settings) |
-| GET | `/api/installations/{id}` | sdk | missing | A | Open: push relay registration and web push settings (PR for push settings) |
+| POST | `/api/installations` | sdk | not applicable | - | Cloud service only: the official server registers installation ids on its hosted cloud (not self-hosted), so a self-hosted server does not expose it. Push relay credentials are Worker secrets (docs/push-notifications.md) |
+| GET | `/api/installations/{id}` | sdk | not applicable | - | Cloud service only: see POST /api/installations |
 | POST | `/api/leases/{id}/extend` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | POST | `/api/leases/{id}/revoke` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | GET | `/api/leases/active` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
@@ -319,10 +319,10 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/api/organizations/{id}/api-key` | sdk, web | implemented | F |  |
 | GET | `/api/organizations/{id}/api-key-information` | web | implemented | F |  |
 | GET | `/api/organizations/{id}/api-key-information/{type}` | sdk, web | implemented | F |  |
-| GET | `/api/organizations/{id}/auth-requests` | sdk | missing | C | Open: account recovery and device approvals (workstream C) |
-| POST | `/api/organizations/{id}/auth-requests` | sdk | missing | C | Open: account recovery and device approvals (workstream C) |
-| POST | `/api/organizations/{id}/auth-requests/{id}` | sdk | missing | C | Open: account recovery and device approvals (workstream C) |
-| POST | `/api/organizations/{id}/auth-requests/deny` | sdk | missing | C | Open: account recovery and device approvals (workstream C) |
+| GET | `/api/organizations/{id}/auth-requests` | sdk | implemented | C | Open: account recovery and device approvals (workstream C) |
+| POST | `/api/organizations/{id}/auth-requests` | sdk | implemented | C | Open: account recovery and device approvals (workstream C) |
+| POST | `/api/organizations/{id}/auth-requests/{id}` | sdk | implemented | C | Open: account recovery and device approvals (workstream C) |
+| POST | `/api/organizations/{id}/auth-requests/deny` | sdk | implemented | C | Open: account recovery and device approvals (workstream C) |
 | GET | `/api/organizations/{identifier}/auto-enroll-status` | android, ios, sdk, web | implemented | C |  |
 | GET | `/api/organizations/{id}/billing` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/{orgId}/billing/change-frequency` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
@@ -361,7 +361,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/organizations/{id}/collections/access` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | POST | `/api/organizations/{orgId}/collections/bulk-access` | sdk, web | implemented |  |  |
 | GET | `/api/organizations/{orgId}/collections/details` | sdk, web | implemented |  |  |
-| POST | `/api/organizations/{orgId}/delete-recover-token` | sdk, web | missing | A | Open: account recovery and device approvals (workstream C) |
+| POST | `/api/organizations/{orgId}/delete-recover-token` | sdk, web | implemented | A |  |
 | GET | `/api/organizations/{orgId}/domain` | sdk, web | implemented | E |  |
 | POST | `/api/organizations/{orgId}/domain` | sdk, web | implemented | E |  |
 | DELETE | `/api/organizations/{orgId}/domain/{orgId}` | sdk, web | implemented | E |  |
@@ -380,18 +380,18 @@ Directory Connector, SCIM, event integrations; G this audit.
 | DELETE | `/api/organizations/{orgId}/groups/{id}/user/{orgId}` | sdk, web | implemented |  |  |
 | GET | `/api/organizations/{orgId}/groups/{id}/users` | sdk, web | implemented |  |  |
 | GET | `/api/organizations/{orgId}/groups/details` | sdk, web | implemented |  |  |
-| POST | `/api/organizations/{orgId}/import` | web | missing | F | Open: Directory Connector style member and group import (workstream F) |
-| GET | `/api/organizations/{id}/integrations` | sdk | missing | F | Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials |
-| POST | `/api/organizations/{id}/integrations` | sdk | missing | F | Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials |
-| DELETE | `/api/organizations/{id}/integrations/{id}` | sdk | missing | F | Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials |
-| PUT | `/api/organizations/{id}/integrations/{id}` | sdk | missing | F | Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials |
-| GET | `/api/organizations/{id}/integrations/{id}/configurations` | sdk | missing | F | Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials |
-| POST | `/api/organizations/{id}/integrations/{id}/configurations` | sdk | missing | F | Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials |
-| DELETE | `/api/organizations/{id}/integrations/{id}/configurations/{id}` | sdk | missing | F | Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials |
-| PUT | `/api/organizations/{id}/integrations/{id}/configurations/{id}` | sdk | missing | F | Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials |
-| GET | `/api/organizations/{id}/integrations/{id}/teams/channels` | sdk | missing | F | Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials |
-| GET | `/api/organizations/{id}/integrations/slack/redirect` | sdk | missing | F | Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials |
-| GET | `/api/organizations/{id}/integrations/teams/redirect` | sdk | missing | F | Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials |
+| POST | `/api/organizations/{orgId}/import` | web | implemented | F |  |
+| GET | `/api/organizations/{id}/integrations` | sdk | implemented | F |  |
+| POST | `/api/organizations/{id}/integrations` | sdk | implemented | F |  |
+| DELETE | `/api/organizations/{id}/integrations/{id}` | sdk | implemented | F |  |
+| PUT | `/api/organizations/{id}/integrations/{id}` | sdk | implemented | F |  |
+| GET | `/api/organizations/{id}/integrations/{id}/configurations` | sdk | implemented | F |  |
+| POST | `/api/organizations/{id}/integrations/{id}/configurations` | sdk | implemented | F |  |
+| DELETE | `/api/organizations/{id}/integrations/{id}/configurations/{id}` | sdk | implemented | F |  |
+| PUT | `/api/organizations/{id}/integrations/{id}/configurations/{id}` | sdk | implemented | F |  |
+| GET | `/api/organizations/{id}/integrations/{id}/teams/channels` | sdk | implemented | F | Answers 400: no Teams app is configured on this server |
+| GET | `/api/organizations/{id}/integrations/slack/redirect` | sdk | implemented | F | Answers 400: no Slack app is configured on this server |
+| GET | `/api/organizations/{id}/integrations/teams/redirect` | sdk | implemented | F | Answers 400: no Teams app is configured on this server |
 | DELETE | `/api/organizations/{orgId}/invite-link` | sdk, web | implemented |  |  |
 | GET | `/api/organizations/{orgId}/invite-link` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/{id}/invite-link` | sdk | implemented |  |  |
@@ -444,13 +444,13 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/api/organizations/{orgId}/users/{id}/confirm` | cli, sdk, web | implemented |  |  |
 | DELETE | `/api/organizations/{orgId}/users/{id}/delete-account` | sdk, web | implemented | E |  |
 | GET | `/api/organizations/{orgId}/users/{id}/events` | sdk, web | implemented |  |  |
-| PUT | `/api/organizations/{orgId}/users/{id}/recover-account` | sdk, web | missing | C | Open: account recovery and device approvals (workstream C) |
+| PUT | `/api/organizations/{orgId}/users/{id}/recover-account` | sdk, web | implemented | C | Open: account recovery and device approvals (workstream C) |
 | POST | `/api/organizations/{orgId}/users/{id}/reinvite` | sdk, web | implemented |  |  |
-| GET | `/api/organizations/{orgId}/users/{id}/reset-password-details` | sdk, web | missing | C | Open: account recovery and device approvals (workstream C) |
-| PUT | `/api/organizations/{orgId}/users/{userId}/reset-password-enrollment` | android, ios, sdk, web | missing | C | Open: account recovery and device approvals (workstream C) |
+| GET | `/api/organizations/{orgId}/users/{id}/reset-password-details` | sdk, web | implemented | C | Open: account recovery and device approvals (workstream C) |
+| PUT | `/api/organizations/{orgId}/users/{userId}/reset-password-enrollment` | android, ios, sdk, web | implemented | C | Open: account recovery and device approvals (workstream C) |
 | PUT | `/api/organizations/{orgId}/users/{id}/restore/vnext` | sdk, web | implemented |  |  |
 | PUT | `/api/organizations/{orgId}/users/{id}/revoke` | sdk, web | implemented |  |  |
-| POST | `/api/organizations/{orgId}/users/account-recovery-details` | sdk, web | missing | C | Open: account recovery and device approvals (workstream C) |
+| POST | `/api/organizations/{orgId}/users/account-recovery-details` | sdk, web | implemented | C | Open: account recovery and device approvals (workstream C) |
 | POST | `/api/organizations/{orgId}/users/bulk-auto-confirm` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/{orgId}/users/confirm` | sdk, web | implemented |  |  |
 | DELETE | `/api/organizations/{orgId}/users/delete-account` | sdk, web | implemented | E |  |
@@ -473,9 +473,9 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/organizations/connections/enabled` | sdk, web | missing | F | Owner decision needed: organisation connections link a self-hosted server to the cloud (billing sync, SCIM or Directory Connector keys); no cloud exists for this server |
 | POST | `/api/organizations/create-without-payment` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/domain/sso/verified` | android, ios, sdk, web | implemented | E |  |
-| GET | `/api/organizations/integrations/slack/create` | sdk | missing | F | Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials |
-| GET | `/api/organizations/integrations/teams/create` | sdk | missing | F | Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials |
-| POST | `/api/organizations/integrations/teams/incoming` | sdk | missing | F | Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials |
+| GET | `/api/organizations/integrations/slack/create` | sdk | implemented | F | Answers 400: no Slack app is configured on this server |
+| GET | `/api/organizations/integrations/teams/create` | sdk | implemented | F | Answers 400: no Teams app is configured on this server |
+| POST | `/api/organizations/integrations/teams/incoming` | sdk | implemented | F | Answers 400: no Teams app is configured on this server |
 | POST | `/api/organizations/invite-link/policies` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/invite-link/status` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/invite-link/validate-email-domain` | sdk, web | implemented |  |  |
@@ -515,7 +515,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | PUT | `/api/providers/{providerId}/clients/{orgId}` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
 | GET | `/api/providers/{providerId}/clients/addable` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
 | POST | `/api/providers/{providerId}/clients/existing` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
-| POST | `/api/providers/{providerId}/delete-recover-token` | sdk, web | missing | A | Open: account recovery and device approvals (workstream C) |
+| POST | `/api/providers/{providerId}/delete-recover-token` | sdk, web | implemented | G | No Provider Portal on a self-hosted server: answers 404 like an unknown provider |
 | GET | `/api/providers/{providerId}/events` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
 | GET | `/api/providers/{providerId}/organizations` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
 | POST | `/api/providers/{providerId}/organizations` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
@@ -561,17 +561,17 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/api/reports/password-health-report-applications` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | GET | `/api/reports/password-health-report-applications/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | POST | `/api/request-access/request-sm-access` | sdk, web | implemented |  |  |
-| GET | `/api/secret-versions/{id}` | sdk | missing | D | Open: Secrets Manager versions, import and export (workstream D, open PR) |
-| POST | `/api/secret-versions/delete` | sdk | missing | D | Open: Secrets Manager versions, import and export (workstream D, open PR) |
-| POST | `/api/secret-versions/get-by-ids` | sdk | missing | D | Open: Secrets Manager versions, import and export (workstream D, open PR) |
+| GET | `/api/secret-versions/{id}` | sdk | implemented | D | Open: Secrets Manager versions, import and export (workstream D, open PR) |
+| POST | `/api/secret-versions/delete` | sdk | implemented | D | Open: Secrets Manager versions, import and export (workstream D, open PR) |
+| POST | `/api/secret-versions/get-by-ids` | sdk | implemented | D | Open: Secrets Manager versions, import and export (workstream D, open PR) |
 | GET | `/api/secrets/{id}` | bws, web | implemented |  |  |
 | PUT | `/api/secrets/{id}` | bws, web | implemented |  |  |
 | GET | `/api/secrets/{id}/access-policies` | bws | implemented |  |  |
 | GET | `/api/secrets/{id}/trash` | bws | implemented |  |  |
 | POST | `/api/secrets/{id}/trash/empty` | bws | implemented |  |  |
 | POST | `/api/secrets/{id}/trash/restore` | bws | implemented |  |  |
-| GET | `/api/secrets/{id}/versions` | bws | missing | D | Open: Secrets Manager versions, import and export (workstream D, open PR) |
-| PUT | `/api/secrets/{id}/versions/restore` | bws | missing | D | Open: Secrets Manager versions, import and export (workstream D, open PR) |
+| GET | `/api/secrets/{id}/versions` | bws | implemented | D | Open: Secrets Manager versions, import and export (workstream D, open PR) |
+| PUT | `/api/secrets/{id}/versions/restore` | bws | implemented | D | Open: Secrets Manager versions, import and export (workstream D, open PR) |
 | POST | `/api/secrets/delete` | bws, web | implemented |  |  |
 | POST | `/api/secrets/get-by-ids` | bws | implemented |  |  |
 | GET | `/api/sends` | sdk, web | implemented | B |  |
@@ -604,8 +604,8 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/api/setup-intent/bank-account` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | POST | `/api/setup-intent/card` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | POST | `/api/setup-payment` | web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
-| GET | `/api/sm/{id}/export` | sdk | missing | D | Open: Secrets Manager versions, import and export (workstream D, open PR) |
-| POST | `/api/sm/{id}/import` | sdk | missing | D | Open: Secrets Manager versions, import and export (workstream D, open PR) |
+| GET | `/api/sm/{id}/export` | sdk | implemented | D | Open: Secrets Manager versions, import and export (workstream D, open PR) |
+| POST | `/api/sm/{id}/import` | sdk | implemented | D | Open: Secrets Manager versions, import and export (workstream D, open PR) |
 | GET | `/api/sm/events/service-accounts/{id}` | sdk | implemented |  |  |
 | GET | `/api/sso-cookie-vendor` | sdk | missing | E | Open: SSO federation, Key Connector and trusted device follow-ups (open PRs) |
 | GET | `/api/sync` | android, ios, sdk, web | implemented |  |  |

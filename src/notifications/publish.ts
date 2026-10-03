@@ -2,6 +2,7 @@ import type { Bindings } from '../env'
 import { errorKind, log } from '../log'
 import type { MsgValue } from './msgpack'
 import { relaySend } from './relay'
+import { sendWebPush } from './webpush'
 
 /**
  * Bitwarden notification types, as sent in the `Type` field of `ReceiveMessage`.
@@ -84,8 +85,15 @@ export async function pushUserUpdate(
     if (await notifyPeerOfUser(env, userUuid, type, payload, excludeDeviceIdentifier ?? null))
       return
   }
-  // Live sockets and the mobile relay are independent: one failing never blocks the other.
+  // Live sockets, the mobile relay and browser web push are independent: one failing never
+  // blocks the others.
   await Promise.all([
+    sendWebPush(
+      env,
+      userUuid,
+      { type, payload, contextId: excludeDeviceIdentifier ?? null },
+      excludeDeviceIdentifier,
+    ),
     (async () => {
       try {
         const stub = env.NOTIFICATIONS.get(env.NOTIFICATIONS.idFromName(userUuid)) as unknown as {
@@ -182,7 +190,15 @@ export async function pushLogOut(
   } catch (err) {
     log('error', 'notification.push_failed', { errorKind: errorKind(err) })
   }
-  await relayDone
+  await Promise.all([
+    relayDone,
+    sendWebPush(
+      env,
+      userUuid,
+      { type: PushType.LogOut, payload, contextId: null },
+      originDeviceIdentifier,
+    ),
+  ])
 }
 
 /** Name of the Durable Object serving the anonymous hub for one auth request. */

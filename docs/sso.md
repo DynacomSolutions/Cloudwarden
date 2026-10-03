@@ -54,6 +54,32 @@ what the GPL clients send and expect.
    `grant_type=authorization_code` redeems it; two-step login applies and the code is spent only
    once everything passed.
 
+### Upstream SSO paths
+
+SDK based clients use the paths of the official Identity SSO controller. They map onto the flow above
+and add no behaviour of their own, so PKCE, `state`, the redirect allow-list and the prevalidation
+token are all enforced by `/identity/connect/authorize` and the callbacks:
+
+- `GET /identity/sso/Login?returnUrl=` reads the authorize request in `returnUrl` and redirects to
+  `ExternalChallenge` with its `domain_hint`, `ssoToken` and `user_identifier`.
+- `GET /identity/sso/ExternalChallenge?returnUrl=&domainHint=&ssoToken=&userIdentifier=` redirects to
+  `/identity/connect/authorize` with the query of `returnUrl`, the explicit parameters overriding
+  the ones inside it.
+- `GET /identity/sso/ExternalCallback` is the OpenID Connect return, the same handler as
+  `/sso/oidc-signin`.
+
+`returnUrl` must be this server's own authorize endpoint (relative, or on its own origin); anything
+else is an error page and is never redirected to.
+
+### Reverse proxy cookie (`/api/sso-cookie-vendor`)
+
+For deployments where a reverse proxy (for example a load balancer with an identity provider step)
+authenticates users before the vault, clients open `GET /api/sso-cookie-vendor` to acquire the proxy
+session cookie. Set `SSO_COOKIE_VENDOR_COOKIE_NAME` to the proxy cookie name: the endpoint then answers
+200 when the browser arrives with that cookie (or sharded `name-N` cookies) and 401 otherwise. The
+cookie value is never read back or returned. Without the setting the endpoint is a 404, like any
+deployment without such a proxy.
+
 ## Secrets at rest and caching
 
 The OIDC client secret and the SAML SP private key are encrypted with AES-256-GCM under a key
@@ -96,7 +122,8 @@ serves members whose organisation left trusted devices.
 ## Key Connector
 
 `POST /api/accounts/set-key-connector-key`, `POST /api/accounts/convert-to-key-connector` (owners
-and admins keep their password), `GET /api/accounts/key-connector/confirmation-details/{identifier}`.
+and admins keep their password), `GET /api/accounts/key-connector/confirmation-details/{identifier}` and
+`POST /api/accounts/key-connector/enroll` (an SSO member without a master password and without keys, accepted or confirmed in an organisation that uses Key Connector, sends `keyConnectorKeyWrappedUserKey`, a type 2 encrypted string; members with a master password get 400 and use `convert-to-key-connector`; the security stamp rotates and the other devices are signed out).
 The client talks to the Key Connector directly (`GET/POST {url}/user-keys`, `GET {url}/alive`).
 
 ### Token signing for a Key Connector

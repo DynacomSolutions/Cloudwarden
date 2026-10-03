@@ -17,7 +17,9 @@ it('GET /api/config returns the shape current clients expect', async () => {
     'pm-34429-invite-link-auto-confirm': true,
     'pm-39601-invite-link-notification': true,
   })
-  expect(body.push).toEqual({ pushTechnology: 0 })
+  // Web push is on by default: the VAPID public key is generated on first use (TASKS #342).
+  expect(body.push).toMatchObject({ pushTechnology: 1 })
+  expect((body.push as { vapidPublicKey: string }).vapidPublicKey).toMatch(/^[\w-]{87}$/)
   expect(body.environment).toEqual({
     cloudRegion: null,
     vault: 'https://vault.example.com',

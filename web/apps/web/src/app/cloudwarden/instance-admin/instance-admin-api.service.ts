@@ -81,6 +81,14 @@ export interface PushSettingsInput {
   identityUri?: string;
 }
 
+export interface WebPushState {
+  enabled: boolean;
+  /** False when the stored key cannot be opened. */
+  available: boolean;
+  publicKey: string | null;
+  subscriptions: number;
+}
+
 export type AdminUserAction = "disable" | "enable" | "deauthorize" | "remove-2fa";
 
 const ADMIN = "/cloudwarden/admin";
@@ -188,6 +196,14 @@ export class InstanceAdminApiService {
 
   removePushSettings(): Promise<PushSettings> {
     return this.apiService.send("DELETE", `${ADMIN}/push-settings`, null, true, true);
+  }
+
+  webPush(): Promise<WebPushState> {
+    return this.apiService.send("GET", `${ADMIN}/web-push`, null, true, true);
+  }
+
+  setWebPush(enabled: boolean): Promise<WebPushState> {
+    return this.apiService.send("PUT", `${ADMIN}/web-push`, { enabled }, true, true);
   }
 
   testPushSettings(): Promise<{ ok: boolean; error: string | null }> {

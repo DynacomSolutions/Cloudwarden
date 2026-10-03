@@ -63,6 +63,8 @@ export interface Bindings {
   YUBICO_SECRET_KEY?: string
   /** Optional validation endpoint (https URL) replacing YubiCloud, such as a self-hosted server. */
   YUBICO_SERVER?: string
+  /** Name of the reverse proxy session cookie that `/api/sso-cookie-vendor` checks for (TASKS #345). Optional. */
+  SSO_COOKIE_VENDOR_COOKIE_NAME?: string
   /** Have I Been Pwned API key for the breach report. Without it the report is unavailable. */
   HIBP_API_KEY?: string
 

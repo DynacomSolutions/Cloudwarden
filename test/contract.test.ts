@@ -268,6 +268,21 @@ const smCases: Case[] = [
 const cases: Case[] = [
   { op: 'GET /api/config', status: 200, run: () => call('/api/config') },
   {
+    op: 'GET /api/organizations/connections/enabled',
+    status: 200,
+    run: () => call('/api/organizations/connections/enabled'),
+  },
+  {
+    op: 'PUT /api/devices/identifier/{deviceIdentifier}/clear-token',
+    status: 200,
+    run: () => call('/api/devices/identifier/device-1/clear-token', 'PUT'),
+  },
+  {
+    op: 'GET /api/organizations/{id}/public-key',
+    status: 200,
+    run: () => call(`/api/organizations/${sm.orgId}/public-key`),
+  },
+  {
     op: 'POST /identity/accounts/prelogin',
     status: 200,
     run: () => json('/identity/accounts/prelogin', { email: 'contract@example.com' }),
@@ -549,7 +564,7 @@ const cases: Case[] = [
  * They are listed as skipped below; a drift check fails when one starts being served so the list
  * gets updated and the operation can join the curated set above.
  */
-const UNIMPLEMENTED = ['POST /api/devices/identifier/{deviceIdentifier}/web-push-auth']
+const UNIMPLEMENTED: string[] = []
 
 const specOperations = () =>
   Object.entries<Json>(spec.paths).flatMap(([path, item]) =>

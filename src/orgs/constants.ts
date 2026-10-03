@@ -105,8 +105,9 @@ export const AdminEventType = {
   PushSettingsUpdated: 9009,
   PushSettingsRemoved: 9010,
   PushSettingsTested: 9011,
+  WebPushSettingsUpdated: 9012,
 } as const
 
 /** Range of admin audit codes; user event feeds must exclude it. */
 export const ADMIN_EVENT_MIN = 9001
-export const ADMIN_EVENT_MAX = 9011
+export const ADMIN_EVENT_MAX = 9012

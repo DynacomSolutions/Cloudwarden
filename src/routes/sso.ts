@@ -316,3 +316,101 @@ sso.get('/sso/saml2/:orgId', async (c) => {
     'Cache-Control': 'no-store',
   })
 })
+
+// ----- 4. Upstream SSO paths (TASKS #346) -----
+//
+// SDK based clients call the paths of the official Identity SSO controller: `Login`, then
+// `ExternalChallenge`, then the identity provider returns to `ExternalCallback`. They map onto the
+// flow above and add no behaviour of their own, so PKCE, state, the redirect allow-list and the
+// prevalidation token are all enforced by `/identity/connect/authorize` and the callbacks.
+
+/** Authorize endpoints a `returnUrl` may name: this server's own, on this server's origin. */
+const AUTHORIZE_PATHS = new Set(['/identity/connect/authorize', '/connect/authorize'])
+
+/** The query of the authorize request a `returnUrl` stands for, or null when it is anything else. */
+function authorizeQuery(c: Ctx, raw: string | undefined): URLSearchParams | null {
+  if (!raw || raw.length > 8192) return null
+  const own = new Set([new URL(c.req.url).origin])
+  try {
+    own.add(new URL(c.env.DOMAIN).origin)
+  } catch {
+    // A DOMAIN that is not a URL only means the request origin is the sole own origin.
+  }
+  let url: URL
+  try {
+    url = new URL(raw, c.req.url)
+  } catch {
+    return null
+  }
+  if (!own.has(url.origin) || !AUTHORIZE_PATHS.has(url.pathname)) return null
+  return url.searchParams
+}
+
+const badReturn = (c: Ctx) =>
+  page(c, 'Single sign-on failed', 'The return address is not a sign-in request for this server.')
+
+/** `GET /sso/Login?returnUrl=`: continues the authorize request named by `returnUrl`. */
+sso.get('/identity/sso/Login', rateLimit('sso'), (c) => {
+  const q = authorizeQuery(c, c.req.query('returnUrl'))
+  if (!q) return badReturn(c)
+  const domainHint = q.get('domain_hint')
+  if (!domainHint)
+    return page(c, 'Single sign-on failed', 'An organization identifier is required.')
+  const next = new URLSearchParams({ domainHint, returnUrl: c.req.query('returnUrl') ?? '' })
+  const token = q.get('ssoToken')
+  if (token) next.set('ssoToken', token)
+  const identifier = q.get('user_identifier')
+  if (identifier) next.set('userIdentifier', identifier)
+  return c.body(null, 302, {
+    Location: `/identity/sso/ExternalChallenge?${next}`,
+    'Cache-Control': 'no-store',
+  })
+})
+
+/**
+ * `GET /sso/ExternalChallenge`: sends the browser to the identity provider. The parameters the
+ * official controller takes override the ones inside `returnUrl`; the authorize endpoint then
+ * validates everything (client, redirect address, PKCE, state, prevalidation token).
+ */
+sso.get('/identity/sso/ExternalChallenge', rateLimit('sso'), (c) => {
+  const q = authorizeQuery(c, c.req.query('returnUrl'))
+  if (!q) return badReturn(c)
+  const next = new URLSearchParams(q)
+  const domainHint = c.req.query('domainHint')
+  if (domainHint) next.set('domain_hint', domainHint)
+  const token = c.req.query('ssoToken')
+  if (token) next.set('ssoToken', token)
+  const identifier = c.req.query('userIdentifier')
+  if (identifier) next.set('user_identifier', identifier)
+  return c.body(null, 302, {
+    Location: `/identity/connect/authorize?${next}`,
+    'Cache-Control': 'no-store',
+  })
+})
+
+/** `GET /sso/ExternalCallback`: where an OpenID Connect provider returns to. */
+sso.get('/identity/sso/ExternalCallback', rateLimit('sso'), oidcCallback)
+
+/**
+ * `GET /api/sso-cookie-vendor` (TASKS #345). It exists for deployments where a reverse proxy
+ * authenticates users before the vault (a load balancer with an identity provider step): the
+ * proxy sets a session cookie, and clients open this page to acquire it. The server never sees
+ * or returns the cookie value; it only confirms that the browser arrived with the cookie named by
+ * `SSO_COOKIE_VENDOR_COOKIE_NAME` (sharded `name-N` cookies count). Without that setting there is
+ * no proxy to vend for, so the endpoint answers 404 like any unknown path.
+ */
+sso.get('/api/sso-cookie-vendor', rateLimit('sso'), (c) => {
+  const name = c.env.SSO_COOKIE_VENDOR_COOKIE_NAME?.trim()
+  if (!name) throw new ApiError(404, 'Not found')
+  const present = (c.req.header('Cookie') ?? '').split(';').some((part) => {
+    const key = part.split('=')[0]?.trim() ?? ''
+    return key === name || (key.startsWith(`${name}-`) && /^\d+$/.test(key.slice(name.length + 1)))
+  })
+  if (!present) throw new ApiError(401, 'The sign-in cookie is missing.')
+  // Not `page()`: that clears the SSO flow cookie, and this page must leave a login in progress alone.
+  return c.html(
+    '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Signed in</title></head><body><p>You can close this window and return to the app.</p></body></html>',
+    200,
+    { 'Content-Security-Policy': PAGE_CSP, 'Cache-Control': 'no-store' },
+  )
+})

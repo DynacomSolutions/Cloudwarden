@@ -145,6 +145,51 @@ describe("InstanceAdminPushComponent", () => {
     expect(c.form.value.installationKey).toBe("");
   });
 
+  it("shows web push state and switches it", async () => {
+    api.pushSettings.mockResolvedValue(base);
+    api.webPush.mockResolvedValue({
+      enabled: true,
+      available: true,
+      publicKey: "k",
+      subscriptions: 3,
+    });
+    api.setWebPush.mockResolvedValue({
+      enabled: false,
+      available: true,
+      publicKey: "k",
+      subscriptions: 3,
+    });
+    const f = await render();
+    const el = f.nativeElement as HTMLElement;
+    expect(el.querySelector("[data-testid=cw-webpush-state]")?.textContent).toContain(
+      "cwWebPushOn",
+    );
+    expect(el.querySelector("[data-testid=cw-webpush-count]")?.textContent).toContain("3");
+    (el.querySelector("[data-testid=cw-webpush-toggle]") as HTMLButtonElement).click();
+    await f.whenStable();
+    f.detectChanges();
+    expect(api.setWebPush).toHaveBeenCalledWith(false);
+    expect(el.querySelector("[data-testid=cw-webpush-state]")?.textContent).toContain(
+      "cwWebPushOff",
+    );
+  });
+
+  it("disables the switch when the stored key cannot be opened", async () => {
+    api.pushSettings.mockResolvedValue(base);
+    api.webPush.mockResolvedValue({
+      enabled: false,
+      available: false,
+      publicKey: null,
+      subscriptions: 0,
+    });
+    const f = await render();
+    const el = f.nativeElement as HTMLElement;
+    expect(el.querySelector("[data-testid=cw-webpush-unavailable]")).not.toBeNull();
+    expect(el.querySelector("[data-testid=cw-webpush-state]")?.textContent).toContain(
+      "cwWebPushOff",
+    );
+  });
+
   it("tests the connection and removes after confirmation", async () => {
     const settings = { ...base, keySet: true, status: { ...base.status, configured: true } };
     api.pushSettings.mockResolvedValue(settings);

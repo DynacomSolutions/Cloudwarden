@@ -9,7 +9,13 @@ import { ApiError, errorBody } from '../errors'
 import { createNotification, notificationJson } from '../notifications/center'
 import { relayStatus, relayTestConnection } from '../notifications/relay'
 import { parseBody } from '../validation'
-import { deletePushSettings, pushSettingsView, savePushSettings } from './push-settings'
+import {
+  deletePushSettings,
+  pushSettingsView,
+  savePushSettings,
+  saveWebPush,
+  webPushView,
+} from './push-settings'
 import { isAdminUser, isPlausibleEmail, normaliseEmail, rateLimit } from './security'
 import {
   AdminEventType,
@@ -141,6 +147,11 @@ export function createAdminApi(deps: AdminApiDeps = {}) {
   })
   api.delete(`${PREFIX}/push-settings`, async (c) =>
     c.json(await deletePushSettings(c.env, auditOf(c))),
+  )
+  // Browser web push switch (TASKS #342).
+  api.get(`${PREFIX}/web-push`, async (c) => c.json(await webPushView(c.env)))
+  api.put(`${PREFIX}/web-push`, async (c) =>
+    c.json(await saveWebPush(c.env, await c.req.json().catch(() => null), auditOf(c))),
   )
   api.post(`${PREFIX}/push-settings/test`, async (c) => {
     if (!(await rateLimit(c.env.DB, `pushtest:${c.var.user.uuid}`, 5, 60_000, Date.now()))) {

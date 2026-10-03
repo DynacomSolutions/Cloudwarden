@@ -55,6 +55,14 @@ organizations.get('/api/organizations', async (c) =>
   }),
 )
 
+// Members read the organisation public key to encrypt keys for it (reset password, key rotation).
+organizations.get('/api/organizations/:id/public-key', async (c) => {
+  const db = createDb(c.env.DB)
+  const org = await requireOrg(db, c.req.param('id'))
+  await requireMember(db, c.var.user.uuid, org.uuid)
+  return c.json({ object: 'organizationPublicKey', publicKey: org.publicKey })
+})
+
 /** Creates an organisation with the caller as its confirmed owner. */
 export const createOrganization = async (c: Ctx) => {
   const body = await parseBody(c, createSchema)

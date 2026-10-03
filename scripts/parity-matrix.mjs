@@ -11,6 +11,57 @@ const norm = (p) =>
     .replace(/\([^)]*\)|\{[^}]*\}|:[A-Za-z_]+|\$\{[^}]*\}/g, '{}')
     .toLowerCase()
 
+/**
+ * Routes registered inside `for (const x of [...]) { router.get(x, ...) }` style loops, where the
+ * path (and for tuples the method) is computed. Handles the three shapes used under src/routes:
+ * `for (const path of [...]) router.post(path)`, the same with a template such as
+ * `${PREFIX}/${path}`, and `for (const [method, path] of [...]) router[method](path)`. String
+ * constants (`const P = '/api/x'`) are substituted, also inside template literals.
+ */
+function loopRoutes(src) {
+  const consts = new Map()
+  const resolve = (t, extra = {}) =>
+    t.replace(/\$\{(\w+)\}/g, (all, n) => extra[n] ?? consts.get(n) ?? all)
+  for (const m of src.matchAll(/^(?:export )?const\s+(\w+)\s*=\s*(['`])([^'`]*)\2/gm))
+    consts.set(m[1], resolve(m[3]))
+  const out = []
+  for (const loop of src.matchAll(/^for \(const (\[\s*\w+\s*,\s*\w+\s*\]|\w+) of \[/gm)) {
+    // The array: balanced square brackets from the opening one.
+    let i = loop.index + loop[0].length
+    let depth = 1
+    const start = i
+    while (i < src.length && depth > 0) {
+      if (src[i] === '[') depth++
+      else if (src[i] === ']') depth--
+      i++
+    }
+    const array = src.slice(start, i - 1)
+    const end = src.indexOf('\n}', i)
+    const body = src.slice(i, end < 0 ? src.length : end)
+    const vars = loop[1].match(/\w+/g)
+    const items = []
+    if (vars.length === 2) {
+      for (const t of array.matchAll(/\[\s*'(\w+)'\s*,\s*(?:(['`])([^'`]*)\2|(\w+))\s*\]/g))
+        items.push([t[1], resolve(t[3] ?? consts.get(t[4]) ?? '')])
+    } else {
+      for (const t of array.matchAll(/(['`])([^'`]*)\1/g)) items.push([null, resolve(t[2])])
+    }
+    const pathVar = vars[vars.length - 1]
+    for (const call of body.matchAll(
+      /\b\w+(?:\.(get|post|put|delete|patch)|\[(\w+)\])\(\s*(?:(['`])([^'`]*)\3|(\w+))/g,
+    )) {
+      const literal = call[4]
+      if (literal === undefined && call[5] !== pathVar) continue
+      for (const [method, path] of items) {
+        const m = call[1] ?? (call[2] === vars[0] ? method : null)
+        if (!m) continue
+        out.push([m, literal === undefined ? path : resolve(literal, { [pathVar]: path })])
+      }
+    }
+  }
+  return out
+}
+
 /** `METHOD normalised-path` for every route registered in src/. */
 function serverRoutes() {
   const out = new Set()
@@ -29,6 +80,7 @@ function serverRoutes() {
           add(m[1], m[2])
         for (const m of s.matchAll(/\.on\(\s*\[([^\]]+)\]\s*,\s*['`]([^'`]+)['`]/g))
           for (const v of m[1].matchAll(/'(\w+)'/g)) add(v[1], m[2])
+        for (const [m, r] of loopRoutes(s)) add(m, r)
       }
     }
   }
@@ -128,6 +180,7 @@ const summary = {
     (r) => r.owner === 'G' && !r.status.startsWith('implemented') && r.status !== 'self-host',
   ),
   notCalled: count((r) => r.status === 'not called'),
+  notApplicable: count((r) => r.status === 'not applicable'),
 }
 
 const md = `# Bitwarden client parity matrix
@@ -150,7 +203,8 @@ Every HTTP call to a Bitwarden server made by the official clients, read from GP
 Status is derived from the routes registered under \`src/\`. **implemented** means a real handler;
 **self-host** means the endpoint answers with the self-hosted behaviour of the official server (no
 billing provider, no Provider Portal), so clients never see an error page; **not called** means only
-the generated SDK client has the operation and no GPL client calls it; **not applicable** means the official self-hosted server does not expose it either.
+the generated SDK client has the operation and no GPL client calls it; **not applicable** means the endpoint is not served by the official self-hosted server either (for example the
+relay side endpoints of Bitwarden's cloud push relay, which this server calls as a client).
 
 Owners: A push relay and account emails; B Sends, archive, favourites; C account recovery and device
 approvals; D Duo, YubiKey, Secrets Manager history and import or export, importer, alias forwarders,
@@ -166,6 +220,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | Owned by workstreams A to F, not yet implemented | ${summary.ownedAF} |
 | Remaining for G | ${summary.remaining} |
 | Not called by any client (SDK-generated only) | ${summary.notCalled} |
+| Not applicable (not served by the official self-hosted server either) | ${summary.notApplicable} |
 
 ## Matrix
 

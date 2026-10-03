@@ -14,6 +14,7 @@ import {
   PushRegion,
   PushSettings,
   PushSettingsInput,
+  WebPushState,
 } from "./instance-admin-api.service";
 
 export const HOST_URL = "https://bitwarden.com/host";
@@ -68,6 +69,38 @@ export function buildPushInput(v: {
       </p>
       @if (error()) {
         <bit-callout type="danger">{{ error() }}</bit-callout>
+      }
+      @if (webPush(); as w) {
+        <div
+          class="tw-mb-6 tw-max-w-3xl tw-rounded-lg tw-border tw-border-solid tw-border-secondary-300 tw-p-4"
+          data-testid="cw-webpush"
+        >
+          <div bitTypography="h3">{{ "cwWebPushTitle" | i18n }}</div>
+          <p>{{ "cwWebPushDesc" | i18n }}</p>
+          @if (!w.available) {
+            <bit-callout type="warning" data-testid="cw-webpush-unavailable">
+              {{ "cwWebPushUnavailable" | i18n }}
+            </bit-callout>
+          }
+          <dl class="tw-mb-4 tw-grid tw-grid-cols-[max-content_1fr] tw-gap-x-4 tw-gap-y-1">
+            <dt>{{ "cwPushStatus" | i18n }}</dt>
+            <dd data-testid="cw-webpush-state">
+              {{ (w.enabled ? "cwWebPushOn" : "cwWebPushOff") | i18n }}
+            </dd>
+            <dt>{{ "cwWebPushSubscriptions" | i18n }}</dt>
+            <dd data-testid="cw-webpush-count">{{ w.subscriptions }}</dd>
+          </dl>
+          <button
+            type="button"
+            bitButton
+            buttonType="secondary"
+            [disabled]="!w.available"
+            (click)="toggleWebPush()"
+            data-testid="cw-webpush-toggle"
+          >
+            {{ (w.enabled ? "cwWebPushTurnOff" : "cwWebPushTurnOn") | i18n }}
+          </button>
+        </div>
       }
       @if (settings(); as s) {
         @if (s.status.envOverride) {
@@ -183,6 +216,7 @@ export class InstanceAdminPushComponent implements OnInit {
     { value: "custom" as PushRegion, label: "cwPushRegionCustom" },
   ];
   protected readonly settings = signal<PushSettings | null>(null);
+  protected readonly webPush = signal<WebPushState | null>(null);
   protected readonly error = signal<string | null>(null);
   protected readonly form = inject(FormBuilder).group({
     installationId: [""],
@@ -198,6 +232,20 @@ export class InstanceAdminPushComponent implements OnInit {
     } catch (e) {
       this.error.set((e as Error)?.message ?? String(e));
     }
+    try {
+      this.webPush.set(await this.api.webPush());
+    } catch (e) {
+      this.error.set((e as Error)?.message ?? String(e));
+    }
+  }
+
+  protected async toggleWebPush() {
+    const current = this.webPush();
+    if (!current) {
+      return;
+    }
+    this.webPush.set(await this.api.setWebPush(!current.enabled));
+    this.toast.showToast({ variant: "success", message: this.i18n.t("cwWebPushSaved") });
   }
 
   private apply(s: PushSettings) {

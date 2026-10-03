@@ -10,4 +10,5 @@ CREATE TABLE `org_integration_configurations` (
 	FOREIGN KEY (`integration_uuid`) REFERENCES `org_integrations`(`uuid`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE INDEX `org_integration_configurations_integration_idx` ON `org_integration_configurations` (`integration_uuid`);
+CREATE INDEX `org_integration_configurations_integration_idx` ON `org_integration_configurations` (`integration_uuid`);--> statement-breakpoint
+ALTER TABLE `organizations` ADD `delete_nonce` text;

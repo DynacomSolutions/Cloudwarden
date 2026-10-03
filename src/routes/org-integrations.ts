@@ -8,6 +8,7 @@ import { z } from 'zod'
 import { createDb, type Db, schema } from '../db'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
+import { isStandInUser } from '../federation/standin'
 import {
   type IntegrationRow,
   latestEventCursor,
@@ -92,6 +93,8 @@ orgIntegrations.put('/api/organizations/:orgId/scim-config', async (c) => {
 
 /** Owners and admins manage integrations: they hold credentials for outside systems. */
 export async function requireAdmin(c: Ctx) {
+  // Stand-in accounts of paired instances hold no credentials for outside systems here.
+  if (isStandInUser(c.var.user)) throw new ApiError(403, 'You do not have permission to do this.')
   const m = await requireMember(createDb(c.env.DB), c.var.user.uuid, org(c))
   if (!isAdminRole(m)) throw new ApiError(403, 'Only owners and admins can manage integrations.')
   return m

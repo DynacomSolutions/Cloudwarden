@@ -1,11 +1,12 @@
 // Final client parity endpoints (TASKS #330 to #333): client directory import, organisation
 // deletion by emailed token, the client integrations API, and the Provider Portal answer.
 import { env } from 'cloudflare:workers'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { openSecrets } from '../src/integrations/deliver'
 import { BASE } from './helpers'
 import { actor, addMember, createOrg, linkParams, mailbox } from './org-helpers'
 
+const PWB = { masterPasswordHash: 'client-derived-hash' }
 const anon = async (path: string, body: unknown, mb: ReturnType<typeof mailbox> | null = null) => {
   const { default: app } = await import('../src/index')
   return app.fetch(
@@ -90,7 +91,9 @@ describe('organisation deletion by email', () => {
     const { id } = await createOrg(owner, 'Doomed Org')
     const link = async () => {
       const before = mb.sent.length
-      expect((await owner.call(`/api/organizations/${id}/delete-recover`, 'POST')).status).toBe(200)
+      expect(
+        (await owner.call(`/api/organizations/${id}/delete-recover`, 'POST', PWB)).status,
+      ).toBe(200)
       const m = mb.sent[before]
       expect(m?.to).toBe('billing@example.com')
       expect(m?.text).toContain('#/verify-recover-delete-org?')
@@ -120,20 +123,23 @@ describe('organisation deletion by email', () => {
     const { id } = await createOrg(owner, 'Guarded Org')
     const admin = await actor('del2-admin@example.com', mb)
     await addMember(owner, id, admin, { type: 1 }, mb)
-    expect((await admin.call(`/api/organizations/${id}/delete-recover`, 'POST')).status).toBe(403)
+    expect((await admin.call(`/api/organizations/${id}/delete-recover`, 'POST', PWB)).status).toBe(
+      403,
+    )
     const silent = await actor('del2-silent@example.com', mailbox())
     const silentOrg = await createOrg(silent, 'Silent Org')
     const { default: app } = await import('../src/index')
     const noMail = await app.fetch(
       new Request(`${BASE}/api/organizations/${silentOrg.id}/delete-recover`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${silent.token}` },
+        headers: { Authorization: `Bearer ${silent.token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(PWB),
       }),
       { ...env, EMAIL: undefined, MAIL_FROM: undefined },
     )
     expect(noMail.status).toBe(400)
 
-    await owner.call(`/api/organizations/${id}/delete-recover`, 'POST')
+    await owner.call(`/api/organizations/${id}/delete-recover`, 'POST', PWB)
     const p = linkParams(mb.sent.at(-1))
     await env.DB.prepare(
       "UPDATE organizations SET billing_email = 'new@example.com' WHERE uuid = ?1",
@@ -337,5 +343,249 @@ describe('client integrations API', () => {
     await addMember(owner, id, member, {}, mb)
     expect((await member.call(base)).status).toBe(403)
     expect((await member.call(base, 'POST', { type: 4 })).status).toBe(403)
+  })
+})
+
+describe('security review fixes', () => {
+  const del = (id: string) => `/api/organizations/${id}/delete-recover`
+  const q = (sql: string, ...v: unknown[]) =>
+    env.DB.prepare(sql)
+      .bind(...v)
+      .first<Record<string, any>>()
+
+  it('billing email changes are owner only and void mailed links', async () => {
+    const mb = mailbox()
+    const owner = await actor('sr-bill-owner@example.com', mb)
+    const { id } = await createOrg(owner, 'Bill Org')
+    const admin = await actor('sr-bill-admin@example.com', mb)
+    await addMember(owner, id, admin, { type: 1 }, mb)
+    const put = (a: typeof owner, billingEmail: string) =>
+      a.call(`/api/organizations/${id}`, 'PUT', { name: 'Bill Org', billingEmail })
+    expect((await put(admin, 'thief@example.com')).status).toBe(403)
+    expect((await put(admin, 'billing@example.com')).status).toBe(200)
+    await owner.call(del(id), 'POST', PWB)
+    const p = linkParams(mb.sent.at(-1))
+    expect((await put(owner, 'newbill@example.com')).status).toBe(200)
+    expect(
+      (await anon(`/api/organizations/${id}/delete-recover-token`, { token: p.get('token') }))
+        .status,
+    ).toBe(400)
+    expect(await orgRow(id)).not.toBeNull()
+  })
+
+  it('needs the master password or a code, caps mail at 3 per hour, newest link wins', async () => {
+    const mb = mailbox()
+    const owner = await actor('sr-proof-owner@example.com', mb)
+    const { id } = await createOrg(owner, 'Proof Org')
+    expect((await owner.call(del(id), 'POST', {})).status).toBe(400)
+    expect((await owner.call(del(id), 'POST', { masterPasswordHash: 'wrong' })).status).toBe(400)
+    expect(mb.sent.filter((m) => m.subject.includes('organisation deletion'))).toHaveLength(0)
+
+    // A code for accounts without a password.
+    await owner.call('/api/accounts/request-otp', 'POST')
+    const otp = /\b(\d{6})\b/.exec(mb.sent.at(-1)?.text ?? '')?.[1]
+    expect((await owner.call(del(id), 'POST', { otp })).status).toBe(200)
+    const first = linkParams(mb.sent.at(-1))
+    expect((await owner.call(del(id), 'POST', PWB)).status).toBe(200)
+    const second = linkParams(mb.sent.at(-1))
+    expect((await owner.call(del(id), 'POST', PWB)).status).toBe(200)
+    expect((await owner.call(del(id), 'POST', PWB)).status).toBe(429)
+
+    const path = `/api/organizations/${id}/delete-recover-token`
+    expect((await anon(path, { token: first.get('token') })).status).toBe(400)
+    expect((await anon(path, { token: second.get('token') })).status).toBe(400)
+    expect(await orgRow(id)).not.toBeNull()
+  })
+
+  it('a link dies when its requesting owner stops being an owner', async () => {
+    const mb = mailbox()
+    const owner = await actor('sr-own-a@example.com', mb)
+    const { id } = await createOrg(owner, 'Two Owners')
+    const second = await actor('sr-own-b@example.com', mb)
+    await addMember(owner, id, second, { type: 0 }, mb)
+    await owner.call(del(id), 'POST', PWB)
+    const p = linkParams(mb.sent.at(-1))
+    await env.DB.prepare(
+      'UPDATE users_organizations SET atype = 2 WHERE organization_uuid = ?1 AND user_uuid = ?2',
+    )
+      .bind(id, owner.uuid)
+      .run()
+    expect(
+      (await anon(`/api/organizations/${id}/delete-recover-token`, { token: p.get('token') }))
+        .status,
+    ).toBe(400)
+    expect(await orgRow(id)).not.toBeNull()
+  })
+
+  it('erases attachment blobs and federation rows with the organisation', async () => {
+    const mb = mailbox()
+    const owner = await actor('sr-erase@example.com', mb)
+    const { id } = await createOrg(owner, 'Erase Org')
+    const cipher = crypto.randomUUID()
+    const now = Date.now()
+    await env.DB.prepare(
+      "INSERT INTO ciphers (uuid, organization_uuid, atype, name, data, created_at, updated_at) VALUES (?1, ?2, 1, '2.n', '{}', ?3, ?3)",
+    )
+      .bind(cipher, id, now)
+      .run()
+    const key = `${cipher}/blobtest`
+    await env.ATTACHMENTS.put(key, 'x')
+    await env.DB.prepare(
+      "INSERT INTO attachments (id, cipher_uuid, file_name, file_size, r2_key, created_at) VALUES ('blobtest', ?1, '2.n', 1, ?2, ?3)",
+    )
+      .bind(cipher, key, now)
+      .run()
+    const peer = crypto.randomUUID()
+    await env.DB.prepare(
+      "INSERT INTO federation_peers (uuid, instance_id, domain, public_key, fingerprint, protocol_version, status, created_at, updated_at) VALUES (?1, ?1, ?2, 'k', 'f', 1, 'active', ?3, ?3)",
+    )
+      .bind(peer, `${peer}.example.net`, now)
+      .run()
+    await env.DB.prepare(
+      "INSERT INTO federation_invitations (uuid, peer_uuid, remote_member_uuid, organization_uuid, organization_name, user_uuid, status, created_at, updated_at) VALUES (?1, ?2, 'm', ?3, 'Erase Org', ?4, 'pending', ?5, ?5)",
+    )
+      .bind(crypto.randomUUID(), peer, id, owner.uuid, now)
+      .run()
+
+    await owner.call(del(id), 'POST', PWB)
+    const p = linkParams(mb.sent.at(-1))
+    expect(
+      (await anon(`/api/organizations/${id}/delete-recover-token`, { token: p.get('token') }))
+        .status,
+    ).toBe(200)
+    await vi.waitFor(async () => expect(await env.ATTACHMENTS.head(key)).toBeNull())
+    expect(
+      await q('SELECT 1 AS x FROM federation_invitations WHERE organization_uuid = ?1', id),
+    ).toBeNull()
+    expect(await q('SELECT 1 AS x FROM ciphers WHERE uuid = ?1', cipher)).toBeNull()
+  })
+
+  it('keeps integrations and deletion out of federation, and refuses stand-ins', async () => {
+    const { NOT_FEDERATED } = await import('../src/federation/hosting')
+    const org = '00000000-0000-0000-0000-000000000000'
+    for (const path of [
+      `/api/organizations/${org}/integrations`,
+      `/api/organizations/${org}/integrations/x/configurations`,
+      `/api/organizations/${org}/event-integrations/x/test`,
+      `/api/organizations/${org}/delete-recover`,
+      `/api/organizations/${org}/delete-recover-token`,
+    ]) {
+      expect(NOT_FEDERATED.test(path), path).toBe(true)
+    }
+    const standIn = await actor('sr-standin@example.com')
+    const { id } = await createOrg(standIn, 'Standin Org')
+    await env.DB.prepare("UPDATE users SET password_hash = '!federated.x' WHERE uuid = ?1")
+      .bind(standIn.uuid)
+      .run()
+    for (const [path, method] of [
+      [`/api/organizations/${id}/integrations`, 'GET'],
+      [`/api/organizations/${id}/event-integrations`, 'GET'],
+      [del(id), 'POST'],
+    ] as const) {
+      const res = await standIn.call(path, method, method === 'POST' ? PWB : undefined)
+      expect([401, 403]).toContain(res.status)
+    }
+  })
+
+  it('restricts destination ports and header characters', async () => {
+    const owner = await actor('sr-port@example.com')
+    const { id } = await createOrg(owner, 'Port Org')
+    const base = `/api/organizations/${id}/integrations`
+    const hec = (uri: string, token = 'tok') =>
+      owner.call(base, 'POST', { type: 5, configuration: JSON.stringify({ uri, token }) })
+    expect((await hec('https://hec.example.com:8088/services/collector/event')).status).toBe(200)
+    expect((await hec('https://hec.example.com/services/collector/event')).status).toBe(200)
+    expect((await hec('https://hec.example.com:6379/x')).status).toBe(400)
+    expect((await hec('https://hec.example.com:8088/x', 'bad\r\ntoken')).status).toBe(400)
+    expect((await hec('https://hec.example.com:8088/x', 'has space')).status).toBe(400)
+
+    const wh = await owner.json(base, 'POST', { type: 4 })
+    const path = `${base}/${wh.id}/configurations`
+    const cfg = (c: Record<string, unknown>) =>
+      owner.call(path, 'POST', { configuration: JSON.stringify(c) })
+    expect((await cfg({ uri: 'https://hook.example.com:8088/x' })).status).toBe(400)
+    expect(
+      (await cfg({ uri: 'https://hook.example.com/x', scheme: 'Bad Scheme', token: 't' })).status,
+    ).toBe(400)
+    expect(
+      (await cfg({ uri: 'https://hook.example.com/x', scheme: 'Bearer', token: 'a\nb' })).status,
+    ).toBe(400)
+    expect(
+      (await cfg({ uri: 'https://hook.example.com/x', scheme: 'Bearer', token: 'ok' })).status,
+    ).toBe(200)
+  })
+
+  it('records audit events for integration changes', async () => {
+    const owner = await actor('sr-audit@example.com')
+    const { id } = await createOrg(owner, 'Audit Org')
+    const count = async () =>
+      (
+        await q(
+          'SELECT count(*) AS n FROM events WHERE organization_uuid = ?1 AND event_type = 1600',
+          id,
+        )
+      )?.n
+    const before = await count()
+    const base = `/api/organizations/${id}/integrations`
+    const made = await owner.json(base, 'POST', { type: 4 })
+    const cfg = await owner.json(`${base}/${made.id}/configurations`, 'POST', {
+      configuration: JSON.stringify({ uri: 'https://hook.example.com/x' }),
+    })
+    expect(await count()).toBe(before + 2)
+    expect((await owner.call(`${base}/${made.id}/configurations/${cfg.id}`, 'DELETE')).status).toBe(
+      204,
+    )
+    expect(await count()).toBe(before + 3)
+    expect((await owner.call(`${base}/${made.id}`, 'DELETE')).status).toBe(204)
+    expect(await count()).toBe(before + 4)
+  })
+})
+
+describe('directory import bounds', () => {
+  it('caps invites and memberships, and spares members above the actor', async () => {
+    const mb = mailbox()
+    const owner = await actor('sr-imp-owner@example.com', mb)
+    const { id } = await createOrg(owner, 'Bounds Org')
+    const imp = (b: unknown) => owner.call(`/api/organizations/${id}/import`, 'POST', b)
+    const many = Array.from({ length: 501 }, (_, i) => ({
+      email: `bulk${i}@example.com`,
+      externalId: `b${i}`,
+    }))
+    expect((await imp({ users: many })).status).toBe(400)
+    const members = await owner.json(`/api/organizations/${id}/users`)
+    expect(members.data).toHaveLength(1)
+
+    const ids = Array.from({ length: 5001 }, (_, i) => `m${i}`)
+    const groups = Array.from({ length: 10 }, (_, i) => ({
+      name: `G${i}`,
+      externalId: `g${i}`,
+      users: ids,
+    }))
+    expect((await imp({ groups: groups.concat(groups) })).status).toBe(400)
+
+    // An admin cannot link the owner's address to an external id (re-key) or remove an admin.
+    const admin = await actor('sr-imp-admin@example.com', mb)
+    await addMember(owner, id, admin, { type: 1 }, mb)
+    const res = await admin.call(`/api/organizations/${id}/import`, 'POST', {
+      users: [{ email: 'sr-imp-owner@example.com', externalId: 'hijack' }],
+    })
+    expect(res.status).toBe(200)
+    const row = await env.DB.prepare(
+      'SELECT external_id FROM users_organizations WHERE organization_uuid = ?1 AND user_uuid = ?2',
+    )
+      .bind(id, owner.uuid)
+      .first<{ external_id: string | null }>()
+    expect(row?.external_id).toBeNull()
+  })
+
+  it('refuses oversized bodies', async () => {
+    const owner = await actor('sr-imp-big@example.com')
+    const { id } = await createOrg(owner, 'Big Org')
+    const pad = 'x'.repeat(5 * 1024 * 1024 + 10)
+    const res = await owner.call(`/api/organizations/${id}/import`, 'POST', {
+      users: [],
+      pad,
+    })
+    expect(res.status).toBe(413)
   })
 })

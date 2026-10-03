@@ -4,6 +4,7 @@ import { Hono } from 'hono'
 import { z } from 'zod'
 import { verifyMasterPassword } from '../auth/passwords'
 import { createDb, runBatch, schema } from '../db'
+import { later } from '../email/send'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
 import {
@@ -22,6 +23,7 @@ import { assertNotLastOwner } from '../orgs/members'
 import { authOnce } from '../orgs/util'
 import { orgJson, profileOrganizations } from '../orgs/views'
 import { parseBody } from '../validation'
+import { deleteBlobs } from '../vault/blobs'
 import { bumpRevision } from '../vault/ciphers'
 
 export const organizations = new Hono<Env>()
@@ -139,6 +141,12 @@ const updateOrg = async (c: Ctx) => {
   const m = await requireManager(c, id)
   if (!isAdminRole(m)) throw new ApiError(403, 'You do not have permission to do this.')
   const org = await requireOrg(db, id)
+  const billingChanged =
+    !!body.billingEmail && body.billingEmail.trim().toLowerCase() !== org.billingEmail
+  // The billing address receives the deletion link, so only an owner may change it.
+  if (billingChanged && m.atype !== Role.Owner) {
+    throw new ApiError(403, 'Only owners can change the billing email.')
+  }
   const now = Date.now()
   await runBatch(db, [
     db
@@ -146,6 +154,8 @@ const updateOrg = async (c: Ctx) => {
       .set({
         name: body.name ?? org.name,
         billingEmail: body.billingEmail ? body.billingEmail.trim().toLowerCase() : org.billingEmail,
+        // A new billing address voids deletion links already mailed.
+        ...(billingChanged ? { deleteNonce: null } : {}),
         // Keys are write-once: an organisation that already has them keeps them.
         ...(body.keys && !org.publicKey
           ? { publicKey: body.keys.publicKey, privateKey: body.keys.encryptedPrivateKey }
@@ -161,13 +171,55 @@ const updateOrg = async (c: Ctx) => {
 organizations.put('/api/organizations/:id', updateOrg)
 organizations.post('/api/organizations/:id', updateOrg)
 
-/** Deletes an organisation with its members' links and events. Members are bumped first. */
-export const eraseOrganization = (db: ReturnType<typeof createDb>, id: string) =>
-  runBatch(db, [
+/**
+ * Deletes an organisation with its members' links, events and attachment blobs. Federated
+ * invitations and replicas of it go too, and the peers of stand-in members are told to resync.
+ */
+export async function eraseOrganization(c: Ctx, db: ReturnType<typeof createDb>, id: string) {
+  const blobKeys = (
+    await db
+      .select({ key: schema.attachments.r2Key })
+      .from(schema.attachments)
+      .innerJoin(schema.ciphers, eq(schema.ciphers.uuid, schema.attachments.cipherUuid))
+      .where(eq(schema.ciphers.organizationUuid, id))
+  ).map((r) => r.key)
+  const federated = await db
+    .select({ user: schema.usersOrganizations.userUuid, member: schema.usersOrganizations.uuid })
+    .from(schema.federationMembers)
+    .innerJoin(
+      schema.usersOrganizations,
+      eq(schema.usersOrganizations.uuid, schema.federationMembers.organizationUserUuid),
+    )
+    .where(eq(schema.usersOrganizations.organizationUuid, id))
+  // Members are bumped first: their rows disappear with the organisation.
+  await runBatch(db, [
     bumpOrgRevision(db, id, Date.now()),
     db.delete(schema.events).where(eq(schema.events.organizationUuid, id)),
+    db
+      .delete(schema.federationInvitations)
+      .where(eq(schema.federationInvitations.organizationUuid, id)),
+    db
+      .delete(schema.federationReplicaCiphers)
+      .where(eq(schema.federationReplicaCiphers.organizationUuid, id)),
+    db
+      .delete(schema.federationReplicaOrgs)
+      .where(eq(schema.federationReplicaOrgs.organizationUuid, id)),
     db.delete(schema.organizations).where(eq(schema.organizations.uuid, id)),
   ])
+  deleteBlobs(c, blobKeys)
+  if (federated.length > 0) {
+    // Stand-in accounts live on in the peers' replicas until those resync (SyncVault, type 5).
+    later(
+      c,
+      (async () => {
+        const { notifyPeerOfUser } = await import('../federation/hosting')
+        for (const f of federated) {
+          if (f.user) await notifyPeerOfUser(c.env, f.user, 5, {}, null).catch(() => {})
+        }
+      })(),
+    )
+  }
+}
 
 const deleteOrg = async (c: Ctx) => {
   const id = c.req.param('id') ?? ''
@@ -180,7 +232,7 @@ const deleteOrg = async (c: Ctx) => {
   if (!(await verifyMasterPassword(c.var.user, masterPasswordHash))) {
     throw new ApiError(400, 'Invalid password.', { masterPasswordHash: ['Invalid password.'] })
   }
-  await eraseOrganization(db, id)
+  await eraseOrganization(c, db, id)
   return c.body(null, 200)
 }
 organizations.delete('/api/organizations/:id', deleteOrg)

@@ -10041,6 +10041,12 @@ paths:
         schema:
           type: string
           format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationDeleteRecoverRequest'
       responses:
         '200':
           description: Success, empty body.
@@ -16781,6 +16787,12 @@ components:
         email: {type: [string, 'null']}
         externalId: {type: string}
         deleted: {type: [boolean, 'null']}
+    OrganizationDeleteRecoverRequest:
+      type: object
+      description: Proof that the owner is present, either the master password hash or a code from `/api/accounts/request-otp`.
+      properties:
+        masterPasswordHash: {type: [string, 'null']}
+        otp: {type: [string, 'null']}
     OrganizationVerifyDeleteRecoverRequest:
       type: object
       required: [token]

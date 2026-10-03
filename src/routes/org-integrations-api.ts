@@ -18,8 +18,10 @@ import {
   type IntegrationType,
   newSigningSecret,
 } from '../integrations/destinations'
+import { EventType } from '../orgs/constants'
+import { eventStatement } from '../orgs/events'
 import { seal } from '../orgs/sealed'
-import { authOnce } from '../orgs/util'
+import { authOnce, batch } from '../orgs/util'
 import { parseBody } from '../validation'
 import { filled, loadIntegration, requireAdmin, validate } from './org-integrations'
 
@@ -161,28 +163,39 @@ const configsOf = (db: Db, integrationUuid: string) =>
     .where(eq(schema.orgIntegrationConfigurations.integrationUuid, integrationUuid))
     .orderBy(schema.orgIntegrationConfigurations.createdAt)
 
-/** Delivery follows the configurations: none means off, a null event type means every type. */
-async function syncDelivery(db: Db, row: Row, wasEmpty: boolean, valid: boolean) {
-  const configs = await configsOf(db, row.uuid)
+/**
+ * Delivery follows the configurations: none means off, a null event type means every type. The
+ * returned update goes into the same batch as the configuration change it reflects.
+ */
+function deliveryStatement(
+  db: Db,
+  row: Row,
+  configs: { eventType: number | null }[],
+  restartAt: number | null,
+  valid: boolean,
+  extra: Partial<Row> = {},
+) {
   const types = configs.some((x) => x.eventType == null)
     ? null
     : [...new Set(configs.map((x) => x.eventType as number))]
-  await db
+  return db
     .update(schema.orgIntegrations)
     .set({
       enabled: configs.length > 0 && valid,
       eventTypes: types?.length ? JSON.stringify(types) : null,
       // Starting fresh must not replay the whole history.
-      ...(wasEmpty && configs.length > 0
-        ? { cursor: await latestEventCursor(db, row.organizationUuid) }
-        : {}),
+      ...(restartAt !== null && configs.length > 0 ? { cursor: restartAt } : {}),
       failureCount: 0,
       nextAttemptAt: 0,
       lastError: null,
       updatedAt: Date.now(),
+      ...extra,
     })
     .where(eq(schema.orgIntegrations.uuid, row.uuid))
 }
+
+const audit = (c: Ctx, db: Db) =>
+  eventStatement(db, c, { type: EventType.OrganizationUpdated, organizationUuid: org(c) })
 
 // ----- integrations -----
 
@@ -208,19 +221,22 @@ orgIntegrationsApi.post('/api/organizations/:orgId/integrations', authOnce, asyn
   const db = createDb(c.env.DB)
   const uuid = crypto.randomUUID()
   const now = Date.now()
-  await db.insert(schema.orgIntegrations).values({
-    uuid,
-    organizationUuid: org(c),
-    atype: type,
-    name: LABEL[type] ?? type,
-    // Nothing is delivered until a configuration exists.
-    enabled: false,
-    config: JSON.stringify(valid.config),
-    sealedSecrets: await seal(c.env, secretsPurpose(uuid), JSON.stringify(valid.secrets)),
-    cursor: await latestEventCursor(db, org(c)),
-    createdAt: now,
-    updatedAt: now,
-  })
+  await batch(db, [
+    db.insert(schema.orgIntegrations).values({
+      uuid,
+      organizationUuid: org(c),
+      atype: type,
+      name: LABEL[type] ?? type,
+      // Nothing is delivered until a configuration exists.
+      enabled: false,
+      config: JSON.stringify(valid.config),
+      sealedSecrets: await seal(c.env, secretsPurpose(uuid), JSON.stringify(valid.secrets)),
+      cursor: await latestEventCursor(db, org(c)),
+      createdAt: now,
+      updatedAt: now,
+    }),
+    audit(c, db),
+  ])
   return c.json(integrationJson(await loadIntegration(db, org(c), uuid)))
 })
 
@@ -246,17 +262,24 @@ orgIntegrationsApi.put(
         next.success && dest.target(next.data) !== dest.target(dest.config.parse(old))
       const merged = { ...(retargeted ? {} : stored), ...filled(secrets) }
       const valid = validate(type, { ...old, ...config }, merged)
-      await db
-        .update(schema.orgIntegrations)
-        .set({
-          config: JSON.stringify(valid.config),
-          sealedSecrets: await seal(c.env, secretsPurpose(row.uuid), JSON.stringify(valid.secrets)),
-          failureCount: 0,
-          nextAttemptAt: 0,
-          lastError: null,
-          updatedAt: Date.now(),
-        })
-        .where(eq(schema.orgIntegrations.uuid, row.uuid))
+      await batch(db, [
+        db
+          .update(schema.orgIntegrations)
+          .set({
+            config: JSON.stringify(valid.config),
+            sealedSecrets: await seal(
+              c.env,
+              secretsPurpose(row.uuid),
+              JSON.stringify(valid.secrets),
+            ),
+            failureCount: 0,
+            nextAttemptAt: 0,
+            lastError: null,
+            updatedAt: Date.now(),
+          })
+          .where(eq(schema.orgIntegrations.uuid, row.uuid)),
+        audit(c, db),
+      ])
     }
     return c.json(integrationJson(await loadIntegration(db, org(c), row.uuid)))
   },
@@ -268,7 +291,10 @@ orgIntegrationsApi.delete(
   async (c) => {
     const db = createDb(c.env.DB)
     const row = await cloudIntegration(c, db)
-    await db.delete(schema.orgIntegrations).where(eq(schema.orgIntegrations.uuid, row.uuid))
+    await batch(db, [
+      db.delete(schema.orgIntegrations).where(eq(schema.orgIntegrations.uuid, row.uuid)),
+      audit(c, db),
+    ])
     return c.body(null, 204)
   },
 )
@@ -285,23 +311,32 @@ orgIntegrationsApi.get(
   },
 )
 
-/** Webhook destination from a configuration, kept apart from the stored non-secret form. */
-async function applyWebhook(
-  c: Ctx,
-  db: Db,
-  row: Row,
-  raw: string | null | undefined,
-): Promise<string> {
+const SCHEME = /^[A-Za-z0-9._~+-]{1,32}$/
+const TOKEN = /^[\x21-\x7e]{1,4096}$/
+
+/** Webhook destination from a configuration: the row's new settings and the non-secret form. */
+async function webhookSettings(c: Ctx, row: Row, raw: string | null | undefined) {
   const cfg = parseConfiguration(raw)
   if (!cfg || !str(cfg.uri)) {
     throw new ApiError(400, 'The request is invalid.', {
       'configuration.uri': ['Uri is required.'],
     })
   }
-  const stored = await openSecrets(c.env, row)
-  const old = JSON.parse(row.config) as Record<string, unknown>
   const token = str(cfg.token)
   const scheme = str(cfg.scheme)
+  // Both end up in an Authorization header: no whitespace or control characters.
+  if (scheme && !SCHEME.test(scheme)) {
+    throw new ApiError(400, 'The request is invalid.', {
+      'configuration.scheme': ['Use letters, digits and . _ ~ + - only.'],
+    })
+  }
+  if (token && !TOKEN.test(token)) {
+    throw new ApiError(400, 'The request is invalid.', {
+      'configuration.token': ['Use printable ASCII characters without spaces.'],
+    })
+  }
+  const stored = await openSecrets(c.env, row)
+  const old = JSON.parse(row.config) as Record<string, unknown>
   const config = {
     url: cfg.uri,
     ...(token ? { headerName: 'Authorization' } : {}),
@@ -316,14 +351,13 @@ async function applyWebhook(
   }
   if (keepHeader) Object.assign(config, { headerName: old.headerName })
   const valid = validate('webhook', config, secrets)
-  await db
-    .update(schema.orgIntegrations)
-    .set({
+  return {
+    shown: JSON.stringify({ uri: cfg.uri, scheme: scheme ?? null }),
+    row: {
       config: JSON.stringify(valid.config),
       sealedSecrets: await seal(c.env, secretsPurpose(row.uuid), JSON.stringify(valid.secrets)),
-    })
-    .where(eq(schema.orgIntegrations.uuid, row.uuid))
-  return JSON.stringify({ uri: cfg.uri, scheme: scheme ?? null })
+    },
+  }
 }
 
 async function writeConfiguration(c: Ctx, existingId: string | null) {
@@ -333,12 +367,15 @@ async function writeConfiguration(c: Ctx, existingId: string | null) {
   const configs = await configsOf(db, row.uuid)
   const current = existingId ? configs.find((x) => x.uuid === existingId) : undefined
   if (existingId && !current) throw new ApiError(404, 'Configuration not found.')
-  let stored: string | null = null
+  let shown: string | null = null
+  let rowSet: Partial<Row> = {}
   if (row.atype === 'webhook') {
     if (!existingId && configs.length > 0) {
       throw new ApiError(400, 'A webhook integration takes one configuration.')
     }
-    stored = await applyWebhook(c, db, row, body.configuration)
+    const w = await webhookSettings(c, row, body.configuration)
+    shown = w.shown
+    rowSet = w.row
   } else if (parseConfiguration(body.configuration)) {
     throw new ApiError(400, 'The request is invalid.', {
       configuration: ['This integration type takes no configuration settings.'],
@@ -349,23 +386,35 @@ async function writeConfiguration(c: Ctx, existingId: string | null) {
     eventType: body.eventType ?? null,
     filters: body.filters ?? null,
     template: body.template ?? null,
-    config: stored,
+    config: shown,
     updatedAt: now,
   }
   const uuid = existingId ?? crypto.randomUUID()
-  if (existingId) {
-    await db
-      .update(schema.orgIntegrationConfigurations)
-      .set(values)
-      .where(eq(schema.orgIntegrationConfigurations.uuid, uuid))
-  } else {
-    await db
-      .insert(schema.orgIntegrationConfigurations)
-      .values({ uuid, integrationUuid: row.uuid, createdAt: now, ...values })
-  }
+  const next = existingId
+    ? configs.map((x) => (x.uuid === existingId ? { ...x, ...values } : x))
+    : [...configs, { eventType: values.eventType }]
+  const valid = row.atype !== 'webhook' || 'config' in rowSet
+  // The configuration, the integration's delivery settings and the audit event commit together.
+  await batch(db, [
+    existingId
+      ? db
+          .update(schema.orgIntegrationConfigurations)
+          .set(values)
+          .where(eq(schema.orgIntegrationConfigurations.uuid, uuid))
+      : db
+          .insert(schema.orgIntegrationConfigurations)
+          .values({ uuid, integrationUuid: row.uuid, createdAt: now, ...values }),
+    deliveryStatement(
+      db,
+      row,
+      next,
+      configs.length === 0 ? await latestEventCursor(db, org(c)) : null,
+      valid,
+      rowSet,
+    ),
+    audit(c, db),
+  ])
   const fresh = await loadIntegration(db, org(c), row.uuid)
-  const valid = row.atype !== 'webhook' || JSON.parse(fresh.config).url !== undefined
-  await syncDelivery(db, fresh, configs.length === 0, valid)
   const [saved] = await db
     .select()
     .from(schema.orgIntegrationConfigurations)
@@ -392,15 +441,24 @@ orgIntegrationsApi.delete(
     const configs = await configsOf(db, row.uuid)
     const id = c.req.param('configurationId') ?? ''
     if (!configs.some((x) => x.uuid === id)) throw new ApiError(404, 'Configuration not found.')
-    await db
-      .delete(schema.orgIntegrationConfigurations)
-      .where(
-        and(
-          eq(schema.orgIntegrationConfigurations.uuid, id),
-          eq(schema.orgIntegrationConfigurations.integrationUuid, row.uuid),
+    await batch(db, [
+      db
+        .delete(schema.orgIntegrationConfigurations)
+        .where(
+          and(
+            eq(schema.orgIntegrationConfigurations.uuid, id),
+            eq(schema.orgIntegrationConfigurations.integrationUuid, row.uuid),
+          ),
         ),
-      )
-    await syncDelivery(db, row, false, true)
+      deliveryStatement(
+        db,
+        row,
+        configs.filter((x) => x.uuid !== id),
+        null,
+        true,
+      ),
+      audit(c, db),
+    ])
     return c.body(null, 204)
   },
 )

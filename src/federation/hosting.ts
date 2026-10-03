@@ -609,7 +609,7 @@ const ATTACHMENT_DOWNLOAD = /^\/attachments\/[0-9a-f-]{36}\/[A-Za-z0-9_-]+$/
 
 /** Features that do not cross instances (docs/federation.md, "Not federated"). */
 export const NOT_FEDERATED =
-  /\/(sso|scim|reset-password|reset-password-enrollment|api-key|rotate-api-key|billing|subscription|license|tax|payment|import|export|auto-enroll-status|keys\/rotate|leave-sso|domain|secrets|projects|service-accounts|access-policies)(\/|$)/i
+  /\/(sso|scim|reset-password|reset-password-enrollment|api-key|rotate-api-key|billing|subscription|license|tax|payment|import|export|auto-enroll-status|keys\/rotate|leave-sso|domain|secrets|projects|service-accounts|access-policies|integrations|event-integrations|scim-config|delete-recover|delete-recover-token)(\/|$)/i
 
 export const NOT_FEDERATED_MESSAGE =
   'This feature is not available for organisations hosted on another instance (federated). Use the home instance of the organisation.'

@@ -164,6 +164,8 @@ export const organizations = sqliteTable(
     })
       .notNull()
       .default(true),
+    // Nonce of the latest emailed deletion link (TASKS #330); issuing a new link replaces it.
+    deleteNonce: text('delete_nonce'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

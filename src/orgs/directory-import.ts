@@ -10,15 +10,22 @@ import { z } from 'zod'
 import { normalizeEmail } from '../auth/users'
 import { createDb, type Db, schema } from '../db'
 import type { Env } from '../env'
+import { ApiError } from '../errors'
 import { sendInvite } from '../routes/org-users'
 import { chunk } from '../vault/ciphers'
 import { bumpOrgRevision, type Member, requireOrg } from './access'
+import { dropMemberStateFor } from './ciphers'
 import { EventType, Role } from './constants'
 import { eventStatement } from './events'
+import { assertCanAssign } from './members'
 import { insertMemberStatements, invitedMember } from './provisioning'
 import { batch } from './util'
 
 export const MAX_IMPORT = 10_000
+/** Group membership pairs across all groups of one call. */
+export const MAX_MEMBERSHIPS = 50_000
+/** New members invited by one call (each gets an email). */
+export const MAX_INVITES = 500
 
 export const importSchema = z.object({
   groups: z
@@ -102,7 +109,25 @@ export async function importDirectory(
   orgUuid: string,
   body: ImportRequest,
   systemUser: number | null,
+  /** The member acting through a user token; null for the organisation API key. */
+  actor: Member | null = null,
 ): Promise<ImportResult> {
+  const memberships = (body.groups ?? []).reduce(
+    (n, g) => n + (g.memberExternalIds?.length ?? 0),
+    0,
+  )
+  if (memberships > MAX_MEMBERSHIPS) {
+    throw new ApiError(400, `An import takes at most ${MAX_MEMBERSHIPS} group memberships.`)
+  }
+  const outranks = (m: Member) => {
+    if (!actor) return false
+    try {
+      assertCanAssign(actor, m.atype)
+      return false
+    } catch {
+      return true
+    }
+  }
   const db = createDb(c.env.DB)
   const org = await requireOrg(db, orgUuid)
   const now = Date.now()
@@ -136,10 +161,11 @@ export async function importDirectory(
   const remove = (m: Member) => {
     // Owners are never removed; admins and custom members only on explicit request.
     const privileged = m.atype === Role.Owner || m.atype === Role.Admin || m.atype === Role.Custom
-    if (removed.has(m.uuid) || m.atype === Role.Owner) return
+    if (removed.has(m.uuid) || m.atype === Role.Owner || outranks(m)) return
     if (privileged && body.removePrivilegedMembers !== true) return
     removed.add(m.uuid)
     statements.push(
+      ...(m.userUuid ? dropMemberStateFor(db, m.userUuid, orgUuid) : []),
       db.delete(schema.usersOrganizations).where(eq(schema.usersOrganizations.uuid, m.uuid)),
       ev({
         type: EventType.OrganizationUserRemoved,
@@ -163,7 +189,8 @@ export async function importDirectory(
     if (!email.includes('@')) continue
     const byMail = byEmail.get(email)
     if (byMail) {
-      if (byMail.externalId !== entry.externalId) {
+      // Linking re-keys a member: not for anyone ranked above the actor.
+      if (byMail.externalId !== entry.externalId && !outranks(byMail)) {
         statements.push(
           db
             .update(schema.usersOrganizations)
@@ -176,6 +203,9 @@ export async function importDirectory(
         result.linked++
       }
       continue
+    }
+    if (invited.length >= MAX_INVITES) {
+      throw new ApiError(400, `An import invites at most ${MAX_INVITES} new members at a time.`)
     }
     const m = await invitedMember(db, orgUuid, { email, externalId: entry.externalId })
     byEmail.set(email, m)
@@ -260,7 +290,11 @@ export async function importDirectory(
 
   if (statements.length === 0) return result
   // Revision bump first: removed members must resync too.
+  // Slices commit one by one, so a failure part way leaves some changes in place. Members match
+  // by external id or email and groups by external id, so repeating the same call finishes the
+  // job. The revision is bumped before the first slice and after the last.
   await runSliced(db, [bumpOrgRevision(db, orgUuid, now), ...statements])
+  await batch(db, [bumpOrgRevision(db, orgUuid, Date.now())])
   if (body.inviteUsersAfterProvisioning !== false) {
     for (const m of invited) await sendInvite(c, org, m)
   }

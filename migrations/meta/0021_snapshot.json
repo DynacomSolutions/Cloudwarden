@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "fbaff6c7-6f34-4055-8bbe-6d103a407685",
+  "id": "192399b4-b8c2-4e0a-bf3f-b742a123aad8",
   "prevId": "3df6ffa9-1a9d-4f8e-b62d-6a7fcf93988e",
   "tables": {
     "admin_rate_limits": {
@@ -2473,6 +2473,13 @@
           "notNull": true,
           "autoincrement": false,
           "default": true
+        },
+        "delete_nonce": {
+          "name": "delete_nonce",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         },
         "created_at": {
           "name": "created_at",

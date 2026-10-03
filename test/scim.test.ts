@@ -3,6 +3,7 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { matches, parseFilter, ScimError } from '../src/scim/filter'
 import { applyPatch } from '../src/scim/patch'
+import { freezeRateLimitWindow } from './helpers'
 import { bearer, orgApiKey, raw } from './org-api-helpers'
 import { type Actor, actor, addMember, createOrg, mail } from './org-helpers'
 
@@ -415,17 +416,22 @@ describe('SCIM service', () => {
   })
 
   it('limits failed SCIM authentication per address and organisation', async () => {
-    let last = 0
-    for (let i = 0; i < 25 && last !== 429; i++) {
-      last = (
-        await raw(`/scim/v2/${orgId}/Users`, {
-          headers: { ...bearer('wrong'), 'CF-Connecting-IP': '127.0.0.1' },
-        })
-      ).status
+    const restore = freezeRateLimitWindow()
+    try {
+      let last = 0
+      for (let i = 0; i < 25 && last !== 429; i++) {
+        last = (
+          await raw(`/scim/v2/${orgId}/Users`, {
+            headers: { ...bearer('wrong'), 'CF-Connecting-IP': '127.0.0.1' },
+          })
+        ).status
+      }
+      expect(last).toBe(429)
+      // Another address is unaffected.
+      expect((await s('/Users')).status).toBe(200)
+    } finally {
+      restore()
     }
-    expect(last).toBe(429)
-    // Another address is unaffected.
-    expect((await s('/Users')).status).toBe(200)
   })
 
   it('stops answering once disabled or the key is rotated', async () => {

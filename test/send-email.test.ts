@@ -1,6 +1,6 @@
 import { env } from 'cloudflare:workers'
 import { expect, it } from 'vitest'
-import { authed, BASE, createSession, form } from './helpers'
+import { authed, BASE, createSession, form, freezeRateLimitWindow } from './helpers'
 import { actor, type Mailbox, mailbox } from './org-helpers'
 
 const day = 86_400_000
@@ -177,14 +177,19 @@ it('burns a code after too many wrong guesses and after it expires', async () =>
 })
 
 it('rate limits code requests per Send', async () => {
-  const mb = mailbox()
-  const { made } = await setup('se-rate@example.com', mb)
-  let limited = 0
-  for (let i = 0; i < 30; i++) {
-    const res = await grant(mb, made.accessId, { email: 'alice@example.com' })
-    if (res.status === 429) limited++
+  const restore = freezeRateLimitWindow()
+  try {
+    const mb = mailbox()
+    const { made } = await setup('se-rate@example.com', mb)
+    let limited = 0
+    for (let i = 0; i < 30; i++) {
+      const res = await grant(mb, made.accessId, { email: 'alice@example.com' })
+      if (res.status === 429) limited++
+    }
+    expect(limited).toBeGreaterThan(0)
+  } finally {
+    restore()
   }
-  expect(limited).toBeGreaterThan(0)
 })
 
 it('serves email-protected Sends to legacy access with email and code in the body', async () => {
@@ -278,37 +283,51 @@ it('does not let a stale token outlive an authentication change', async () => {
 })
 
 it('treats listed and unlisted addresses alike: same limits, same answers', async () => {
-  const mb = mailbox()
-  const { made } = await setup('se-enum@example.com', mb)
-  const statuses = async (email: string) => {
-    const out: number[] = []
-    for (let i = 0; i < 7; i++) out.push((await grant(mb, made.accessId, { email })).status)
-    return out
+  const restore = freezeRateLimitWindow()
+  try {
+    const mb = mailbox()
+    const { made } = await setup('se-enum@example.com', mb)
+    const statuses = async (email: string) => {
+      const out: number[] = []
+      for (let i = 0; i < 7; i++) out.push((await grant(mb, made.accessId, { email })).status)
+      return out
+    }
+    // Each address gets the same run of 400s and then the same 429s.
+    const listed = await statuses('alice@example.com')
+    const unlisted = await statuses('mallory@example.com')
+    expect(unlisted).toEqual(listed)
+    expect(listed).toContain(429)
+    expect(listed[0]).toBe(400)
+  } finally {
+    restore()
   }
-  // Each address gets the same run of 400s and then the same 429s.
-  const listed = await statuses('alice@example.com')
-  const unlisted = await statuses('mallory@example.com')
-  expect(unlisted).toEqual(listed)
-  expect(listed).toContain(429)
-  expect(listed[0]).toBe(400)
 })
 
 it('caps the codes mailed to one address per day and one address cannot lock out another', async () => {
-  const mb = mailbox()
-  const { made } = await setup('se-cap@example.com', mb)
-  // Someone hammering one address does not stop a different recipient getting a code.
-  for (let i = 0; i < 8; i++) await grant(mb, made.accessId, { email: 'alice@example.com' })
-  await env.DB.prepare('delete from admin_rate_limits where key like ?').bind('send-otp-ip:%').run()
-  const bob = await grant(mb, made.accessId, { email: 'bob@example.com' })
-  expect(bob.status).toBe(400)
-  expect(mb.sent.some((m) => m.to === 'bob@example.com')).toBe(true)
-  // Alice's per-address window is spent: no further mail even after the resend window.
-  const before = mb.sent.length
-  await env.DB.prepare('update send_email_codes set sent_at = 0').run()
-  await env.DB.prepare('delete from admin_rate_limits where key like ?').bind('send-otp-ip:%').run()
-  const more = await grant(mb, made.accessId, { email: 'alice@example.com' })
-  expect(more.status).toBe(429)
-  expect(mb.sent.length).toBe(before)
+  const restore = freezeRateLimitWindow()
+  try {
+    const mb = mailbox()
+    const { made } = await setup('se-cap@example.com', mb)
+    // Someone hammering one address does not stop a different recipient getting a code.
+    for (let i = 0; i < 8; i++) await grant(mb, made.accessId, { email: 'alice@example.com' })
+    await env.DB.prepare('delete from admin_rate_limits where key like ?')
+      .bind('send-otp-ip:%')
+      .run()
+    const bob = await grant(mb, made.accessId, { email: 'bob@example.com' })
+    expect(bob.status).toBe(400)
+    expect(mb.sent.some((m) => m.to === 'bob@example.com')).toBe(true)
+    // Alice's per-address window is spent: no further mail even after the resend window.
+    const before = mb.sent.length
+    await env.DB.prepare('update send_email_codes set sent_at = 0').run()
+    await env.DB.prepare('delete from admin_rate_limits where key like ?')
+      .bind('send-otp-ip:%')
+      .run()
+    const more = await grant(mb, made.accessId, { email: 'alice@example.com' })
+    expect(more.status).toBe(429)
+    expect(mb.sent.length).toBe(before)
+  } finally {
+    restore()
+  }
 })
 
 it('stops guessing after too many tries across codes', async () => {
@@ -346,26 +365,31 @@ it('answers a code request the same way for any address when mail is not configu
 })
 
 it('limits requests per client address across Sends and addresses', async () => {
-  const mb = mailbox()
-  const { made } = await setup('se-ip@example.com', mb)
-  const ask = (email: string) =>
-    anon(
-      mb,
-      '/identity/connect/token',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          grant_type: 'send_access',
-          client_id: 'send',
-          send_id: made.accessId,
-          email,
-        }).toString(),
-      },
-      '203.0.113.9',
-    )
-  const out: number[] = []
-  for (let i = 0; i < 12; i++) out.push((await ask(`user${i}@example.com`)).status)
-  expect(out.slice(0, 10).every((x) => x === 400)).toBe(true)
-  expect(out.slice(10)).toEqual([429, 429])
+  const restore = freezeRateLimitWindow()
+  try {
+    const mb = mailbox()
+    const { made } = await setup('se-ip@example.com', mb)
+    const ask = (email: string) =>
+      anon(
+        mb,
+        '/identity/connect/token',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            grant_type: 'send_access',
+            client_id: 'send',
+            send_id: made.accessId,
+            email,
+          }).toString(),
+        },
+        '203.0.113.9',
+      )
+    const out: number[] = []
+    for (let i = 0; i < 12; i++) out.push((await ask(`user${i}@example.com`)).status)
+    expect(out.slice(0, 10).every((x) => x === 400)).toBe(true)
+    expect(out.slice(10)).toEqual([429, 429])
+  } finally {
+    restore()
+  }
 })

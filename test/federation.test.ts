@@ -4,6 +4,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import { loadIdentity } from '../src/federation/identity'
 import { signRequest } from '../src/federation/signature'
 import { cipherBody, type Net, pair, twoInstances, type User, userOn } from './federation-helpers'
+import { freezeRateLimitWindow } from './helpers'
 
 let net: Net
 let adminA: User
@@ -507,43 +508,48 @@ describe('federation between two instances', { timeout: 120_000 }, () => {
   })
 
   it('spends the pairing nonce before writing and caps pending peers', async () => {
-    const id = await loadIdentity(net.A.env as never)
-    const url = `${net.B.base}/federation/v1/pair`
-    const body = new TextEncoder().encode(JSON.stringify({ domain: net.A.domain }))
-    const headers = new Headers({ 'content-type': 'application/json' })
-    await signRequest('POST', url, headers, body, id.instanceId, id.privateKey)
-    expect(
-      (await net.B.fetch('/federation/v1/pair', { method: 'POST', headers, body })).status,
-    ).toBe(200)
-    const replay = await net.B.fetch('/federation/v1/pair', { method: 'POST', headers, body })
-    expect(replay.status).toBe(401)
-    // A signed request whose content type was changed after signing is rejected.
-    const h2 = new Headers({ 'content-type': 'application/json' })
-    await signRequest(
-      'POST',
-      `${net.B.base}/federation/v1/ping`,
-      h2,
-      new Uint8Array(),
-      id.instanceId,
-      id.privateKey,
-    )
-    h2.set('content-type', 'text/plain')
-    expect((await net.B.fetch('/federation/v1/ping', { method: 'POST', headers: h2 })).status).toBe(
-      401,
-    )
+    const restore = freezeRateLimitWindow()
+    try {
+      const id = await loadIdentity(net.A.env as never)
+      const url = `${net.B.base}/federation/v1/pair`
+      const body = new TextEncoder().encode(JSON.stringify({ domain: net.A.domain }))
+      const headers = new Headers({ 'content-type': 'application/json' })
+      await signRequest('POST', url, headers, body, id.instanceId, id.privateKey)
+      expect(
+        (await net.B.fetch('/federation/v1/pair', { method: 'POST', headers, body })).status,
+      ).toBe(200)
+      const replay = await net.B.fetch('/federation/v1/pair', { method: 'POST', headers, body })
+      expect(replay.status).toBe(401)
+      // A signed request whose content type was changed after signing is rejected.
+      const h2 = new Headers({ 'content-type': 'application/json' })
+      await signRequest(
+        'POST',
+        `${net.B.base}/federation/v1/ping`,
+        h2,
+        new Uint8Array(),
+        id.instanceId,
+        id.privateKey,
+      )
+      h2.set('content-type', 'text/plain')
+      expect(
+        (await net.B.fetch('/federation/v1/ping', { method: 'POST', headers: h2 })).status,
+      ).toBe(401)
 
-    const db = net.A.env.DB as D1Database
-    for (let i = 0; i < 20; i++) {
-      await db
-        .prepare(
-          "INSERT INTO federation_peers (uuid, instance_id, domain, public_key, fingerprint, protocol_version, status, local_approved, remote_approved, created_at, updated_at) VALUES (?1, ?1, ?2, 'k', 'f', 1, 'pending', 0, 0, 0, 0)",
-        )
-        .bind(crypto.randomUUID(), `p${i}.example.net`)
-        .run()
+      const db = net.A.env.DB as D1Database
+      for (let i = 0; i < 20; i++) {
+        await db
+          .prepare(
+            "INSERT INTO federation_peers (uuid, instance_id, domain, public_key, fingerprint, protocol_version, status, local_approved, remote_approved, created_at, updated_at) VALUES (?1, ?1, ?2, 'k', 'f', 1, 'pending', 0, 0, 0, 0)",
+          )
+          .bind(crypto.randomUUID(), `p${i}.example.net`)
+          .run()
+      }
+      const capped = await adminA.call(`${fed}/admin/peers`, 'POST', { domain: 'more.example.net' })
+      expect(capped.status).toBe(429)
+      await db.prepare("DELETE FROM federation_peers WHERE domain LIKE 'p%.example.net'").run()
+    } finally {
+      restore()
     }
-    const capped = await adminA.call(`${fed}/admin/peers`, 'POST', { domain: 'more.example.net' })
-    expect(capped.status).toBe(429)
-    await db.prepare("DELETE FROM federation_peers WHERE domain LIKE 'p%.example.net'").run()
   })
 
   it('keeps forwarded requests inside the cipher and organisation allowlist', async () => {

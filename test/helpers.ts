@@ -1,6 +1,33 @@
 import { SELF } from 'cloudflare:test'
+import { vi } from 'vitest'
 
 export const BASE = 'https://vault.example.com'
+
+/**
+ * Freezes time to prevent rate limiter window boundary races.
+ * The D1 rate limiter uses fixed 60s windows calculated from Date.now().
+ * Returns a cleanup function to restore real timers.
+ * Preserves JWT validity by setting system time to current moment.
+ */
+export function freezeRateLimitWindow() {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  const now = Date.now()
+  vi.setSystemTime(now)
+  return () => vi.useRealTimers()
+}
+
+/**
+ * Alternative using try/finally for convenience.
+ * Usage: await runWithFrozenTime(async () => { ... test code ... })
+ */
+export async function runWithFrozenTime<T>(fn: () => Promise<T>): Promise<T> {
+  const restore = freezeRateLimitWindow()
+  try {
+    return await fn()
+  } finally {
+    restore()
+  }
+}
 
 export const json = (path: string, body: unknown, init: RequestInit = {}) =>
   SELF.fetch(`${BASE}${path}`, {

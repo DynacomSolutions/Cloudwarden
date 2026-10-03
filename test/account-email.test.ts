@@ -1,7 +1,7 @@
 import { env } from 'cloudflare:workers'
 import { expect, it, vi } from 'vitest'
 import { notifyElapsedRecoveries } from '../src/emergency-sweep'
-import { BASE, createSession, registerBody, registerUser } from './helpers'
+import { BASE, createSession, freezeRateLimitWindow, registerBody, registerUser } from './helpers'
 import { actor, linkParams, type Mailbox, mailbox } from './org-helpers'
 
 const PW = 'client-derived-hash'
@@ -423,24 +423,33 @@ it('delete by email: link erases the account, unknown addresses look the same', 
 })
 
 it('codes: five per hour per account, and spent guesses carry over a reissue', async () => {
-  const mb = mailbox()
-  const s = await createSession('otplim@example.com')
-  for (let i = 0; i < 5; i++) {
+  const restore = freezeRateLimitWindow()
+  try {
+    const mb = mailbox()
+    const s = await createSession('otplim@example.com')
+    for (let i = 0; i < 5; i++) {
+      expect((await call(mb, '/api/accounts/request-otp', { token: s.access_token })).status).toBe(
+        200,
+      )
+    }
     expect((await call(mb, '/api/accounts/request-otp', { token: s.access_token })).status).toBe(
-      200,
+      429,
     )
-  }
-  expect((await call(mb, '/api/accounts/request-otp', { token: s.access_token })).status).toBe(429)
 
-  const s2 = await createSession('otplock@example.com')
-  await call(mb, '/api/accounts/request-otp', { token: s2.access_token })
-  for (let i = 0; i < 5; i++) {
-    await call(null, '/api/accounts/verify-otp', {
-      token: s2.access_token,
-      body: { OTP: '000001' },
-    })
+    const s2 = await createSession('otplock@example.com')
+    await call(mb, '/api/accounts/request-otp', { token: s2.access_token })
+    for (let i = 0; i < 5; i++) {
+      await call(null, '/api/accounts/verify-otp', {
+        token: s2.access_token,
+        body: { OTP: '000001' },
+      })
+    }
+    expect((await call(mb, '/api/accounts/request-otp', { token: s2.access_token })).status).toBe(
+      429,
+    )
+  } finally {
+    restore()
   }
-  expect((await call(mb, '/api/accounts/request-otp', { token: s2.access_token })).status).toBe(429)
 })
 
 it('new device: a locked-out account gets a clear refusal, not another code', async () => {

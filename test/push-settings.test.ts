@@ -7,7 +7,7 @@ import {
   validateRelayUri,
 } from '../src/notifications/push-config'
 import { relayStatus, resolveRelay } from '../src/notifications/relay'
-import { authed, createSession, withEnv } from './helpers'
+import { authed, createSession, freezeRateLimitWindow, withEnv } from './helpers'
 
 const P = '/api/cloudwarden/admin/push-settings'
 const KEY = 'super-secret-installation-key-0123456789'
@@ -172,11 +172,16 @@ describe('relay hardening', () => {
   })
 
   it('rate limits saves per admin', async () => {
-    const admin = await person(true)
-    const codes: number[] = []
-    for (let i = 0; i < 7; i++) codes.push((await save(admin)).status)
-    expect(codes[4]).toBe(200)
-    expect(codes[6]).toBe(429)
+    const restore = freezeRateLimitWindow()
+    try {
+      const admin = await person(true)
+      const codes: number[] = []
+      for (let i = 0; i < 7; i++) codes.push((await save(admin)).status)
+      expect(codes[4]).toBe(200)
+      expect(codes[6]).toBe(429)
+    } finally {
+      restore()
+    }
   })
 
   it('pages through every device and does not overlap runs', async () => {
@@ -335,11 +340,16 @@ describe('push settings API', () => {
   })
 
   it('rate limits the test endpoint', async () => {
-    const admin = await person(true)
-    const codes: number[] = []
-    for (let i = 0; i < 7; i++) codes.push((await admin.call(`${P}/test`, 'POST')).status)
-    expect(codes.slice(0, 5)).toEqual([200, 200, 200, 200, 200])
-    expect(codes[6]).toBe(429)
+    const restore = freezeRateLimitWindow()
+    try {
+      const admin = await person(true)
+      const codes: number[] = []
+      for (let i = 0; i < 7; i++) codes.push((await admin.call(`${P}/test`, 'POST')).status)
+      expect(codes.slice(0, 5)).toEqual([200, 200, 200, 200, 200])
+      expect(codes[6]).toBe(429)
+    } finally {
+      restore()
+    }
   })
 
   it('registers existing mobile devices again when credentials change', async () => {

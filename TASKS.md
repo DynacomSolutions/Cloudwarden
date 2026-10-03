@@ -230,6 +230,20 @@ See `docs/sso.md`. Bitwarden's SSO server and SSO settings screens are Bitwarden
 
 ---
 
+## Phase 15: Final parity gaps
+
+| # | Task | Status | Owner | Acceptance |
+|---|---|---|---|---|
+| 340 | `POST /api/accounts/key-connector/enroll`: a member of a Key Connector organisation sends `keyConnectorKeyWrappedUserKey`; master password removed, owners and admins with one refused, audit event | done | agent | `test/parity-last.test.ts` |
+| 341 | `PUT` (and `POST`) `/api/devices/identifier/{id}/clear-token`, sharing the token logic of `devices.ts` and the relay deregistration | done | agent | `test/parity-last.test.ts` |
+| 342 | Real Web Push: VAPID key pair generated once (private key sealed in instance settings), `push: {pushTechnology: 1, vapidPublicKey}` in `/api/config`, `POST` and `PUT` `/api/devices/identifier/{id}/web-push-auth` (migration `0022`), RFC 8291 and RFC 8292 delivery from `pushUserUpdate` and `pushLogOut`, SSRF-safe (known push services, https, no redirects, 404 and 410 remove the subscription), instance admin switch at `/api/cloudwarden/admin/web-push` (default on; the Angular page has no switch yet) | done | agent | RFC 8291 test vector, delivery tests in `test/parity-last.test.ts`; `docs/push-notifications.md` |
+| 343 | `GET /api/organizations/{id}/public-key` for confirmed members | done | agent | `test/parity-last.test.ts` |
+| 344 | Organisation connections as a self-hosted server without cloud communication: `enabled` is false, create 400, update and delete 404, read 204 (matrix: self-host) | done | agent | `test/parity-last.test.ts`, `test/self-host-routes.test.ts` |
+| 345 | `GET /api/sso-cookie-vendor` for reverse proxy deployments (`SSO_COOKIE_VENDOR_COOKIE_NAME`), 404 when not configured | done | agent | `test/parity-last.test.ts`; `docs/sso.md` |
+| 346 | `/identity/sso/Login`, `ExternalChallenge`, `ExternalCallback` mapped onto the existing SSO flow, all hardening kept (own-origin return URL only) | done | agent | whole login and hardening tests in `test/parity-last.test.ts` |
+| 347 | `/api/push/*` and `/api/installations*` marked not applicable in the parity matrix (relay side endpoints of Bitwarden's cloud push relay; this server is a relay client) | done | agent | `docs/parity/notes.tsv` |
+| 348 | Parity generator: detect routes registered in computed method and path loops (`providers.ts`, `self-host-billing.ts`); regenerate `docs/parity-matrix.md` | done | agent | `node scripts/parity-matrix.mjs`: no client-called row missing outside the open integrations, import and deletion rows of PR 44 |
+
 ## Evidence log
 
 Newest first. One line per verified fact.
@@ -279,3 +293,4 @@ Newest first. One line per verified fact.
 - 2026-10-01 · #84 · `purgeExpired(env)` runs from the `scheduled` handler (hourly cron in `cloudflare.config.ts`): Sends past deletion date, abandoned uploads older than 24 hours, and one page of orphaned R2 objects per run with a cursor kept in the bucket.
 - 2026-10-01 · #100 to #103 · Local: 207 tests; lint, typecheck, identifier check and tests green (hub JSON and MessagePack handshakes, push delivery, device exclusion, user isolation, invalid token, stamp rotation with socket close, login-with-device flow, decoy requests, parser hardening). Wire contract checked against the bitwarden/clients notification types and auth request models.
 - 2026-10-02 · #250-#254 · Branch `feat/parity-sends-archive`: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm check:identifiers`, `pnpm lint:api` green; migration `0013_sends_archive_favorites` adds `ciphers.archived_at`, `sends.emails`, `cipher_user_state` and `send_email_codes`. The route diff of `docs/api/openapi.yaml` against the Hono routes leaves no unserved operation in the ciphers, folders, sends, sync and attachments areas.
+- 2026-10-03 · #340 to #348 · Branch `feat/parity-last`: `pnpm lint`, `pnpm typecheck`, `pnpm test:scripts` (84), `pnpm check:identifiers`, `pnpm lint:api` and the full `pnpm test` (71 files, 810 tests, `--maxWorkers=2`) green; `test/parity-last.test.ts` has 27 tests including the RFC 8291 appendix A vector. Migration `0022_web_push_subscriptions` is chained after PR 44's `0021` (the journal is contiguous and `db:generate` is drift free only once PR 44 is on the branch). Matrix: 625 rows, 509 implemented or self-host, 7 not applicable, 92 not called, 17 open rows all owned by PR 44 (import, deletion by email, integrations). The upstream wording of the connections 400 messages and the cookie vendor behaviour are from memory of the official server, not a recorded session.

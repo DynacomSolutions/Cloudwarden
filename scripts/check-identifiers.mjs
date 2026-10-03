@@ -81,6 +81,11 @@ const DOMAIN_ALLOWLIST = new Set([
   'mozilla.org',
   'ietf.org',
   'rfc-editor.org',
+  // Web push services (src/notifications/webpush.ts)
+  'googleapis.com',
+  'mozilla.com',
+  'apple.com',
+  'windows.com',
 ])
 
 // Allowed special IPs and subnets

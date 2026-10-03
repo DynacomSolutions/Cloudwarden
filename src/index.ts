@@ -33,6 +33,7 @@ import { orgAuthRequests } from './routes/org-auth-requests'
 import { orgCiphers } from './routes/org-ciphers'
 import { orgDeleteRecover } from './routes/org-delete-recover'
 import { orgImport } from './routes/org-import'
+import { orgConnections } from './routes/org-connections'
 import { orgIntegrations } from './routes/org-integrations'
 import { orgIntegrationsApi } from './routes/org-integrations-api'
 import { orgSettings } from './routes/org-settings'
@@ -120,6 +121,8 @@ app.route('/', orgIntegrations)
 // Portal (TASKS #231). Literal paths only, so the order relative to the organisation routers is free.
 app.route('/', selfHostBilling)
 app.route('/', providers)
+// Organisation connections: literal `connections` paths, answered like a server without cloud links.
+app.route('/', orgConnections)
 app.route('/', organizations)
 // Before orgUsers: `users/account-recovery-details` must not be read as a member id.
 app.route('/', accountRecovery)

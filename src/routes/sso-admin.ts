@@ -936,6 +936,63 @@ ssoAccounts.post('/api/accounts/convert-to-key-connector', requireAuth, async (c
   return c.body(null, 200)
 })
 
+/**
+ * `POST accounts/key-connector/enroll`: an existing member of a Key Connector organisation (for
+ * example one that unlocked with a trusted device) moves to the Key Connector. The client has
+ * already stored a fresh master key there and sends the user key wrapped with it. Any master
+ * password is removed because it no longer unlocks the account; owners and administrators with a
+ * master password keep it, as for `convert-to-key-connector`.
+ */
+ssoAccounts.post('/api/accounts/key-connector/enroll', requireAuth, async (c) => {
+  const body = await parseBody(
+    c,
+    z.object({ keyConnectorKeyWrappedUserKey: z.string().min(1).max(10_000) }),
+  )
+  const db = createDb(c.env.DB)
+  const user = c.var.user
+  if (user.usesKeyConnector) throw new ApiError(400, 'This account already uses Key Connector.')
+  const rows = await db
+    .select({ m: schema.usersOrganizations, cfg: schema.ssoConfigs })
+    .from(schema.usersOrganizations)
+    .innerJoin(
+      schema.ssoConfigs,
+      eq(schema.ssoConfigs.organizationUuid, schema.usersOrganizations.organizationUuid),
+    )
+    .where(
+      and(
+        eq(schema.usersOrganizations.userUuid, user.uuid),
+        eq(schema.ssoConfigs.enabled, true),
+        ne(schema.usersOrganizations.status, Status.Revoked),
+      ),
+    )
+  const kcRows = rows.filter(
+    (r) => parseConfigData(r.cfg).memberDecryptionType === MemberDecryptionType.KeyConnector,
+  )
+  if (kcRows.length === 0) throw new ApiError(400, 'None of your organizations use Key Connector.')
+  const hasPassword = hasMasterPassword(user)
+  if (hasPassword && kcRows.some((r) => isAdminRole(r.m)))
+    throw new ApiError(400, 'Owners and administrators keep their master password.')
+  await batch(db, [
+    db
+      .update(schema.users)
+      .set({
+        akey: body.keyConnectorKeyWrappedUserKey,
+        passwordHash: '',
+        salt: '',
+        passwordIterations: 0,
+        passwordHint: null,
+        usesKeyConnector: true,
+        updatedAt: Date.now(),
+      })
+      .where(and(eq(schema.users.uuid, user.uuid), eq(schema.users.usesKeyConnector, false))),
+    eventStatement(db, c, {
+      type: SsoEventType.UserMigratedKeyToKeyConnector,
+      userUuid: user.uuid,
+    }),
+  ])
+  return c.body(null, 200)
+})
+
 ssoAccounts.get(
   '/api/accounts/key-connector/confirmation-details/:identifier',
   requireAuth,

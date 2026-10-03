@@ -1,7 +1,7 @@
 import { and, eq, inArray } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { z } from 'zod'
-import { fromB64u } from '../auth/crypto'
+import { fromB64u, toB64u } from '../auth/crypto'
 import { requireAuth } from '../auth/middleware'
 import { verifyMasterPassword } from '../auth/passwords'
 import { findUserByEmail } from '../auth/users'
@@ -10,6 +10,7 @@ import { later } from '../email/send'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
 import { relayDeleteDevice, relayRegisterDevice } from '../notifications/relay'
+import { validatePushEndpoint, validateSubscriptionKeys } from '../notifications/webpush'
 import { rateLimit } from '../ratelimit'
 import { hasMasterPassword, isTrustedDevice } from '../sso/decryption'
 import { parseBody } from '../validation'
@@ -87,12 +88,17 @@ devices.get('/api/devices/identifier/:identifier', requireAuth, async (c) =>
 )
 
 const tokenSchema = z.object({ pushToken: z.string().nullish() })
-const setToken = async (c: import('hono').Context<Env>) => {
-  const { pushToken } = await parseBody(c, tokenSchema)
+
+/** Stores (or, with null, clears) the mobile push token of one of the caller's devices. */
+const storeToken = async (
+  c: import('hono').Context<Env>,
+  pushToken: string | null,
+  status: 200 | 204 = 204,
+) => {
   const row = await ownDevice(c, eq(schema.devices.identifier, c.req.param('identifier') ?? ''))
   await createDb(c.env.DB)
     .update(schema.devices)
-    .set({ pushToken: pushToken ?? null, updatedAt: Date.now() })
+    .set({ pushToken, updatedAt: Date.now() })
     .where(eq(schema.devices.uuid, row.uuid))
   // Mobile devices tell the relay where to push; clearing the token removes the registration.
   later(
@@ -101,14 +107,56 @@ const setToken = async (c: import('hono').Context<Env>) => {
       uuid: row.uuid,
       identifier: row.identifier,
       type: row.type,
-      pushToken: pushToken ?? null,
+      pushToken,
       userUuid: row.userUuid,
     }),
   )
-  return c.body(null, 204)
+  return c.body(null, status)
 }
+const setToken = async (c: import('hono').Context<Env>) =>
+  storeToken(c, (await parseBody(c, tokenSchema)).pushToken ?? null)
 devices.put('/api/devices/identifier/:identifier/token', requireAuth, setToken)
 devices.post('/api/devices/identifier/:identifier/token', requireAuth, setToken)
+
+/** `PUT devices/identifier/{identifier}/clear-token`: forget the push token (sign-out, push off). */
+const clearToken = (c: import('hono').Context<Env>) => storeToken(c, null, 200)
+devices.put('/api/devices/identifier/:identifier/clear-token', requireAuth, clearToken)
+devices.post('/api/devices/identifier/:identifier/clear-token', requireAuth, clearToken)
+
+// Web Push subscription of a browser (TASKS #342): endpoint plus the P-256 key and auth secret.
+const webPushSchema = z.object({
+  endpoint: z.string().min(1).max(2048),
+  p256dh: z.string().min(1).max(256),
+  auth: z.string().min(1).max(256),
+})
+const setWebPushAuth = async (c: import('hono').Context<Env>) => {
+  const body = await parseBody(c, webPushSchema)
+  const row = await ownDevice(c, eq(schema.devices.identifier, c.req.param('identifier') ?? ''))
+  const endpoint = validatePushEndpoint(body.endpoint)
+  if (!endpoint) {
+    throw new ApiError(400, 'The push endpoint is not supported.', {
+      endpoint: ['The push endpoint is not supported.'],
+    })
+  }
+  if (!validateSubscriptionKeys(body.p256dh, body.auth)) {
+    throw new ApiError(400, 'The push subscription keys are not valid.', {
+      p256dh: ['The push subscription keys are not valid.'],
+    })
+  }
+  await createDb(c.env.DB)
+    .update(schema.devices)
+    .set({
+      webPushEndpoint: endpoint,
+      // Stored as unpadded base64url whichever alphabet the client used.
+      webPushP256dh: toB64u(fromB64u(body.p256dh) as Uint8Array),
+      webPushAuth: toB64u(fromB64u(body.auth) as Uint8Array),
+      updatedAt: Date.now(),
+    })
+    .where(eq(schema.devices.uuid, row.uuid))
+  return c.body(null, 200)
+}
+devices.put('/api/devices/identifier/:identifier/web-push-auth', requireAuth, setWebPushAuth)
+devices.post('/api/devices/identifier/:identifier/web-push-auth', requireAuth, setWebPushAuth)
 
 const deactivate = async (c: import('hono').Context<Env>) => {
   const row = await ownDevice(c, eq(schema.devices.uuid, c.req.param('id') ?? ''))

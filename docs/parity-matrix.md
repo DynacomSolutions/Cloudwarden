@@ -18,7 +18,8 @@ Every HTTP call to a Bitwarden server made by the official clients, read from GP
 Status is derived from the routes registered under `src/`. **implemented** means a real handler;
 **self-host** means the endpoint answers with the self-hosted behaviour of the official server (no
 billing provider, no Provider Portal), so clients never see an error page; **not called** means only
-the generated SDK client has the operation and no GPL client calls it; **not applicable** means the official self-hosted server does not expose it either.
+the generated SDK client has the operation and no GPL client calls it; **not applicable** means the endpoint is not served by the official self-hosted server either (for example the
+relay side endpoints of Bitwarden's cloud push relay, which this server calls as a client).
 
 Owners: A push relay and account emails; B Sends, archive, favourites; C account recovery and device
 approvals; D Duo, YubiKey, Secrets Manager history and import or export, importer, alias forwarders,
@@ -30,10 +31,11 @@ Directory Connector, SCIM, event integrations; G this audit.
 | | Rows |
 |---|---|
 | Distinct method and path pairs | 625 |
-| Implemented (including self-host answers) | 512 |
-| Owned by workstreams A to F, not yet implemented | 19 |
+| Implemented (including self-host answers) | 526 |
+| Owned by workstreams A to F, not yet implemented | 0 |
 | Remaining for G | 0 |
 | Not called by any client (SDK-generated only) | 92 |
+| Not applicable (not served by the official self-hosted server either) | 7 |
 
 ## Matrix
 
@@ -90,7 +92,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/api/accounts/email-token` | sdk, web | implemented |  |  |
 | POST | `/api/accounts/kdf` | android, ios, sdk | implemented |  |  |
 | GET | `/api/accounts/key-connector/confirmation-details/{orgId}` | sdk, web | implemented | E |  |
-| POST | `/api/accounts/key-connector/enroll` | sdk | missing | E | Open: SSO federation, Key Connector and trusted device follow-ups (open PRs) |
+| POST | `/api/accounts/key-connector/enroll` | sdk | implemented | E | Joins an SSO member without a master password to the Key Connector (TASKS #340) |
 | GET | `/api/accounts/key-management/key-rotation-data` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | POST | `/api/accounts/key-management/regenerate-keys` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | POST | `/api/accounts/key-management/rotate-user-account-keys` | sdk, web | implemented |  |  |
@@ -213,10 +215,10 @@ Directory Connector, SCIM, event integrations; G this audit.
 | PUT | `/api/devices/{deviceIdentifier}/keys` | android, ios, sdk, web | implemented | E |  |
 | POST | `/api/devices/{deviceIdentifier}/retrieve-keys` | web | implemented | E |  |
 | GET | `/api/devices/identifier/{deviceIdentifier}` | ios, sdk, web | implemented |  |  |
-| PUT | `/api/devices/identifier/{id}/clear-token` | sdk | missing | E | Open: SSO federation, Key Connector and trusted device follow-ups (open PRs) |
+| PUT | `/api/devices/identifier/{id}/clear-token` | sdk | implemented | E | Clears the push token and the relay registration (TASKS #341) |
 | PUT | `/api/devices/identifier/{id}/token` | android, ios, sdk | implemented |  |  |
-| POST | `/api/devices/identifier/{getAppId}/web-push-auth` | web | missing | A | Open: push relay registration and web push settings (PR for push settings) |
-| PUT | `/api/devices/identifier/{id}/web-push-auth` | sdk | missing | A | Open: push relay registration and web push settings (PR for push settings) |
+| POST | `/api/devices/identifier/{getAppId}/web-push-auth` | web | implemented | A | Stores the browser Web Push subscription; https endpoints of known push services only (TASKS #342) |
+| PUT | `/api/devices/identifier/{id}/web-push-auth` | sdk | implemented | A | Same handler as the POST (TASKS #342) |
 | GET | `/api/devices/knowndevice` | android, ios, sdk, web | implemented |  |  |
 | POST | `/api/devices/lost-trust` | sdk, web | implemented | E |  |
 | POST | `/api/devices/untrust` | sdk, web | implemented | E |  |
@@ -247,8 +249,8 @@ Directory Connector, SCIM, event integrations; G this audit.
 | PUT | `/api/folders/{id}` | android, cli, ios, sdk, web | implemented |  |  |
 | DELETE | `/api/folders/all` | sdk, web | implemented |  |  |
 | GET | `/api/hibp/breach` | sdk, web | implemented |  |  |
-| POST | `/api/installations` | sdk | not applicable | - | Cloud service only: the official server registers installation ids on its hosted cloud (not self-hosted), so a self-hosted server does not expose it. Push relay credentials are Worker secrets (docs/push-notifications.md) |
-| GET | `/api/installations/{id}` | sdk | not applicable | - | Cloud service only: see POST /api/installations |
+| POST | `/api/installations` | sdk | not applicable | - | Relay-side endpoint of the Bitwarden cloud push relay. This server is a relay client (it calls these endpoints, see docs/push-notifications.md) and never serves them |
+| GET | `/api/installations/{id}` | sdk | not applicable | - | Relay-side endpoint of the Bitwarden cloud push relay. This server is a relay client (it calls these endpoints, see docs/push-notifications.md) and never serves them |
 | POST | `/api/leases/{id}/extend` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | POST | `/api/leases/{id}/revoke` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | GET | `/api/leases/active` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
@@ -410,7 +412,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/organizations/{id}/private-key` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | GET | `/api/organizations/{orgId}/projects` | bws, web | implemented |  |  |
 | POST | `/api/organizations/{orgId}/projects` | bws, web | implemented |  |  |
-| GET | `/api/organizations/(id)/public-key` | ios, sdk | missing | C | Open: account recovery and device approvals (workstream C) |
+| GET | `/api/organizations/(id)/public-key` | ios, sdk | implemented | C | Organisation public key for confirmed members (TASKS #343) |
 | POST | `/api/organizations/{id}/reinstate` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | POST | `/api/organizations/{id}/rotate-api-key` | sdk, web | implemented | F |  |
 | POST | `/api/organizations/{id}/seat` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
@@ -466,11 +468,11 @@ Directory Connector, SCIM, event integrations; G this audit.
 | PUT | `/api/organizations/{orgId}/users/revoke-self` | android, ios, sdk, web | implemented |  |  |
 | POST | `/api/organizations/{id}/users/send-invite` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | POST | `/api/organizations/billing/subscription/purchase/preview` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/organizations/connections/` | sdk, web | missing | F | Owner decision needed: organisation connections link a self-hosted server to the cloud (billing sync, SCIM or Directory Connector keys); no cloud exists for this server |
-| DELETE | `/api/organizations/connections/{id}` | sdk, web | missing | F | Owner decision needed: organisation connections link a self-hosted server to the cloud (billing sync, SCIM or Directory Connector keys); no cloud exists for this server |
-| PUT | `/api/organizations/connections/{orgId}` | sdk, web | missing | F | Owner decision needed: organisation connections link a self-hosted server to the cloud (billing sync, SCIM or Directory Connector keys); no cloud exists for this server |
-| GET | `/api/organizations/connections/{id}/{type}` | sdk, web | missing | F | Owner decision needed: organisation connections link a self-hosted server to the cloud (billing sync, SCIM or Directory Connector keys); no cloud exists for this server |
-| GET | `/api/organizations/connections/enabled` | sdk, web | missing | F | Owner decision needed: organisation connections link a self-hosted server to the cloud (billing sync, SCIM or Directory Connector keys); no cloud exists for this server |
+| POST | `/api/organizations/connections/` | sdk, web | self-host | G | Self-hosted answer of the official server with cloud communication disabled: the probe says false, writes answer 400 (create) or 404 (update, delete), there is never a connection to read (TASKS #344) |
+| DELETE | `/api/organizations/connections/{id}` | sdk, web | self-host | G | Self-hosted answer of the official server with cloud communication disabled: the probe says false, writes answer 400 (create) or 404 (update, delete), there is never a connection to read (TASKS #344) |
+| PUT | `/api/organizations/connections/{orgId}` | sdk, web | self-host | G | Self-hosted answer of the official server with cloud communication disabled: the probe says false, writes answer 400 (create) or 404 (update, delete), there is never a connection to read (TASKS #344) |
+| GET | `/api/organizations/connections/{id}/{type}` | sdk, web | self-host | G | Self-hosted answer of the official server with cloud communication disabled: the probe says false, writes answer 400 (create) or 404 (update, delete), there is never a connection to read (TASKS #344) |
+| GET | `/api/organizations/connections/enabled` | sdk, web | self-host | G | Self-hosted answer of the official server with cloud communication disabled: the probe says false, writes answer 400 (create) or 404 (update, delete), there is never a connection to read (TASKS #344) |
 | POST | `/api/organizations/create-without-payment` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/domain/sso/verified` | android, ios, sdk, web | implemented | E |  |
 | GET | `/api/organizations/integrations/slack/create` | sdk | implemented | F | Answers 400: no Slack app is configured on this server |
@@ -535,11 +537,11 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/api/providers/{providerId}/users/invite` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
 | POST | `/api/providers/{providerId}/users/public-keys` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
 | POST | `/api/providers/{providerId}/users/reinvite` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
-| PUT | `/api/push/add-organization` | sdk | missing | A | Open: push relay registration and web push settings (PR for push settings) |
-| POST | `/api/push/delete` | sdk | missing | A | Open: push relay registration and web push settings (PR for push settings) |
-| PUT | `/api/push/delete-organization` | sdk | missing | A | Open: push relay registration and web push settings (PR for push settings) |
-| POST | `/api/push/register` | sdk | missing | A | Open: push relay registration and web push settings (PR for push settings) |
-| POST | `/api/push/send` | sdk | missing | A | Open: push relay registration and web push settings (PR for push settings) |
+| PUT | `/api/push/add-organization` | sdk | not applicable | - | Relay-side endpoint of the Bitwarden cloud push relay. This server is a relay client (it calls these endpoints, see docs/push-notifications.md) and never serves them |
+| POST | `/api/push/delete` | sdk | not applicable | - | Relay-side endpoint of the Bitwarden cloud push relay. This server is a relay client (it calls these endpoints, see docs/push-notifications.md) and never serves them |
+| PUT | `/api/push/delete-organization` | sdk | not applicable | - | Relay-side endpoint of the Bitwarden cloud push relay. This server is a relay client (it calls these endpoints, see docs/push-notifications.md) and never serves them |
+| POST | `/api/push/register` | sdk | not applicable | - | Relay-side endpoint of the Bitwarden cloud push relay. This server is a relay client (it calls these endpoints, see docs/push-notifications.md) and never serves them |
+| POST | `/api/push/send` | sdk | not applicable | - | Relay-side endpoint of the Bitwarden cloud push relay. This server is a relay client (it calls these endpoints, see docs/push-notifications.md) and never serves them |
 | GET | `/api/reports/member-access/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | GET | `/api/reports/member-cipher-details/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | POST | `/api/reports/organizations/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
@@ -607,7 +609,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/sm/{id}/export` | sdk | implemented | D | Open: Secrets Manager versions, import and export (workstream D, open PR) |
 | POST | `/api/sm/{id}/import` | sdk | implemented | D | Open: Secrets Manager versions, import and export (workstream D, open PR) |
 | GET | `/api/sm/events/service-accounts/{id}` | sdk | implemented |  |  |
-| GET | `/api/sso-cookie-vendor` | sdk | missing | E | Open: SSO federation, Key Connector and trusted device follow-ups (open PRs) |
+| GET | `/api/sso-cookie-vendor` | sdk | implemented | E | Confirms the reverse proxy session cookie; 404 unless SSO_COOKIE_VENDOR_COOKIE_NAME is set (TASKS #345) |
 | GET | `/api/sync` | android, ios, sdk, web | implemented |  |  |
 | GET | `/api/tasks` | sdk, web | implemented |  |  |
 | POST | `/api/tasks/{id}/bulk-create` | sdk | implemented |  |  |
@@ -657,9 +659,9 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/identity/alive` | sdk | implemented |  |  |
 | GET | `/identity/connect/authorize` | web | implemented | E |  |
 | POST | `/identity/connect/token` | android, bws, cli, ios, web | implemented |  |  |
-| GET | `/identity/sso/ExternalCallback` | sdk | missing | E | Open: SSO federation, Key Connector and trusted device follow-ups (open PRs) |
-| GET | `/identity/sso/ExternalChallenge` | sdk | missing | E | Open: SSO federation, Key Connector and trusted device follow-ups (open PRs) |
-| GET | `/identity/sso/Login` | sdk | missing | E | Open: SSO federation, Key Connector and trusted device follow-ups (open PRs) |
+| GET | `/identity/sso/ExternalCallback` | sdk | implemented | E | Maps onto the authorize and callback flow with all SSO hardening (TASKS #346) |
+| GET | `/identity/sso/ExternalChallenge` | sdk | implemented | E | Maps onto the authorize and callback flow with all SSO hardening (TASKS #346) |
+| GET | `/identity/sso/Login` | sdk | implemented | E | Maps onto the authorize and callback flow with all SSO hardening (TASKS #346) |
 | GET | `/identity/sso/prevalidate` | android, ios, sdk, web | implemented | E |  |
 | GET | `/notifications/anonymous-hub` | web | implemented |  |  |
 | GET | `/notifications/hub` | web | implemented |  |  |

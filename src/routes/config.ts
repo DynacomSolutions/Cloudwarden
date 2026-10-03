@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import type { Env } from '../env'
+import { advertisedVapidKey } from '../notifications/webpush'
 
 export const config = new Hono<Env>()
 
@@ -24,7 +25,9 @@ export const FEATURE_STATES: Record<string, boolean | number | string> = {
   'pm-39601-invite-link-notification': true,
 }
 
-config.get('/api/config', (c) => {
+config.get('/api/config', async (c) => {
+  // Web push (TASKS #342): advertised once the instance has a VAPID key and the admin allows it.
+  const vapidPublicKey = await advertisedVapidKey(c.env)
   const base = c.env.DOMAIN.replace(/\/+$/, '')
   return c.json({
     object: 'config',
@@ -40,7 +43,7 @@ config.get('/api/config', (c) => {
       sso: `${base}/sso`,
     },
     featureStates: FEATURE_STATES,
-    push: { pushTechnology: 0 },
+    push: vapidPublicKey ? { pushTechnology: 1, vapidPublicKey } : { pushTechnology: 0 },
     settings: { disableUserRegistration: c.env.SIGNUPS_ALLOWED !== 'true' },
   })
 })

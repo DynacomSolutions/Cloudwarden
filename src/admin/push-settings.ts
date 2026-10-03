@@ -12,6 +12,7 @@ import {
   savePushStatements,
 } from '../notifications/push-config'
 import { relayReregisterAll, relayStatus } from '../notifications/relay'
+import { loadWebPush, setWebPushEnabled } from '../notifications/webpush'
 import { AdminEventType, type Audit, auditStatement } from './service'
 
 const REGIONS = ['us', 'eu', 'custom']
@@ -97,4 +98,32 @@ export async function deletePushSettings(env: Bindings, audit: Audit) {
   ])
   invalidatePushConfig()
   return pushSettingsView(env)
+}
+
+// ----- Browser web push (TASKS #342) -----
+
+/** Web push state for the instance admin: the switch, whether the key opened, and subscribers. */
+export async function webPushView(env: Bindings) {
+  const state = await loadWebPush(env, { create: true })
+  const row = await env.DB.prepare(
+    'SELECT COUNT(*) AS n FROM devices WHERE web_push_endpoint IS NOT NULL',
+  ).first<{ n: number }>()
+  return {
+    // Off by default only when an admin turned it off; a key that cannot be opened reads as off.
+    enabled: state?.enabled ?? false,
+    // False when the stored key cannot be opened (the encryption key changed).
+    available: state !== null,
+    publicKey: state?.publicKey ?? null,
+    subscriptions: row?.n ?? 0,
+  }
+}
+
+export async function saveWebPush(env: Bindings, raw: unknown, audit: Audit) {
+  const b = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
+  if (typeof b.enabled !== 'boolean') throw fieldError('enabled', 'Enabled must be true or false.')
+  if (!(await setWebPushEnabled(env, b.enabled))) {
+    throw new ApiError(409, 'The stored web push key cannot be opened.')
+  }
+  await env.DB.batch([auditStatement(env.DB, audit, AdminEventType.WebPushSettingsUpdated)])
+  return webPushView(env)
 }

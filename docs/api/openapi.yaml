@@ -254,6 +254,28 @@ paths:
           $ref: '#/components/responses/Unauthorized'
       x-source-version: web-v2026.9.1
       x-source-file: libs/common/src/auth/services/change-email/default-change-email.service.ts
+  /api/accounts/key-connector/enroll:
+    post:
+      tags:
+      - Accounts
+      operationId: enrollToKeyConnector
+      summary: Move the account to Key Connector
+      description: A member of an organization that decrypts with Key Connector sends the user key wrapped with the key stored at the Key Connector. Any master password is removed; owners and administrators with a master password are refused.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KeyConnectorEnrollmentRequest'
+      responses:
+        '200':
+          description: Success, empty body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/accounts_key_management_api.rs
   /api/accounts/kdf:
     post:
       tags:
@@ -2283,6 +2305,28 @@ paths:
           $ref: '#/components/responses/NotFound'
       x-source-version: web-v2026.9.1
       x-source-file: libs/common/src/auth/services/devices-api.service.implementation.ts
+  /api/devices/identifier/{deviceIdentifier}/clear-token:
+    put:
+      tags:
+      - Devices
+      operationId: clearDeviceToken
+      summary: Clear the push token of a device
+      description: Also accepted as POST.
+      parameters:
+      - name: deviceIdentifier
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success, empty body.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/devices_api.rs
   /api/devices/identifier/{deviceIdentifier}/web-push-auth:
     post:
       tags:
@@ -2312,6 +2356,35 @@ paths:
           $ref: '#/components/responses/NotFound'
       x-source-version: web-v2026.9.1
       x-source-file: libs/common/src/platform/server-notifications/internal/web-push-notifications-api.service.ts
+    put:
+      tags:
+      - Devices
+      operationId: putWebPushAuth
+      summary: Register a web push subscription
+      description: Same as the POST the web vault sends. The endpoint must be an https URL of a known push service (FCM, Mozilla autopush, Apple web push, WNS); `p256dh` is the 65 byte uncompressed P-256 key and `auth` the 16 byte secret, both base64url.
+      parameters:
+      - name: deviceIdentifier
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebPushRequest'
+      responses:
+        '200':
+          description: Success, empty body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/devices_api.rs
   /api/devices/knowndevice:
     get:
       tags:
@@ -3006,6 +3079,145 @@ paths:
           $ref: '#/components/responses/Forbidden'
       x-source-version: web-v2026.9.1
       x-source-file: libs/common/src/services/api.service.ts
+  /api/organizations/{id}/public-key:
+    get:
+      tags:
+      - Organizations
+      operationId: getOrganizationPublicKey
+      summary: Get the organization public key
+      description: Readable by confirmed members of the organization.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationPublicKeyResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/organizations_api.rs
+  /api/organizations/connections/enabled:
+    get:
+      tags:
+      - Organizations
+      operationId: getOrganizationConnectionsEnabled
+      summary: Whether cloud communication (organization connections) is enabled
+      description: 'A bare JSON boolean. Always false: this server never communicates with a cloud billing service, like a self-hosted upstream server with cloud communication disabled.'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: boolean
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/organization_connections_api.rs
+  /api/organizations/connections:
+    post:
+      tags:
+      - Organizations
+      operationId: createOrganizationConnection
+      summary: Create an organization connection
+      description: 'Always refused with 400. Callers that are not an owner (or SCIM manager for type 2) get "Only the owner of an organization can create a connection."; everyone else gets "Cloud communication is disabled."'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationConnectionRequest'
+      responses:
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/organization_connections_api.rs
+  /api/organizations/connections/{id}:
+    put:
+      tags:
+      - Organizations
+      operationId: updateOrganizationConnection
+      summary: Update an organization connection
+      description: There are never connections, so this is always 404.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationConnectionRequest'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/organization_connections_api.rs
+    delete:
+      tags:
+      - Organizations
+      operationId: deleteOrganizationConnection
+      summary: Delete an organization connection
+      description: There are never connections, so this is always 404.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/organization_connections_api.rs
+  /api/organizations/connections/{organizationId}/{type}:
+    get:
+      tags:
+      - Organizations
+      operationId: getOrganizationConnection
+      summary: Get an organization connection by type
+      description: 'Empty 204 for confirmed members (there is never a connection); 400 "Only the owner of an organization can view a connection." for others.'
+      parameters:
+      - name: organizationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: type
+        in: path
+        required: true
+        schema:
+          type: integer
+          description: 1 cloud billing sync, 2 SCIM.
+      responses:
+        '204':
+          description: No connection of that type, empty body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/organization_connections_api.rs
   /api/organizations/{id}/keys:
     get:
       tags:
@@ -4716,6 +4928,29 @@ paths:
           $ref: '#/components/responses/Unauthorized'
       x-source-version: web-v2026.9.1
       x-source-file: libs/common/src/services/api.service.ts
+  /api/sso-cookie-vendor:
+    get:
+      tags:
+      - Identity
+      operationId: ssoCookieVendor
+      summary: Confirm the reverse proxy session cookie
+      description: For deployments where a reverse proxy authenticates users before the vault. 404 unless `SSO_COOKIE_VENDOR_COOKIE_NAME` is set. With it set, 200 (HTML page) when the request carries that cookie (or sharded `name-N` cookies) and 401 otherwise. The cookie value is never read back or returned.
+      responses:
+        '200':
+          description: The cookie is present.
+          content:
+            text/html:
+              schema:
+                type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+      security: []
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/sso_cookie_vendor_api.rs
   /api/sync:
     get:
       tags:
@@ -5753,6 +5988,93 @@ paths:
                   webauthn: '#/components/schemas/TokenRequestWebAuthn'
                   refresh_token: '#/components/schemas/TokenRequestRefresh'
                   send_access: '#/components/schemas/TokenRequestSendAccess'
+  /identity/sso/Login:
+    get:
+      tags:
+      - Identity
+      operationId: ssoLogin
+      summary: Continue the authorize request named by returnUrl
+      description: Redirects (302) to `/identity/sso/ExternalChallenge` with the organization identifier, prevalidation token and account link token read from the authorize request in `returnUrl`. The return URL must be this server's own authorize endpoint; anything else is an error page and never a redirect.
+      parameters:
+      - name: returnUrl
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        '302':
+          description: Redirect to ExternalChallenge.
+        '400':
+          description: HTML error page.
+          content:
+            text/html:
+              schema:
+                type: string
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+      security: []
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-identity/src/apis/sso_api.rs
+  /identity/sso/ExternalChallenge:
+    get:
+      tags:
+      - Identity
+      operationId: ssoExternalChallenge
+      summary: Send the browser to the identity provider
+      description: Redirects (302) to `/identity/connect/authorize` carrying the query of `returnUrl`, with `domainHint`, `ssoToken` and `userIdentifier` overriding its `domain_hint`, `ssoToken` and `user_identifier`. The authorize endpoint enforces PKCE, state, the redirect allow-list and the prevalidation token, then redirects to the identity provider.
+      parameters:
+      - name: returnUrl
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: domainHint
+        in: query
+        schema:
+          type: string
+      - name: userIdentifier
+        in: query
+        schema:
+          type: string
+      - name: ssoToken
+        in: query
+        schema:
+          type: string
+      responses:
+        '302':
+          description: Redirect to the authorize endpoint.
+        '400':
+          description: HTML error page.
+          content:
+            text/html:
+              schema:
+                type: string
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+      security: []
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-identity/src/apis/sso_api.rs
+  /identity/sso/ExternalCallback:
+    get:
+      tags:
+      - Identity
+      operationId: ssoExternalCallback
+      summary: OpenID Connect return from the identity provider
+      description: Same handler as `/sso/oidc-signin`. Needs the flow cookie set by the authorize request; redirects (302) to the client's registered redirect address with an authorization code.
+      responses:
+        '302':
+          description: Redirect to the client.
+        '400':
+          description: HTML error page.
+          content:
+            text/html:
+              schema:
+                type: string
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+      security: []
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-identity/src/apis/sso_api.rs
   /identity/sso/prevalidate:
     get:
       tags:
@@ -5993,6 +6315,59 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/cloudwarden/admin/web-push:
+    get:
+      tags:
+      - x-cloudwarden
+      operationId: adminGetWebPush
+      summary: Browser web push state (the VAPID private key is never returned)
+      description: Generates the VAPID key pair on first use.
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminWebPush'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    put:
+      tags:
+      - x-cloudwarden
+      operationId: adminPutWebPush
+      summary: Turn browser web push on or off
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+              required:
+              - enabled
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminWebPush'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/BadRequest'
         '429':
           $ref: '#/components/responses/TooManyRequests'
   /api/cloudwarden/admin/users:
@@ -21989,6 +22364,7 @@ components:
             - string
         push:
           type: object
+          description: '`pushTechnology` 1 (web push) with `vapidPublicKey` once the instance has a VAPID key and the admin has not turned web push off; otherwise 0 (SignalR only).'
           properties:
             pushTechnology:
               type: integer
@@ -22031,6 +22407,42 @@ components:
       - version
       - environment
       additionalProperties: true
+    KeyConnectorEnrollmentRequest:
+      type: object
+      properties:
+        keyConnectorKeyWrappedUserKey:
+          $ref: '#/components/schemas/EncString'
+      required:
+      - keyConnectorKeyWrappedUserKey
+    OrganizationPublicKeyResponse:
+      type: object
+      properties:
+        object:
+          type: string
+          enum:
+          - organizationPublicKey
+        publicKey:
+          type:
+          - string
+          - 'null'
+      required:
+      - object
+      - publicKey
+    OrganizationConnectionRequest:
+      type: object
+      properties:
+        type:
+          type: integer
+          description: 1 cloud billing sync, 2 SCIM.
+        organizationId:
+          type: string
+          format: uuid
+        enabled:
+          type: boolean
+        config: {}
+      required:
+      - type
+      - organizationId
     SetKeyConnectorKeyRequest:
       type: object
       properties:
@@ -23325,6 +23737,25 @@ components:
       required:
       - installationId
       - region
+    AdminWebPush:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        available:
+          type: boolean
+          description: False when the stored key cannot be opened.
+        publicKey:
+          type:
+          - string
+          - 'null'
+        subscriptions:
+          type: integer
+      required:
+      - enabled
+      - available
+      - publicKey
+      - subscriptions
     AdminPushTestResult:
       type: object
       properties:

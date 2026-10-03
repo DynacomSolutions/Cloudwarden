@@ -79,6 +79,10 @@ export const devices = sqliteTable(
     name: text('name').notNull(),
     type: integer('type').notNull(),
     pushToken: text('push_token'),
+    // Web Push subscription of a browser (TASKS #342): endpoint plus the P-256 key and auth secret.
+    webPushEndpoint: text('web_push_endpoint'),
+    webPushP256dh: text('web_push_p256dh'),
+    webPushAuth: text('web_push_auth'),
     // SHA-256 (base64url) of the refresh token secret; empty string means revoked.
     refreshToken: text('refresh_token').notNull(),
     twofactorRemember: text('twofactor_remember'),

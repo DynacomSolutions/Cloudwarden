@@ -114,25 +114,10 @@ POST	/api/auth-requests/admin-request			Open: account recovery and device approv
 PUT	/api/devices/identifier/{id}/clear-token			Open: SSO federation, Key Connector and trusted device follow-ups (open PRs)
 POST	/api/devices/identifier/{getAppId}/web-push-auth			Open: push relay registration and web push settings (PR for push settings)
 PUT	/api/devices/identifier/{id}/web-push-auth			Open: push relay registration and web push settings (PR for push settings)
-POST	/api/installations			Open: push relay registration and web push settings (PR for push settings)
-GET	/api/installations/{id}			Open: push relay registration and web push settings (PR for push settings)
 GET	/api/organizations/{id}/auth-requests			Open: account recovery and device approvals (workstream C)
 POST	/api/organizations/{id}/auth-requests			Open: account recovery and device approvals (workstream C)
 POST	/api/organizations/{id}/auth-requests/{id}			Open: account recovery and device approvals (workstream C)
 POST	/api/organizations/{id}/auth-requests/deny			Open: account recovery and device approvals (workstream C)
-POST	/api/organizations/{orgId}/delete-recover-token			Open: account recovery and device approvals (workstream C)
-POST	/api/organizations/{orgId}/import			Open: Directory Connector style member and group import (workstream F)
-GET	/api/organizations/{id}/integrations			Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials
-POST	/api/organizations/{id}/integrations			Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials
-DELETE	/api/organizations/{id}/integrations/{id}			Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials
-PUT	/api/organizations/{id}/integrations/{id}			Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials
-GET	/api/organizations/{id}/integrations/{id}/configurations			Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials
-POST	/api/organizations/{id}/integrations/{id}/configurations			Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials
-DELETE	/api/organizations/{id}/integrations/{id}/configurations/{id}			Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials
-PUT	/api/organizations/{id}/integrations/{id}/configurations/{id}			Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials
-GET	/api/organizations/{id}/integrations/{id}/teams/channels			Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials
-GET	/api/organizations/{id}/integrations/slack/redirect			Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials
-GET	/api/organizations/{id}/integrations/teams/redirect			Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials
 GET	/api/organizations/(id)/public-key			Open: account recovery and device approvals (workstream C)
 PUT	/api/organizations/{orgId}/users/{id}/recover-account			Open: account recovery and device approvals (workstream C)
 GET	/api/organizations/{orgId}/users/{id}/reset-password-details			Open: account recovery and device approvals (workstream C)
@@ -143,10 +128,6 @@ DELETE	/api/organizations/connections/{id}			Owner decision needed: organisation
 PUT	/api/organizations/connections/{orgId}			Owner decision needed: organisation connections link a self-hosted server to the cloud (billing sync, SCIM or Directory Connector keys); no cloud exists for this server
 GET	/api/organizations/connections/{id}/{type}			Owner decision needed: organisation connections link a self-hosted server to the cloud (billing sync, SCIM or Directory Connector keys); no cloud exists for this server
 GET	/api/organizations/connections/enabled			Owner decision needed: organisation connections link a self-hosted server to the cloud (billing sync, SCIM or Directory Connector keys); no cloud exists for this server
-GET	/api/organizations/integrations/slack/create			Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials
-GET	/api/organizations/integrations/teams/create			Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials
-POST	/api/organizations/integrations/teams/incoming			Owner decision needed: the clients call the cloud integrations API (Slack and Teams OAuth apps, HEC, Datadog, webhook configurations); Cloudwarden serves event integrations at /organizations/{orgId}/event-integrations (workstream F) and has no Slack or Teams app credentials
-POST	/api/providers/{providerId}/delete-recover-token			Open: account recovery and device approvals (workstream C)
 PUT	/api/push/add-organization			Open: push relay registration and web push settings (PR for push settings)
 POST	/api/push/delete			Open: push relay registration and web push settings (PR for push settings)
 PUT	/api/push/delete-organization			Open: push relay registration and web push settings (PR for push settings)
@@ -163,3 +144,12 @@ GET	/api/sso-cookie-vendor			Open: SSO federation, Key Connector and trusted dev
 GET	/identity/sso/ExternalCallback			Open: SSO federation, Key Connector and trusted device follow-ups (open PRs)
 GET	/identity/sso/ExternalChallenge			Open: SSO federation, Key Connector and trusted device follow-ups (open PRs)
 GET	/identity/sso/Login			Open: SSO federation, Key Connector and trusted device follow-ups (open PRs)
+POST	/api/installations	not applicable	-	Cloud service only: the official server registers installation ids on its hosted cloud (not self-hosted), so a self-hosted server does not expose it. Push relay credentials are Worker secrets (docs/push-notifications.md)
+GET	/api/installations/{id}	not applicable	-	Cloud service only: see POST /api/installations
+POST	/api/providers/{providerId}/delete-recover-token	implemented	G	No Provider Portal on a self-hosted server: answers 404 like an unknown provider
+GET	/api/organizations/{id}/integrations/slack/redirect	implemented	F	Answers 400: no Slack app is configured on this server
+GET	/api/organizations/{id}/integrations/teams/redirect	implemented	F	Answers 400: no Teams app is configured on this server
+GET	/api/organizations/{id}/integrations/{id}/teams/channels	implemented	F	Answers 400: no Teams app is configured on this server
+GET	/api/organizations/integrations/slack/create	implemented	F	Answers 400: no Slack app is configured on this server
+GET	/api/organizations/integrations/teams/create	implemented	F	Answers 400: no Teams app is configured on this server
+POST	/api/organizations/integrations/teams/incoming	implemented	F	Answers 400: no Teams app is configured on this server

@@ -161,6 +161,14 @@ const updateOrg = async (c: Ctx) => {
 organizations.put('/api/organizations/:id', updateOrg)
 organizations.post('/api/organizations/:id', updateOrg)
 
+/** Deletes an organisation with its members' links and events. Members are bumped first. */
+export const eraseOrganization = (db: ReturnType<typeof createDb>, id: string) =>
+  runBatch(db, [
+    bumpOrgRevision(db, id, Date.now()),
+    db.delete(schema.events).where(eq(schema.events.organizationUuid, id)),
+    db.delete(schema.organizations).where(eq(schema.organizations.uuid, id)),
+  ])
+
 const deleteOrg = async (c: Ctx) => {
   const id = c.req.param('id') ?? ''
   const { masterPasswordHash } = await parseBody(
@@ -172,12 +180,7 @@ const deleteOrg = async (c: Ctx) => {
   if (!(await verifyMasterPassword(c.var.user, masterPasswordHash))) {
     throw new ApiError(400, 'Invalid password.', { masterPasswordHash: ['Invalid password.'] })
   }
-  // Members are bumped first: their rows disappear with the organisation.
-  await runBatch(db, [
-    bumpOrgRevision(db, id, Date.now()),
-    db.delete(schema.events).where(eq(schema.events.organizationUuid, id)),
-    db.delete(schema.organizations).where(eq(schema.organizations.uuid, id)),
-  ])
+  await eraseOrganization(db, id)
   return c.body(null, 200)
 }
 organizations.delete('/api/organizations/:id', deleteOrg)

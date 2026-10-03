@@ -150,7 +150,7 @@ Every HTTP call to a Bitwarden server made by the official clients, read from GP
 Status is derived from the routes registered under \`src/\`. **implemented** means a real handler;
 **self-host** means the endpoint answers with the self-hosted behaviour of the official server (no
 billing provider, no Provider Portal), so clients never see an error page; **not called** means only
-the generated SDK client has the operation and no GPL client calls it.
+the generated SDK client has the operation and no GPL client calls it; **not applicable** means the official self-hosted server does not expose it either.
 
 Owners: A push relay and account emails; B Sends, archive, favourites; C account recovery and device
 approvals; D Duo, YubiKey, Secrets Manager history and import or export, importer, alias forwarders,

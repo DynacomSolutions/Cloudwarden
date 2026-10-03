@@ -31,7 +31,10 @@ import { notifications } from './routes/notifications'
 import { orgApiKeys } from './routes/org-api-keys'
 import { orgAuthRequests } from './routes/org-auth-requests'
 import { orgCiphers } from './routes/org-ciphers'
+import { orgDeleteRecover } from './routes/org-delete-recover'
+import { orgImport } from './routes/org-import'
 import { orgIntegrations } from './routes/org-integrations'
+import { orgIntegrationsApi } from './routes/org-integrations-api'
 import { orgSettings } from './routes/org-settings'
 import { orgUsers } from './routes/org-users'
 import { organizations } from './routes/organizations'
@@ -105,6 +108,8 @@ for (const path of [
 }
 app.route('/', publicPolicies)
 // Before the other organisation routers: its public invite-link routes skip their `authOnce`.
+app.route('/', orgDeleteRecover)
+app.route('/', orgIntegrationsApi)
 app.route('/', orgSettings)
 // Anonymous SSO discovery by email must run before the authenticated organisation routers.
 app.route('/', publicSso)
@@ -119,6 +124,7 @@ app.route('/', organizations)
 // Before orgUsers: `users/account-recovery-details` must not be read as a member id.
 app.route('/', accountRecovery)
 app.route('/', orgAuthRequests)
+app.route('/', orgImport)
 app.route('/', orgUsers)
 app.route('/', collectionsRouter)
 app.route('/', groupsRouter)

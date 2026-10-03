@@ -10,6 +10,7 @@ import { Hono } from 'hono'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
 import { authOnce } from '../orgs/util'
+import { rateLimit } from '../ratelimit'
 
 export const providers = new Hono<Env>()
 
@@ -29,6 +30,13 @@ for (const path of [
 ]) {
   providers.get(path, authOnce, emptyList)
 }
+
+// Emailed deletion links are posted without a session; there is never a provider to delete.
+providers.post(
+  `${P}/delete-recover-token`,
+  rateLimit('provider-delete-recover-token', 10),
+  notFound,
+)
 
 for (const [method, path] of [
   ['get', P],

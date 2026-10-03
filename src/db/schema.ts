@@ -848,6 +848,29 @@ export const orgIntegrations = sqliteTable(
   (t) => [index('org_integrations_organization_idx').on(t.organizationUuid)],
 )
 
+/**
+ * Per-event settings of an event integration as the client integrations API sees them (TASKS
+ * #332): an event type (null for every type), filters, a template and a configuration whose
+ * secret fields are sealed. The owning integration delivers the union of the event types.
+ */
+export const orgIntegrationConfigurations = sqliteTable(
+  'org_integration_configurations',
+  {
+    uuid: id(),
+    integrationUuid: text('integration_uuid')
+      .notNull()
+      .references(() => orgIntegrations.uuid, { onDelete: 'cascade' }),
+    eventType: integer('event_type'),
+    filters: text('filters'),
+    template: text('template'),
+    /** Configuration JSON without secret fields. */
+    config: text('config'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index('org_integration_configurations_integration_idx').on(t.integrationUuid)],
+)
+
 // ----- Notification centre and security tasks (TASKS #231) -----
 
 /**

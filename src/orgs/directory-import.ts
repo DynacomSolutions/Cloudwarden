@@ -52,6 +52,37 @@ export const importSchema = z.object({
 })
 export type ImportRequest = z.infer<typeof importSchema>
 
+/**
+ * Body of `POST /api/organizations/{orgId}/import` as the clients send it: `members` and group
+ * `memberExternalIds` (the API model) or `users` on both levels (the client's directory model).
+ */
+export const clientImportSchema = importSchema
+  .omit({ groups: true, removePrivilegedMembers: true })
+  .extend({
+    groups: z
+      .array(
+        z.object({
+          name: z.string().min(1).max(100),
+          externalId: z.string().min(1).max(300),
+          memberExternalIds: z.array(z.string()).nullish(),
+          users: z.array(z.string()).nullish(),
+        }),
+      )
+      .max(MAX_IMPORT)
+      .nullish(),
+    users: importSchema.shape.members,
+  })
+  .transform(
+    ({ users, groups, members, ...rest }): ImportRequest => ({
+      ...rest,
+      members: [...(members ?? []), ...(users ?? [])],
+      groups: (groups ?? []).map(({ users: u, memberExternalIds, ...g }) => ({
+        ...g,
+        memberExternalIds: [...(memberExternalIds ?? []), ...(u ?? [])],
+      })),
+    }),
+  )
+
 export interface ImportResult {
   invited: number
   linked: number

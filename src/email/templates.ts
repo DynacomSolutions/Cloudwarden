@@ -280,6 +280,18 @@ export function orgConfirmedEmail(orgName: string): Template {
   }
 }
 
+export function deleteOrganizationEmail(orgName: string, url: string): Template {
+  const lines = [
+    `An owner asked to delete the organisation ${orgName}. All its items, collections, groups and member links will be erased and this cannot be undone.`,
+    'If this was expected, choose the link below. It expires in 24 hours and works once. If not, ignore this message and nothing happens.',
+  ]
+  return {
+    subject: 'Confirm organisation deletion',
+    text: plain(lines, url),
+    html: shell('Confirm organisation deletion', lines, { url, label: 'Delete the organisation' }),
+  }
+}
+
 export function deleteAccountEmail(url: string): Template {
   const lines = [
     'Someone asked to delete your Cloudwarden account. Everything in the account will be erased and this cannot be undone.',

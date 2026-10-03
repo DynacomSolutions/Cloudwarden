@@ -91,7 +91,7 @@ orgIntegrations.put('/api/organizations/:orgId/scim-config', async (c) => {
 // ----- event integrations -----
 
 /** Owners and admins manage integrations: they hold credentials for outside systems. */
-async function requireAdmin(c: Ctx) {
+export async function requireAdmin(c: Ctx) {
   const m = await requireMember(createDb(c.env.DB), c.var.user.uuid, org(c))
   if (!isAdminRole(m)) throw new ApiError(403, 'Only owners and admins can manage integrations.')
   return m
@@ -129,7 +129,7 @@ const baseSchema = z.object({
 })
 
 /** Validates settings and secrets for a type, giving field errors the web client shows. */
-function validate(type: IntegrationType, config: unknown, secrets: unknown) {
+export function validate(type: IntegrationType, config: unknown, secrets: unknown) {
   const dest = DESTINATIONS[type]
   const errors: Record<string, string[]> = {}
   const cfg = dest.config.safeParse(config)
@@ -148,10 +148,10 @@ function validate(type: IntegrationType, config: unknown, secrets: unknown) {
 }
 
 /** Drops blank values so they do not overwrite stored secrets. */
-const filled = (s: Record<string, unknown> | null | undefined) =>
+export const filled = (s: Record<string, unknown> | null | undefined) =>
   Object.fromEntries(Object.entries(s ?? {}).filter(([, v]) => v !== '' && v != null))
 
-async function loadIntegration(db: Db, orgUuid: string, id: string) {
+export async function loadIntegration(db: Db, orgUuid: string, id: string) {
   const [row] = await db
     .select()
     .from(schema.orgIntegrations)

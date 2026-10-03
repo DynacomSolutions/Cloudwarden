@@ -9996,6 +9996,546 @@ paths:
           $ref: '#/components/responses/NotFound'
       x-source-version: cloudwarden
       x-source-file: src/routes/org-integrations.ts
+  /api/organizations/{orgId}/import:
+    post:
+      tags:
+      - Organizations
+      operationId: importOrganizationDirectory
+      summary: Import members and groups from a directory
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationDirectoryImportRequest'
+      responses:
+        '200':
+          description: Success, empty body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: web-v2026.9.1
+      x-source-file: src/routes/org-import.ts
+  /api/organizations/{orgId}/delete-recover:
+    post:
+      tags:
+      - Organizations
+      operationId: requestOrganizationDeletionEmail
+      summary: Email an organisation deletion link to the billing address (owners only)
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success, empty body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+      x-source-version: cloudwarden
+      x-source-file: src/routes/org-delete-recover.ts
+  /api/organizations/{orgId}/delete-recover-token:
+    post:
+      tags:
+      - Organizations
+      operationId: deleteOrganizationWithToken
+      summary: Delete the organisation using an emailed token
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationVerifyDeleteRecoverRequest'
+      responses:
+        '200':
+          description: Success, empty body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+      security: []
+      x-source-version: web-v2026.9.1
+      x-source-file: src/routes/org-delete-recover.ts
+  /api/providers/{providerId}/delete-recover-token:
+    post:
+      tags:
+      - Providers
+      operationId: deleteProviderWithToken
+      summary: Delete a provider using an emailed token (there are no providers on this server)
+      parameters:
+      - name: providerId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationVerifyDeleteRecoverRequest'
+      responses:
+        '200':
+          description: Never returned, a self-hosted server has no providers.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+      security: []
+      x-source-version: web-v2026.9.1
+      x-source-file: src/routes/providers.ts
+  /api/organizations/{orgId}/integrations:
+    get:
+      tags:
+      - Organizations
+      operationId: listOrganizationIntegrations
+      summary: List Hec, Datadog and Webhook integrations
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success. Secrets are never returned.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrganizationIntegration'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: sdk-internal 9acb7241
+      x-source-file: src/routes/org-integrations-api.ts
+    post:
+      tags:
+      - Organizations
+      operationId: createOrganizationIntegration
+      summary: Create an integration (type 4 Webhook, 5 Hec, 6 Datadog; Slack and Teams answer 400)
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationIntegrationRequest'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationIntegration'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: sdk-internal 9acb7241
+      x-source-file: src/routes/org-integrations-api.ts
+  /api/organizations/{orgId}/integrations/{integrationId}:
+    put:
+      tags:
+      - Organizations
+      operationId: updateOrganizationIntegration
+      summary: Update an integration
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: integrationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationIntegrationRequest'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationIntegration'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: sdk-internal 9acb7241
+      x-source-file: src/routes/org-integrations-api.ts
+    delete:
+      tags:
+      - Organizations
+      operationId: deleteOrganizationIntegration
+      summary: Delete an integration
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: integrationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '204':
+          description: Success, empty body.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: sdk-internal 9acb7241
+      x-source-file: src/routes/org-integrations-api.ts
+  /api/organizations/{orgId}/integrations/{integrationId}/configurations:
+    get:
+      tags:
+      - Organizations
+      operationId: listOrganizationIntegrationConfigurations
+      summary: List the configurations of an integration
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: integrationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrganizationIntegrationConfiguration'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: sdk-internal 9acb7241
+      x-source-file: src/routes/org-integrations-api.ts
+    post:
+      tags:
+      - Organizations
+      operationId: createOrganizationIntegrationConfiguration
+      summary: Add a configuration (a webhook takes one)
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: integrationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationIntegrationConfigurationRequest'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationIntegrationConfiguration'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: sdk-internal 9acb7241
+      x-source-file: src/routes/org-integrations-api.ts
+  /api/organizations/{orgId}/integrations/{integrationId}/configurations/{configurationId}:
+    put:
+      tags:
+      - Organizations
+      operationId: updateOrganizationIntegrationConfiguration
+      summary: Update a configuration
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: integrationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: configurationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationIntegrationConfigurationRequest'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationIntegrationConfiguration'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: sdk-internal 9acb7241
+      x-source-file: src/routes/org-integrations-api.ts
+    delete:
+      tags:
+      - Organizations
+      operationId: deleteOrganizationIntegrationConfiguration
+      summary: Delete a configuration
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: integrationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: configurationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '204':
+          description: Success, empty body.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: sdk-internal 9acb7241
+      x-source-file: src/routes/org-integrations-api.ts
+  /api/organizations/{orgId}/integrations/slack/redirect:
+    get:
+      tags:
+      - Organizations
+      operationId: redirectOrganizationSlackIntegration
+      summary: Start the Slack OAuth flow (answers 400 without a Slack app)
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Never returned on this server.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: sdk-internal 9acb7241
+      x-source-file: src/routes/org-integrations-api.ts
+  /api/organizations/{orgId}/integrations/teams/redirect:
+    get:
+      tags:
+      - Organizations
+      operationId: redirectOrganizationTeamsIntegration
+      summary: Start the Teams OAuth flow (answers 400 without a Teams app)
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Never returned on this server.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: sdk-internal 9acb7241
+      x-source-file: src/routes/org-integrations-api.ts
+  /api/organizations/{orgId}/integrations/{integrationId}/teams/channels:
+    get:
+      tags:
+      - Organizations
+      operationId: listTeamsChannels
+      summary: List Teams channels (answers 400 without a Teams app)
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: integrationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Never returned on this server.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: sdk-internal 9acb7241
+      x-source-file: src/routes/org-integrations-api.ts
+  /api/organizations/integrations/slack/create:
+    get:
+      tags:
+      - Organizations
+      operationId: createSlackIntegration
+      summary: Slack OAuth callback (answers 400 without a Slack app)
+      responses:
+        '200':
+          description: Never returned on this server.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+      security: []
+      x-source-version: sdk-internal 9acb7241
+      x-source-file: src/routes/org-integrations-api.ts
+  /api/organizations/integrations/teams/create:
+    get:
+      tags:
+      - Organizations
+      operationId: createTeamsIntegration
+      summary: Teams OAuth callback (answers 400 without a Teams app)
+      responses:
+        '200':
+          description: Never returned on this server.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+      security: []
+      x-source-version: sdk-internal 9acb7241
+      x-source-file: src/routes/org-integrations-api.ts
+  /api/organizations/integrations/teams/incoming:
+    post:
+      tags:
+      - Organizations
+      operationId: receiveTeamsIncoming
+      summary: Teams bot messages (answers 400 without a Teams app)
+      responses:
+        '200':
+          description: Never returned on this server.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+      security: []
+      x-source-version: sdk-internal 9acb7241
+      x-source-file: src/routes/org-integrations-api.ts
   /api/organizations/{orgId}/event-integrations:
     get:
       tags:
@@ -16211,6 +16751,72 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponseModel'
   schemas:
+    OrganizationDirectoryImportRequest:
+      type: object
+      description: Members and groups read from a directory. Groups take `memberExternalIds` or `users`; members arrive as `members` or `users`.
+      properties:
+        groups:
+          type: array
+          items:
+            type: object
+            required: [name, externalId]
+            properties:
+              name: {type: string}
+              externalId: {type: string}
+              memberExternalIds: {type: [array, 'null'], items: {type: string}}
+              users: {type: [array, 'null'], items: {type: string}}
+        members:
+          type: [array, 'null']
+          items: {$ref: '#/components/schemas/OrganizationDirectoryImportMember'}
+        users:
+          type: [array, 'null']
+          items: {$ref: '#/components/schemas/OrganizationDirectoryImportMember'}
+        overwriteExisting: {type: [boolean, 'null']}
+        largeImport: {type: [boolean, 'null']}
+        inviteUsersAfterProvisioning: {type: [boolean, 'null']}
+    OrganizationDirectoryImportMember:
+      type: object
+      required: [externalId]
+      properties:
+        email: {type: [string, 'null']}
+        externalId: {type: string}
+        deleted: {type: [boolean, 'null']}
+    OrganizationVerifyDeleteRecoverRequest:
+      type: object
+      required: [token]
+      properties:
+        token: {type: string, description: The signed token from the emailed link. Expires after 24 hours and stops working once the organisation is deleted or its billing address changes.}
+    OrganizationIntegrationRequest:
+      type: object
+      required: [type]
+      properties:
+        type: {type: integer, description: '4 Webhook, 5 Hec, 6 Datadog. 3 Slack and 7 Teams answer 400.'}
+        configuration: {type: [string, 'null'], description: 'JSON text. Hec: uri, token, service. Datadog: uri (a log intake address), apiKey. Webhook: null.'}
+    OrganizationIntegration:
+      type: object
+      properties:
+        object: {type: string}
+        id: {type: string, format: uuid}
+        type: {type: integer}
+        configuration: {type: [string, 'null'], description: JSON text without tokens or keys.}
+        status: {type: integer}
+    OrganizationIntegrationConfigurationRequest:
+      type: object
+      properties:
+        configuration: {type: [string, 'null'], description: 'Webhook only, JSON text with uri, scheme and token.'}
+        eventType: {type: [integer, 'null'], description: Null for every event type.}
+        filters: {type: [string, 'null']}
+        template: {type: [string, 'null']}
+    OrganizationIntegrationConfiguration:
+      type: object
+      properties:
+        object: {type: string}
+        id: {type: string, format: uuid}
+        configuration: {type: [string, 'null'], description: JSON text without the token.}
+        filters: {type: [string, 'null']}
+        creationDate: {type: string, format: date-time}
+        eventType: {type: [integer, 'null']}
+        template: {type: [string, 'null']}
     FederationEmpty:
       type: object
       description: Empty JSON object. The body is still covered by Content-Digest.

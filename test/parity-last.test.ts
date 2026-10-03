@@ -730,23 +730,72 @@ async function ssoOrg(memberDecryptionType = 0) {
 
 describe('POST /api/accounts/key-connector/enroll', () => {
   const KEY = '2.aXZpdg==|ZGF0YQ==|bWFj'
-  type A = { call: (p: string, m?: string, b?: unknown) => Promise<Response> }
-  const enroll = (a: A, extra: Record<string, unknown> = {}, key: unknown = KEY) =>
-    a.call('/api/accounts/key-connector/enroll', 'POST', {
+  const enroll = (token: string, key: unknown = KEY) =>
+    authedCall(token, '/api/accounts/key-connector/enroll', 'POST', {
       keyConnectorKeyWrappedUserKey: key,
-      masterPasswordHash: 'client-derived-hash',
-      ...extra,
     })
+  const jit = async (identifier: string) => {
+    const email = uemail('kcjit')
+    const r = await oidcLogin(idp, identifier, { sub: unique('sub'), email })
+    expect(r.token?.status).toBe(200)
+    return { email, token: r.body.access_token as string }
+  }
+  const stamp = async (email: string) =>
+    (
+      await env.DB.prepare('SELECT security_stamp s FROM users WHERE email = ?1')
+        .bind(email)
+        .first<{ s: string }>()
+    )?.s
 
-  it('moves a member to the Key Connector, but not an owner or a stranger', async () => {
-    const { owner, org: o } = await ssoOrg(1)
+  it('stores the key of a new SSO member, rotates the stamp and signs out other devices', async () => {
+    const { identifier } = await ssoOrg(1)
+    const u = await jit(identifier)
+    const uuid = await userUuid(u.email)
+    await env.DB.prepare(
+      "INSERT INTO devices (uuid, identifier, user_uuid, name, type, refresh_token, created_at, updated_at) VALUES (?1, 'kc-other', ?2, 'x', 9, 'live-refresh', 1, 1)",
+    )
+      .bind(crypto.randomUUID(), uuid)
+      .run()
+    const before = await stamp(u.email)
+    const first = await enroll(u.token)
+    expect(first.status).toBe(200)
+    const row = await env.DB.prepare(
+      'SELECT akey, uses_key_connector k FROM users WHERE email = ?1',
+    )
+      .bind(u.email)
+      .first<{ akey: string; k: number }>()
+    expect(row).toEqual({ akey: KEY, k: 1 })
+    expect(await stamp(u.email)).not.toBe(before)
+    const devices = await env.DB.prepare(
+      'SELECT identifier i, refresh_token r FROM devices WHERE user_uuid = ?1',
+    )
+      .bind(uuid)
+      .all<{ i: string; r: string }>()
+    expect(devices.results.find((d) => d.i === 'kc-other')?.r).toBe('')
+    expect(devices.results.find((d) => d.i === 'sso-device-1')?.r).not.toBe('')
+    // The old access token is dead; a second enrolment is refused.
+    expect((await enroll(u.token)).status).toBe(401)
+  })
+
+  it('refuses members with a master password, anyone with keys, and malformed keys', async () => {
+    const { owner, org: o, identifier } = await ssoOrg(1)
     const member = await actor(uemail('kcmem'))
     await addMember(owner, o.id, member)
-    const stranger = await actor(uemail('kcstr'))
+    // Master password holders (owner included) use convert-to-key-connector instead.
+    expect((await enroll(owner.token)).status).toBe(400)
+    expect((await enroll(member.token)).status).toBe(400)
+    expect((await enroll(member.token, '')).status).toBe(400)
 
-    expect((await enroll(owner)).status).toBe(400)
-    expect((await enroll(stranger)).status).toBe(400)
-    expect((await member.call('/api/accounts/key-connector/enroll', 'POST', {})).status).toBe(400)
+    const u = await jit(identifier)
+    for (const key of ['', '4.kcWrapped', '2.not base64|x|y', '2.aXZpdg==|ZGF0YQ==', 'plain', 5]) {
+      expect((await enroll(u.token, key)).status, String(key)).toBe(400)
+    }
+    expect(
+      (await authedCall(u.token, '/api/accounts/key-connector/enroll', 'POST', {})).status,
+    ).toBe(400)
+    // An account that already has keys is refused.
+    await env.DB.prepare("UPDATE users SET akey = '2.a|b|c' WHERE email = ?1").bind(u.email).run()
+    expect((await enroll(u.token)).status).toBe(400)
     expect(
       (
         await SELF.fetch(`${BASE}/api/accounts/key-connector/enroll`, {
@@ -755,77 +804,18 @@ describe('POST /api/accounts/key-connector/enroll', () => {
         })
       ).status,
     ).toBe(401)
+  })
 
-    // A second device of the same account, which must be signed out by the enrolment.
-    await env.DB.prepare(
-      "INSERT INTO devices (uuid, identifier, user_uuid, name, type, refresh_token, created_at, updated_at) VALUES (?1, 'kc-other', ?2, 'x', 9, 'live-refresh', 1, 1)",
-    )
-      .bind(crypto.randomUUID(), member.uuid)
+  it('refuses members of organisations that do not use Key Connector, and stand-in accounts', async () => {
+    const { identifier } = await ssoOrg(0)
+    const u = await jit(identifier)
+    expect((await enroll(u.token)).status).toBe(400)
+    const standIn = await actor(uemail('standin'))
+    await env.DB.prepare("UPDATE users SET password_hash = '!federated.x' WHERE email = ?1")
+      .bind(standIn.email)
       .run()
-    const stampBefore = (
-      await env.DB.prepare('SELECT security_stamp s FROM users WHERE email = ?1')
-        .bind(member.email)
-        .first<{ s: string }>()
-    )?.s
-
-    expect((await enroll(member)).status).toBe(200)
-    // The stamp rotated, so the access token this call used is no longer valid.
-    expect((await member.call('/api/accounts/profile')).status).toBe(401)
-    const row = await env.DB.prepare(
-      'SELECT security_stamp s, akey, uses_key_connector k FROM users WHERE email = ?1',
-    )
-      .bind(member.email)
-      .first<{ s: string; akey: string; k: number }>()
-    expect(row?.akey).toBe(KEY)
-    expect(row?.k).toBe(1)
-    expect(row?.s).not.toBe(stampBefore)
-    const refresh = await env.DB.prepare(
-      'SELECT d.identifier i, d.refresh_token r FROM devices d JOIN users u ON u.uuid = d.user_uuid WHERE u.email = ?1',
-    )
-      .bind(member.email)
-      .all<{ i: string; r: string }>()
-    expect(refresh.results.find((d) => d.i === 'kc-other')?.r).toBe('')
-    expect(refresh.results.find((d) => d.i === 'device-1')?.r).not.toBe('')
-    // The old token is dead, and the master password no longer works.
-    expect((await enroll(member)).status).toBe(401)
-    expect((await login(member.email)).status).toBe(400)
-  })
-
-  it('needs proof of the account owner and a well formed key', async () => {
-    const { owner, org: o } = await ssoOrg(1)
-    const member = await actor(uemail('kcproof'))
-    await addMember(owner, o.id, member)
-    expect((await enroll(member, { masterPasswordHash: undefined })).status).toBe(400)
-    expect((await enroll(member, { masterPasswordHash: 'wrong' })).status).toBe(400)
-    for (const key of ['', '4.kcWrapped', '2.not base64|x|y', '2.aXZpdg==|ZGF0YQ==', 'plain', 5]) {
-      expect((await enroll(member, {}, key)).status, String(key)).toBe(400)
-    }
-    const profile = await member.json('/api/accounts/profile')
-    expect(profile.usesKeyConnector).toBe(false)
-  })
-
-  it('uses an emailed code instead when there is no master password', async () => {
-    const { owner, org: o } = await ssoOrg(1)
-    const member = await actor(uemail('kcotp'))
-    await addMember(owner, o.id, member)
-    await env.DB.prepare("UPDATE users SET password_hash = '' WHERE email = ?1")
-      .bind(member.email)
-      .run()
-    expect((await enroll(member, { masterPasswordHash: undefined })).status).toBe(400)
-    expect((await enroll(member, { masterPasswordHash: undefined, otp: '000000' })).status).toBe(
-      400,
-    )
-    const { issueOtp } = await import('../src/auth/otp')
-    const { createDb } = await import('../src/db')
-    const code = await issueOtp(createDb(env.DB), member.uuid, 'user-verification')
-    expect((await enroll(member, { masterPasswordHash: undefined, otp: code })).status).toBe(200)
-  })
-
-  it('refuses members of organisations that do not use Key Connector', async () => {
-    const { owner, org: o } = await ssoOrg(0)
-    const member = await actor(uemail('nokc'))
-    await addMember(owner, o.id, member)
-    expect((await enroll(member)).status).toBe(400)
+    // Stand-in accounts are refused (by the auth layer or the handler), never enrolled.
+    expect([400, 401]).toContain((await enroll(standIn.token)).status)
   })
 })
 

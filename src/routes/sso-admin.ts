@@ -1,17 +1,17 @@
-import { and, eq, isNotNull, ne } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, ne } from 'drizzle-orm'
 import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { z } from 'zod'
 import { authenticationData, checkNested, unlockData } from '../auth/credentials'
 import { randomB64u } from '../auth/crypto'
 import { requireAuth } from '../auth/middleware'
-import { consumeOtp } from '../auth/otp'
-import { hashMasterPassword, verifyMasterPassword } from '../auth/passwords'
+import { hashMasterPassword } from '../auth/passwords'
 import { signPurposeToken } from '../auth/purpose-token'
 import { createDb, runBatch, schema } from '../db'
 import { later } from '../email/send'
 import type { Env, User } from '../env'
 import { ApiError } from '../errors'
+import { isStandInUser } from '../federation/standin'
 import { pushLogOut } from '../notifications/publish'
 import {
   bumpOrgRevision,
@@ -944,11 +944,10 @@ ssoAccounts.post('/api/accounts/convert-to-key-connector', requireAuth, async (c
 })
 
 /**
- * `POST accounts/key-connector/enroll`: an existing member of a Key Connector organisation (for
- * example one that unlocked with a trusted device) moves to the Key Connector. The client has
- * already stored a fresh master key there and sends the user key wrapped with it. Any master
- * password is removed because it no longer unlocks the account; owners and administrators with a
- * master password keep it, as for `convert-to-key-connector`.
+ * `POST accounts/key-connector/enroll`: an SSO member without a master password and without keys
+ * joins a Key Connector organisation. The client has already stored a fresh master key at the Key
+ * Connector and sends the user key wrapped with it. Members with a master password use
+ * `convert-to-key-connector`. The security stamp rotates and the other sessions end.
  */
 ssoAccounts.post('/api/accounts/key-connector/enroll', requireAuth, async (c) => {
   const body = await parseBody(
@@ -958,22 +957,16 @@ ssoAccounts.post('/api/accounts/key-connector/enroll', requireAuth, async (c) =>
         .string()
         .max(10_000)
         .regex(AES_CBC_HMAC_ENC_STRING, 'A type 2 encrypted string is required.'),
-      // Proof of the account owner: the master password hash, or an emailed code without one.
-      masterPasswordHash: z.string().nullish(),
-      otp: z.string().nullish(),
     }),
   )
   const db = createDb(c.env.DB)
   const user = c.var.user
+  if (isStandInUser(user)) throw new ApiError(400, 'This account belongs to another server.')
   if (user.usesKeyConnector) throw new ApiError(400, 'This account already uses Key Connector.')
-  const hasPassword = hasMasterPassword(user)
-  if (hasPassword) {
-    if (!body.masterPasswordHash || !(await verifyMasterPassword(user, body.masterPasswordHash))) {
-      throw new ApiError(400, 'Invalid password.', { masterPasswordHash: ['Invalid password.'] })
-    }
-  } else if (!body.otp || !(await consumeOtp(db, user.uuid, 'user-verification', body.otp))) {
-    throw new ApiError(400, 'Invalid verification code.')
-  }
+  // Only for accounts without a master password (SSO members joining a Key Connector
+  // organisation); members with a master password use `convert-to-key-connector`.
+  if (hasMasterPassword(user)) throw new ApiError(400, 'This account has a master password.')
+  if (user.akey) throw new ApiError(400, 'This account already has its keys.')
   const rows = await db
     .select({ m: schema.usersOrganizations, cfg: schema.ssoConfigs })
     .from(schema.usersOrganizations)
@@ -985,32 +978,33 @@ ssoAccounts.post('/api/accounts/key-connector/enroll', requireAuth, async (c) =>
       and(
         eq(schema.usersOrganizations.userUuid, user.uuid),
         eq(schema.ssoConfigs.enabled, true),
-        eq(schema.usersOrganizations.status, Status.Confirmed),
+        // New SSO members are accepted, not yet confirmed: they enrol before an admin confirms.
+        inArray(schema.usersOrganizations.status, [Status.Accepted, Status.Confirmed]),
       ),
     )
   const kcRows = rows.filter(
     (r) => parseConfigData(r.cfg).memberDecryptionType === MemberDecryptionType.KeyConnector,
   )
   if (kcRows.length === 0) throw new ApiError(400, 'None of your organizations use Key Connector.')
-  if (hasPassword && kcRows.some((r) => isAdminRole(r.m)))
-    throw new ApiError(400, 'Owners and administrators keep their master password.')
   const device = c.var.auth.deviceIdentifier
   await batch(db, [
     db
       .update(schema.users)
       .set({
         akey: body.keyConnectorKeyWrappedUserKey,
-        passwordHash: '',
-        salt: '',
-        passwordIterations: 0,
-        passwordHint: null,
         usesKeyConnector: true,
         // The wrapping key changed: other sessions end. This device keeps its refresh token and
         // gets a new access token on its next refresh.
         securityStamp: crypto.randomUUID(),
         updatedAt: Date.now(),
       })
-      .where(and(eq(schema.users.uuid, user.uuid), eq(schema.users.usesKeyConnector, false))),
+      .where(
+        and(
+          eq(schema.users.uuid, user.uuid),
+          eq(schema.users.usesKeyConnector, false),
+          eq(schema.users.akey, ''),
+        ),
+      ),
     db
       .update(schema.devices)
       .set({ refreshToken: '' })

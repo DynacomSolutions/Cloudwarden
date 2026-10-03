@@ -123,13 +123,7 @@ serves members whose organisation left trusted devices.
 
 `POST /api/accounts/set-key-connector-key`, `POST /api/accounts/convert-to-key-connector` (owners
 and admins keep their password), `GET /api/accounts/key-connector/confirmation-details/{identifier}` and
-`POST /api/accounts/key-connector/enroll` (an existing member of a Key Connector organisation, for
-example one that unlocked with a trusted device, sends `keyConnectorKeyWrappedUserKey`, a type 2
-encrypted string, with proof of ownership: `masterPasswordHash` when the account has a master
-password, an emailed `otp` (`POST /api/accounts/request-otp`) when it has none. Only confirmed
-members qualify. Any master password is removed, owners and admins with one are refused, the
-security stamp rotates and the other devices are signed out. The official SDK request carries
-neither proof field, so a stock client's enrolment is refused until it sends one).
+`POST /api/accounts/key-connector/enroll` (an SSO member without a master password and without keys, accepted or confirmed in an organisation that uses Key Connector, sends `keyConnectorKeyWrappedUserKey`, a type 2 encrypted string; members with a master password get 400 and use `convert-to-key-connector`; the security stamp rotates and the other devices are signed out).
 The client talks to the Key Connector directly (`GET/POST {url}/user-keys`, `GET {url}/alive`).
 
 ### Token signing for a Key Connector

@@ -260,7 +260,7 @@ paths:
       - Accounts
       operationId: enrollToKeyConnector
       summary: Move the account to Key Connector
-      description: A confirmed member of an organization that decrypts with Key Connector sends the user key wrapped with the key stored at the Key Connector, proving ownership with the master password hash or, without a master password, an emailed code. Any master password is removed; owners and administrators with a master password are refused. The security stamp rotates and other devices are signed out.
+      description: 'For an SSO member without a master password and without keys, in an organization that decrypts with Key Connector: the user key wrapped with the key stored at the Key Connector. Members with a master password get 400 and use convert-to-key-connector. Accepted or confirmed membership is required. The security stamp rotates and other devices are signed out.'
       requestBody:
         required: true
         content:
@@ -22413,16 +22413,6 @@ components:
         keyConnectorKeyWrappedUserKey:
           type: string
           description: A type 2 (AES-CBC with HMAC) encrypted string.
-        masterPasswordHash:
-          type:
-          - string
-          - 'null'
-          description: Required when the account has a master password.
-        otp:
-          type:
-          - string
-          - 'null'
-          description: Emailed verification code, required when the account has no master password.
       required:
       - keyConnectorKeyWrappedUserKey
     OrganizationPublicKeyResponse:

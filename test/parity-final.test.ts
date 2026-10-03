@@ -3,7 +3,7 @@
 import { env } from 'cloudflare:workers'
 import { describe, expect, it, vi } from 'vitest'
 import { openSecrets } from '../src/integrations/deliver'
-import { BASE } from './helpers'
+import { BASE, freezeRateLimitWindow } from './helpers'
 import { actor, addMember, createOrg, linkParams, mailbox } from './org-helpers'
 
 const PWB = { masterPasswordHash: 'client-derived-hash' }
@@ -374,27 +374,32 @@ describe('security review fixes', () => {
   })
 
   it('needs the master password or a code, caps mail at 3 per hour, newest link wins', async () => {
-    const mb = mailbox()
-    const owner = await actor('sr-proof-owner@example.com', mb)
-    const { id } = await createOrg(owner, 'Proof Org')
-    expect((await owner.call(del(id), 'POST', {})).status).toBe(400)
-    expect((await owner.call(del(id), 'POST', { masterPasswordHash: 'wrong' })).status).toBe(400)
-    expect(mb.sent.filter((m) => m.subject.includes('organisation deletion'))).toHaveLength(0)
+    const restore = freezeRateLimitWindow()
+    try {
+      const mb = mailbox()
+      const owner = await actor('sr-proof-owner@example.com', mb)
+      const { id } = await createOrg(owner, 'Proof Org')
+      expect((await owner.call(del(id), 'POST', {})).status).toBe(400)
+      expect((await owner.call(del(id), 'POST', { masterPasswordHash: 'wrong' })).status).toBe(400)
+      expect(mb.sent.filter((m) => m.subject.includes('organisation deletion'))).toHaveLength(0)
 
-    // A code for accounts without a password.
-    await owner.call('/api/accounts/request-otp', 'POST')
-    const otp = /\b(\d{6})\b/.exec(mb.sent.at(-1)?.text ?? '')?.[1]
-    expect((await owner.call(del(id), 'POST', { otp })).status).toBe(200)
-    const first = linkParams(mb.sent.at(-1))
-    expect((await owner.call(del(id), 'POST', PWB)).status).toBe(200)
-    const second = linkParams(mb.sent.at(-1))
-    expect((await owner.call(del(id), 'POST', PWB)).status).toBe(200)
-    expect((await owner.call(del(id), 'POST', PWB)).status).toBe(429)
+      // A code for accounts without a password.
+      await owner.call('/api/accounts/request-otp', 'POST')
+      const otp = /\b(\d{6})\b/.exec(mb.sent.at(-1)?.text ?? '')?.[1]
+      expect((await owner.call(del(id), 'POST', { otp })).status).toBe(200)
+      const first = linkParams(mb.sent.at(-1))
+      expect((await owner.call(del(id), 'POST', PWB)).status).toBe(200)
+      const second = linkParams(mb.sent.at(-1))
+      expect((await owner.call(del(id), 'POST', PWB)).status).toBe(200)
+      expect((await owner.call(del(id), 'POST', PWB)).status).toBe(429)
 
-    const path = `/api/organizations/${id}/delete-recover-token`
-    expect((await anon(path, { token: first.get('token') })).status).toBe(400)
-    expect((await anon(path, { token: second.get('token') })).status).toBe(400)
-    expect(await orgRow(id)).not.toBeNull()
+      const path = `/api/organizations/${id}/delete-recover-token`
+      expect((await anon(path, { token: first.get('token') })).status).toBe(400)
+      expect((await anon(path, { token: second.get('token') })).status).toBe(400)
+      expect(await orgRow(id)).not.toBeNull()
+    } finally {
+      restore()
+    }
   })
 
   it('a link dies when its requesting owner stops being an owner', async () => {

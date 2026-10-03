@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
 import raw from '../docs/api/openapi.yaml?raw'
 import { AdminEventType } from '../src/admin/service'
-import { BASE, createSession, login, withEnv } from './helpers'
+import { BASE, createSession, freezeRateLimitWindow, login, withEnv } from './helpers'
 import { actor, createOrg, mailbox } from './org-helpers'
 
 const P = '/api/cloudwarden/admin'
@@ -149,18 +149,23 @@ describe('admin API access control', () => {
   })
 
   it('rate limits per admin and does not count other admins', async () => {
-    const a = await person('rl', true)
-    const b = await person('rl', true)
-    await env.DB.prepare(
-      'INSERT INTO admin_rate_limits (key, window_start, count) VALUES (?1, ?2, 1000)',
-    )
-      .bind(`adminapi:${a.id}`, Math.floor(Date.now() / 60_000) * 60_000)
-      .run()
-    const limited = await a.call(`${P}/overview`)
-    expect(limited.status).toBe(429)
-    expect(limited.headers.get('retry-after')).toBe('60')
-    expect((await limited.json()) as { object: string }).toMatchObject({ object: 'error' })
-    expect((await b.call(`${P}/overview`)).status).toBe(200)
+    const restore = freezeRateLimitWindow()
+    try {
+      const a = await person('rl', true)
+      const b = await person('rl', true)
+      await env.DB.prepare(
+        'INSERT INTO admin_rate_limits (key, window_start, count) VALUES (?1, ?2, 1000)',
+      )
+        .bind(`adminapi:${a.id}`, Math.floor(Date.now() / 60_000) * 60_000)
+        .run()
+      const limited = await a.call(`${P}/overview`)
+      expect(limited.status).toBe(429)
+      expect(limited.headers.get('retry-after')).toBe('60')
+      expect((await limited.json()) as { object: string }).toMatchObject({ object: 'error' })
+      expect((await b.call(`${P}/overview`)).status).toBe(200)
+    } finally {
+      restore()
+    }
   })
 })
 
@@ -176,13 +181,18 @@ describe('admin API hardening', () => {
   })
 
   it('rate limits before the admin check, so non-admins are counted too', async () => {
-    const u = await person('rlplain', false)
-    await env.DB.prepare(
-      'INSERT INTO admin_rate_limits (key, window_start, count) VALUES (?1, ?2, 1000)',
-    )
-      .bind(`adminapi:${u.id}`, Math.floor(Date.now() / 60_000) * 60_000)
-      .run()
-    expect((await u.call(`${P}/overview`)).status).toBe(429)
+    const restore = freezeRateLimitWindow()
+    try {
+      const u = await person('rlplain', false)
+      await env.DB.prepare(
+        'INSERT INTO admin_rate_limits (key, window_start, count) VALUES (?1, ?2, 1000)',
+      )
+        .bind(`adminapi:${u.id}`, Math.floor(Date.now() / 60_000) * 60_000)
+        .run()
+      expect((await u.call(`${P}/overview`)).status).toBe(429)
+    } finally {
+      restore()
+    }
   })
 
   it('refuses destructive actions against other admin accounts but allows enabling', async () => {

@@ -1,6 +1,6 @@
 // Notification centre, security tasks and Secrets Manager access requests (TASKS #231).
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { withEnv } from './helpers'
+import { freezeRateLimitWindow, withEnv } from './helpers'
 import { type Actor, actor, addMember, createOrg, loginCipher, mailbox } from './org-helpers'
 
 const NIL = '00000000-0000-4000-8000-000000000000'
@@ -238,18 +238,23 @@ describe('Secrets Manager access requests', () => {
 
 describe('request-sm-access limit', () => {
   it('limits requests per account', async () => {
-    const statuses: number[] = []
-    for (let i = 0; i < 22; i++) {
-      statuses.push(
-        (
-          await member.call('/api/request-access/request-sm-access', 'POST', {
-            organizationId: orgId,
-            emailContent: 'again',
-          })
-        ).status,
-      )
+    const restore = freezeRateLimitWindow()
+    try {
+      const statuses: number[] = []
+      for (let i = 0; i < 22; i++) {
+        statuses.push(
+          (
+            await member.call('/api/request-access/request-sm-access', 'POST', {
+              organizationId: orgId,
+              emailContent: 'again',
+            })
+          ).status,
+        )
+      }
+      expect(statuses[21]).toBe(429)
+      expect(statuses[0]).toBe(200)
+    } finally {
+      restore()
     }
-    expect(statuses[21]).toBe(429)
-    expect(statuses[0]).toBe(200)
   })
 })

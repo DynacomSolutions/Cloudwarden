@@ -3,7 +3,7 @@
 // (VAPID), both with WebCrypto. The VAPID key pair is generated once and kept in instance settings
 // with the private half sealed at rest. Subscriptions are only accepted for, and only delivered to,
 // https endpoints of the known push services, and redirects are never followed (SSRF safe).
-import { and, eq, isNotNull, ne } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, ne } from 'drizzle-orm'
 import { fromB64u, toB64u, utf8 } from '../auth/crypto'
 import { createDb, schema } from '../db'
 import type { Bindings } from '../env'
@@ -47,6 +47,23 @@ export function validateSubscriptionKeys(p256dh: unknown, auth: unknown): boolea
   const key = fromB64u(p256dh.replace(/=+$/, ''))
   const secret = fromB64u(auth.replace(/=+$/, ''))
   return key?.length === 65 && key[0] === 4 && secret?.length === 16
+}
+
+/** Most browsers one account may register for web push. */
+export const MAX_WEB_PUSH_SUBSCRIPTIONS = 20
+/** Most pushes in flight at once for one event. */
+const SEND_CONCURRENCY = 5
+
+/** True when `p256dh` is a point on the P-256 curve (the browser's key), not just 65 bytes. */
+export async function validPublicKey(p256dh: string): Promise<boolean> {
+  const raw = fromB64u(p256dh)
+  if (!raw) return false
+  try {
+    await crypto.subtle.importKey('raw', raw, { name: 'ECDH', namedCurve: 'P-256' }, false, [])
+    return true
+  } catch {
+    return false
+  }
 }
 
 export interface WebPushState {
@@ -283,6 +300,13 @@ async function deliver(env: Bindings, state: WebPushState, sub: Sub, body: Uint8
   const p256dh = fromB64u(sub.p256dh)
   const auth = fromB64u(sub.auth)
   if (!p256dh || !auth) return true
+  let payload: Uint8Array
+  try {
+    payload = await encryptWebPush(body, p256dh, auth)
+  } catch {
+    // The stored key cannot be used (not a curve point): the subscription is useless.
+    return true
+  }
   const res = await fetch(endpoint, {
     method: 'POST',
     redirect: 'manual',
@@ -294,7 +318,7 @@ async function deliver(env: Bindings, state: WebPushState, sub: Sub, body: Uint8
       TTL: '300',
       Urgency: 'normal',
     },
-    body: await encryptWebPush(body, p256dh, auth),
+    body: payload,
   })
   // Drain so the connection is released; the body is never needed.
   await res.body?.cancel().catch(() => undefined)
@@ -339,30 +363,29 @@ export async function sendWebPush(
     if (rows.length === 0) return
     const body = webPushBody(message)
     const gone: string[] = []
-    await Promise.all(
-      rows.map(async (r) => {
-        if (!r.endpoint || !r.p256dh || !r.auth) return
-        try {
-          if (
-            await deliver(
-              env,
-              state,
-              { uuid: r.uuid, endpoint: r.endpoint, p256dh: r.p256dh, auth: r.auth },
-              body,
-            )
-          ) {
-            gone.push(r.uuid)
+    const work = rows.filter((r) => r.endpoint && r.p256dh && r.auth)
+    for (let i = 0; i < work.length; i += SEND_CONCURRENCY) {
+      await Promise.all(
+        work.slice(i, i + SEND_CONCURRENCY).map(async (r) => {
+          try {
+            const sub = {
+              uuid: r.uuid,
+              endpoint: r.endpoint as string,
+              p256dh: r.p256dh as string,
+              auth: r.auth as string,
+            }
+            if (await deliver(env, state, sub, body)) gone.push(r.uuid)
+          } catch (err) {
+            log('warn', 'webpush.send_failed', { errorKind: errorKind(err) }, env)
           }
-        } catch (err) {
-          log('warn', 'webpush.send_failed', { errorKind: errorKind(err) }, env)
-        }
-      }),
-    )
-    for (const uuid of gone) {
+        }),
+      )
+    }
+    if (gone.length > 0) {
       await db
         .update(schema.devices)
         .set({ webPushEndpoint: null, webPushP256dh: null, webPushAuth: null })
-        .where(eq(schema.devices.uuid, uuid))
+        .where(inArray(schema.devices.uuid, gone))
     }
   } catch (err) {
     log('warn', 'webpush.failed', { errorKind: errorKind(err) }, env)

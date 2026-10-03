@@ -102,7 +102,7 @@ credentials from Bitwarden and no setup: it is on by default.
 - The vault stores the subscription with `POST` (or `PUT`) `/api/devices/identifier/{id}/web-push-auth`
   (`endpoint`, `p256dh`, `auth`) on its own device row. Only https endpoints of known push services are
   accepted: Firebase Cloud Messaging, Mozilla autopush, Apple web push and Windows WNS, with no custom
-  port or credentials. The key sizes are checked (65 byte uncompressed P-256 key, 16 byte secret).
+  port or credentials. The key is imported as a P-256 point and the secret must be 16 bytes; an account may hold at most 20 subscriptions. At most 5 pushes are in flight per event, and subscriptions whose key stops working are removed in one statement.
 - Delivery happens where `pushUserUpdate` fans out (and for `pushLogOut`), in parallel with sockets and
   the mobile relay. The message is one `aes128gcm` record (RFC 8291) with a VAPID JWT (RFC 8292, ES256,
   12 hour expiry), sent with `redirect: manual`. The endpoint is checked against the allow-list again on
@@ -110,5 +110,5 @@ credentials from Bitwarden and no setup: it is on by default.
   status only. The device that made the change is skipped.
 - Instance admins can turn it off: `GET` and `PUT /api/cloudwarden/admin/web-push` (`{ enabled }`). Off
   removes the key from `/api/config` (clients fall back to the hub) and stops delivery, keeping the key
-  and subscriptions for later. The Angular settings page has no switch yet.
+  and subscriptions for later. The switch is on the Instance admin, Mobile push page.
 - `PUT devices/identifier/{id}/clear-token` clears the mobile push token (and the relay registration).

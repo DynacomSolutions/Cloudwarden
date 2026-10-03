@@ -407,5 +407,10 @@ sso.get('/api/sso-cookie-vendor', rateLimit('sso'), (c) => {
     return key === name || (key.startsWith(`${name}-`) && /^\d+$/.test(key.slice(name.length + 1)))
   })
   if (!present) throw new ApiError(401, 'The sign-in cookie is missing.')
-  return page(c, 'Signed in', 'You can close this window and return to the app.', 200)
+  // Not `page()`: that clears the SSO flow cookie, and this page must leave a login in progress alone.
+  return c.html(
+    '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Signed in</title></head><body><p>You can close this window and return to the app.</p></body></html>',
+    200,
+    { 'Content-Security-Policy': PAGE_CSP, 'Cache-Control': 'no-store' },
+  )
 })

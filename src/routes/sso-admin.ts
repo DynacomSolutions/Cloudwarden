@@ -5,11 +5,14 @@ import { z } from 'zod'
 import { authenticationData, checkNested, unlockData } from '../auth/credentials'
 import { randomB64u } from '../auth/crypto'
 import { requireAuth } from '../auth/middleware'
-import { hashMasterPassword } from '../auth/passwords'
+import { consumeOtp } from '../auth/otp'
+import { hashMasterPassword, verifyMasterPassword } from '../auth/passwords'
 import { signPurposeToken } from '../auth/purpose-token'
 import { createDb, runBatch, schema } from '../db'
+import { later } from '../email/send'
 import type { Env, User } from '../env'
 import { ApiError } from '../errors'
+import { pushLogOut } from '../notifications/publish'
 import {
   bumpOrgRevision,
   getMember,
@@ -841,6 +844,10 @@ ssoAccounts.put('/api/accounts/update-tde-offboarding-password', requireAuth, as
   return c.body(null, 200)
 })
 
+/** An AES-CBC with HMAC-SHA256 encrypted string: `2.<iv>|<data>|<mac>`, all base64. */
+const AES_CBC_HMAC_ENC_STRING =
+  /^2\.[A-Za-z0-9+/]+={0,2}\|[A-Za-z0-9+/]+={0,2}\|[A-Za-z0-9+/]+={0,2}$/
+
 async function keyConnectorOrg(c: Ctx, identifier: string | null | undefined) {
   const found = await memberOrgByIdentifier(c, identifier)
   if (!found) throw new ApiError(400, 'An organization identifier is required.')
@@ -946,11 +953,27 @@ ssoAccounts.post('/api/accounts/convert-to-key-connector', requireAuth, async (c
 ssoAccounts.post('/api/accounts/key-connector/enroll', requireAuth, async (c) => {
   const body = await parseBody(
     c,
-    z.object({ keyConnectorKeyWrappedUserKey: z.string().min(1).max(10_000) }),
+    z.object({
+      keyConnectorKeyWrappedUserKey: z
+        .string()
+        .max(10_000)
+        .regex(AES_CBC_HMAC_ENC_STRING, 'A type 2 encrypted string is required.'),
+      // Proof of the account owner: the master password hash, or an emailed code without one.
+      masterPasswordHash: z.string().nullish(),
+      otp: z.string().nullish(),
+    }),
   )
   const db = createDb(c.env.DB)
   const user = c.var.user
   if (user.usesKeyConnector) throw new ApiError(400, 'This account already uses Key Connector.')
+  const hasPassword = hasMasterPassword(user)
+  if (hasPassword) {
+    if (!body.masterPasswordHash || !(await verifyMasterPassword(user, body.masterPasswordHash))) {
+      throw new ApiError(400, 'Invalid password.', { masterPasswordHash: ['Invalid password.'] })
+    }
+  } else if (!body.otp || !(await consumeOtp(db, user.uuid, 'user-verification', body.otp))) {
+    throw new ApiError(400, 'Invalid verification code.')
+  }
   const rows = await db
     .select({ m: schema.usersOrganizations, cfg: schema.ssoConfigs })
     .from(schema.usersOrganizations)
@@ -962,16 +985,16 @@ ssoAccounts.post('/api/accounts/key-connector/enroll', requireAuth, async (c) =>
       and(
         eq(schema.usersOrganizations.userUuid, user.uuid),
         eq(schema.ssoConfigs.enabled, true),
-        ne(schema.usersOrganizations.status, Status.Revoked),
+        eq(schema.usersOrganizations.status, Status.Confirmed),
       ),
     )
   const kcRows = rows.filter(
     (r) => parseConfigData(r.cfg).memberDecryptionType === MemberDecryptionType.KeyConnector,
   )
   if (kcRows.length === 0) throw new ApiError(400, 'None of your organizations use Key Connector.')
-  const hasPassword = hasMasterPassword(user)
   if (hasPassword && kcRows.some((r) => isAdminRole(r.m)))
     throw new ApiError(400, 'Owners and administrators keep their master password.')
+  const device = c.var.auth.deviceIdentifier
   await batch(db, [
     db
       .update(schema.users)
@@ -982,14 +1005,27 @@ ssoAccounts.post('/api/accounts/key-connector/enroll', requireAuth, async (c) =>
         passwordIterations: 0,
         passwordHint: null,
         usesKeyConnector: true,
+        // The wrapping key changed: other sessions end. This device keeps its refresh token and
+        // gets a new access token on its next refresh.
+        securityStamp: crypto.randomUUID(),
         updatedAt: Date.now(),
       })
       .where(and(eq(schema.users.uuid, user.uuid), eq(schema.users.usesKeyConnector, false))),
+    db
+      .update(schema.devices)
+      .set({ refreshToken: '' })
+      .where(
+        and(
+          eq(schema.devices.userUuid, user.uuid),
+          device ? ne(schema.devices.identifier, device) : undefined,
+        ),
+      ),
     eventStatement(db, c, {
       type: SsoEventType.UserMigratedKeyToKeyConnector,
       userUuid: user.uuid,
     }),
   ])
+  later(c, pushLogOut(c.env, user.uuid, device))
   return c.body(null, 200)
 })
 

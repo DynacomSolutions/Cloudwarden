@@ -18512,6 +18512,33 @@
   "cwPushSaved": {
     "message": "Mobile push settings saved"
   },
+  "cwWebPushTitle": {
+    "message": "Browser web push"
+  },
+  "cwWebPushDesc": {
+    "message": "Web browsers get live vault updates through their own push service (Firebase, Mozilla, Apple or Windows) when the notification connection is unavailable. It needs no setup and no Bitwarden account. Turning it off makes browsers use the notification connection only."
+  },
+  "cwWebPushOn": {
+    "message": "On"
+  },
+  "cwWebPushOff": {
+    "message": "Off"
+  },
+  "cwWebPushSubscriptions": {
+    "message": "Subscribed browsers"
+  },
+  "cwWebPushTurnOn": {
+    "message": "Turn on web push"
+  },
+  "cwWebPushTurnOff": {
+    "message": "Turn off web push"
+  },
+  "cwWebPushSaved": {
+    "message": "Web push setting saved"
+  },
+  "cwWebPushUnavailable": {
+    "message": "The stored web push key cannot be opened, for example because the encryption key changed. Web push is off."
+  },
   "cwPushRemoved": {
     "message": "Mobile push settings removed"
   },

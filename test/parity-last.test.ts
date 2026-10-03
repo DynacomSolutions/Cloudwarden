@@ -361,6 +361,38 @@ describe('device routes', () => {
   })
 })
 
+describe('web push registration limits', () => {
+  it('rejects a key that is not a curve point and caps subscriptions per account', async () => {
+    const email = uemail('cap')
+    const s = await createSession(email)
+    const ua = await browser()
+    const offCurve = toB64u(Uint8Array.of(4, ...new Uint8Array(64).fill(1)))
+    const bad = await authed(
+      '/api/devices/identifier/device-1/web-push-auth',
+      s.access_token,
+      'POST',
+      {
+        endpoint: ua.endpoint,
+        p256dh: offCurve,
+        auth: ua.keys.auth,
+      },
+    )
+    expect(bad.status).toBe(400)
+    // Fill the account to the cap with extra device rows, then one more is refused.
+    const uuid = await userUuid(email)
+    for (let i = 0; i < 20; i++) {
+      await env.DB.prepare(
+        "INSERT INTO devices (uuid, identifier, user_uuid, name, type, refresh_token, web_push_endpoint, web_push_p256dh, web_push_auth, created_at, updated_at) VALUES (?1, ?2, ?3, 'x', 9, 'r', 'https://fcm.googleapis.com/x', ?4, ?5, 1, 1)",
+      )
+        .bind(crypto.randomUUID(), `cap-${i}`, uuid, ua.keys.p256dh, ua.keys.auth)
+        .run()
+    }
+    expect((await subscribe(s.access_token, ua)).status).toBe(400)
+    // Replacing an existing subscription is still fine.
+    expect((await subscribe(s.access_token, ua, 'cap-0')).status).toBe(200)
+  })
+})
+
 describe('/api/config web push', () => {
   const cfg = async () =>
     (await (await SELF.fetch(`${BASE}/api/config`)).json()) as { push: Record<string, unknown> }
@@ -517,6 +549,18 @@ describe('web push delivery', () => {
     expect((await rowOf(again.email, 'device-1'))?.endpoint).toBeNull()
   })
 
+  it('drops a subscription whose stored key cannot be used', async () => {
+    const { email, uuid } = await setup()
+    await env.DB.prepare(
+      "UPDATE devices SET web_push_p256dh = ?2 WHERE identifier = 'device-1' AND user_uuid = ?1",
+    )
+      .bind(uuid, toB64u(Uint8Array.of(4, ...new Uint8Array(64).fill(1))))
+      .run()
+    await fire(uuid)
+    expect((await rowOf(email, 'device-1'))?.endpoint).toBeNull()
+    expect((await rowOf(email, 'device-2'))?.endpoint).not.toBeNull()
+  })
+
   it('never contacts an endpoint outside the allow-list, even one stored directly', async () => {
     const { email, uuid } = await setup()
     await env.DB.prepare(
@@ -647,6 +691,8 @@ describe('GET /api/sso-cookie-vendor', () => {
       const res = await get(cookie, n)
       expect(res.status).toBe(200)
       expect(res.headers.get('Cache-Control')).toBe('no-store')
+      // A login in progress keeps its flow cookie.
+      expect(res.headers.get('Set-Cookie')).toBeNull()
       expect(await res.text()).not.toContain('secret')
     }
   })
@@ -683,10 +729,14 @@ async function ssoOrg(memberDecryptionType = 0) {
 }
 
 describe('POST /api/accounts/key-connector/enroll', () => {
-  const enroll = (
-    a: { call: (p: string, m?: string, b?: unknown) => Promise<Response> },
-    key = '4.kcWrapped',
-  ) => a.call('/api/accounts/key-connector/enroll', 'POST', { keyConnectorKeyWrappedUserKey: key })
+  const KEY = '2.aXZpdg==|ZGF0YQ==|bWFj'
+  type A = { call: (p: string, m?: string, b?: unknown) => Promise<Response> }
+  const enroll = (a: A, extra: Record<string, unknown> = {}, key: unknown = KEY) =>
+    a.call('/api/accounts/key-connector/enroll', 'POST', {
+      keyConnectorKeyWrappedUserKey: key,
+      masterPasswordHash: 'client-derived-hash',
+      ...extra,
+    })
 
   it('moves a member to the Key Connector, but not an owner or a stranger', async () => {
     const { owner, org: o } = await ssoOrg(1)
@@ -706,14 +756,69 @@ describe('POST /api/accounts/key-connector/enroll', () => {
       ).status,
     ).toBe(401)
 
+    // A second device of the same account, which must be signed out by the enrolment.
+    await env.DB.prepare(
+      "INSERT INTO devices (uuid, identifier, user_uuid, name, type, refresh_token, created_at, updated_at) VALUES (?1, 'kc-other', ?2, 'x', 9, 'live-refresh', 1, 1)",
+    )
+      .bind(crypto.randomUUID(), member.uuid)
+      .run()
+    const stampBefore = (
+      await env.DB.prepare('SELECT security_stamp s FROM users WHERE email = ?1')
+        .bind(member.email)
+        .first<{ s: string }>()
+    )?.s
+
     expect((await enroll(member)).status).toBe(200)
+    // The stamp rotated, so the access token this call used is no longer valid.
+    expect((await member.call('/api/accounts/profile')).status).toBe(401)
+    const row = await env.DB.prepare(
+      'SELECT security_stamp s, akey, uses_key_connector k FROM users WHERE email = ?1',
+    )
+      .bind(member.email)
+      .first<{ s: string; akey: string; k: number }>()
+    expect(row?.akey).toBe(KEY)
+    expect(row?.k).toBe(1)
+    expect(row?.s).not.toBe(stampBefore)
+    const refresh = await env.DB.prepare(
+      'SELECT d.identifier i, d.refresh_token r FROM devices d JOIN users u ON u.uuid = d.user_uuid WHERE u.email = ?1',
+    )
+      .bind(member.email)
+      .all<{ i: string; r: string }>()
+    expect(refresh.results.find((d) => d.i === 'kc-other')?.r).toBe('')
+    expect(refresh.results.find((d) => d.i === 'device-1')?.r).not.toBe('')
+    // The old token is dead, and the master password no longer works.
+    expect((await enroll(member)).status).toBe(401)
+    expect((await login(member.email)).status).toBe(400)
+  })
+
+  it('needs proof of the account owner and a well formed key', async () => {
+    const { owner, org: o } = await ssoOrg(1)
+    const member = await actor(uemail('kcproof'))
+    await addMember(owner, o.id, member)
+    expect((await enroll(member, { masterPasswordHash: undefined })).status).toBe(400)
+    expect((await enroll(member, { masterPasswordHash: 'wrong' })).status).toBe(400)
+    for (const key of ['', '4.kcWrapped', '2.not base64|x|y', '2.aXZpdg==|ZGF0YQ==', 'plain', 5]) {
+      expect((await enroll(member, {}, key)).status, String(key)).toBe(400)
+    }
     const profile = await member.json('/api/accounts/profile')
-    expect(profile).toMatchObject({ usesKeyConnector: true, key: '4.kcWrapped' })
-    // Enrolling twice is refused.
-    expect((await enroll(member)).status).toBe(400)
-    // The master password no longer works.
-    const again = await login(member.email)
-    expect(again.status).toBe(400)
+    expect(profile.usesKeyConnector).toBe(false)
+  })
+
+  it('uses an emailed code instead when there is no master password', async () => {
+    const { owner, org: o } = await ssoOrg(1)
+    const member = await actor(uemail('kcotp'))
+    await addMember(owner, o.id, member)
+    await env.DB.prepare("UPDATE users SET password_hash = '' WHERE email = ?1")
+      .bind(member.email)
+      .run()
+    expect((await enroll(member, { masterPasswordHash: undefined })).status).toBe(400)
+    expect((await enroll(member, { masterPasswordHash: undefined, otp: '000000' })).status).toBe(
+      400,
+    )
+    const { issueOtp } = await import('../src/auth/otp')
+    const { createDb } = await import('../src/db')
+    const code = await issueOtp(createDb(env.DB), member.uuid, 'user-verification')
+    expect((await enroll(member, { masterPasswordHash: undefined, otp: code })).status).toBe(200)
   })
 
   it('refuses members of organisations that do not use Key Connector', async () => {

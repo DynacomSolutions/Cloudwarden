@@ -1,4 +1,4 @@
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, count, eq, inArray, isNotNull } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { z } from 'zod'
 import { fromB64u, toB64u } from '../auth/crypto'
@@ -10,7 +10,12 @@ import { later } from '../email/send'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
 import { relayDeleteDevice, relayRegisterDevice } from '../notifications/relay'
-import { validatePushEndpoint, validateSubscriptionKeys } from '../notifications/webpush'
+import {
+  MAX_WEB_PUSH_SUBSCRIPTIONS,
+  validatePushEndpoint,
+  validateSubscriptionKeys,
+  validPublicKey,
+} from '../notifications/webpush'
 import { rateLimit } from '../ratelimit'
 import { hasMasterPassword, isTrustedDevice } from '../sso/decryption'
 import { parseBody } from '../validation'
@@ -143,7 +148,24 @@ const setWebPushAuth = async (c: import('hono').Context<Env>) => {
       p256dh: ['The push subscription keys are not valid.'],
     })
   }
-  await createDb(c.env.DB)
+  if (!(await validPublicKey(body.p256dh))) {
+    throw new ApiError(400, 'The push subscription keys are not valid.', {
+      p256dh: ['The push subscription keys are not valid.'],
+    })
+  }
+  const db = createDb(c.env.DB)
+  if (!row.webPushEndpoint) {
+    const [{ n } = { n: 0 }] = await db
+      .select({ n: count() })
+      .from(schema.devices)
+      .where(
+        and(eq(schema.devices.userUuid, row.userUuid), isNotNull(schema.devices.webPushEndpoint)),
+      )
+    if (n >= MAX_WEB_PUSH_SUBSCRIPTIONS) {
+      throw new ApiError(400, 'Too many push subscriptions for this account.')
+    }
+  }
+  await db
     .update(schema.devices)
     .set({
       webPushEndpoint: endpoint,

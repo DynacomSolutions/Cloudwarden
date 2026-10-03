@@ -85,7 +85,7 @@ applies D1 migrations, deploys, then smoke-checks `/alive` with retries.
    | `DEPLOY_DOMAIN` | Hostname, for example `vault.example.com` |
    | `MAIL_FROM` | Optional sender, for example `Cloudwarden <noreply@example.com>` |
 
-   Optionally add environment variables (not secrets) `ADMIN_ENABLED` and `SIGNUPS_ALLOWED`; both default to `false`.
+   Optionally add environment variables (not secrets) `ADMIN_ENABLED`, `SIGNUPS_ALLOWED`, and `FEDERATION_ENABLED`; all default to `false`. Federation is enabled on a deployment by setting the repository variable `FEDERATION_ENABLED=true`.
 
 3. Jobs run on the `k3s-runners` label (self-hosted). Register a runner with that label, or change `runs-on` in the
    workflow to match your runner.

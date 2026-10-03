@@ -28,6 +28,7 @@ jobs:
       MAIL_FROM: ${{ secrets.MAIL_FROM }}
       ADMIN_ENABLED: ${{ vars.ADMIN_ENABLED }}
       SIGNUPS_ALLOWED: ${{ vars.SIGNUPS_ALLOWED }}
+      FEDERATION_ENABLED: ${{ vars.FEDERATION_ENABLED }}
     steps:
       - name: Mask deploy domain
         run: echo "::add-mask::${DEPLOY_DOMAIN}"

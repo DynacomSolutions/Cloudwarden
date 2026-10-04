@@ -3,6 +3,7 @@ import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { z } from 'zod'
 import { createDb, type Db, runBatch, schema } from '../db'
+import { emailVerifiedFor } from '../emailless'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
 import {
@@ -406,7 +407,7 @@ async function checkJoin(
 ) {
   const user = c.var.user
   const org = await requireOrg(db, body.organizationId)
-  if (user.verifiedAt === null) {
+  if (!emailVerifiedFor(c.env, user)) {
     throw new ApiError(400, 'You must verify your email address before joining an organization.')
   }
   const domain = user.email.toLowerCase().split('@').pop() ?? ''

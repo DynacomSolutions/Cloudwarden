@@ -82,6 +82,21 @@ The server-rendered `/admin` (magic link, admin token, cookie sessions) was remo
 | D | Mail bombing through invite or verify endpoints | Per-address and per-IP limits (planned with #1) | |
 | E | Header injection through names or addresses | Addresses validated; templates escape user text | |
 
+### Email-less installations (TASKS #350 to #354; `docs/emailless.md`)
+
+With no mail transport nobody can prove control of a mailbox, so every flow that used a mailbox as proof or channel changed. The rule is that missing mail may remove a feature or substitute a stronger proof, never weaken the proof an attacker must give.
+
+| | Threat | Mitigation | Residual |
+|---|---|---|---|
+| S | Registering an `ADMIN_EMAILS` address first to become admin | Without mail, such an address registers only with `ADMIN_SETUP_TOKEN` (32+ characters, constant-time compare after hashing), through a registration token carrying a `setup` claim that `register` re-checks; the secret is spent in the same D1 batch as the account (`admin_setup_uses`, keyed by its hash), refused when any `ADMIN_EMAILS` account exists, and never accepted again until the secret is rotated; ignored when mail works | Whoever holds the secret before the operator can create the admin: set it, register at once, then remove it |
+| S | Guessing the setup or an invite code | Counted per address (5 per 10 minutes in D1) and per client; every refusal reads the same; codes are 192 bits (invites, stored as a hash, 7 days, reissue retires the old one) or 32+ characters | An attacker can exhaust the per-address allowance and delay the operator by 10 minutes |
+| S | Taking an invited or whitelisted address without owning it | An invited address cannot get a registration token without its invite code when mail is off. The domain whitelist cannot prove the address and keeps working as before | Whitelisting a domain on a mail-off server lets anyone register any address of that domain: prefer invite links |
+| E | Becoming admin by changing an account email to an admin address | Without mail an email change to an `ADMIN_EMAILS` address is refused (the new address cannot be verified); `isAdminUser` still needs `verifiedAt`, which is never inferred from "mail is off" | |
+| E | Weaker email change | The master password is required to ask for and again to confirm the change; with mail the emailed code is required as before | The code proved the new mailbox; without mail the new address is unverified, as for any registration |
+| S | Account takeover through recovery mail | Delete by email, password hint, verification codes and org deletion by email answer 400 without mail; deleting needs the master password | A user who forgot the password cannot recover by mail: only a recovery code or an admin helps |
+| E | Skipped second factor | New device codes are skipped without mail (nothing can deliver them); accounts with two-step login are unchanged. Email two-step is refused and not offered next to other providers; an account whose only provider is email must use its recovery code | New device verification adds nothing on a mail-off server, so a stolen master password logs in from a new device unless another second factor is on: advise two-step login |
+| R | Missing notices | New device, emergency access and organisation notices are skipped; events and push still record them | A grantor is not told by mail of an emergency access request |
+
 ### Icons (`GET /icons/:domain/icon.png`; TASKS #142)
 
 The proxy makes server-side requests to attacker-chosen hosts, so SSRF is the main threat.

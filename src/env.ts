@@ -58,6 +58,11 @@ export interface Bindings {
   DATA_ENCRYPTION_KEY?: string
   /** Comma-separated addresses that are instance admins (the account must also be email verified). */
   ADMIN_EMAILS?: string
+  /**
+   * One-time secret (32+ characters) that lets an ADMIN_EMAILS address register when mail cannot be
+   * sent (TASKS #350, docs/emailless.md). Spent by the first admin account; ignored when mail works.
+   */
+  ADMIN_SETUP_TOKEN?: string
   /** Yubico API client id and base64 secret key for YubiKey OTP two-factor (key portal). */
   YUBICO_CLIENT_ID?: string
   YUBICO_SECRET_KEY?: string

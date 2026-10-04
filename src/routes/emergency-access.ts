@@ -17,6 +17,7 @@ import {
   genericEmail,
 } from '../email'
 import { later, sendNotice } from '../email/send'
+import { mailConfigured } from '../emailless'
 import type { Env, User } from '../env'
 import { ApiError } from '../errors'
 import { dropMemberStateStatements } from '../orgs/ciphers'
@@ -209,7 +210,16 @@ async function sendInvite(c: Ctx, row: Row) {
   }
 }
 
+/** Invitations are mailed; without mail there is no way to hand over the acceptance link. */
+function requireMailForInvite() {
+  throw new ApiError(
+    400,
+    'This server cannot send email, so emergency access invitations are not available.',
+  )
+}
+
 emergencyAccess.post('/api/emergency-access/invite', async (c) => {
+  if (!mailConfigured(c.env)) requireMailForInvite()
   const body = await parseBody(c, inviteSchema)
   const db = createDb(c.env.DB)
   const user = c.var.user
@@ -264,6 +274,7 @@ emergencyAccess.post('/api/emergency-access/invite', async (c) => {
 })
 
 emergencyAccess.post('/api/emergency-access/:id/reinvite', async (c) => {
+  if (!mailConfigured(c.env)) requireMailForInvite()
   const { row } = await asGrantor(c)
   if (row.status !== EmergencyStatus.Invited)
     throw new ApiError(400, 'Invitation was already accepted.')

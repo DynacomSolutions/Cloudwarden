@@ -487,6 +487,9 @@ describe('admin API invitations', () => {
       email: addr,
       createdAt: expect.any(String),
       emailStatus: 'not-configured',
+      // Without mail the admin gets a link to copy (docs/emailless.md).
+      link: expect.stringContaining('/#/instance-setup?email='),
+      codeExpiresAt: expect.any(String),
     })
     const again = await a.call(`${P}/invitations`, 'POST', { email: addr })
     expect(again.status).toBe(200)

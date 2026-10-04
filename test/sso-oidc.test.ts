@@ -233,7 +233,12 @@ describe('SSO with OpenID Connect', () => {
     const ok = await oidcLogin(idp, identifier, { sub: unique('sub'), email: invitedEmail })
     expect(ok.token?.status).toBe(200)
     const profile = (await (
-      await authedCall(ok.body.access_token, '/api/accounts/profile')
+      await call(
+        '/api/accounts/profile',
+        { headers: { Authorization: `Bearer ${ok.body.access_token}` } },
+        // With mail on, an address nobody proved is not reported as verified.
+        { EMAIL: mail.EMAIL, MAIL_FROM: mail.MAIL_FROM },
+      )
     ).json()) as any
     // An invited (not claimed) address is not marked verified by SSO.
     expect(profile.emailVerified).toBe(false)

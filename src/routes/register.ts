@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { z } from 'zod'
-import { isAdminEmail } from '../admin/security'
+import { isAdminEmail, rateLimit as windowLimit } from '../admin/security'
 import { authenticationData, checkNested, unlockData } from '../auth/credentials'
 import { signingSecret, signJwt, verifyJwt } from '../auth/jwt'
 import { hashMasterPassword } from '../auth/passwords'
@@ -9,9 +9,18 @@ import { findUserByEmail, normalizeEmail } from '../auth/users'
 import { createDb, type Db, runBatch, schema } from '../db'
 import { createEmailTransport, genericEmail, welcomeEmail } from '../email'
 import { later, sendNotice, vaultBase } from '../email/send'
+import {
+  adminAccountExists,
+  codeMatches,
+  inviteCodeHash,
+  mailConfigured,
+  setupToken,
+  setupTokenId,
+  setupTokenSpent,
+} from '../emailless'
 import type { Bindings, Env } from '../env'
 import { ApiError } from '../errors'
-import { rateLimit } from '../ratelimit'
+import { rateLimit, tooManyRequests } from '../ratelimit'
 import { type KdfParams, kdfProblem, parseBody } from '../validation'
 
 export const register = new Hono<Env>()
@@ -21,21 +30,37 @@ export const register = new Hono<Env>()
  * SIGNUPS_DOMAINS_WHITELIST, or an admin invited the address (invitations table).
  */
 export async function signupAllowed(env: Bindings, db: Db, email: string): Promise<boolean> {
-  if (env.SIGNUPS_ALLOWED === 'true') return true
+  return (await signupBasis(env, db, email)) !== null
+}
+
+/** Why `email` may register: open signups, the domain whitelist, or an invitation. */
+export async function signupBasis(
+  env: Bindings,
+  db: Db,
+  email: string,
+): Promise<'open' | 'whitelist' | 'invite' | null> {
+  if (env.SIGNUPS_ALLOWED === 'true') return 'open'
   const list = (env.SIGNUPS_DOMAINS_WHITELIST ?? '')
     .split(',')
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean)
   const addr = normalizeEmail(email)
   const domain = addr.slice(addr.lastIndexOf('@') + 1)
-  if (list.some((entry) => (entry.includes('@') ? entry === addr : entry === domain))) return true
+  if (list.some((entry) => (entry.includes('@') ? entry === addr : entry === domain))) {
+    return 'whitelist'
+  }
   const [invite] = await db
     .select({ uuid: schema.invitations.uuid })
     .from(schema.invitations)
     .where(sql`lower(${schema.invitations.email}) = ${addr}`)
     .limit(1)
-  return invite !== undefined
+  return invite !== undefined ? 'invite' : null
 }
+
+const NO_MAIL_HINT =
+  ' This server cannot send email: if you have an invite or setup code, open the page /#/instance-setup.'
+const notAllowed = (env: Bindings) =>
+  new ApiError(400, `Registration is not allowed.${mailConfigured(env) ? '' : NO_MAIL_HINT}`)
 
 // Registration tokens use a derived secret so they can never validate as access tokens.
 const registerSecret = (env: Bindings) => `register:${signingSecret(env)}`
@@ -45,6 +70,8 @@ interface RegisterClaims {
   purpose: 'register'
   email: string
   name: string
+  /** Issued by the setup code redemption (no mail): the holder may create the first admin. */
+  setup?: boolean
   exp: number
   nbf: number
 }
@@ -84,17 +111,31 @@ async function createAccount(c: import('hono').Context<Env>) {
   // only say who may register, so they need that proof. Fully open signups may skip it, except
   // for admin addresses, which must never be claimable by whoever registers them first.
   let verified = false
+  let setupClaim = false
   if (body.emailVerificationToken) {
     const claims = await verifyJwt<RegisterClaims>(body.emailVerificationToken, [
       registerSecret(c.env),
     ])
     if (claims?.purpose === 'register' && claims.email === email) {
       verified = true
+      setupClaim = claims.setup === true
       name = body.name ?? claims.name
     }
   }
-  const open = c.env.SIGNUPS_ALLOWED === 'true' && !isAdminEmail(c.env.ADMIN_EMAILS, email)
-  if (!verified && !open) throw new ApiError(400, 'Registration is not allowed.')
+  const adminAddress = isAdminEmail(c.env.ADMIN_EMAILS, email)
+  const open = c.env.SIGNUPS_ALLOWED === 'true' && !adminAddress
+  if (!verified && !open) throw notAllowed(c.env)
+  // Without mail an admin address has no proof of ownership, so only the one-time setup secret
+  // (redeemed into a setup token) may create it, once, and never when an admin already exists.
+  let setupId: string | null = null
+  if (adminAddress && !mailConfigured(c.env)) {
+    const secret = setupToken(c.env)
+    if (!setupClaim || !secret) throw notAllowed(c.env)
+    if ((await adminAccountExists(c.env, db)) || (await setupTokenSpent(db, secret))) {
+      throw notAllowed(c.env)
+    }
+    setupId = await setupTokenId(secret)
+  }
 
   const keys = body.keys ?? body.userAsymmetricKeys
   let key = body.key ?? body.userSymmetricKey
@@ -121,8 +162,9 @@ async function createAccount(c: import('hono').Context<Env>) {
   const argon = kdfSettings.kdf === 1
   try {
     // The invitation (if any) is consumed in the same batch as the account insert.
+    const uuid = crypto.randomUUID()
     const insert = db.insert(schema.users).values({
-      uuid: crypto.randomUUID(),
+      uuid,
       email,
       name,
       ...stored,
@@ -143,6 +185,14 @@ async function createAccount(c: import('hono').Context<Env>) {
     await runBatch(db, [
       insert,
       db.delete(schema.invitations).where(sql`lower(${schema.invitations.email}) = ${email}`),
+      // Spends the setup secret in the same batch: a lost race fails the whole batch.
+      ...(setupId
+        ? [
+            db
+              .insert(schema.adminSetupUses)
+              .values({ tokenHash: setupId, userUuid: uuid, usedAt: now }),
+          ]
+        : []),
     ])
   } catch {
     // Lost a race with a concurrent registration of the same address.
@@ -170,12 +220,13 @@ register.post(
   async (c) => {
     const body = await parseBody(c, sendSchema)
     const email = normalizeEmail(body.email)
-    if (!(await signupAllowed(c.env, createDb(c.env.DB), email))) {
-      throw new ApiError(400, 'Registration is not allowed.')
-    }
-    // Without a mail transport the token is handed straight back, which proves nothing.
-    if (isAdminEmail(c.env.ADMIN_EMAILS, email) && !createEmailTransport(c.env).configured) {
-      throw new ApiError(400, 'Registration is not allowed.')
+    const basis = await signupBasis(c.env, createDb(c.env.DB), email)
+    if (basis === null) throw notAllowed(c.env)
+    // Without a mail transport the token is handed straight back, which proves nothing. Admin
+    // addresses need the setup secret and invitations need their invite code (both go through
+    // `registration/redeem`); open signups and the domain whitelist keep working.
+    if (!mailConfigured(c.env) && (isAdminEmail(c.env.ADMIN_EMAILS, email) || basis === 'invite')) {
+      throw notAllowed(c.env)
     }
     const now = Math.floor(Date.now() / 1000)
     const claims: RegisterClaims = {
@@ -232,3 +283,65 @@ register.post(
   rateLimit('register'),
   emailClicked,
 )
+
+// Without mail, the first admin and invited users prove their right to register with a code that
+// was handed over out of band: the ADMIN_SETUP_TOKEN secret, or the code in an invite link an admin
+// copied from the Instance admin page. A valid code yields the same registration token that the
+// emailed link would (TASKS #350, docs/emailless.md). Every refusal reads the same.
+const redeemSchema = z.object({ email: z.string().email(), code: z.string().min(1).max(512) })
+const REDEEM_ATTEMPTS = 5
+const REDEEM_WINDOW_MS = 10 * 60_000
+
+register.post(
+  '/api/cloudwarden/registration/redeem',
+  rateLimit('registration-redeem', 5),
+  async (c) => {
+    const { email: rawEmail, code: presented } = await parseBody(c, redeemSchema)
+    const email = normalizeEmail(rawEmail)
+    if (mailConfigured(c.env)) {
+      throw new ApiError(400, 'This server sends email, so register with the usual email link.')
+    }
+    // Counted before anything is checked, per address and per client, so guessing is bounded.
+    if (!(await attemptWithinLimit(c.env.DB, email))) return tooManyRequests(c)
+    const db = createDb(c.env.DB)
+    const refuse = () => new ApiError(400, 'The code is not valid, or it has already been used.')
+    let setup = false
+    if (isAdminEmail(c.env.ADMIN_EMAILS, email)) {
+      const secret = setupToken(c.env)
+      // Always compare, so the work done does not depend on whether a secret is set.
+      const matches = await codeMatches(presented, secret ?? crypto.randomUUID())
+      if (!secret || !matches) throw refuse()
+      if ((await adminAccountExists(c.env, db)) || (await setupTokenSpent(db, secret))) {
+        throw refuse()
+      }
+      setup = true
+    } else {
+      const [invite] = await db
+        .select({ hash: schema.invitations.tokenHash, expires: schema.invitations.tokenExpiresAt })
+        .from(schema.invitations)
+        .where(sql`lower(${schema.invitations.email}) = ${email}`)
+        .limit(1)
+      const matches = await codeMatches(
+        await inviteCodeHash(presented),
+        invite?.hash ?? crypto.randomUUID(),
+      )
+      if (!invite?.hash || !matches || (invite.expires ?? 0) < Date.now()) throw refuse()
+    }
+    if (await findUserByEmail(db, email)) throw refuse()
+    const now = Math.floor(Date.now() / 1000)
+    const claims: RegisterClaims = {
+      purpose: 'register',
+      email,
+      name: '',
+      ...(setup ? { setup: true } : {}),
+      nbf: now,
+      exp: now + REGISTER_TOKEN_TTL_SECONDS,
+    }
+    return c.json({ emailVerificationToken: await signJwt(claims, registerSecret(c.env)) })
+  },
+)
+
+/** Fixed window of attempts per address in D1, independent of the client address. */
+async function attemptWithinLimit(db: D1Database, email: string): Promise<boolean> {
+  return windowLimit(db, `redeem:${email}`, REDEEM_ATTEMPTS, REDEEM_WINDOW_MS, Date.now())
+}

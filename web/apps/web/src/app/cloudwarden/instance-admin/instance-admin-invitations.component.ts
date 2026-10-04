@@ -4,6 +4,7 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from "@ang
 import { FormBuilder, Validators } from "@angular/forms";
 
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
+import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
 import { DialogService, ToastService } from "@bitwarden/components";
 
 import { HeaderModule } from "../../layouts/header/header.module";
@@ -32,6 +33,15 @@ import { AdminInvitation, InstanceAdminApiService } from "./instance-admin-api.s
       @if (error()) {
         <bit-callout type="danger">{{ error() }}</bit-callout>
       }
+      @if (issued(); as link) {
+        <bit-callout type="info" [title]="'cwInviteLinkTitle' | i18n" data-testid="cw-invite-link">
+          <p>{{ issuedNote() }}</p>
+          <input bitInput readonly class="tw-font-mono" [value]="link" />
+          <button type="button" bitButton buttonType="primary" class="tw-mt-2" (click)="copy(link)">
+            {{ "cwCopyLink" | i18n }}
+          </button>
+        </bit-callout>
+      }
       <bit-table>
         <ng-container header>
           <tr>
@@ -46,6 +56,11 @@ import { AdminInvitation, InstanceAdminApiService } from "./instance-admin-api.s
               <td bitCell>{{ i.email }}</td>
               <td bitCell>{{ i.createdAt | date: "short" }}</td>
               <td bitCell class="tw-text-right">
+                @if (mailOff()) {
+                  <button type="button" bitButton (click)="newLink(i)">
+                    {{ "cwNewInviteLink" | i18n }}
+                  </button>
+                }
                 <button type="button" bitButton buttonType="danger" (click)="revoke(i)">
                   {{ "revoke" | i18n }}
                 </button>
@@ -62,6 +77,12 @@ export class InstanceAdminInvitationsComponent implements OnInit {
   private readonly dialogService = inject(DialogService);
   private readonly toastService = inject(ToastService);
   private readonly i18n = inject(I18nService);
+  private readonly platform = inject(PlatformUtilsService);
+
+  /** True when the server cannot send email: invitations are links to copy (docs/emailless.md). */
+  protected readonly mailOff = signal(false);
+  protected readonly issued = signal<string | null>(null);
+  protected readonly issuedNote = signal("");
 
   protected readonly invitations = signal<AdminInvitation[]>([]);
   protected readonly error = signal<string | null>(null);
@@ -70,7 +91,39 @@ export class InstanceAdminInvitationsComponent implements OnInit {
   });
 
   async ngOnInit() {
+    try {
+      this.mailOff.set((await this.api.overview()).email?.configured === false);
+    } catch {
+      // The list below reports connection problems.
+    }
     await this.load();
+  }
+
+  protected copy(link: string) {
+    this.platform.copyToClipboard(link);
+    this.toastService.showToast({ variant: "success", message: this.i18n.t("valueCopied", this.i18n.t("cwInviteLinkTitle")),
+    });
+  }
+
+  protected async newLink(i: AdminInvitation) {
+    await this.create(i.email);
+    await this.load();
+  }
+
+  private async create(email: string) {
+    const r = await this.api.invite(email);
+    if (r.link) {
+      this.issued.set(r.link);
+      this.issuedNote.set(
+        this.i18n.t("cwInviteLinkDesc", new Date(r.codeExpiresAt ?? "").toLocaleDateString()),
+      );
+    } else {
+      this.issued.set(null);
+      this.toastService.showToast({
+        variant: "success",
+        message: this.i18n.t("cwInvited", r.email),
+      });
+    }
   }
 
   private async load() {
@@ -88,11 +141,7 @@ export class InstanceAdminInvitationsComponent implements OnInit {
       return;
     }
     try {
-      const r = await this.api.invite(this.form.value.email ?? "");
-      this.toastService.showToast({
-        variant: "success",
-        message: this.i18n.t("cwInvited", r.email),
-      });
+      await this.create(this.form.value.email ?? "");
       this.form.reset();
     } catch (e) {
       this.toastService.showToast({

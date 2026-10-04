@@ -1,5 +1,7 @@
 # Account emails
 
+Servers without mail: see `docs/emailless.md` for what each feature does instead.
+
 All mail goes through `src/email` (TASKS #141): the Cloudflare Email Service `EMAIL` binding and
 `MAIL_FROM`. Without a transport nothing is sent and each feature that needs mail answers clearly or
 skips quietly, as noted below. Notices are best effort and never fail the request. Templates are in

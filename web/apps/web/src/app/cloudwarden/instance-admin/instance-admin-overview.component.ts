@@ -5,6 +5,8 @@ import { ActivatedRoute } from "@angular/router";
 import { HeaderModule } from "../../layouts/header/header.module";
 import { SharedModule } from "../../shared";
 
+import { EmailFeature } from "../emailless/email-status.service";
+
 import { InstanceAdminApiService } from "./instance-admin-api.service";
 
 type Row = { label: string; value: string };
@@ -21,6 +23,22 @@ export function toRows(obj: Record<string, unknown>, prefix = ""): Row[] {
     }
   }
   return rows;
+}
+
+/** Locale key naming what a feature does without email. */
+export function emailStateKey(state: string): string {
+  switch (state) {
+    case "link":
+      return "cwEmailStateLink";
+    case "refused":
+      return "cwEmailStateRefused";
+    case "skipped":
+      return "cwEmailStateSkipped";
+    case "manual":
+      return "cwEmailStateManual";
+    default:
+      return "cwEmailStateAvailable";
+  }
 }
 
 @Component({
@@ -42,6 +60,16 @@ export function toRows(obj: Record<string, unknown>, prefix = ""): Row[] {
             </div>
           }
         </div>
+      }
+      @if (mailOff()) {
+        <bit-callout type="warning" [title]="'cwEmailNotConfigured' | i18n" data-testid="cw-email-off">
+          {{ "cwEmailNotConfiguredDesc" | i18n }}
+          <ul class="tw-mb-0 tw-mt-2 tw-list-disc tw-pl-5">
+            @for (f of affected(); track f.id) {
+              <li>{{ f.label }}: {{ stateKey(f) | i18n }}</li>
+            }
+          </ul>
+        </bit-callout>
       }
       <bit-table>
         <ng-container header>
@@ -70,11 +98,20 @@ export class InstanceAdminOverviewComponent implements OnInit {
   protected readonly counts = signal<Row[]>([]);
   protected readonly rows = signal<Row[]>([]);
   protected readonly error = signal<string | null>(null);
+  protected readonly mailOff = signal(false);
+  protected readonly affected = signal<EmailFeature[]>([]);
+
+  protected stateKey(f: EmailFeature): string {
+    return emailStateKey(f.state);
+  }
 
   async ngOnInit() {
     try {
       if (this.mode() === "overview") {
-        const { counts, ...rest } = await this.api.overview();
+        const { counts, email, ...rest } = await this.api.overview();
+        const status = email as { configured?: boolean; features?: EmailFeature[] } | undefined;
+        this.mailOff.set(status?.configured === false);
+        this.affected.set(status?.features ?? []);
         this.counts.set(toRows(counts));
         this.rows.set(toRows(rest));
       } else {

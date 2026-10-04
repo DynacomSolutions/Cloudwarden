@@ -206,6 +206,21 @@ const routes: Routes = [
         ],
       },
       {
+        // Cloudwarden: setup and invite page for servers that cannot send email (web/NOTICE.md,
+        // docs/emailless.md). Hands over to the standard finish sign up page.
+        path: "instance-setup",
+        canActivate: [unauthGuardFn()],
+        loadComponent: () =>
+          import("./cloudwarden/emailless/instance-setup.component").then(
+            (m) => m.InstanceSetupComponent,
+          ),
+        data: {
+          pageIcon: RegistrationUserAddIcon,
+          pageTitle: { key: "cwInstanceSetupTitle" },
+          titleId: "cwInstanceSetupTitle",
+        } satisfies RouteDataProperties & AnonLayoutWrapperData,
+      },
+      {
         path: AuthRoute.FinishSignUp,
         canActivate: [unauthGuardFn()],
         data: {

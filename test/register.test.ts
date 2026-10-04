@@ -1,6 +1,7 @@
 import { env } from 'cloudflare:workers'
 import { expect, it } from 'vitest'
 import { json, registerBody, registerUser, withEnv } from './helpers'
+import { mailbox } from './org-helpers'
 
 const asJson = (body: unknown) => ({
   method: 'POST',
@@ -169,7 +170,9 @@ it('send-verification-email refuses disallowed addresses', async () => {
 })
 
 it('lets an invited address register while signups are closed, then consumes the invitation', async () => {
-  const closed = { SIGNUPS_ALLOWED: 'false' }
+  // With mail on the emailed link proves the mailbox (without mail an invite code does, see emailless.test.ts).
+  const mb = mailbox()
+  const closed = { SIGNUPS_ALLOWED: 'false', EMAIL: mb.EMAIL, MAIL_FROM: mb.MAIL_FROM }
   await env.DB.prepare(
     'insert into invitations (uuid, email, invited_by, created_at) values (?,?,?,?)',
   )
@@ -186,7 +189,7 @@ it('lets an invited address register while signups are closed, then consumes the
     '/identity/accounts/register',
     asJson(
       registerBody('invited@example.com', {
-        emailVerificationToken: await tokenFor(closed, 'invited@example.com'),
+        emailVerificationToken: await emailedToken(closed, mb, 'invited@example.com'),
       }),
     ),
   )
@@ -202,6 +205,24 @@ it('lets an invited address register while signups are closed, then consumes the
   )
   expect(again.status).toBe(400)
 })
+
+/** The mailbox proof with mail on: the token is in the emailed link, never in the response. */
+const emailedToken = async (
+  over: Record<string, unknown>,
+  mb: ReturnType<typeof mailbox>,
+  email: string,
+) => {
+  const res = await withEnv(
+    over,
+    '/identity/accounts/register/send-verification-email',
+    asJson({ email, name: 'Tess' }),
+  )
+  expect(res.status).toBe(204)
+  const last = mb.sent[mb.sent.length - 1]
+  return new URLSearchParams(
+    (/https?:\/\/\S+/.exec(last?.text ?? '')?.[0] ?? '').split('?')[1],
+  ).get('token') as string
+}
 
 /** The mailbox proof: with no mail transport the token comes straight back. */
 const tokenFor = async (over: Record<string, unknown>, email: string) => {

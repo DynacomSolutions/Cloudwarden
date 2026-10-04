@@ -8,30 +8,16 @@ on:
 
 permissions: {}
 
-concurrency:
-  group: deploy-production
-  cancel-in-progress: false
-
 jobs:
-  deploy:
-    name: Deploy
+  build:
+    name: Build
     runs-on: k3s-runners
-    # The web client build (webpack, about 2955 npm packages) dominates the run time.
+    # The web client build (webpack, about 2955 npm packages) dominates the run time. It runs once
+    # and the output is shared by every environment. No deploy secrets are available here.
     timeout-minutes: 90
-    environment: production
     permissions:
       contents: read
-    # Cloudflare credentials are set only on the steps that talk to Cloudflare (migrate, build,
-    # deploy), never while npm or pnpm install and run third-party build code.
-    env:
-      DEPLOY_DOMAIN: ${{ secrets.DEPLOY_DOMAIN }}
-      MAIL_FROM: ${{ secrets.MAIL_FROM }}
-      ADMIN_ENABLED: ${{ vars.ADMIN_ENABLED }}
-      SIGNUPS_ALLOWED: ${{ vars.SIGNUPS_ALLOWED }}
-      FEDERATION_ENABLED: ${{ vars.FEDERATION_ENABLED }}
     steps:
-      - name: Mask deploy domain
-        run: echo "::add-mask::${DEPLOY_DOMAIN}"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -55,7 +41,78 @@ jobs:
           pnpm check:identifiers
       - name: Build web client
         run: pnpm web:build
+      - name: Upload web client
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: web-vault
+          path: web-vault/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy:
+    name: Deploy (${{ matrix.environment }})
+    needs: build
+    runs-on: k3s-runners
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: [production, personal]
+    environment: ${{ matrix.environment }}
+    # One deploy at a time per environment; a queued deploy waits rather than cancelling a running one.
+    concurrency:
+      group: deploy-${{ matrix.environment }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    # Secrets and variables resolve per environment; an environment variable overrides a repository
+    # variable of the same name. Cloudflare credentials are set only on the steps that talk to
+    # Cloudflare (check built web client, migrate, deploy), never while pnpm installs packages.
+    env:
+      DEPLOY_DOMAIN: ${{ secrets.DEPLOY_DOMAIN }}
+      MAIL_FROM: ${{ secrets.MAIL_FROM }}
+      ADMIN_ENABLED: ${{ vars.ADMIN_ENABLED }}
+      SIGNUPS_ALLOWED: ${{ vars.SIGNUPS_ALLOWED }}
+      FEDERATION_ENABLED: ${{ vars.FEDERATION_ENABLED }}
+    steps:
+      - name: Mask deploy domain
+        run: |
+          if [ -n "${DEPLOY_DOMAIN}" ]; then echo "::add-mask::${DEPLOY_DOMAIN}"; fi
+      - name: Check environment is configured
+        id: configured
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          ENVIRONMENT: ${{ matrix.environment }}
+        run: |
+          if [ -n "${CLOUDFLARE_ACCOUNT_ID}" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping ${ENVIRONMENT}: CLOUDFLARE_ACCOUNT_ID is not set in this environment"
+          fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.configured.outputs.configured == 'true'
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+        if: steps.configured.outputs.configured == 'true'
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        if: steps.configured.outputs.configured == 'true'
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Install dependencies
+        if: steps.configured.outputs.configured == 'true'
+        run: pnpm install --frozen-lockfile
+      - name: Download web client
+        if: steps.configured.outputs.configured == 'true'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: web-vault
+          path: web-vault/
       - name: Check built web client
+        if: steps.configured.outputs.configured == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -73,18 +130,21 @@ jobs:
           fi
           echo "built assets carry the Cloudwarden build marker"
       - name: Apply D1 migrations
+        if: steps.configured.outputs.configured == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CF_D1_DATABASE_ID: ${{ secrets.CF_D1_DATABASE_ID }}
         run: pnpm exec cf d1 migrations apply "$CF_D1_DATABASE_ID" --dir migrations
       - name: Deploy Worker
+        if: steps.configured.outputs.configured == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CF_D1_DATABASE_ID: ${{ secrets.CF_D1_DATABASE_ID }}
         run: pnpm exec cf deploy
       - name: Smoke check
+        if: steps.configured.outputs.configured == 'true'
         run: |
           set -euo pipefail
           for attempt in 1 2 3 4 5 6 7 8 9 10; do
@@ -105,6 +165,7 @@ jobs:
           echo "alive check failed"
           exit 1
       - name: Check served web client
+        if: steps.configured.outputs.configured == 'true'
         run: |
           set -euo pipefail
           for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do

@@ -70,12 +70,18 @@ curl -i https://vault.example.com/alive
 
 ## 7. Continuous deployment
 
-`.github/workflows/deploy.yml` runs on every push to `main` (and manually). It runs lint, typecheck and tests,
-applies D1 migrations, deploys, then smoke-checks `/alive` with retries.
+`.github/workflows/deploy.yml` runs on every push to `main` (and manually). A `build` job runs lint, typecheck,
+tests and the identifier check, builds the web client once, and uploads it as the `web-vault` artifact. A `deploy` job
+then runs once per GitHub environment (a matrix of `production` and `personal`, `fail-fast` off, so one failing
+environment does not stop the other). Each deploy downloads the artifact, builds the Worker, applies D1 migrations,
+deploys, then smoke-checks `/alive` and the served web client with retries. Deploys to the same environment are
+serialised (`deploy-<environment>` concurrency group, queued rather than cancelled).
 
-1. In the repository settings create an environment named `production`. Add required reviewers or branch
-   restrictions as you see fit.
-2. Add these environment secrets:
+1. In the repository settings create one environment per deployment: `production` and `personal`. Add required
+   reviewers or branch restrictions to each as you see fit. To add another deployment, create the environment and add
+   its name to `matrix.environment` in the workflow.
+2. In each environment add these secrets (every environment holds its own values, for example its own Cloudflare account,
+   D1 database and domain):
 
    | Secret | Value |
    |---|---|
@@ -85,9 +91,15 @@ applies D1 migrations, deploys, then smoke-checks `/alive` with retries.
    | `DEPLOY_DOMAIN` | Hostname, for example `vault.example.com` |
    | `MAIL_FROM` | Optional sender, for example `Cloudwarden <noreply@example.com>` |
 
-   Optionally add environment variables (not secrets) `ADMIN_ENABLED`, `SIGNUPS_ALLOWED`, and `FEDERATION_ENABLED`; all default to `false`. Federation is enabled on a deployment by setting the repository variable `FEDERATION_ENABLED=true`.
+   Optionally add the variables (not secrets) `ADMIN_ENABLED`, `SIGNUPS_ALLOWED`, and `FEDERATION_ENABLED`; all
+   default to `false`. A repository variable applies to every environment, and an environment variable of the same name
+   overrides it, so you can set a shared default at repository level and differ per environment. Federation is
+   enabled on a deployment by setting `FEDERATION_ENABLED=true` for it.
+
+   An environment whose `CLOUDFLARE_ACCOUNT_ID` secret is empty or missing is skipped cleanly (a notice, no failure),
+   so forks and not-yet-configured environments do not break the workflow.
 
 3. Jobs run on the `k3s-runners` label (self-hosted). Register a runner with that label, or change `runs-on` in the
    workflow to match your runner.
 
-The domain is masked in logs. Worker secrets (step 4) are intentionally not touched by CI.
+Each domain is masked in logs. Worker secrets (step 4) are intentionally not touched by CI.

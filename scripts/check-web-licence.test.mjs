@@ -35,3 +35,24 @@ test('accepts GPL code, the licence file name string, and paths outside web/', (
   assert.deepEqual(one('web/apps/web/src/a.html', '"bitwarden_license.json"'), [])
   assert.deepEqual(checkFiles(['bitwarden_license/x.ts'], read({})), [])
 })
+
+test('rejects the proprietary commercial SDK package in any form', () => {
+  for (const text of [
+    '"@bitwarden/commercial-sdk-internal": "0.2.0"',
+    'import init from "@bitwarden/commercial-sdk-internal"',
+    'rm -rf node_modules/@bitwarden/sdk-internal-commercial',
+  ]) {
+    assert.equal(one('web/package.json', text).length, 1, text)
+  }
+})
+
+test('rejects dependencies licensed under a Bitwarden licence in a lockfile', () => {
+  for (const licence of [
+    'BITWARDEN SOFTWARE DEVELOPMENT KIT LICENSE AGREEMENT',
+    'Bitwarden License v1.0',
+  ]) {
+    const lock = `{"packages":{"node_modules/x":{"license": "${licence}"}}}`
+    assert.ok(one('web/package-lock.json', lock).length >= 1, licence)
+  }
+  assert.deepEqual(one('web/package-lock.json', '{"license": "GPL-3.0"}'), [])
+})

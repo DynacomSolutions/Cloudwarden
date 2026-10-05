@@ -50,6 +50,18 @@ pnpm exec cf workers secrets update ADMIN_SETUP_TOKEN # only without outgoing ma
 pnpm exec cf workers secrets update DATA_ENCRYPTION_KEY  # 32+ characters; seals API keys and integration tokens (docs/integrations.md)
 ```
 
+Optional, for the Instance admin Health page (`docs/admin.md`): an API token that can only read
+analytics. In the Cloudflare dashboard open My Profile, API Tokens, Create Token, Create Custom Token,
+add the single permission Account, Account Analytics, Read, scope it to this account, then:
+
+```sh
+pnpm exec cf workers secrets update CF_ANALYTICS_TOKEN  # the token above
+pnpm exec cf workers secrets update CF_ACCOUNT_ID       # your account id, shown on the dashboard overview
+```
+
+Set `CF_WORKER_NAME` if the Worker is not named `cloudwarden`, and `WORKER_CPU_LIMIT_MS` if you are on a
+paid plan (default `10`, the Workers Free limit). The token is never shown in the UI or returned by the API.
+
 Optional, for YubiKey OTP two-factor (see `docs/two-factor.md`): `YUBICO_CLIENT_ID` and
 `YUBICO_SECRET_KEY` (base64) from the Yubico key portal. Duo is configured per account or
 organisation in the web vault and needs no server settings.

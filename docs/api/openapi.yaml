@@ -6261,6 +6261,48 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+  /api/cloudwarden/admin/health:
+    get:
+      tags:
+      - x-cloudwarden
+      operationId: adminHealth
+      summary: Worker limit failures and CPU time from Cloudflare analytics
+      description: |
+        Reads the Cloudflare GraphQL Analytics API (`workersInvocationsAdaptive`) for this Worker with
+        the optional `CF_ANALYTICS_TOKEN` and `CF_ACCOUNT_ID`. Cached for about 60 seconds. Without
+        both, answers `configured: false` and the names that are missing. The token is never
+        returned. The number of requests over the CPU limit is not available from analytics, so
+        only invocations Cloudflare ended for a limit are counted.
+      parameters:
+      - name: range
+        in: query
+        schema:
+          type: string
+          enum:
+          - 24h
+          - 7d
+          default: 24h
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminHealth'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '502':
+          description: Cloudflare analytics did not answer, refused the token or refused the query.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseModel'
   /api/cloudwarden/admin/push-settings:
     get:
       tags:
@@ -23842,6 +23884,106 @@ components:
       - server
       - push
       - pendingInvitations
+    AdminHealth:
+      type: object
+      description: Instance health. `configured` is false until the analytics token and account id are set.
+      properties:
+        configured:
+          type: boolean
+        range:
+          type: string
+          enum:
+          - 24h
+          - 7d
+        cpuLimitMs:
+          type: number
+        missing:
+          description: Names of the settings that are not set (only when not configured).
+          type: array
+          items:
+            type: string
+        from:
+          type: string
+          format: date-time
+        to:
+          type: string
+          format: date-time
+        generatedAt:
+          type: string
+          format: date-time
+        totals:
+          type: object
+          properties:
+            requests:
+              type: integer
+            errors:
+              type: integer
+            subrequests:
+              type: integer
+        statuses:
+          type: array
+          items:
+            type: object
+            properties:
+              status:
+                type: string
+              requests:
+                type: integer
+              errors:
+                type: integer
+        limitFailures:
+          type: object
+          properties:
+            exceededCpu:
+              type: integer
+            exceededMemory:
+              type: integer
+            exceededResources:
+              type: integer
+        cpu:
+          description: CPU time in milliseconds. Null when there were no invocations.
+          type:
+          - object
+          - 'null'
+          properties:
+            p50:
+              type:
+              - number
+              - 'null'
+            p99:
+              type:
+              - number
+              - 'null'
+            p999:
+              type:
+              - number
+              - 'null'
+            max:
+              type:
+              - number
+              - 'null'
+            wallMax:
+              type:
+              - number
+              - 'null'
+        series:
+          type: array
+          items:
+            type: object
+            properties:
+              hour:
+                type: string
+                format: date-time
+              requests:
+                type: integer
+              errors:
+                type: integer
+              exceededCpu:
+                type: integer
+      required:
+      - configured
+      - range
+      - cpuLimitMs
     AdminPushSettings:
       type: object
       description: Stored mobile push relay settings. The installation key is write only.

@@ -9,6 +9,7 @@ import { ApiError, errorBody } from '../errors'
 import { createNotification, notificationJson } from '../notifications/center'
 import { relayStatus, relayTestConnection } from '../notifications/relay'
 import { parseBody } from '../validation'
+import { HealthUpstreamError, instanceHealth, parseRange } from './health'
 import {
   deletePushSettings,
   pushSettingsView,
@@ -138,6 +139,18 @@ export function createAdminApi(deps: AdminApiDeps = {}) {
       push: await relayStatus(c.env),
       pendingInvitations: d.pendingInvitations,
     })
+  })
+
+  // Instance health from Cloudflare's analytics (TASKS #361). Read only.
+  api.get(`${PREFIX}/health`, async (c) => {
+    const range = parseRange(c.req.query('range'))
+    if (!range) throw new ApiError(400, 'range must be 24h or 7d')
+    try {
+      return c.json(await instanceHealth(c.env, range))
+    } catch (e) {
+      if (e instanceof HealthUpstreamError) throw new ApiError(502, e.message)
+      throw e
+    }
   })
 
   // Mobile push settings (TASKS #277) -------------------------------------

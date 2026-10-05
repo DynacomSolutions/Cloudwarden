@@ -46,6 +46,7 @@ The operations are documented under the `x-cloudwarden` tag in `docs/api/openapi
 | `GET /invitations`, `POST /invitations` `{email}`, `DELETE /invitations/:email` | Invitations; create returns `emailStatus` of `sent`, `not-configured` or `failed` |
 | `GET /organizations`, `DELETE /organizations/:id` | Organisations and deletion (members are kept) |
 | `GET /diagnostics` | Storage figures and configuration |
+| `GET /health?range=24h\|7d` | Worker limit failures and CPU time from Cloudflare analytics (see Health) |
 
 Invitations are stored in the `invitations` table and gate registration. Deleting a user or
 organisation also removes its R2 attachment and Send blobs. Every write inserts a row in `events`
@@ -103,6 +104,32 @@ Owners and admins change a user's role from the Role menu (a confirmation dialog
 
 Federation admin routes (`/api/cloudwarden/federation/admin/*`, `isInstanceAdmin`) use the same
 check, so granted admins can manage peers too.
+
+## Health
+
+**Instance admin > Health** shows whether Cloudflare is ending requests because of platform limits,
+above all the 10 ms CPU limit of the Workers Free plan, and how often. The Worker cannot see its own
+`exceededCpu` terminations (the isolate is killed) and cannot time its own CPU, so the page reads
+Cloudflare's GraphQL Analytics API (`workersInvocationsAdaptive`, filtered by account and script
+name). It is off until configured; without a token the page explains how, and is never an error.
+
+| Name | Kind | Purpose |
+|---|---|---|
+| `CF_ANALYTICS_TOKEN` | secret | API token with only Account Analytics Read (`docs/deploy.md`) |
+| `CF_ACCOUNT_ID` | secret or var | Cloudflare account id the Worker runs in |
+| `CF_WORKER_NAME` | var, optional | Worker name to filter by; default `cloudwarden` |
+| `WORKER_CPU_LIMIT_MS` | var, optional | CPU limit drawn as the reference, default `10` (Workers Free). Set it to match a paid plan |
+
+The page shows requests, errors, requests ended by `exceededCpu` (plus `exceededMemory` and
+`exceededResources` counts in the API), CPU p50, p99, p99.9 and max in milliseconds against the limit,
+a count per invocation status and a per-hour table, for the last 24 hours or 7 days (kept in the URL
+as `?range=`). A red callout appears when `exceededCpu` is above zero, with the options: the Workers
+Paid plan, or a lower server-side password hashing cost (`docs/adr/0002-password-hashing.md`).
+
+Limits of the data: analytics does not count requests that went over the limit but finished, so
+only terminated requests are counted and the quantiles show how close the Worker is. Analytics can lag
+by a few minutes, and the server caches each answer for about 60 seconds. If Cloudflare is
+unreachable, refuses the token or the query, the API answers 502 and the page shows the reason.
 
 ## Recovery
 

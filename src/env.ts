@@ -63,6 +63,17 @@ export interface Bindings {
    * sent (TASKS #350, docs/emailless.md). Spent by the first admin account; ignored when mail works.
    */
   ADMIN_SETUP_TOKEN?: string
+  /**
+   * Optional Cloudflare API token with only Account Analytics Read. Lets Instance admin > Health
+   * read this Worker's invocation analytics (TASKS #361, docs/admin.md). Never returned or logged.
+   */
+  CF_ANALYTICS_TOKEN?: string
+  /** Cloudflare account id (32 hex characters) for the analytics query (TASKS #361). */
+  CF_ACCOUNT_ID?: string
+  /** Worker script name the analytics are filtered by. Default `cloudwarden` (TASKS #361). */
+  CF_WORKER_NAME?: string
+  /** CPU limit shown in Instance admin > Health, in milliseconds. Default 10 (Workers Free). */
+  WORKER_CPU_LIMIT_MS?: string
   /** Yubico API client id and base64 secret key for YubiKey OTP two-factor (key portal). */
   YUBICO_CLIENT_ID?: string
   YUBICO_SECRET_KEY?: string

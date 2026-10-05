@@ -73,6 +73,47 @@ export interface AdminOrganization {
   itemCount: number;
 }
 
+export type HealthRange = "24h" | "7d";
+
+export interface HealthNotConfigured {
+  configured: false;
+  range: HealthRange;
+  cpuLimitMs: number;
+  missing: string[];
+}
+
+export interface HealthData {
+  configured: true;
+  range: HealthRange;
+  from: string;
+  to: string;
+  generatedAt: string;
+  cpuLimitMs: number;
+  totals: { requests: number; errors: number; subrequests: number };
+  statuses: { status: string; requests: number; errors: number }[];
+  limitFailures: {
+    exceededCpu: number;
+    exceededMemory: number;
+    exceededResources: number;
+  };
+  /** Milliseconds; null when Cloudflare reported no invocations. */
+  cpu: {
+    p50: number | null;
+    p99: number | null;
+    p999: number | null;
+    max: number | null;
+    wallMax: number | null;
+  } | null;
+  series: {
+    hour: string;
+    requests: number;
+    errors: number;
+    exceededCpu: number;
+  }[];
+}
+
+export type Health = HealthData | HealthNotConfigured;
+
 export type PushRegion = "us" | "eu" | "custom";
 
 export interface PushStatus {
@@ -303,6 +344,16 @@ export class InstanceAdminApiService {
     return this.apiService.send(
       "POST",
       `${ADMIN}/push-settings/test`,
+      null,
+      true,
+      true,
+    );
+  }
+
+  health(range: HealthRange): Promise<Health> {
+    return this.apiService.send(
+      "GET",
+      `${ADMIN}/health?range=${encodeURIComponent(range)}`,
       null,
       true,
       true,

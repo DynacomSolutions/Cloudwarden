@@ -25,7 +25,7 @@ env:
 jobs:
   zizmor:
     name: Zizmor
-    runs-on: k3s-runners
+    runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
@@ -44,7 +44,7 @@ jobs:
 
   actionlint:
     name: Lint Actions
-    runs-on: k3s-runners
+    runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:

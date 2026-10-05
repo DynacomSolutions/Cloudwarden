@@ -11,7 +11,7 @@ permissions: {}
 jobs:
   build:
     name: Build
-    runs-on: k3s-runners
+    runs-on: ubuntu-latest
     # The web client build (webpack, about 2955 npm packages) dominates the run time. It runs once
     # and the output is shared by every environment. No deploy secrets are available here.
     timeout-minutes: 90
@@ -53,7 +53,7 @@ jobs:
   deploy:
     name: Deploy (${{ matrix.environment }})
     needs: build
-    runs-on: k3s-runners
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -77,9 +77,31 @@ jobs:
       SIGNUPS_ALLOWED: ${{ vars.SIGNUPS_ALLOWED }}
       FEDERATION_ENABLED: ${{ vars.FEDERATION_ENABLED }}
     steps:
-      - name: Mask deploy domain
+      - name: Mask deploy configuration
+        # Tools such as the Cloudflare CLI print config values truncated (for example "Cloudwarden <noreply@exa..."),
+        # and a truncated string no longer matches a mask of the full value. So mask every part separately:
+        # the whole value, the address, the domain and the local part. Never echo these values in later steps.
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_D1_DATABASE_ID: ${{ secrets.CF_D1_DATABASE_ID }}
         run: |
-          if [ -n "${DEPLOY_DOMAIN}" ]; then echo "::add-mask::${DEPLOY_DOMAIN}"; fi
+          mask() { if [ -n "${1:-}" ]; then echo "::add-mask::$1"; fi; }
+          mask "${DEPLOY_DOMAIN}"
+          mask "${CLOUDFLARE_ACCOUNT_ID}"
+          mask "${CF_D1_DATABASE_ID}"
+          mask "${MAIL_FROM}"
+          if [ -n "${MAIL_FROM}" ]; then
+            addr="${MAIL_FROM}"
+            case "${addr}" in
+              *"<"*">"*) addr="${addr#*<}"; addr="${addr%%>*}" ;;
+            esac
+            mask "${addr}"
+            mask "${addr%%@*}"
+            mask "${addr#*@}"
+            name="${MAIL_FROM%%<*}"
+            name="${name%"${name##*[![:space:]]}"}"
+            if [ "${name}" != "${MAIL_FROM}" ]; then mask "${name}"; fi
+          fi
       - name: Check environment is configured
         id: configured
         env:

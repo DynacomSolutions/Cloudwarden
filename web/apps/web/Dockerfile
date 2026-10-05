@@ -15,17 +15,6 @@ RUN if [ -d "sdk-internal" ]; then \
       npm link ./sdk-internal ; \
     fi
 
-RUN if [ -d "commercial-sdk-internal" ]; then \
-      echo "Overriding Commercial SDK with custom artifacts from commercial-sdk-internal" ; \
-      npm link ./commercial-sdk-internal ; \
-    fi
-
-# Remove commercial packages if LICENSE_TYPE is not 'commercial'
-ARG LICENSE_TYPE=oss
-RUN if [ "${LICENSE_TYPE}" != "commercial" ] ; then \
-      rm -rf node_modules/@bitwarden/commercial-sdk-internal ; \
-    fi
-
 WORKDIR /source/apps/web
 ARG NPM_COMMAND=dist:bit:selfhost
 RUN npm run ${NPM_COMMAND}

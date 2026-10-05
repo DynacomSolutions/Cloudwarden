@@ -91,6 +91,8 @@ Never commit identifying information:
 - Personal or company names (except as required by GitHub)
 - Absolute local paths
 
+CI can also reject a private list of strings through the optional `IDENTIFIER_DENYLIST` repository secret (comma or newline separated). When the secret is unset, which is always the case for pull requests from forks, that extra check is a no-op and the built-in checks still run. Never put real identifiers in the repository.
+
 If you need to block specific strings from being committed locally (like your organisation name), create `.identifiers-deny.local` in the repo root:
 
 ```

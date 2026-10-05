@@ -43,6 +43,7 @@ const DOMAIN_ALLOWLIST = new Set([
   'localhost',
   'localhost:3000',
   'github.com',
+  'dynacom.solutions',
   'githubusercontent.com',
   'bitwarden.com',
   'bitwarden.net',
@@ -111,7 +112,12 @@ const EMAIL_ALLOW_DOMAINS = new Set([
   'example.org',
   'example.net',
   'users.noreply.github.com',
+  'dynacom.solutions',
 ])
+
+// Commit author emails accepted besides GitHub noreply addresses. The owner confirmed this
+// maintainer address is not sensitive and wants it on all commits.
+const AUTHOR_EMAIL_ALLOWLIST = new Set(['thomas.mcfarlane@dynacom.solutions'])
 
 // Nil UUID and a v4-shaped nil UUID (cf rejects the plain nil UUID as a D1 id)
 const PLACEHOLDER_UUIDS = new Set([
@@ -550,16 +556,18 @@ export class IdentifierChecker {
 }
 
 /**
- * Extract the email from a git author ident string and check if it is a noreply email.
+ * Extract the email from a git author ident string and check if it is a noreply email or an allowlisted maintainer address.
  * Git author ident format: `Name <email> timestamp timezone`
  * @param {string} ident - The git author ident string from `git var GIT_AUTHOR_IDENT`
- * @returns {boolean} - True if the email ends with @users.noreply.github.com
+ * @returns {boolean} - True if the email is a GitHub noreply address or on the author allowlist
  */
 export function isNoreplyAuthorIdent(ident) {
   const emailMatch = ident.match(/<([^>]+)>/)
   if (!emailMatch) return false
   const email = emailMatch[1]
-  return email.endsWith('@users.noreply.github.com')
+  return (
+    email.endsWith('@users.noreply.github.com') || AUTHOR_EMAIL_ALLOWLIST.has(email.toLowerCase())
+  )
 }
 
 export function parseArgs(args) {

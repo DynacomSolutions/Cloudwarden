@@ -3,6 +3,7 @@ import { Routes } from "@angular/router";
 
 import { RouteDataProperties } from "../../core/router.service";
 
+import { InstanceAdminHealthComponent } from "./instance-admin-health.component";
 import { InstanceAdminInvitationsComponent } from "./instance-admin-invitations.component";
 import { InstanceAdminOrganizationsComponent } from "./instance-admin-organizations.component";
 import { InstanceAdminOverviewComponent } from "./instance-admin-overview.component";
@@ -51,6 +52,11 @@ export const instanceAdminRoutes: Routes = [
             (m) => m.InstanceAdminFederationComponent,
           ),
         data: { titleId: "cwFederation" } satisfies RouteDataProperties,
+      },
+      {
+        path: "health",
+        component: InstanceAdminHealthComponent,
+        data: { titleId: "cwHealth" } satisfies RouteDataProperties,
       },
       {
         path: "diagnostics",

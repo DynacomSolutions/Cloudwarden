@@ -19083,5 +19083,102 @@
   },
   "cwCopyLink": {
     "message": "Copy link"
+  },
+  "cwHealth": {
+    "message": "Health"
+  },
+  "cwHealthDesc": {
+    "message": "Whether Cloudflare is stopping this server because of platform limits, read from Cloudflare's own analytics for this Worker."
+  },
+  "cwHealthSetupTitle": {
+    "message": "Connect Cloudflare analytics"
+  },
+  "cwHealthSetupDesc": {
+    "message": "The Worker cannot see its own limit failures, so this page reads them from the Cloudflare analytics API. Set these Worker secrets to turn it on. The token needs only Account Analytics Read. See docs/deploy.md."
+  },
+  "cwHealthSetupLink": {
+    "message": "How to create an API token"
+  },
+  "cwHealthRange": {
+    "message": "Time range"
+  },
+  "cwHealthRange24h": {
+    "message": "Last 24 hours"
+  },
+  "cwHealthRange7d": {
+    "message": "Last 7 days"
+  },
+  "cwHealthCpuWarnTitle": {
+    "message": "CPU limit failures"
+  },
+  "cwHealthCpuWarn": {
+    "message": "Cloudflare ended $COUNT$ requests because they used more CPU time than the limit ($LIMIT$ ms). Affected users see failed requests, most often at login.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      },
+      "limit": {
+        "content": "$2",
+        "example": "10"
+      }
+    }
+  },
+  "cwHealthCpuOptionPaid": {
+    "message": "Move the Worker to the Workers Paid plan, which allows much more CPU time per request."
+  },
+  "cwHealthCpuOptionKdf": {
+    "message": "Or lower the server-side password hashing cost (KDF iterations), which is the main CPU use per login. See docs/adr/0002-password-hashing.md."
+  },
+  "cwHealthLimitsLink": {
+    "message": "Cloudflare Workers limits"
+  },
+  "cwHealthResourceWarn": {
+    "message": "Cloudflare ended some requests because they exceeded memory or other resource limits."
+  },
+  "cwHealthNoLimitFailures": {
+    "message": "No requests were ended by a Cloudflare limit in this period."
+  },
+  "cwHealthRequests": {
+    "message": "Requests"
+  },
+  "cwHealthErrors": {
+    "message": "Errors"
+  },
+  "cwHealthCpuFailures": {
+    "message": "CPU limit failures"
+  },
+  "cwHealthCpuP50": {
+    "message": "CPU median"
+  },
+  "cwHealthCpuP99": {
+    "message": "CPU p99"
+  },
+  "cwHealthCpuMax": {
+    "message": "CPU max"
+  },
+  "cwHealthLimitNote": {
+    "message": "CPU limit used for comparison: $LIMIT$ ms (Workers Free). Paid plans allow more; set WORKER_CPU_LIMIT_MS to match. Requests that came close to the limit but finished are not counted by Cloudflare, so compare the p99 and max with the limit.",
+    "placeholders": {
+      "limit": {
+        "content": "$1",
+        "example": "10"
+      }
+    }
+  },
+  "cwHealthStatuses": {
+    "message": "Requests by outcome"
+  },
+  "cwHealthStatus": {
+    "message": "Outcome"
+  },
+  "cwHealthPerHour": {
+    "message": "Per hour"
+  },
+  "cwHealthHour": {
+    "message": "Hour"
+  },
+  "cwHealthFresh": {
+    "message": "Figures are cached for about a minute and Cloudflare analytics can lag by a few minutes."
   }
 }

@@ -470,6 +470,8 @@ accounts.post('/api/accounts/email', requireAuth, async (c) => {
           email: newEmail,
           // Without mail nothing proves the new address: it must not count as verified.
           ...(mailOn ? {} : { verifiedAt: null }),
+          // A granted instance role belongs to the old address: a new one needs a fresh grant (TASKS #360).
+          instanceRole: 'user',
           ...(await hashMasterPassword(body.newMasterPasswordHash)),
           akey: body.key,
           emailNew: null,

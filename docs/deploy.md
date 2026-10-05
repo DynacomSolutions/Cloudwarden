@@ -42,7 +42,7 @@ them afterwards; they persist across deploys.
 ```sh
 pnpm exec cf workers secrets update JWT_SECRET        # long random string, e.g. openssl rand -base64 48
 pnpm exec cf workers secrets update JWT_SIGNING_KEY   # optional: ES256 access tokens and JWKS for a Key Connector (docs/sso.md)
-pnpm exec cf workers secrets update ADMIN_EMAILS      # comma-separated admin addresses
+pnpm exec cf workers secrets update ADMIN_EMAILS      # comma-separated owner addresses (more admins are granted in the UI, docs/admin.md)
 pnpm exec cf workers secrets update ADMIN_SETUP_TOKEN # only without outgoing mail: 32+ random characters, see docs/emailless.md
 # optional mobile push (docs/push-notifications.md):
 # pnpm exec cf workers secrets update PUSH_INSTALLATION_ID

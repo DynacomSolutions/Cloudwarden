@@ -17968,6 +17968,48 @@
       }
     }
   },
+  "cwRole": {
+    "message": "Role"
+  },
+  "cwRoleOwner": {
+    "message": "Owner"
+  },
+  "cwRoleAdmin": {
+    "message": "Admin"
+  },
+  "cwRoleUser": {
+    "message": "User"
+  },
+  "cwChangeRole": {
+    "message": "Change role"
+  },
+  "cwRoleOwnerTip": {
+    "message": "Owners come from the server's ADMIN_EMAILS setting. Change that setting to add or remove an owner."
+  },
+  "cwRoleSelfTip": {
+    "message": "You cannot change your own role."
+  },
+  "cwConfirmMakeAdmin": {
+    "message": "Make $EMAIL$ an instance admin? Admins can manage users, invitations and organisations on this server.",
+    "placeholders": {
+      "email": {
+        "content": "$1",
+        "example": "user@example.com"
+      }
+    }
+  },
+  "cwConfirmMakeUser": {
+    "message": "Remove the instance admin role from $EMAIL$?",
+    "placeholders": {
+      "email": {
+        "content": "$1",
+        "example": "user@example.com"
+      }
+    }
+  },
+  "cwRoleChanged": {
+    "message": "Role changed"
+  },
   "cwDeleteUserDesc": {
     "message": "Permanently delete $EMAIL$ and all of their vault data? This cannot be undone.",
     "placeholders": {

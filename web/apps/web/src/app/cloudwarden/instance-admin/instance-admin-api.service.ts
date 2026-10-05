@@ -2,7 +2,16 @@
 // Uses the vault's authenticated ApiService, so the access token never leaves the client's own
 // request pipeline.
 import { Injectable, inject } from "@angular/core";
-import { BehaviorSubject, Observable, from, map, of, shareReplay, switchMap, catchError } from "rxjs";
+import {
+  BehaviorSubject,
+  Observable,
+  from,
+  map,
+  of,
+  shareReplay,
+  switchMap,
+  catchError,
+} from "rxjs";
 
 import { ApiService } from "@bitwarden/common/abstractions/api.service";
 import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
@@ -14,7 +23,10 @@ export interface AdminCounts {
 export interface AdminOverview {
   counts: AdminCounts;
   /** Mail state and what each feature does without it (docs/emailless.md). */
-  email?: { configured: boolean; features: { id: string; label: string; state: string }[] };
+  email?: {
+    configured: boolean;
+    features: { id: string; label: string; state: string }[];
+  };
   [key: string]: unknown;
 }
 
@@ -28,7 +40,13 @@ export interface AdminUser {
   twoFactorProviders: { type: number; name: string }[];
   enabled: boolean;
   emailVerified: boolean;
+  /** `owner` comes from the server's ADMIN_EMAILS setting and cannot be changed here. */
+  role: AdminRole;
+  /** The caller's own row. */
+  self: boolean;
 }
+
+export type AdminRole = "owner" | "admin" | "user";
 
 export interface AdminUserPage {
   data: AdminUser[];
@@ -95,7 +113,8 @@ export interface WebPushState {
   subscriptions: number;
 }
 
-export type AdminUserAction = "disable" | "enable" | "deauthorize" | "remove-2fa";
+export type AdminUserAction =
+  "disable" | "enable" | "deauthorize" | "remove-2fa";
 
 const ADMIN = "/cloudwarden/admin";
 
@@ -106,28 +125,43 @@ export class InstanceAdminApiService {
   private readonly refresh$ = new BehaviorSubject<void>(undefined);
 
   /** True when the signed in user is an instance admin. Errors count as "not an admin". */
-  readonly isAdmin$: Observable<boolean> = this.accountService.activeAccount$.pipe(
-    switchMap((account) =>
-      account == null
-        ? of(false)
-        : this.refresh$.pipe(
-            switchMap(() =>
-              from(this.apiService.send("GET", "/cloudwarden/me", null, true, true)).pipe(
-                map((r: { isAdmin?: boolean }) => r?.isAdmin === true),
-                catchError(() => of(false)),
+  readonly isAdmin$: Observable<boolean> =
+    this.accountService.activeAccount$.pipe(
+      switchMap((account) =>
+        account == null
+          ? of(false)
+          : this.refresh$.pipe(
+              switchMap(() =>
+                from(
+                  this.apiService.send(
+                    "GET",
+                    "/cloudwarden/me",
+                    null,
+                    true,
+                    true,
+                  ),
+                ).pipe(
+                  map((r: { isAdmin?: boolean }) => r?.isAdmin === true),
+                  catchError(() => of(false)),
+                ),
               ),
             ),
-          ),
-    ),
-    shareReplay({ bufferSize: 1, refCount: true }),
-  );
+      ),
+      shareReplay({ bufferSize: 1, refCount: true }),
+    );
 
   overview(): Promise<AdminOverview> {
     return this.apiService.send("GET", `${ADMIN}/overview`, null, true, true);
   }
 
   diagnostics(): Promise<Record<string, unknown>> {
-    return this.apiService.send("GET", `${ADMIN}/diagnostics`, null, true, true);
+    return this.apiService.send(
+      "GET",
+      `${ADMIN}/diagnostics`,
+      null,
+      true,
+      true,
+    );
   }
 
   users(page: number, pageSize = 50): Promise<AdminUserPage> {
@@ -150,6 +184,16 @@ export class InstanceAdminApiService {
     );
   }
 
+  setUserRole(id: string, role: "admin" | "user"): Promise<void> {
+    return this.apiService.send(
+      "PUT",
+      `${ADMIN}/users/${encodeURIComponent(id)}/role`,
+      { role },
+      true,
+      false,
+    );
+  }
+
   deleteUser(id: string): Promise<void> {
     return this.apiService.send(
       "DELETE",
@@ -161,12 +205,24 @@ export class InstanceAdminApiService {
   }
 
   invitations(): Promise<{ data: AdminInvitation[] }> {
-    return this.apiService.send("GET", `${ADMIN}/invitations`, null, true, true);
+    return this.apiService.send(
+      "GET",
+      `${ADMIN}/invitations`,
+      null,
+      true,
+      true,
+    );
   }
 
   /** Creating again for the same address issues a new link and retires the old one (no email). */
   invite(email: string): Promise<AdminInvitation & { emailStatus?: string }> {
-    return this.apiService.send("POST", `${ADMIN}/invitations`, { email }, true, true);
+    return this.apiService.send(
+      "POST",
+      `${ADMIN}/invitations`,
+      { email },
+      true,
+      true,
+    );
   }
 
   revokeInvitation(email: string): Promise<void> {
@@ -180,7 +236,13 @@ export class InstanceAdminApiService {
   }
 
   organizations(): Promise<{ data: AdminOrganization[] }> {
-    return this.apiService.send("GET", `${ADMIN}/organizations`, null, true, true);
+    return this.apiService.send(
+      "GET",
+      `${ADMIN}/organizations`,
+      null,
+      true,
+      true,
+    );
   }
 
   deleteOrganization(id: string): Promise<void> {
@@ -194,15 +256,33 @@ export class InstanceAdminApiService {
   }
 
   pushSettings(): Promise<PushSettings> {
-    return this.apiService.send("GET", `${ADMIN}/push-settings`, null, true, true);
+    return this.apiService.send(
+      "GET",
+      `${ADMIN}/push-settings`,
+      null,
+      true,
+      true,
+    );
   }
 
   savePushSettings(input: PushSettingsInput): Promise<PushSettings> {
-    return this.apiService.send("PUT", `${ADMIN}/push-settings`, input, true, true);
+    return this.apiService.send(
+      "PUT",
+      `${ADMIN}/push-settings`,
+      input,
+      true,
+      true,
+    );
   }
 
   removePushSettings(): Promise<PushSettings> {
-    return this.apiService.send("DELETE", `${ADMIN}/push-settings`, null, true, true);
+    return this.apiService.send(
+      "DELETE",
+      `${ADMIN}/push-settings`,
+      null,
+      true,
+      true,
+    );
   }
 
   webPush(): Promise<WebPushState> {
@@ -210,10 +290,22 @@ export class InstanceAdminApiService {
   }
 
   setWebPush(enabled: boolean): Promise<WebPushState> {
-    return this.apiService.send("PUT", `${ADMIN}/web-push`, { enabled }, true, true);
+    return this.apiService.send(
+      "PUT",
+      `${ADMIN}/web-push`,
+      { enabled },
+      true,
+      true,
+    );
   }
 
   testPushSettings(): Promise<{ ok: boolean; error: string | null }> {
-    return this.apiService.send("POST", `${ADMIN}/push-settings/test`, null, true, true);
+    return this.apiService.send(
+      "POST",
+      `${ADMIN}/push-settings/test`,
+      null,
+      true,
+      true,
+    );
   }
 }

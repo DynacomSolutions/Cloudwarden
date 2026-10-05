@@ -91,6 +91,8 @@ describe('admin API access control', () => {
     ['GET', '/organizations'],
     ['GET', '/diagnostics'],
     ['POST', '/users/x/disable'],
+    ['PUT', '/users/x/role'],
+    ['POST', '/users/x/role'],
     ['POST', '/users/x/enable'],
     ['POST', '/users/x/deauthorize'],
     ['POST', '/users/x/remove-2fa'],
@@ -115,7 +117,11 @@ describe('admin API access control', () => {
   it('answers 403 for a signed-in user who is not an admin, on every route', async () => {
     const u = await person('plain', false)
     for (const [method, path] of routes) {
-      const res = await u.call(`${P}${path}`, method, method === 'POST' ? {} : undefined)
+      const res = await u.call(
+        `${P}${path}`,
+        method,
+        method === 'POST' || method === 'PUT' ? {} : undefined,
+      )
       expect(res.status, `${method} ${path}`).toBe(403)
       expect(res.headers.get('cache-control')).toBe('no-store')
       expect(await res.json()).toEqual({
@@ -177,6 +183,7 @@ describe('admin API hardening', () => {
     expect(await (await a.call('/api/cloudwarden/me')).json()).toEqual({
       isAdmin: false,
       email: a.email,
+      role: 'owner',
     })
   })
 
@@ -234,7 +241,7 @@ describe('admin API hardening', () => {
     expect(res.status).toBe(200)
     const body = (await res.json()) as { data: { type: number }[] }
     expect(body.data.map((e) => e.type)).toContain(1000)
-    expect(body.data.every((e) => e.type < 9001 || e.type > 9011)).toBe(true)
+    expect(body.data.every((e) => e.type < 9001 || e.type > 9013)).toBe(true)
     const rows = await events(AdminEventType.UserDeauthorized)
     expect(rows.some((e) => e.user_uuid === t.id)).toBe(true)
   })
@@ -247,10 +254,12 @@ describe('GET /api/cloudwarden/me', () => {
     expect(await (await a.call('/api/cloudwarden/me')).json()).toEqual({
       isAdmin: true,
       email: a.email,
+      role: 'owner',
     })
     expect(await (await u.call('/api/cloudwarden/me')).json()).toEqual({
       isAdmin: false,
       email: u.email,
+      role: 'user',
     })
     const res = await a.call('/api/cloudwarden/me')
     expect(res.headers.get('cache-control')).toBe('no-store')
@@ -303,6 +312,8 @@ describe('admin API reads', () => {
       twoFactorProviders: [{ type: 0, name: 'Authenticator' }],
       enabled: true,
       emailVerified: true,
+      role: 'user',
+      self: false,
     })
     await env.DB.prepare('UPDATE users SET verified_at = NULL WHERE uuid = ?1').bind(b.id).run()
     const again = (await (await a.call(`${P}/users?pageSize=100`)).json()) as any

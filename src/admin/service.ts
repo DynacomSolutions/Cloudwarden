@@ -10,7 +10,7 @@ import { log } from '../log'
 import { AdminEventType } from '../orgs/constants'
 import { assertNotSoleOwner } from '../orgs/members'
 import { SERVER_VERSION } from '../routes/config'
-import { isAdminEmail } from './security'
+import { type GrantableRole, instanceRoleOf, isAdminEmail } from './security'
 
 export { AdminEventType }
 
@@ -40,11 +40,14 @@ export function auditStatement(
   audit: Audit,
   type: number,
   target: { userUuid?: string; organizationUuid?: string } = {},
+  /** Records the event only while this holds (evaluated inside the same batch, after earlier writes). */
+  onlyIf?: { sql: string; args: (string | number)[] },
 ) {
+  const values = `?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8`
   return db
     .prepare(
       `INSERT INTO events (uuid, event_type, user_uuid, organization_uuid, acting_user_uuid, device_type, ip_address, event_date)
-       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`,
+       ${onlyIf ? `SELECT ${values} WHERE ${onlyIf.sql.replace(/\?(\d+)/g, (_, n) => `?${Number(n) + 8}`)}` : `VALUES (${values})`}`,
     )
     .bind(
       crypto.randomUUID(),
@@ -55,6 +58,7 @@ export function auditStatement(
       audit.deviceType ?? null,
       audit.ipAddress ?? null,
       nowOf(audit),
+      ...(onlyIf?.args ?? []),
     )
 }
 
@@ -95,6 +99,7 @@ export interface UserRow {
   created_at: number
   enabled: number
   verified_at: number | null
+  instance_role: string
   last_active: number | null
   items: number
   tfa: string | null
@@ -106,7 +111,7 @@ export const parseTfa = (tfa: string | null): number[] => (tfa ? tfa.split(',').
 export async function listUsers(db: D1Database, page: number, pageSize: number) {
   const { results } = await db
     .prepare(
-      `SELECT u.uuid, u.email, u.name, u.created_at, u.enabled, u.verified_at,
+      `SELECT u.uuid, u.email, u.name, u.created_at, u.enabled, u.verified_at, u.instance_role,
         (SELECT MAX(d.updated_at) FROM devices d WHERE d.user_uuid = u.uuid) AS last_active,
         (SELECT COUNT(*) FROM ciphers x WHERE x.user_uuid = u.uuid) AS items,
         (SELECT GROUP_CONCAT(t.atype) FROM twofactor t WHERE t.user_uuid = u.uuid AND t.enabled = 1 AND t.atype != 8) AS tfa
@@ -213,6 +218,86 @@ export async function setUserEnabled(
       userUuid: id,
     }),
   ])
+  return true
+}
+
+const isStandIn = async (db: D1Database, id: string, passwordHash: string) =>
+  passwordHash.startsWith('!federated.') ||
+  (await db
+    .prepare('SELECT 1 AS x FROM federation_shadow_users WHERE user_uuid = ?1')
+    .bind(id)
+    .first()) !== null
+
+/**
+ * Grants or revokes the instance `admin` role (TASKS #360). Returns false when the user does not
+ * exist. Refused (400) for an owner (the role comes from ADMIN_EMAILS and only the operator can
+ * change it), for yourself, and when granting to an account that is unverified or disabled. The
+ * grant statement re-checks verification and enabled state, so an email change racing the grant
+ * cannot leave an admin role on an unverified address.
+ */
+export async function setUserRole(
+  env: Bindings,
+  id: string,
+  role: GrantableRole,
+  audit: Audit,
+): Promise<boolean> {
+  const db = env.DB
+  const row = await db
+    .prepare(
+      'SELECT email, password_hash, instance_role, verified_at, enabled FROM users WHERE uuid = ?1',
+    )
+    .bind(id)
+    .first<{
+      email: string
+      password_hash: string
+      instance_role: string
+      verified_at: number | null
+      enabled: number
+    }>()
+  if (!row) return false
+  const isOwner = instanceRoleOf(env, { email: row.email }) === 'owner'
+  // Owners cannot be granted a role. Revoking is allowed so a stored `admin` does not outlive the
+  // address leaving ADMIN_EMAILS; it has no effect while the address is still listed.
+  if (isOwner && role === 'admin') {
+    throw new ApiError(
+      400,
+      'Owners come from the ADMIN_EMAILS setting of the server and cannot be changed here.',
+    )
+  }
+  if (audit.actor === id) throw new ApiError(400, 'You cannot change your own role.')
+  if (role === 'admin') {
+    if (await isStandIn(db, id, row.password_hash)) {
+      throw new ApiError(400, 'A federated stand-in account cannot be made an admin.')
+    }
+    if (row.verified_at === null) {
+      throw new ApiError(400, 'Only a user with a verified email address can be made an admin.')
+    }
+    if (row.enabled !== 1) throw new ApiError(400, 'A disabled user cannot be made an admin.')
+  }
+  if (row.instance_role === role) return true
+  const grantGuard =
+    role === 'admin'
+      ? " AND verified_at IS NOT NULL AND enabled = 1 AND email = ?4 AND password_hash NOT LIKE '!federated.%'"
+      : ''
+  const results = await db.batch([
+    db
+      .prepare(`UPDATE users SET instance_role = ?1, updated_at = ?2 WHERE uuid = ?3${grantGuard}`)
+      .bind(...(role === 'admin' ? [role, nowOf(audit), id, row.email] : [role, nowOf(audit), id])),
+    auditStatement(
+      db,
+      audit,
+      AdminEventType.UserRoleChanged,
+      { userUuid: id },
+      {
+        sql: 'EXISTS (SELECT 1 FROM users WHERE uuid = ?1 AND instance_role = ?2)',
+        args: [id, role],
+      },
+    ),
+  ])
+  if ((results[0]?.meta.changes ?? 0) === 0) {
+    if (role !== 'admin') return false
+    throw new ApiError(400, 'This user cannot be made an admin right now. Reload and try again.')
+  }
   return true
 }
 

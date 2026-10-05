@@ -41,6 +41,8 @@ export const users = sqliteTable(
     clientKdfMemory: integer('client_kdf_memory'),
     clientKdfParallelism: integer('client_kdf_parallelism'),
     verifiedAt: integer('verified_at'),
+    /** Instance role granted in the database: 'admin' or 'user'. Owners come from ADMIN_EMAILS, never from here (TASKS #360). */
+    instanceRole: text('instance_role').notNull().default('user'),
     /** Newest accepted passkey creation challenge time, so a creation token works once. */
     passkeyCreateAt: integer('passkey_create_at').notNull().default(0),
     /** Unlocks through an organisation's key connector instead of a master password (TASKS #285). */

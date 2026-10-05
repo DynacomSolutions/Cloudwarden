@@ -6197,6 +6197,32 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+  /api/cloudwarden/registration/redeem:
+    post:
+      tags:
+      - x-cloudwarden
+      operationId: cloudwardenRegistrationRedeem
+      summary: Redeem a setup or invite code for a registration token (servers without mail)
+      description: 'Only on servers that cannot send mail (400 otherwise). An `ADMIN_EMAILS` address needs the `ADMIN_SETUP_TOKEN` secret, which works once and never while an admin account exists; any other address needs the code of an instance invite link. Every refusal reads the same. Limited to 5 attempts per address per 10 minutes and per client address.'
+      security:
+      - {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrationRedeemRequest'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrationRedeemResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
   /api/cloudwarden/admin/overview:
     get:
       tags:
@@ -22381,6 +22407,12 @@ components:
               type: boolean
             suppressOnboardingInterstitials:
               type: boolean
+        cloudwarden:
+          type: object
+          description: Cloudwarden extension (TASKS #350). Whether the server can send mail and what each mail dependent feature does without it. Clients must not offer features whose state is `refused`.
+          properties:
+            email:
+              $ref: '#/components/schemas/MailStatus'
         communication:
           type: object
           properties:
@@ -22407,6 +22439,55 @@ components:
       - version
       - environment
       additionalProperties: true
+    MailStatus:
+      type: object
+      description: Outgoing mail state.
+      properties:
+        configured:
+          type: boolean
+        features:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              label:
+                type: string
+              state:
+                type: string
+                enum:
+                - available
+                - link
+                - refused
+                - skipped
+                - manual
+            required:
+            - id
+            - label
+            - state
+      required:
+      - configured
+      - features
+    RegistrationRedeemRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        code:
+          type: string
+          description: The `ADMIN_SETUP_TOKEN` secret (for an `ADMIN_EMAILS` address) or the code of an instance invite link.
+      required:
+      - email
+      - code
+    RegistrationRedeemResponse:
+      type: object
+      properties:
+        emailVerificationToken:
+          type: string
+          description: The same registration token the emailed link carries; pass it to `register/finish`.
+      required:
+      - emailVerificationToken
     KeyConnectorEnrollmentRequest:
       type: object
       properties:
@@ -23625,6 +23706,8 @@ components:
           type: boolean
         emailConfigured:
           type: boolean
+        email:
+          $ref: '#/components/schemas/MailStatus'
         jwtSecretConfigured:
           type: boolean
         counts:
@@ -23930,6 +24013,15 @@ components:
           - not-configured
           - failed
           description: Present on create only.
+        link:
+          type: string
+          description: Create only, and only when the server cannot send mail. Copyable registration link with a one-time code (valid 7 days); shown once. Creating again for the same address issues a new link and retires the old one.
+        codeExpiresAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+          description: When the code of the issued or stored link expires; null when the invitation was emailed.
       required:
       - email
       - createdAt

@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { mailStatus } from '../emailless'
 import type { Env } from '../env'
 import { advertisedVapidKey } from '../notifications/webpush'
 
@@ -45,5 +46,7 @@ config.get('/api/config', async (c) => {
     featureStates: FEATURE_STATES,
     push: vapidPublicKey ? { pushTechnology: 1, vapidPublicKey } : { pushTechnology: 0 },
     settings: { disableUserRegistration: c.env.SIGNUPS_ALLOWED !== 'true' },
+    // Cloudwarden extension (TASKS #350): whether mail works and what each feature does without it.
+    cloudwarden: { email: mailStatus(c.env) },
   })
 })

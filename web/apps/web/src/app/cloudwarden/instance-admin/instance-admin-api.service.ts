@@ -13,6 +13,8 @@ export interface AdminCounts {
 
 export interface AdminOverview {
   counts: AdminCounts;
+  /** Mail state and what each feature does without it (docs/emailless.md). */
+  email?: { configured: boolean; features: { id: string; label: string; state: string }[] };
   [key: string]: unknown;
 }
 
@@ -39,6 +41,10 @@ export interface AdminUserPage {
 export interface AdminInvitation {
   email: string;
   createdAt: string | null;
+  /** When the code of a copyable link expires; null for emailed invitations. */
+  codeExpiresAt?: string | null;
+  /** Only on create, only when the server cannot send email: shown once. */
+  link?: string;
 }
 
 export interface AdminOrganization {
@@ -158,6 +164,7 @@ export class InstanceAdminApiService {
     return this.apiService.send("GET", `${ADMIN}/invitations`, null, true, true);
   }
 
+  /** Creating again for the same address issues a new link and retires the old one (no email). */
   invite(email: string): Promise<AdminInvitation & { emailStatus?: string }> {
     return this.apiService.send("POST", `${ADMIN}/invitations`, { email }, true, true);
   }

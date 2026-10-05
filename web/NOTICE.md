@@ -73,4 +73,11 @@ Summary of changes made by Cloudwarden (see `git log -- web/` for the full histo
   (`apps/web/src/app/cloudwarden/device-approvals/`), written from scratch against Cloudwarden's
   API contract (`docs/account-recovery.md`), shown to members who manage account recovery.
 
+- Email-less installations (`apps/web/src/app/cloudwarden/emailless/`, docs/emailless.md): a
+  setup and invite page at `/instance-setup` (the operator enters the setup secret, an invited
+  person the code of an invite link, then the standard finish sign up page runs), an email state
+  service that reads `/api/config`, invitation links to copy and an "Email: not configured" panel
+  in Instance admin. Small marked edits hide email two-step login and skip the emailed code of the
+  change email form when the server cannot send mail.
+
 Files Cloudwarden adds live in directories named `cloudwarden/` where practical.

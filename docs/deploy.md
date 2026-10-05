@@ -31,6 +31,9 @@ Outbound mail (invites, verification) uses Cloudflare Email Sending. Onboard you
 (`example.com`) in the dashboard under Email Sending, add the DNS records it lists, and wait for verification.
 Then choose a sender address on that domain and set it as `MAIL_FROM` (for example `vault@example.com`).
 
+No Email Sending (for example the Workers Free plan)? Skip this step, set the variable `MAIL_DISABLED=true` at
+deploy time (it leaves the `EMAIL` binding out) and follow `docs/emailless.md`: the server is fully usable without mail.
+
 ## 4. Worker secrets
 
 Worker secrets are set once and are not managed by CI. Create the Worker first by running a deploy (step 6), or set
@@ -40,6 +43,7 @@ them afterwards; they persist across deploys.
 pnpm exec cf workers secrets update JWT_SECRET        # long random string, e.g. openssl rand -base64 48
 pnpm exec cf workers secrets update JWT_SIGNING_KEY   # optional: ES256 access tokens and JWKS for a Key Connector (docs/sso.md)
 pnpm exec cf workers secrets update ADMIN_EMAILS      # comma-separated admin addresses
+pnpm exec cf workers secrets update ADMIN_SETUP_TOKEN # only without outgoing mail: 32+ random characters, see docs/emailless.md
 # optional mobile push (docs/push-notifications.md):
 # pnpm exec cf workers secrets update PUSH_INSTALLATION_ID
 # pnpm exec cf workers secrets update PUSH_INSTALLATION_KEY
@@ -91,7 +95,8 @@ serialised (`deploy-<environment>` concurrency group, queued rather than cancell
    | `DEPLOY_DOMAIN` | Hostname, for example `vault.example.com` |
    | `MAIL_FROM` | Optional sender, for example `Cloudwarden <noreply@example.com>` |
 
-   Optionally add the variables (not secrets) `ADMIN_ENABLED`, `SIGNUPS_ALLOWED`, and `FEDERATION_ENABLED`; all
+   Optionally add the variables (not secrets) `ADMIN_ENABLED`, `SIGNUPS_ALLOWED`, `FEDERATION_ENABLED` and
+   `MAIL_DISABLED` (set to `true` for an account without Email Sending; see docs/emailless.md); all
    default to `false`. A repository variable applies to every environment, and an environment variable of the same name
    overrides it, so you can set a shared default at repository level and differ per environment. Federation is
    enabled on a deployment by setting `FEDERATION_ENABLED=true` for it.

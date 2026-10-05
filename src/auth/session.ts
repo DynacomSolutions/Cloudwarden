@@ -1,6 +1,7 @@
 import { and, eq } from 'drizzle-orm'
 import type { Db } from '../db'
 import { createDb, schema } from '../db'
+import { emailVerifiedFor } from '../emailless'
 import type { AccessTokenClaims, Bindings, User } from '../env'
 import { ApiError } from '../errors'
 import { isStandInUser } from '../federation/standin'
@@ -69,7 +70,7 @@ export async function signAccessToken(
     email: user.email,
     name: user.name,
     premium: true,
-    email_verified: user.verifiedAt !== null,
+    email_verified: emailVerifiedFor(env, user),
     sstamp: user.securityStamp,
     device: deviceIdentifier,
     scope,

@@ -3,6 +3,7 @@
 import { isReservedBlobKey } from '../blob-keys'
 import { createDb } from '../db'
 import { createEmailTransport, type EmailTransport, inviteEmail } from '../email'
+import { mailStatus, newInviteCode } from '../emailless'
 import type { Bindings } from '../env'
 import { ApiError } from '../errors'
 import { log } from '../log'
@@ -82,6 +83,7 @@ export function serverConfig(env: Bindings, transport: EmailTransport) {
     signupsAllowed: env.SIGNUPS_ALLOWED === 'true',
     adminEnabled: env.ADMIN_ENABLED === 'true',
     emailConfigured: transport.configured,
+    email: mailStatus(env, transport.configured),
     jwtSecretConfigured: Boolean(env.JWT_SECRET),
   }
 }
@@ -121,9 +123,11 @@ export async function countUsers(db: D1Database) {
 
 export async function listInvitations(db: D1Database, limit = 50) {
   const { results } = await db
-    .prepare('SELECT email, created_at FROM invitations ORDER BY created_at DESC LIMIT ?1')
+    .prepare(
+      'SELECT email, created_at, token_expires_at FROM invitations ORDER BY created_at DESC LIMIT ?1',
+    )
     .bind(limit)
-    .all<{ email: string; created_at: number }>()
+    .all<{ email: string; created_at: number; token_expires_at: number | null }>()
   return results
 }
 
@@ -322,7 +326,14 @@ export async function createInvitation(
   invitedBy: string,
   audit: Audit,
   transport: EmailTransport,
-): Promise<{ created: boolean; createdAt: number; mail: InviteMail }> {
+): Promise<{
+  created: boolean
+  createdAt: number
+  mail: InviteMail
+  /** Copyable link with a one-time code, only when mail is off (shown once, never stored). */
+  link: string | null
+  codeExpiresAt: number | null
+}> {
   const db = env.DB
   const t = nowOf(audit)
   const insert = await db
@@ -340,7 +351,19 @@ export async function createInvitation(
     .bind(email)
     .first<{ created_at: number }>()
   let mail: InviteMail = 'not-configured'
-  if (transport.configured) {
+  let link: string | null = null
+  let codeExpiresAt: number | null = null
+  if (!transport.configured) {
+    // No mail: the admin hands over a link whose code is the proof (docs/emailless.md). Asking
+    // again for the same address issues a new code and retires the old one.
+    const { code: secretCode, hash, expiresAt } = await newInviteCode(t)
+    await db
+      .prepare('UPDATE invitations SET token_hash = ?1, token_expires_at = ?2 WHERE email = ?3')
+      .bind(hash, expiresAt, email)
+      .run()
+    link = `${base(env)}/#/instance-setup?email=${encodeURIComponent(email)}&code=${encodeURIComponent(secretCode)}`
+    codeExpiresAt = expiresAt
+  } else {
     try {
       await transport.send({
         to: email,
@@ -352,7 +375,7 @@ export async function createInvitation(
       mail = 'failed'
     }
   }
-  return { created, createdAt: row?.created_at ?? t, mail }
+  return { created, createdAt: row?.created_at ?? t, mail, link, codeExpiresAt }
 }
 
 export async function deleteInvitation(

@@ -1,13 +1,14 @@
-import { and, eq, isNotNull, isNull, ne, notInArray, or } from 'drizzle-orm'
+import { and, eq, isNotNull, isNull, ne, notInArray, or, sql } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { z } from 'zod'
+import { isAdminEmail } from '../admin/security'
 import { authenticationData, checkNested, toKdfParams, unlockData } from '../auth/credentials'
 import { randomB64u } from '../auth/crypto'
 import { requireAuth } from '../auth/middleware'
 import { hashMasterPassword, verifyMasterPassword } from '../auth/passwords'
 import { accountKeysJson, stampRotationStatements } from '../auth/session'
 import { findUserByEmail, normalizeEmail } from '../auth/users'
-import { createDb, runBatch, schema } from '../db'
+import { createDb, type Db, runBatch, schema } from '../db'
 import {
   createEmailTransport,
   emailChangedNewEmail,
@@ -15,6 +16,7 @@ import {
   genericEmail,
 } from '../email'
 import { later, sendNotice } from '../email/send'
+import { emailVerifiedFor, mailConfigured } from '../emailless'
 import type { Env, User } from '../env'
 import { ApiError } from '../errors'
 import { federatedProfileOrgs } from '../federation/replica'
@@ -37,6 +39,19 @@ type Ctx = import('hono').Context<Env>
 
 const EMAIL_TOKEN_TTL_MS = 10 * 60 * 1000
 
+// Same answer as for an address that is taken, so the ADMIN_EMAILS list cannot be probed.
+const adminAddressWithoutMail = () => new ApiError(400, 'Email is already in use.')
+
+/** An address with a pending invitation belongs to the invited person, not to whoever types it. */
+async function hasPendingInvitation(db: Db, email: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: schema.invitations.uuid })
+    .from(schema.invitations)
+    .where(sql`lower(${schema.invitations.email}) = ${email}`)
+    .limit(1)
+  return row !== undefined
+}
+
 export async function profileJson(c: Ctx, user: User) {
   const [tf] = await createDb(c.env.DB)
     .select({ uuid: schema.twofactor.uuid })
@@ -47,7 +62,7 @@ export async function profileJson(c: Ctx, user: User) {
     id: user.uuid,
     name: user.name,
     email: user.email,
-    emailVerified: user.verifiedAt !== null,
+    emailVerified: emailVerifiedFor(c.env, user),
     premium: true,
     premiumFromOrganization: false,
     masterPasswordHint: user.passwordHint,
@@ -387,6 +402,13 @@ accounts.post('/api/accounts/email-token', requireAuth, async (c) => {
   )
   const newEmail = normalizeEmail(body.newEmail)
   if (await findUserByEmail(db, newEmail)) throw new ApiError(400, 'Email is already in use.')
+  const mailOn = mailConfigured(c.env)
+  // Without mail an invited address cannot be proven by whoever types it, so it stays the invitee's.
+  if (!mailOn && (await hasPendingInvitation(db, newEmail))) {
+    throw new ApiError(400, 'Email is already in use.')
+  }
+  // Without mail the new address cannot be proven, so it must not be one that grants admin rights.
+  if (!mailOn && isAdminEmail(c.env.ADMIN_EMAILS, newEmail)) throw adminAddressWithoutMail()
   const code = String((crypto.getRandomValues(new Uint32Array(1))[0] ?? 0) % 1_000_000).padStart(
     6,
     '0',
@@ -395,7 +417,8 @@ accounts.post('/api/accounts/email-token', requireAuth, async (c) => {
     .update(schema.users)
     .set({
       emailNew: newEmail,
-      emailNewToken: code,
+      // Without mail there is no code; the master password given here and again on the change is the proof.
+      emailNewToken: mailOn ? code : null,
       emailNewExpiresAt: Date.now() + EMAIL_TOKEN_TTL_MS,
     })
     .where(eq(schema.users.uuid, user.uuid))
@@ -416,7 +439,7 @@ const emailSchema = z.object({
   newEmail: z.string().email(),
   masterPasswordHash: z.string().min(1),
   newMasterPasswordHash: z.string().min(1),
-  token: z.string().min(1),
+  token: z.string().nullish(),
   key: z.string().min(1),
 })
 accounts.post('/api/accounts/email', requireAuth, async (c) => {
@@ -424,19 +447,29 @@ accounts.post('/api/accounts/email', requireAuth, async (c) => {
   const user = c.var.user
   await requirePassword(user, body.masterPasswordHash)
   const newEmail = normalizeEmail(body.newEmail)
+  const mailOn = mailConfigured(c.env)
+  if (!mailOn && isAdminEmail(c.env.ADMIN_EMAILS, newEmail)) throw adminAddressWithoutMail()
+  // With mail the emailed code proves the new address. Without it the pending request made with
+  // the master password (checked again above) is required instead; no code exists to be guessed.
   const valid =
     user.emailNew === newEmail &&
-    user.emailNewToken !== null &&
-    user.emailNewToken === body.token &&
+    (mailOn
+      ? user.emailNewToken !== null && user.emailNewToken === body.token
+      : user.emailNewToken === null) &&
     (user.emailNewExpiresAt ?? 0) > Date.now()
   if (!valid) throw new ApiError(400, 'Invalid token.')
   const db = createDb(c.env.DB)
+  if (!mailOn && (await hasPendingInvitation(db, newEmail))) {
+    throw new ApiError(400, 'Email is already in use.')
+  }
   try {
     await runBatch(db, [
       db
         .update(schema.users)
         .set({
           email: newEmail,
+          // Without mail nothing proves the new address: it must not count as verified.
+          ...(mailOn ? {} : { verifiedAt: null }),
           ...(await hashMasterPassword(body.newMasterPasswordHash)),
           akey: body.key,
           emailNew: null,

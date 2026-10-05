@@ -2,6 +2,7 @@ import { SELF } from 'cloudflare:test'
 import { env } from 'cloudflare:workers'
 import { expect, it } from 'vitest'
 import { authed, BASE, createSession, form, json, login } from './helpers'
+import { mailbox } from './org-helpers'
 
 const PW = 'client-derived-hash'
 
@@ -183,6 +184,22 @@ it('returns a stable API key and rotates it on request', async () => {
 
 it('changes email with a token and re-keys the account', async () => {
   const s = await createSession('old@example.com')
+  // With mail on, the emailed code proves the new address (without mail the master password does).
+  const mb = mailbox()
+  const authed = async (path: string, token: string, method = 'GET', body?: unknown) => {
+    const { default: app } = await import('../src/index')
+    return app.fetch(
+      new Request(`${BASE}${path}`, {
+        method,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+        },
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      }),
+      { ...env, EMAIL: mb.EMAIL, MAIL_FROM: mb.MAIL_FROM },
+    )
+  }
   expect(
     (
       await authed('/api/accounts/email-token', s.access_token, 'POST', {

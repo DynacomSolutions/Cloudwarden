@@ -7,6 +7,7 @@ import { normalizeEmail } from '../auth/users'
 import { createDb, type Db, runBatch, schema } from '../db'
 import { createEmailTransport, orgAcceptedEmail, orgConfirmedEmail, orgInviteEmail } from '../email'
 import { later, sendNotice } from '../email/send'
+import { mailConfigured } from '../emailless'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
 import {
@@ -177,11 +178,22 @@ export async function sendInvite(c: Ctx, orgRow: { uuid: string; name: string },
   }
 }
 
+/** Interactive invitations are mailed; without mail the admin shares the organisation invite link. */
+export function requireMailForInvite(c: Ctx) {
+  if (!mailConfigured(c.env)) {
+    throw new ApiError(
+      400,
+      'This server cannot send email, so members cannot be invited by email. Share the organization invite link instead (Members, Invite link).',
+    )
+  }
+}
+
 orgUsers.post('/api/organizations/:orgId/users/invite', async (c) => {
   const orgUuid = org(c)
   const body = await parseBody(c, inviteSchema)
   const db = createDb(c.env.DB)
   const actor = await requirePermission(db, c.var.user.uuid, orgUuid, 'manageUsers')
+  requireMailForInvite(c)
   assertCanAssign(actor, body.type)
   assertCanGrant(actor, body)
   if (body.accessSecretsManager === true) assertCanGrantSecretsManager(actor, null)
@@ -283,6 +295,7 @@ orgUsers.post('/api/organizations/:orgId/users/invite', async (c) => {
 })
 
 async function reinvite(c: Ctx, id: string, actor: Member): Promise<string | null> {
+  requireMailForInvite(c)
   const db = createDb(c.env.DB)
   const target = await getTarget(db, org(c), id)
   assertCanAssign(actor, target.atype)

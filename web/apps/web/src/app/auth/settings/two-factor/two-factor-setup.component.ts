@@ -1,6 +1,6 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
-import { Component, OnDestroy, OnInit } from "@angular/core";
+import { Component, OnDestroy, OnInit, inject } from "@angular/core";
 import { toSignal } from "@angular/core/rxjs-interop";
 import {
   first,
@@ -49,6 +49,7 @@ import {
   ToastService,
 } from "@bitwarden/components";
 
+import { EmailStatusService } from "../../../cloudwarden/emailless/email-status.service";
 import { HeaderModule } from "../../../layouts/header/header.module";
 import { SharedModule } from "../../../shared/shared.module";
 
@@ -78,6 +79,7 @@ export class TwoFactorSetupComponent implements OnInit, OnDestroy {
   organizationId: string;
   organization: Organization;
   providers: any[] = [];
+  private readonly emailStatus = inject(EmailStatusService);
   canAccessPremium$: Observable<boolean>;
   recoveryCodeWarningMessage: string;
   showPolicyWarning = false;
@@ -168,6 +170,13 @@ export class TwoFactorSetupComponent implements OnInit, OnDestroy {
         }
       });
     });
+    // Cloudwarden: email two-step login cannot work without outgoing email (docs/emailless.md);
+    // keep it only when it is already on, so it can still be turned off.
+    if (this.organizationId == null && !(await this.emailStatus.configured())) {
+      this.providers = this.providers.filter(
+        (p) => p.type !== TwoFactorProviderType.Email || p.enabled,
+      );
+    }
     this.evaluatePolicies();
     this.loading = false;
   }

@@ -255,7 +255,13 @@ export function createAdminApi(deps: AdminApiDeps = {}) {
       emailTransportFor(c.env, deps.emailTransport),
     )
     return c.json(
-      { email, createdAt: iso(r.createdAt), emailStatus: r.mail },
+      {
+        email,
+        createdAt: iso(r.createdAt),
+        emailStatus: r.mail,
+        // Present only without mail: copy it now, it cannot be shown again.
+        ...(r.link ? { link: r.link, codeExpiresAt: iso(r.codeExpiresAt ?? 0) } : {}),
+      },
       r.created ? 201 : 200,
     )
   })
@@ -264,7 +270,11 @@ export function createAdminApi(deps: AdminApiDeps = {}) {
     const rows = await listInvitations(c.env.DB, 200)
     return c.json({
       object: 'list',
-      data: rows.map((i) => ({ email: i.email, createdAt: iso(i.created_at) })),
+      data: rows.map((i) => ({
+        email: i.email,
+        createdAt: iso(i.created_at),
+        codeExpiresAt: i.token_expires_at ? iso(i.token_expires_at) : null,
+      })),
     })
   })
 

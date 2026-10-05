@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, OnInit, Signal, signal } from "@angular/core";
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  Signal,
+  inject,
+  signal,
+} from "@angular/core";
 import { toSignal } from "@angular/core/rxjs-interop";
 import { FormBuilder, Validators } from "@angular/forms";
 import { firstValueFrom, from } from "rxjs";
@@ -16,6 +23,7 @@ import { MessagingService } from "@bitwarden/common/platform/abstractions/messag
 import { UserId } from "@bitwarden/common/types/guid";
 import { ToastService } from "@bitwarden/components";
 
+import { EmailStatusService } from "../../../cloudwarden/emailless/email-status.service";
 import { SharedModule } from "../../../shared";
 
 @Component({
@@ -30,6 +38,9 @@ export class ChangeEmailComponent implements OnInit {
   protected readonly userId = signal<UserId | undefined>(undefined);
 
   protected readonly selfServiceChangeEmailEnabled: Signal<boolean>;
+
+  // Cloudwarden: without outgoing email no code can be sent (docs/emailless.md).
+  private readonly emailStatus = inject(EmailStatusService);
 
   readonly formGroup = this.formBuilder.group({
     userVerificationAndNewEmail: this.formBuilder.group({
@@ -91,32 +102,46 @@ export class ChangeEmailComponent implements OnInit {
 
     if (!this.userVerificationSuccessful()) {
       await this.changeEmailService.requestEmailToken(masterPassword, newEmail, userId);
-      this.advanceToEmailOwnershipVerification();
+      if (await this.emailStatus.configured()) {
+        this.advanceToEmailOwnershipVerification();
+      } else {
+        // Cloudwarden: no code is mailed, the master password given above is the proof.
+        await this.confirmChange(userId, masterPassword, newEmail, "");
+      }
     } else {
       const emailOtp = this.formGroup.value.emailOwnershipVerification;
       if (emailOtp == null) {
         throw new Error("Missing token");
       }
 
-      await this.changeEmailService.confirmEmailChange(masterPassword, newEmail, emailOtp, userId);
-      this.resetFormsToInitialState();
-      if (this.selfServiceChangeEmailEnabled()) {
-        await this.accountService.setAccountEmail(userId, newEmail);
-        this.toastService.showToast({
-          variant: "success",
-          title: this.i18nService.t("emailChanged"),
-          message: "",
-        });
-      } else {
-        this.toastService.showToast({
-          variant: "success",
-          title: this.i18nService.t("emailChanged"),
-          message: this.i18nService.t("logBackIn"),
-        });
-        this.messagingService.send("logout");
-      }
+      await this.confirmChange(userId, masterPassword, newEmail, emailOtp);
     }
   };
+
+  private async confirmChange(
+    userId: UserId,
+    masterPassword: string,
+    newEmail: string,
+    emailOtp: string,
+  ) {
+    await this.changeEmailService.confirmEmailChange(masterPassword, newEmail, emailOtp, userId);
+    this.resetFormsToInitialState();
+    if (this.selfServiceChangeEmailEnabled()) {
+      await this.accountService.setAccountEmail(userId, newEmail);
+      this.toastService.showToast({
+        variant: "success",
+        title: this.i18nService.t("emailChanged"),
+        message: "",
+      });
+    } else {
+      this.toastService.showToast({
+        variant: "success",
+        title: this.i18nService.t("emailChanged"),
+        message: this.i18nService.t("logBackIn"),
+      });
+      this.messagingService.send("logout");
+    }
+  }
 
   advanceToEmailOwnershipVerification() {
     this.formGroup.controls.userVerificationAndNewEmail.disable();

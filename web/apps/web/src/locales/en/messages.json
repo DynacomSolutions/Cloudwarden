@@ -18987,5 +18987,59 @@
   },
   "cwAllowUnverifiedEmailHint": {
     "message": "Only for providers that never send email_verified. New accounts and links then rely on the provider's email claim alone."
+  },
+  "cwInstanceSetupTitle": {
+    "message": "Set up access"
+  },
+  "cwInstanceSetupDesc": {
+    "message": "This server cannot send email. Enter the setup code of the instance administrator, or the code from the invite link you were given."
+  },
+  "cwSetupCode": {
+    "message": "Setup or invite code"
+  },
+  "cwEmailNotConfigured": {
+    "message": "Email: not configured"
+  },
+  "cwEmailNotConfiguredDesc": {
+    "message": "This server cannot send email. These features work differently or are not available:"
+  },
+  "cwEmailFeature": {
+    "message": "Feature"
+  },
+  "cwEmailWithout": {
+    "message": "Without email"
+  },
+  "cwEmailStateLink": {
+    "message": "Link to copy"
+  },
+  "cwEmailStateRefused": {
+    "message": "Not available"
+  },
+  "cwEmailStateSkipped": {
+    "message": "Skipped"
+  },
+  "cwEmailStateManual": {
+    "message": "Manual step"
+  },
+  "cwEmailStateAvailable": {
+    "message": "Available"
+  },
+  "cwInviteLinkTitle": {
+    "message": "Invite link"
+  },
+  "cwInviteLinkDesc": {
+    "message": "Email is not configured, so nothing was sent. Copy this link and give it to the invited person. It is shown once and expires on $DATE$.",
+    "placeholders": {
+      "date": {
+        "content": "$1",
+        "example": "10/12/2026"
+      }
+    }
+  },
+  "cwNewInviteLink": {
+    "message": "New link"
+  },
+  "cwCopyLink": {
+    "message": "Copy link"
   }
 }

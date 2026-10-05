@@ -72,6 +72,7 @@ jobs:
     env:
       DEPLOY_DOMAIN: ${{ secrets.DEPLOY_DOMAIN }}
       MAIL_FROM: ${{ secrets.MAIL_FROM }}
+      MAIL_DISABLED: ${{ vars.MAIL_DISABLED }}
       ADMIN_ENABLED: ${{ vars.ADMIN_ENABLED }}
       SIGNUPS_ALLOWED: ${{ vars.SIGNUPS_ALLOWED }}
       FEDERATION_ENABLED: ${{ vars.FEDERATION_ENABLED }}

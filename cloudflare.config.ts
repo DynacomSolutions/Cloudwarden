@@ -2,7 +2,7 @@ import { bindings, defineConfig, exports, triggers } from 'cf/config'
 
 // Secrets (set with `cf workers secrets update`, never committed): JWT_SECRET (32+ characters),
 // JWT_SECRET_PREVIOUS (only while rotating), JWT_SIGNING_KEY and JWT_SIGNING_KEY_PREVIOUS (optional
-// ES256 access tokens, docs/sso.md), ADMIN_EMAILS, DATA_ENCRYPTION_KEY (32+ characters). Deploy-time values
+// ES256 access tokens, docs/sso.md), ADMIN_EMAILS, ADMIN_SETUP_TOKEN (32+ characters, email-less installations only), DATA_ENCRYPTION_KEY (32+ characters). Deploy-time values
 // come from the environment (see docs/deploy.md); the committed defaults are placeholders.
 const env = process.env
 const domain = env.DEPLOY_DOMAIN || undefined
@@ -58,6 +58,8 @@ export default defineConfig({
         ? {
             JWT_SECRET: bindings.secret(),
             ADMIN_EMAILS: bindings.secret(),
+            // First admin bootstrap on a server that cannot send mail (docs/emailless.md).
+            ADMIN_SETUP_TOKEN: bindings.secret(),
             // Development and e2e only: allow an http loopback OIDC provider (docs/sso.md).
             SSO_ALLOW_INSECURE_LOOPBACK: bindings.text(env.SSO_ALLOW_INSECURE_LOOPBACK || 'false'),
           }
@@ -71,8 +73,10 @@ export default defineConfig({
       // Federated organisations, off by default (docs/federation.md).
       FEDERATION_ENABLED: bindings.text(env.FEDERATION_ENABLED || 'false'),
       MAIL_FROM: bindings.text(env.MAIL_FROM || 'Cloudwarden <noreply@example.com>'),
-      // Cloudflare Email Service (TASKS #141). Onboard the sending domain first.
-      EMAIL: bindings.sendEmail(),
+      // Cloudflare Email Service (TASKS #141). Onboard the sending domain first. Set
+      // MAIL_DISABLED=true for an account without Email Sending (for example the Workers Free
+      // plan): the binding is left out and the server runs email-less (docs/emailless.md).
+      ...(env.MAIL_DISABLED === 'true' ? {} : { EMAIL: bindings.sendEmail() }),
       // Comma-separated domains or addresses allowed to register while SIGNUPS_ALLOWED is false.
       SIGNUPS_DOMAINS_WHITELIST: bindings.text(''),
       DB: bindings.d1({

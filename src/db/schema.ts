@@ -636,9 +636,22 @@ export const invitations = sqliteTable(
     email: text('email').notNull(),
     invitedBy: text('invited_by').notNull(),
     createdAt: createdAt(),
+    /** SHA-256 of the invite code shown to the admin when mail is off (TASKS #350). */
+    tokenHash: text('token_hash'),
+    tokenExpiresAt: integer('token_expires_at'),
   },
   (t) => [uniqueIndex('invitations_email_unique').on(t.email)],
 )
+
+/**
+ * Consumed first-admin setup secrets (TASKS #350). Keyed by the SHA-256 of `ADMIN_SETUP_TOKEN`, so
+ * the same secret can never create a second admin and rotating the secret re-arms recovery.
+ */
+export const adminSetupUses = sqliteTable('admin_setup_uses', {
+  tokenHash: text('token_hash').primaryKey(),
+  userUuid: text('user_uuid').notNull(),
+  usedAt: integer('used_at').notNull(),
+})
 
 // ----- Secrets Manager (TASKS #220). Names, keys, values and notes are EncStrings; the server
 // never sees plaintext. -----

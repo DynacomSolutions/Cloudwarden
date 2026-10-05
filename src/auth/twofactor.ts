@@ -4,6 +4,7 @@ import type { Db } from '../db'
 import { createDb, runBatch, schema } from '../db'
 import { recoveryCodeUsedEmail } from '../email'
 import { later, sendNotice } from '../email/send'
+import { mailConfigured } from '../emailless'
 import type { Bindings, Env, User } from '../env'
 import { ApiError, oauthError } from '../errors'
 import { Status } from '../orgs/constants'
@@ -692,10 +693,21 @@ export type TwoFactorHook = (
 async function challengeBody(
   c: Context<Env>,
   user: User,
-  rows: TwoFactorRow[],
+  allRows: TwoFactorRow[],
   message: string,
   device: string | undefined,
 ) {
+  // Without mail the emailed code can never arrive: do not offer it next to other providers, and
+  // say so when it is the only one (the recovery code still works).
+  let rows = allRows
+  if (!mailConfigured(c.env)) {
+    const others = rows.filter((r) => r.atype !== TwoFactorType.Email)
+    if (others.length > 0) rows = others
+    else if (rows.length > 0) {
+      message =
+        'Email two-step login needs email, which this server cannot send. Use your recovery code.'
+    }
+  }
   const types = [...new Set(rows.map((r) => r.atype))].sort((a, b) => a - b)
   const params: Record<string, unknown> = {}
   for (const row of rows) {

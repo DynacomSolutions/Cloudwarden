@@ -519,71 +519,77 @@ async function main() {
     pass('Secrets Manager: revoked token can no longer log in')
 
     // The official `bws` CLI (TASKS #225, pinned in e2e/bws.lock.json) with a machine token that may write.
-    const bwsBin = await ensureBws()
-    pass('bws: pinned release downloaded and sha256 verified')
-    const writer = await api(`/organizations/${smOrg.id}/service-accounts`, 'POST', {
-      name: await encOrg('bws machine'),
-    })
-    await api(`/projects/${project.id}/access-policies/service-accounts`, 'PUT', {
-      serviceAccountAccessPolicyRequests: [{ granteeId: writer.id, read: true, write: true }],
-    })
-    const bwsSeed = randomBytes(16)
-    const bwsTok = await api(`/service-accounts/${writer.id}/access-tokens`, 'POST', {
-      name: await encOrg('bws token'),
-      encryptedPayload: await encType2(
-        Buffer.from(JSON.stringify({ encryptionKey: orgKey.toString('base64') })),
-        deriveAccessTokenKey(bwsSeed),
-      ),
-      key: await encOrg(bwsSeed.toString('base64')),
-      expireAt: null,
-    })
-    const bwsEnv = {
-      PATH: process.env.PATH,
-      HOME: work,
-      BWS_CONFIG_FILE: join(work, 'bws-config'),
-      BWS_ACCESS_TOKEN: `0.${bwsTok.id}.${bwsTok.clientSecret}:${bwsSeed.toString('base64')}`,
-      BWS_SERVER_URL: base,
-      SSL_CERT_FILE: tls.ca, // the proxy's throwaway CA
+    // Not run in GitHub Actions (public CI): the Bitwarden SDK licence may not permit using the binary against a
+    // non-Bitwarden server. Run it locally; set E2E_SKIP_BWS=1 to skip it there too.
+    if (process.env.CI || process.env.E2E_SKIP_BWS) {
+      pass('bws: skipped (CI or E2E_SKIP_BWS)')
+    } else {
+      const bwsBin = await ensureBws()
+      pass('bws: pinned release downloaded and sha256 verified')
+      const writer = await api(`/organizations/${smOrg.id}/service-accounts`, 'POST', {
+        name: await encOrg('bws machine'),
+      })
+      await api(`/projects/${project.id}/access-policies/service-accounts`, 'PUT', {
+        serviceAccountAccessPolicyRequests: [{ granteeId: writer.id, read: true, write: true }],
+      })
+      const bwsSeed = randomBytes(16)
+      const bwsTok = await api(`/service-accounts/${writer.id}/access-tokens`, 'POST', {
+        name: await encOrg('bws token'),
+        encryptedPayload: await encType2(
+          Buffer.from(JSON.stringify({ encryptionKey: orgKey.toString('base64') })),
+          deriveAccessTokenKey(bwsSeed),
+        ),
+        key: await encOrg(bwsSeed.toString('base64')),
+        expireAt: null,
+      })
+      const bwsEnv = {
+        PATH: process.env.PATH,
+        HOME: work,
+        BWS_CONFIG_FILE: join(work, 'bws-config'),
+        BWS_ACCESS_TOKEN: `0.${bwsTok.id}.${bwsTok.clientSecret}:${bwsSeed.toString('base64')}`,
+        BWS_SERVER_URL: base,
+        SSL_CERT_FILE: tls.ca, // the proxy's throwaway CA
+      }
+      const bws = (args, opts) => run(bwsBin, args, { env: bwsEnv, ...opts })
+      const bwsJson = (args) => JSON.parse(bws(args).stdout)
+
+      const projects = bwsJson(['project', 'list'])
+      assert.deepEqual(
+        projects.map((p) => [p.id, p.name, p.organizationId]),
+        [[project.id, 'deploy', smOrg.id]],
+      )
+      const bwsList = bwsJson(['secret', 'list'])
+      assert.deepEqual(
+        bwsList.map((s) => [s.id, s.key, s.value]),
+        [[secret.id, 'DATABASE_URL', 'postgres://db.example.com/app']],
+      )
+      pass('bws: project list and secret list over TLS (decrypted)')
+
+      const got = bwsJson(['secret', 'get', secret.id])
+      assert.equal(got.value, 'postgres://db.example.com/app')
+      assert.equal(got.note, 'rotated monthly')
+      assert.equal(got.projectId, project.id)
+      assert.notEqual(bws(['secret', 'get', hidden.id], { allowFail: true }).status, 0)
+      pass('bws: secret get decrypts value and note; ungranted secret refused')
+
+      const made = bwsJson(['secret', 'create', 'API_KEY', 'v1-value', project.id, '--note', 'n1'])
+      assert.equal(made.key, 'API_KEY')
+      assert.equal(made.value, 'v1-value')
+      assert.equal(bwsJson(['secret', 'get', made.id]).note, 'n1')
+      pass('bws: secret create')
+
+      const edit = bwsJson(['secret', 'edit', made.id, '--value', 'v2-value', '--key', 'API_KEY_2'])
+      assert.equal(edit.value, 'v2-value')
+      const again = bwsJson(['secret', 'get', made.id])
+      assert.equal(again.key, 'API_KEY_2')
+      assert.equal(again.value, 'v2-value')
+      assert.equal(again.note, 'n1')
+      pass('bws: secret edit')
+
+      bws(['secret', 'delete', made.id])
+      assert.ok(!bwsJson(['secret', 'list']).some((s) => s.id === made.id))
+      pass('bws: secret delete')
     }
-    const bws = (args, opts) => run(bwsBin, args, { env: bwsEnv, ...opts })
-    const bwsJson = (args) => JSON.parse(bws(args).stdout)
-
-    const projects = bwsJson(['project', 'list'])
-    assert.deepEqual(
-      projects.map((p) => [p.id, p.name, p.organizationId]),
-      [[project.id, 'deploy', smOrg.id]],
-    )
-    const bwsList = bwsJson(['secret', 'list'])
-    assert.deepEqual(
-      bwsList.map((s) => [s.id, s.key, s.value]),
-      [[secret.id, 'DATABASE_URL', 'postgres://db.example.com/app']],
-    )
-    pass('bws: project list and secret list over TLS (decrypted)')
-
-    const got = bwsJson(['secret', 'get', secret.id])
-    assert.equal(got.value, 'postgres://db.example.com/app')
-    assert.equal(got.note, 'rotated monthly')
-    assert.equal(got.projectId, project.id)
-    assert.notEqual(bws(['secret', 'get', hidden.id], { allowFail: true }).status, 0)
-    pass('bws: secret get decrypts value and note; ungranted secret refused')
-
-    const made = bwsJson(['secret', 'create', 'API_KEY', 'v1-value', project.id, '--note', 'n1'])
-    assert.equal(made.key, 'API_KEY')
-    assert.equal(made.value, 'v1-value')
-    assert.equal(bwsJson(['secret', 'get', made.id]).note, 'n1')
-    pass('bws: secret create')
-
-    const edit = bwsJson(['secret', 'edit', made.id, '--value', 'v2-value', '--key', 'API_KEY_2'])
-    assert.equal(edit.value, 'v2-value')
-    const again = bwsJson(['secret', 'get', made.id])
-    assert.equal(again.key, 'API_KEY_2')
-    assert.equal(again.value, 'v2-value')
-    assert.equal(again.note, 'n1')
-    pass('bws: secret edit')
-
-    bws(['secret', 'delete', made.id])
-    assert.ok(!bwsJson(['secret', 'list']).some((s) => s.id === made.id))
-    pass('bws: secret delete')
 
     // Importer (TASKS #163): copy the personal vault of the account above into a new account
     // on the same server, through the public API only, then check the copy decrypts identically.

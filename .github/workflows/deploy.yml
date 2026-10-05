@@ -37,7 +37,7 @@ jobs:
           set -euo pipefail
           pnpm lint
           pnpm typecheck
-          pnpm test
+          pnpm test --maxWorkers=2
           pnpm check:identifiers
       - name: Build web client
         run: pnpm web:build

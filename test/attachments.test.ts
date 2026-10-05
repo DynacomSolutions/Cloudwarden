@@ -2,7 +2,7 @@ import { SELF } from 'cloudflare:test'
 import { env } from 'cloudflare:workers'
 import { expect, it } from 'vitest'
 import { signBlobToken } from '../src/vault/blobs'
-import { authed, BASE, createSession } from './helpers'
+import { authed, BASE, createSession, waitFor } from './helpers'
 
 const cipher = { type: 2, name: '2.note', secureNote: { type: 0 } }
 
@@ -141,8 +141,10 @@ it('deletes attachments and their blobs, including with the cipher', async () =>
   await upload(b.url, token, new Uint8Array([1, 2, 3]))
   expect(await env.ATTACHMENTS.head(`attachments/${cipherId}/${b.attachmentId}`)).not.toBeNull()
   expect((await authed(`/api/ciphers/${cipherId}`, token, 'DELETE')).status).toBe(200)
-  await new Promise((r) => setTimeout(r, 50))
-  expect(await env.ATTACHMENTS.head(`attachments/${cipherId}/${b.attachmentId}`)).toBeNull()
+  await waitFor(
+    async () => (await env.ATTACHMENTS.head(`attachments/${cipherId}/${b.attachmentId}`)) === null,
+    { message: 'the attachment blob to be removed' },
+  )
 })
 
 it('accepts the legacy single step upload and isolates users', async () => {

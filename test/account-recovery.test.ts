@@ -1,6 +1,6 @@
 import { env } from 'cloudflare:workers'
 import { expect, it } from 'vitest'
-import { authed, login } from './helpers'
+import { authed, login, waitFor } from './helpers'
 import {
   type Actor,
   actor,
@@ -141,10 +141,9 @@ it('enrols, resets, forces a password change and clears the flag', async () => {
   // The member's old session ends and the old password no longer works.
   expect((await authed('/api/sync', member.token)).status).toBe(401)
   expect((await login(member.email)).status).toBe(400)
-  for (let i = 0; i < 200 && !mail.sent.slice(before).some((m) => m.to === member.email); i++) {
-    await new Promise((r) => setTimeout(r, 10))
-  }
-  expect(mail.sent.slice(before).some((m) => m.to === member.email)).toBe(true)
+  await waitFor(() => mail.sent.slice(before).some((m) => m.to === member.email), {
+    message: 'the recovery mail',
+  })
 
   const tokenRes = await login(member.email, 'temp-hash')
   expect(tokenRes.status).toBe(200)

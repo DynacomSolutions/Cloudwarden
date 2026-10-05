@@ -1,6 +1,6 @@
 import { SELF } from 'cloudflare:test'
 import { expect, it } from 'vitest'
-import { BASE } from './helpers'
+import { BASE, waitFor } from './helpers'
 import { actor, addMember, createOrg, loginCipher } from './org-helpers'
 
 const RS = '\x1e'
@@ -21,18 +21,15 @@ async function listen(token: string) {
   raw.length = 0
   return {
     ws,
+    // Only invocation frames carry an event; pings and acknowledgements have no arguments.
     types: () =>
-      raw.map((m) => JSON.parse(m.slice(0, -1)).arguments?.[0] as { Type: number; Payload: any }),
+      raw
+        .map((m) => JSON.parse(m.slice(0, -1)).arguments?.[0] as { Type: number; Payload: any })
+        .filter((e) => e !== undefined),
   }
 }
 
-async function until(fn: () => boolean, ms = 3000) {
-  const end = Date.now() + ms
-  while (!fn()) {
-    if (Date.now() > end) throw new Error('timed out')
-    await new Promise((r) => setTimeout(r, 10))
-  }
-}
+const until = (fn: () => boolean) => waitFor(fn, { message: 'the notification' })
 
 it('pushes organisation changes to the members who can see them', async () => {
   const owner = await actor('push-owner@example.com')

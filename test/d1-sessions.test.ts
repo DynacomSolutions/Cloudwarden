@@ -194,7 +194,7 @@ describe('revision dates with sessions enabled', () => {
       lastKnownRevisionDate: created.body.revisionDate,
     })
     expect(stale.status).toBe(400)
-  }, 30_000)
+  })
 
   it('behaves the same as the plain binding for a client that sends no bookmark', async () => {
     const s = await createSession('d1-nobm@example.com')

@@ -2,7 +2,7 @@ import { SELF } from 'cloudflare:test'
 import { expect, it } from 'vitest'
 import { decode } from '../src/notifications/msgpack'
 import { unframe } from '../src/notifications/signalr'
-import { authed, BASE, createSession, form, json } from './helpers'
+import { authed, BASE, createSession, form, json, waitFor } from './helpers'
 
 const RS = '\x1e'
 
@@ -14,16 +14,6 @@ const create = (email: string, deviceIdentifier: string, accessCode = 'code-1') 
     type: 0,
     accessCode,
   })
-
-async function waitFor<T>(fn: () => T | undefined, ms = 3000): Promise<T> {
-  const end = Date.now() + ms
-  for (;;) {
-    const v = fn()
-    if (v !== undefined) return v
-    if (Date.now() > end) throw new Error('timed out')
-    await new Promise((r) => setTimeout(r, 10))
-  }
-}
 
 it('runs login with device end to end', async () => {
   const email = 'ar-flow@example.com'

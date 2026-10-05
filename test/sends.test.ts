@@ -2,7 +2,7 @@ import { SELF } from 'cloudflare:test'
 import { env } from 'cloudflare:workers'
 import { expect, it } from 'vitest'
 import { purgeExpired } from '../src/vault/purge'
-import { authed, BASE, createSession, form, json } from './helpers'
+import { authed, BASE, createSession, form, json, waitFor } from './helpers'
 
 const day = 86_400_000
 const textSend = (extra: Record<string, unknown> = {}) => ({
@@ -199,8 +199,12 @@ it('round-trips a file Send', async () => {
 
   // Deleting the Send removes the blob.
   await authed(`/api/sends/${slot.sendResponse.id}`, s.access_token, 'DELETE')
-  await new Promise((r) => setTimeout(r, 50))
-  expect(await env.ATTACHMENTS.head(`sends/${slot.sendResponse.id}/${fileId}`)).toBeNull()
+  await waitFor(
+    async () => (await env.ATTACHMENTS.head(`sends/${slot.sendResponse.id}/${fileId}`)) === null,
+    {
+      message: 'the Send blob to be removed',
+    },
+  )
 })
 
 it('purges expired Sends, abandoned uploads and orphaned blobs', async () => {
@@ -257,8 +261,9 @@ it('removes Send and attachment blobs when the vault is purged', async () => {
     masterPasswordHash: 'client-derived-hash',
   })
   expect(res.status).toBe(200)
-  await new Promise((r) => setTimeout(r, 50))
-  expect(await env.ATTACHMENTS.head(key)).toBeNull()
+  await waitFor(async () => (await env.ATTACHMENTS.head(key)) === null, {
+    message: 'the purged blob to be removed',
+  })
 })
 
 it('revokes send_access tokens when the Send changes and re-checks download links', async () => {

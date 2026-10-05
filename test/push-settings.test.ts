@@ -7,7 +7,7 @@ import {
   validateRelayUri,
 } from '../src/notifications/push-config'
 import { relayStatus, resolveRelay } from '../src/notifications/relay'
-import { authed, createSession, freezeRateLimitWindow, withEnv } from './helpers'
+import { authed, createSession, freezeRateLimitWindow, waitFor, withEnv } from './helpers'
 
 const P = '/api/cloudwarden/admin/push-settings'
 const KEY = 'super-secret-installation-key-0123456789'
@@ -364,9 +364,9 @@ describe('push settings API', () => {
     expect(tok.status).toBe(204)
     seen = []
     await save(owner)
-    for (let i = 0; i < 50 && !seen.some((s) => s.url.endsWith('/push/register')); i++) {
-      await new Promise((r) => setTimeout(r, 20))
-    }
+    await waitFor(() => seen.some((s) => s.url.endsWith('/push/register')), {
+      message: 'the push registration',
+    })
     const reg = seen.find((s) => s.url === 'https://push.bitwarden.com/push/register')
     expect(reg?.body).toMatchObject({ pushToken: 'fcm-token-1', installationId: ID, type: 0 })
 

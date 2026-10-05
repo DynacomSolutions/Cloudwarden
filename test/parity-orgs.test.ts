@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { json } from './helpers'
+import { json, waitFor } from './helpers'
 import {
   actor,
   addMember,
@@ -300,12 +300,10 @@ describe('accept-init', () => {
 
 /** The invitation mail for `email` (other mail, such as account emails, may arrive meanwhile). */
 const inviteMail = async (email: string) => {
-  for (let i = 0; i < 40; i++) {
-    const found = mail.sent.find((x) => x.to === email && x.text.includes('organizationUserId'))
-    if (found) return found
-    await new Promise((r) => setTimeout(r, 50))
-  }
-  throw new Error(`no invitation mail for ${email}`)
+  return waitFor(
+    () => mail.sent.find((x) => x.to === email && x.text.includes('organizationUserId')),
+    { message: `the invitation mail for ${email}` },
+  )
 }
 
 describe('auto-confirm', () => {

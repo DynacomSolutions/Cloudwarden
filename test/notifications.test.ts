@@ -4,7 +4,7 @@ import { expect, it } from 'vitest'
 import { decode, encode, type MsgValue } from '../src/notifications/msgpack'
 import { PushType, pushLogOut, pushUserUpdate } from '../src/notifications/publish'
 import { frame, unframe } from '../src/notifications/signalr'
-import { authed, BASE, createSession, json, login, registerUser } from './helpers'
+import { authed, BASE, createSession, json, login, registerUser, waitFor } from './helpers'
 
 const RS = '\x1e'
 
@@ -20,16 +20,6 @@ async function connect(url: string) {
   })
   ws.accept()
   return { res, ws, inbox }
-}
-
-async function waitFor<T>(fn: () => T | undefined, ms = 3000): Promise<T> {
-  const end = Date.now() + ms
-  for (;;) {
-    const v = fn()
-    if (v !== undefined) return v
-    if (Date.now() > end) throw new Error('timed out')
-    await new Promise((r) => setTimeout(r, 10))
-  }
 }
 
 const hubUrl = (token: string) => `${BASE}/notifications/hub?access_token=${token}`

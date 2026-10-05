@@ -10,7 +10,7 @@ Cloudwarden implements the Bitwarden server API, built from an explicit API cont
 - **Durable Objects** for live sync notifications
 - An **optional instance admin** (native pages in the web client), off by default
 
-> **Status: early scaffold.** Nothing works yet beyond health and config endpoints. Do not store real passwords in it. See [TASKS.md](TASKS.md) for the roadmap.
+> **Status: pre-1.0, not independently audited.** The server implements the vault, organisation, sharing, Send, two-step login, Secrets Manager and admin APIs, and a Cloudwarden build of the web vault ships with it. It is exercised against the official Bitwarden CLI in CI, but it has had no third-party security review, so treat it as experimental and keep backups. See [docs/compatibility.md](docs/compatibility.md) for what is verified and [TASKS.md](TASKS.md) for the roadmap.
 
 ## Why D1
 
@@ -52,4 +52,4 @@ Cloudwarden is not affiliated with, endorsed by, or associated with Bitwarden, I
 
 ## Licence
 
-[GNU AGPL-3.0](LICENSE).
+The server code in this repository is licensed under the [GNU AGPL-3.0](LICENSE). The vendored web client in [`web/`](web/) is a modified copy of the Bitwarden web vault and stays under the GNU GPL-3.0 (see [`web/NOTICE.md`](web/NOTICE.md), `web/LICENSE_GPL.txt`). The two are combined into one deployed work under section 13 of the GPL-3.0 and section 13 of the AGPL-3.0, so the whole deployed work is offered under the terms of the AGPL-3.0 for network users, while `web/` remains GPL-3.0 code. No code under the Bitwarden License or the Bitwarden SDK licence is included.

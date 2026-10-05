@@ -3,7 +3,7 @@ import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { z } from 'zod'
 import { signPurposeToken, verifyPurposeToken } from '../auth/purpose-token'
-import { normalizeEmail } from '../auth/users'
+import { findUserByEmail, normalizeEmail } from '../auth/users'
 import { createDb, type Db, runBatch, schema } from '../db'
 import { createEmailTransport, orgAcceptedEmail, orgConfirmedEmail, orgInviteEmail } from '../email'
 import { later, sendNotice } from '../email/send'
@@ -45,6 +45,7 @@ import {
 } from '../orgs/policies'
 import { assertOrgKeys, resetPasswordPolicy } from '../orgs/recovery'
 import { authOnce, batch } from '../orgs/util'
+import { activeSso } from '../sso/config'
 import { parseBody } from '../validation'
 import { bumpRevision, chunk } from '../vault/ciphers'
 
@@ -148,14 +149,47 @@ const inviteSchema = z.object({
   accessSecretsManager: z.boolean().nullish(),
 })
 
-function inviteLink(c: Ctx, orgRow: { uuid: string; name: string }, m: Member, token: string) {
+/**
+ * What the web client's invite parsing needs besides the identity: whether the organisation still
+ * has to be initialised (an invited owner of an organisation without keys, the case `accept-init`
+ * serves), whether the address already has an account on this instance, and the SSO identifier
+ * when the organisation requires single sign-on.
+ */
+async function inviteFlags(db: Db, orgUuid: string, m: Member) {
+  const orgRow = await requireOrg(db, orgUuid)
+  const existing = m.email ? await findUserByEmail(db, normalizeEmail(m.email)) : null
+  let ssoIdentifier: string | null = null
+  if (orgRow.identifier && (await enabledPolicy(db, orgUuid, PolicyType.RequireSso))) {
+    if (await activeSso(db, orgUuid)) ssoIdentifier = orgRow.identifier
+  }
+  return {
+    initOrganization: !orgRow.publicKey && m.atype === Role.Owner,
+    orgUserHasExistingUser: existing !== null,
+    ssoIdentifier,
+  }
+}
+
+function inviteLink(
+  c: Ctx,
+  orgRow: { uuid: string; name: string },
+  m: Member,
+  token: string,
+  flags: {
+    initOrganization: boolean
+    orgUserHasExistingUser: boolean
+    ssoIdentifier: string | null
+  },
+) {
   const q = new URLSearchParams({
     organizationId: orgRow.uuid,
     organizationUserId: m.uuid,
     email: m.email ?? '',
     organizationName: orgRow.name,
     token,
+    initOrganization: String(flags.initOrganization),
+    orgUserHasExistingUser: String(flags.orgUserHasExistingUser),
   })
+  if (flags.ssoIdentifier) q.set('orgSsoIdentifier', flags.ssoIdentifier)
   return `${c.env.DOMAIN.replace(/\/+$/, '')}/#/accept-organization?${q.toString()}`
 }
 
@@ -169,9 +203,10 @@ export async function sendInvite(c: Ctx, orgRow: { uuid: string; name: string },
     INVITE_TTL_SECONDS,
   )
   try {
+    const flags = await inviteFlags(createDb(c.env.DB), orgRow.uuid, m)
     await transport.send({
       to: m.email,
-      ...orgInviteEmail(orgRow.name, inviteLink(c, orgRow, m, token)),
+      ...orgInviteEmail(orgRow.name, inviteLink(c, orgRow, m, token, flags)),
     })
   } catch {
     // The invitation is stored; an administrator can resend it. Message content is never logged.

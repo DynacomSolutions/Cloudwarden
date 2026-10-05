@@ -3,8 +3,8 @@ import { Jsonify } from "type-fest";
 import { DirectOrganizationInvite } from "./direct-organization-invite";
 
 describe("DirectOrganizationInvite", () => {
-  const validId = "00000000-0000-0000-0000-000000000001";
-  const validUserId = "00000000-0000-0000-0000-000000000002";
+  const validId = "00000000-0000-0000-0000-000000000001"; // identifiers-allow-line
+  const validUserId = "00000000-0000-0000-0000-000000000002"; // identifiers-allow-line
 
   describe("constructor", () => {
     it("assigns all required fields", () => {
@@ -66,6 +66,28 @@ describe("DirectOrganizationInvite", () => {
       token: "invite-token",
       initOrganization: "false",
       orgUserHasExistingUser: "true",
+    });
+
+    it("parses a link built by the Cloudwarden server (TASKS #349)", () => {
+      const link =
+        `https://vault.example.com/#/accept-organization?` +
+        new URLSearchParams({
+          organizationId: validId,
+          organizationUserId: validUserId,
+          email: "user@example.com",
+          organizationName: "Acme Inc.",
+          token: "invite-token",
+          initOrganization: "true",
+          orgUserHasExistingUser: "false",
+          orgSsoIdentifier: "acme",
+        }).toString();
+      const params = Object.fromEntries(new URLSearchParams(link.split("?")[1]));
+
+      expect(DirectOrganizationInvite.fromUrlParams(params)).toMatchObject({
+        initOrganization: true,
+        orgUserHasExistingUser: false,
+        orgSsoIdentifier: "acme",
+      });
     });
 
     it("returns null when params is null", () => {

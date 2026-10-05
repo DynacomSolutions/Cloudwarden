@@ -25,12 +25,34 @@ Bitwarden's Secrets Manager web app. Likewise the SCIM settings and event integr
 (`apps/web/src/app/cloudwarden/org-integrations/`) are Cloudwarden's own, written against
 `docs/integrations.md` without reference to Bitwarden's licensed screens.
 
+The proprietary commercial SDK (`@bitwarden/commercial-sdk-internal`, Bitwarden Software
+Development Kit License Agreement) is not a dependency and is removed from `package.json`, the
+lockfile and the Dockerfile; `scripts/check-web-licence.mjs` also rejects any dependency whose
+lockfile licence is a Bitwarden licence. The open source `@bitwarden/sdk-internal` (GPL-3.0) is
+used.
+
+## Fonts
+
+Two web fonts are bundled under the SIL Open Font License 1.1, each with its licence text beside
+the font files:
+
+- Montserrat (Copyright 2011 The Montserrat Project Authors):
+  `libs/components/src/cloudwarden/fonts/` (`OFL.txt`).
+- Inter (Copyright (c) 2016 The Inter Project Authors): `libs/components/src/webfonts/` (`OFL.txt`).
+
 ## Trademarks
 
 Bitwarden is a trademark of Bitwarden Inc. Cloudwarden is an independent project and is not
 affiliated with, endorsed by or sponsored by Bitwarden Inc. The user-visible product name, logos
 and icons have been replaced with Cloudwarden's own, as the upstream licence grants no rights in
-Bitwarden's marks.
+Bitwarden's marks. The register page marketing images (press and review logos), the Bitwarden
+wordmark graphics, and the unused upstream marketing videos have been removed. A few Secrets
+Manager landing images and the extension setup videos upstream ships are still referenced by
+screens that exist in the build and are kept.
+
+The name Cloudwarden is a deliberate, non-confusing name of its own. Wording in the README, this
+notice and the application strings refers to Bitwarden only to name the protocol and clients
+Cloudwarden is compatible with, in a statement that it is not affiliated.
 
 ## Modifications
 

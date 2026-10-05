@@ -187,6 +187,16 @@ test('Author ident validation', async (t) => {
     assert.strictEqual(isNoreplyAuthorIdent(ident), true)
   })
 
+  await t.test('allowlisted maintainer address passes', () => {
+    const ident = 'Thomas McFarlane <thomas.mcfarlane@dynacom.solutions> 1790826528 +0100'
+    assert.strictEqual(isNoreplyAuthorIdent(ident), true)
+  })
+
+  await t.test('other address on the same domain fails', () => {
+    const ident = 'Someone <someone@dynacom.solutions> 1790826528 +0100'
+    assert.strictEqual(isNoreplyAuthorIdent(ident), false)
+  })
+
   await t.test('example.com ident fails', () => {
     const ident = 'User Name <user@example.com> 1790826528 +0700'
     assert.strictEqual(isNoreplyAuthorIdent(ident), false)

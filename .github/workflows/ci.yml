@@ -15,7 +15,7 @@ concurrency:
 jobs:
   lint:
     name: Lint
-    runs-on: k3s-runners
+    runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
@@ -32,7 +32,7 @@ jobs:
 
   typecheck:
     name: Typecheck
-    runs-on: k3s-runners
+    runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
@@ -49,7 +49,7 @@ jobs:
 
   test:
     name: Test
-    runs-on: k3s-runners
+    runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
@@ -66,7 +66,7 @@ jobs:
 
   e2e:
     name: E2E (Bitwarden CLI)
-    runs-on: k3s-runners
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: read
@@ -84,10 +84,13 @@ jobs:
 
   identifiers:
     name: Identifier Check
-    runs-on: k3s-runners
+    runs-on: ubuntu-latest
     permissions:
       contents: read
     env:
+      # Optional. A comma-separated list of private identifiers to reject, kept in a repository secret so
+      # real values never live in the repo. Unset (and always empty on fork pull requests) it is a no-op:
+      # the built-in pattern checks still run. See CONTRIBUTING.md.
       IDENTIFIER_DENYLIST: ${{ secrets.IDENTIFIER_DENYLIST }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -106,7 +109,7 @@ jobs:
 
   web-unit:
     name: Web client unit tests
-    runs-on: k3s-runners
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
       contents: read
@@ -127,7 +130,7 @@ jobs:
 
   commitlint:
     name: Commit Lint
-    runs-on: k3s-runners
+    runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     permissions:
       contents: read
@@ -146,7 +149,7 @@ jobs:
 
   ci-ok:
     name: CI Status
-    runs-on: k3s-runners
+    runs-on: ubuntu-latest
     needs: [lint, typecheck, test, e2e, identifiers, web-unit, commitlint]
     if: always()
     permissions: {}

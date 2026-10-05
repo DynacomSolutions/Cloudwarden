@@ -116,7 +116,8 @@ serialised (`deploy-<environment>` concurrency group, queued rather than cancell
    An environment whose `CLOUDFLARE_ACCOUNT_ID` secret is empty or missing is skipped cleanly (a notice, no failure),
    so forks and not-yet-configured environments do not break the workflow.
 
-3. Jobs run on the `k3s-runners` label (self-hosted). Register a runner with that label, or change `runs-on` in the
-   workflow to match your runner.
+3. Jobs run on GitHub-hosted `ubuntu-latest` runners. The public repository uses GitHub-hosted runners only; if you
+   fork and prefer your own runners, change `runs-on` in the workflows (and keep untrusted pull requests off them).
 
-Each domain is masked in logs. Worker secrets (step 4) are intentionally not touched by CI.
+The domain, `MAIL_FROM` (whole value, address, local part, domain and display name), account id and D1 id are each
+masked separately in logs, because tools may print a truncated value that a mask of the whole value would miss. Worker secrets (step 4) are intentionally not touched by CI.

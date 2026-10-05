@@ -63,7 +63,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       # Bounded workers: the shared runner is heavily loaded (matches the pre-push hook).
-      - run: pnpm test --maxWorkers=2
+      - run: pnpm test -- --maxWorkers=2
 
   e2e:
     name: E2E (Bitwarden CLI)

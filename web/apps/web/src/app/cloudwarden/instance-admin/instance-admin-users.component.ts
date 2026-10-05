@@ -1,6 +1,12 @@
 // Cloudwarden: instance user management (web/NOTICE.md).
 import { DatePipe } from "@angular/common";
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from "@angular/core";
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  inject,
+  signal,
+} from "@angular/core";
 
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { DialogService, ToastService } from "@bitwarden/components";
@@ -8,7 +14,12 @@ import { DialogService, ToastService } from "@bitwarden/components";
 import { HeaderModule } from "../../layouts/header/header.module";
 import { SharedModule } from "../../shared";
 
-import { AdminUser, AdminUserAction, InstanceAdminApiService } from "./instance-admin-api.service";
+import {
+  AdminRole,
+  AdminUser,
+  AdminUserAction,
+  InstanceAdminApiService,
+} from "./instance-admin-api.service";
 
 @Component({
   selector: "cw-instance-admin-users",
@@ -30,6 +41,7 @@ import { AdminUser, AdminUserAction, InstanceAdminApiService } from "./instance-
             <th bitCell>{{ "cwLastActive" | i18n }}</th>
             <th bitCell>{{ "items" | i18n }}</th>
             <th bitCell>{{ "twoStepLogin" | i18n }}</th>
+            <th bitCell>{{ "cwRole" | i18n }}</th>
             <th bitCell>{{ "status" | i18n }}</th>
             <th bitCell class="tw-text-right">{{ "options" | i18n }}</th>
           </tr>
@@ -40,23 +52,70 @@ import { AdminUser, AdminUserAction, InstanceAdminApiService } from "./instance-
               <td bitCell>
                 {{ u.email }}
                 @if (!u.emailVerified) {
-                  <span bitBadge variant="warning">{{ "cwUnverified" | i18n }}</span>
+                  <span bitBadge variant="warning">{{
+                    "cwUnverified" | i18n
+                  }}</span>
                 }
               </td>
               <td bitCell>{{ u.name }}</td>
               <td bitCell>{{ u.createdAt | date: "short" }}</td>
-              <td bitCell>{{ u.lastActive ? (u.lastActive | date: "short") : "-" }}</td>
+              <td bitCell>
+                {{ u.lastActive ? (u.lastActive | date: "short") : "-" }}
+              </td>
               <td bitCell>{{ u.itemCount }}</td>
               <td bitCell>
                 @for (p of u.twoFactorProviders; track p.type) {
                   <span bitBadge variant="secondary">{{ p.name }}</span>
                 }
               </td>
+              <td bitCell data-testid="cw-user-role">
+                <span
+                  bitBadge
+                  [variant]="roleVariant(u.role)"
+                  [attr.title]="roleTip(u)"
+                  >{{ roleLabelKey(u.role) | i18n }}</span
+                >
+                @if (canChangeRole(u)) {
+                  <button
+                    type="button"
+                    bitIconButton="bwi-angle-down"
+                    [label]="'cwChangeRole' | i18n"
+                    [bitMenuTriggerFor]="roleMenu"
+                    data-testid="cw-role-trigger"
+                  ></button>
+                  <bit-menu #roleMenu>
+                    @for (r of grantable; track r) {
+                      <button
+                        type="button"
+                        bitMenuItem
+                        [disabled]="r === u.role"
+                        [attr.data-testid]="'cw-role-' + r"
+                        (click)="changeRole(u, r)"
+                      >
+                        {{ roleLabelKey(r) | i18n }}
+                      </button>
+                    }
+                  </bit-menu>
+                } @else {
+                  <button
+                    type="button"
+                    bitIconButton="bwi-angle-down"
+                    [label]="'cwChangeRole' | i18n"
+                    [disabled]="true"
+                    [attr.title]="roleTip(u)"
+                    data-testid="cw-role-locked"
+                  ></button>
+                }
+              </td>
               <td bitCell>
                 @if (u.enabled) {
-                  <span bitBadge variant="success">{{ "cwStatusEnabled" | i18n }}</span>
+                  <span bitBadge variant="success">{{
+                    "cwStatusEnabled" | i18n
+                  }}</span>
                 } @else {
-                  <span bitBadge variant="danger">{{ "cwStatusDisabled" | i18n }}</span>
+                  <span bitBadge variant="danger">{{
+                    "cwStatusDisabled" | i18n
+                  }}</span>
                 }
               </td>
               <td bitCell class="tw-text-right">
@@ -68,19 +127,35 @@ import { AdminUser, AdminUserAction, InstanceAdminApiService } from "./instance-
                 ></button>
                 <bit-menu #userMenu>
                   @if (u.enabled) {
-                    <button type="button" bitMenuItem (click)="act(u, 'disable')">
+                    <button
+                      type="button"
+                      bitMenuItem
+                      (click)="act(u, 'disable')"
+                    >
                       {{ "cwDisable" | i18n }}
                     </button>
                   } @else {
-                    <button type="button" bitMenuItem (click)="act(u, 'enable')">
+                    <button
+                      type="button"
+                      bitMenuItem
+                      (click)="act(u, 'enable')"
+                    >
                       {{ "cwEnable" | i18n }}
                     </button>
                   }
-                  <button type="button" bitMenuItem (click)="act(u, 'deauthorize')">
+                  <button
+                    type="button"
+                    bitMenuItem
+                    (click)="act(u, 'deauthorize')"
+                  >
                     {{ "cwDeauthorize" | i18n }}
                   </button>
                   @if (u.twoFactorProviders.length) {
-                    <button type="button" bitMenuItem (click)="act(u, 'remove-2fa')">
+                    <button
+                      type="button"
+                      bitMenuItem
+                      (click)="act(u, 'remove-2fa')"
+                    >
                       {{ "cwRemove2fa" | i18n }}
                     </button>
                   }
@@ -94,10 +169,22 @@ import { AdminUser, AdminUserAction, InstanceAdminApiService } from "./instance-
         </ng-template>
       </bit-table>
       <div class="tw-flex tw-gap-2 tw-mt-4">
-        <button type="button" bitButton buttonType="secondary" [disabled]="page() <= 1" (click)="go(-1)">
+        <button
+          type="button"
+          bitButton
+          buttonType="secondary"
+          [disabled]="page() <= 1"
+          (click)="go(-1)"
+        >
           {{ "cwPrevious" | i18n }}
         </button>
-        <button type="button" bitButton buttonType="secondary" [disabled]="!hasMore()" (click)="go(1)">
+        <button
+          type="button"
+          bitButton
+          buttonType="secondary"
+          [disabled]="!hasMore()"
+          (click)="go(1)"
+        >
           {{ "next" | i18n }}
         </button>
       </div>
@@ -110,6 +197,7 @@ export class InstanceAdminUsersComponent implements OnInit {
   private readonly toastService = inject(ToastService);
   private readonly i18n = inject(I18nService);
 
+  protected readonly grantable = ["admin", "user"] as const;
   protected readonly users = signal<AdminUser[]>([]);
   protected readonly page = signal(1);
   protected readonly total = signal(0);
@@ -167,10 +255,63 @@ export class InstanceAdminUsersComponent implements OnInit {
       deauthorize: "cwDeauthorize",
       "remove-2fa": "cwRemove2fa",
     }[action];
-    if (!(await this.confirm(this.i18n.t(key), this.i18n.t("cwConfirmUserAction", u.email)))) {
+    if (
+      !(await this.confirm(
+        this.i18n.t(key),
+        this.i18n.t("cwConfirmUserAction", u.email),
+      ))
+    ) {
       return;
     }
-    await this.run(() => this.api.userAction(u.id, action), this.i18n.t("cwDone"));
+    await this.run(
+      () => this.api.userAction(u.id, action),
+      this.i18n.t("cwDone"),
+    );
+  }
+
+  protected roleLabelKey(role: AdminRole) {
+    return { owner: "cwRoleOwner", admin: "cwRoleAdmin", user: "cwRoleUser" }[
+      role
+    ];
+  }
+
+  protected roleVariant(role: AdminRole) {
+    return role === "owner"
+      ? "primary"
+      : role === "admin"
+        ? "success"
+        : "secondary";
+  }
+
+  /** Owners come from ADMIN_EMAILS and your own role is never changed from here. */
+  protected canChangeRole(u: AdminUser) {
+    return u.role !== "owner" && !u.self;
+  }
+
+  protected roleTip(u: AdminUser): string | null {
+    if (u.role === "owner") {
+      return this.i18n.t("cwRoleOwnerTip");
+    }
+    return u.self ? this.i18n.t("cwRoleSelfTip") : null;
+  }
+
+  protected async changeRole(u: AdminUser, role: "admin" | "user") {
+    if (!this.canChangeRole(u) || role === u.role) {
+      return;
+    }
+    const ok = await this.confirm(
+      this.i18n.t("cwChangeRole"),
+      this.i18n.t(
+        role === "admin" ? "cwConfirmMakeAdmin" : "cwConfirmMakeUser",
+        u.email,
+      ),
+    );
+    if (ok) {
+      await this.run(
+        () => this.api.setUserRole(u.id, role),
+        this.i18n.t("cwRoleChanged"),
+      );
+    }
   }
 
   protected async remove(u: AdminUser) {

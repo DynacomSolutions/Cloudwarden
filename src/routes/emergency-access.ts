@@ -2,6 +2,7 @@ import { and, eq, inArray, ne, sql } from 'drizzle-orm'
 import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { z } from 'zod'
+import { holdsInstanceRole } from '../admin/security'
 import { hashMasterPassword } from '../auth/passwords'
 import { signPurposeToken, verifyPurposeToken } from '../auth/purpose-token'
 import { stampRotationStatements } from '../auth/session'
@@ -519,10 +520,19 @@ emergencyAccess.post('/api/emergency-access/:id/password', async (c) => {
     z.object({ newMasterPasswordHash: z.string().min(1), key: z.string().min(1) }),
   )
   const { db, grantor } = await approvedFor(c, EmergencyType.Takeover)
+  // Instance admins and owners cannot be taken over: the contact would inherit admin rights.
+  if (holdsInstanceRole(c.env, grantor)) {
+    throw new ApiError(400, 'Emergency access is not available.')
+  }
   await batch(db, [
     db
       .update(schema.users)
-      .set({ ...(await hashMasterPassword(body.newMasterPasswordHash)), akey: body.key })
+      .set({
+        ...(await hashMasterPassword(body.newMasterPasswordHash)),
+        akey: body.key,
+        // Defence in depth: a takeover never carries instance admin rights.
+        instanceRole: 'user',
+      })
       .where(eq(schema.users.uuid, grantor.uuid)),
     // A takeover also clears the grantor's two-step login so they can sign in with the new password.
     db.delete(schema.twofactor).where(eq(schema.twofactor.userUuid, grantor.uuid)),

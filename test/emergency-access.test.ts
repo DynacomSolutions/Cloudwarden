@@ -192,3 +192,48 @@ it('guards invitations: self, duplicates, wrong token, and either side can delet
   expect((await grantor.json(`/api/users/${grantee.uuid}/keys`)).privateKey).toBeNull()
   expect((await grantor.json(`/api/users/${grantor.uuid}/keys`)).privateKey).toBe('2.pk')
 })
+
+async function approvedTakeover(prefix: string, over: Record<string, unknown> = {}) {
+  const mb = mailbox()
+  const grantor = await actor(`${prefix}-grantor@example.com`, mb)
+  const grantee = await actor(`${prefix}-grantee@example.com`, mb, over)
+  const id = await trust(grantor, grantee, mb, 1, 1)
+  await grantee.call(`/api/emergency-access/${id}/initiate`, 'POST')
+  await grantor.call(`/api/emergency-access/${id}/approve`, 'POST')
+  return { grantor, grantee, id }
+}
+
+const takeoverBody = { newMasterPasswordHash: 'recovered-hash', key: '2.newUserKey' }
+
+it('refuses takeover of a granted instance admin', async () => {
+  const { grantor, grantee, id } = await approvedTakeover('ea-adm')
+  await env.DB.prepare("UPDATE users SET instance_role = 'admin' WHERE uuid = ?1")
+    .bind(grantor.uuid)
+    .run()
+  const res = await grantee.call(`/api/emergency-access/${id}/password`, 'POST', takeoverBody)
+  expect(res.status).toBe(400)
+  const row = await env.DB.prepare('SELECT instance_role AS r FROM users WHERE uuid = ?1')
+    .bind(grantor.uuid)
+    .first<{ r: string }>()
+  expect(row?.r).toBe('admin')
+  expect((await login(grantor.email, 'client-derived-hash')).status).toBe(200)
+})
+
+it('refuses takeover of an owner address', async () => {
+  const { grantor, grantee, id } = await approvedTakeover('ea-own', {
+    ADMIN_EMAILS: 'ea-own-grantor@example.com',
+  })
+  const res = await grantee.call(`/api/emergency-access/${id}/password`, 'POST', takeoverBody)
+  expect(res.status).toBe(400)
+  expect((await login(grantor.email, 'client-derived-hash')).status).toBe(200)
+})
+
+it('leaves no instance role on a taken-over account', async () => {
+  const { grantor, grantee, id } = await approvedTakeover('ea-plain')
+  const res = await grantee.call(`/api/emergency-access/${id}/password`, 'POST', takeoverBody)
+  expect(res.status).toBe(200)
+  const row = await env.DB.prepare('SELECT instance_role AS r FROM users WHERE uuid = ?1')
+    .bind(grantor.uuid)
+    .first<{ r: string }>()
+  expect(row?.r).toBe('user')
+})

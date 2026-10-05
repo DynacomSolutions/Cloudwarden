@@ -21,10 +21,14 @@ hashing is untouched.
 2. Set the usual secrets (`docs/deploy.md`) plus the one time setup secret:
 
    ```sh
-   openssl rand -base64 48        # at least 32 characters
+   openssl rand -base64 48        # at least 32 characters, and it must be random
    pnpm exec cf workers secrets update ADMIN_SETUP_TOKEN
    pnpm exec cf workers secrets update ADMIN_EMAILS     # the address that will be admin
    ```
+
+   `ADMIN_SETUP_TOKEN` must be random: a guessable phrase of 32 characters is still guessable. Generate it
+   with the command above and do not choose it yourself. Values with fewer than 16 distinct characters are
+   refused.
 
    Also set the variable `ADMIN_ENABLED=true` to use the Instance admin pages.
 
@@ -49,12 +53,18 @@ route, with or without open signups, when mail is off.
   with a one-time code (valid 7 days, only its hash is stored). Copy it and hand it over. "New link" issues a
   fresh code and retires the old one. The invited person opens the link (`/#/instance-setup`), which prefills
   address and code, then sets a master password. The invitation is consumed by the registration.
-* An invited address cannot register through the ordinary page without the code, because a mail-off server
-  cannot tell who owns the address.
+* An invited address cannot register through the ordinary page without the code, unless open signups
+  (`SIGNUPS_ALLOWED=true`) or the domain whitelist already admit that address: then anyone can register it, as
+  a mail-off server cannot tell who owns an address.
 * Open signups (`SIGNUPS_ALLOWED=true`) work as before. The domain whitelist works as before too, but cannot
   prove address ownership on a mail-off server: use invite links instead.
 * Organisation admins: use the organisation invite link (Members, Invite link), which already shows a link to
   copy. Inviting a member by email is refused with that pointer.
+* A mail-off server cannot prove address ownership anywhere. Domain-restricted organisation invite links and
+  federated invitations (bound to an address) therefore only match the address a person typed, not one they
+  proved. Do not rely on them to keep out someone who knows or guesses the address. An email change without
+  mail stores the new address as unverified (it never reaches the Instance admin check), and an address with a
+  pending instance invitation cannot be changed to.
 * Accounts count as email verified while mail is off (the profile and the access token say so, and joining an
   organisation by invite link does not ask for it). The Instance admin check still needs a verified address and
   never infers it.

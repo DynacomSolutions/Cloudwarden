@@ -56,10 +56,13 @@ export function mailStatus(env: Bindings, configured = mailConfigured(env)) {
 export const SETUP_TOKEN_MIN_LENGTH = 32
 export const INVITE_CODE_TTL_MS = 7 * 24 * 3600_000
 
-/** The configured setup secret, or null when it is missing or too short to be safe. */
+export const SETUP_TOKEN_MIN_DISTINCT = 16
+
+/** The configured setup secret, or null when it is missing, too short or visibly not random. */
 export const setupToken = (env: Bindings): string | null => {
   const t = env.ADMIN_SETUP_TOKEN
-  return t && t.length >= SETUP_TOKEN_MIN_LENGTH ? t : null
+  if (!t || t.length < SETUP_TOKEN_MIN_LENGTH) return null
+  return new Set(t).size >= SETUP_TOKEN_MIN_DISTINCT ? t : null
 }
 
 const sha256 = async (s: string) => new Uint8Array(await crypto.subtle.digest('SHA-256', utf8(s)))

@@ -197,6 +197,12 @@ describe('first admin with the setup token (mail off)', () => {
     expect(nonAdmin.status).toBe(400)
   })
 
+  it('refuses a long setup secret that is visibly not random', async () => {
+    const admin = uniq('adm')
+    const weak = 'a'.repeat(40)
+    expect((await redeem(setup(admin, weak), admin, weak)).status).toBe(400)
+  })
+
   it('is rate limited per address, with time frozen', async () => {
     restore.push(freezeRateLimitWindow())
     const admin = uniq('adm')
@@ -262,6 +268,43 @@ describe('instance invitations without mail', () => {
     expect((await finish(a.over, guest, await tokenOf(ok))).status).toBe(200)
     // Spent with the invitation.
     expect((await redeem(a.over, guest, code)).status).toBe(400)
+  })
+
+  it('wrong guesses from one client do not block the right code from another', async () => {
+    restore.push(freezeRateLimitWindow())
+    const a = await admin()
+    const guest = uniq('guest')
+    const code = codeOf(((await (await invite(a, guest)).json()) as any).link)
+    const from = (ip: string, c: string) =>
+      withEnv(a.over, '/api/cloudwarden/registration/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': ip },
+        body: JSON.stringify({ email: guest, code: c }),
+      })
+    for (let i = 0; i < 6; i++) await from('198.51.100.7', `guess-${i}`)
+    // The guesser is now blocked, even with the right code; the invitee is not.
+    expect((await from('198.51.100.7', code)).status).toBe(429)
+    expect((await from('203.0.113.9', code)).status).toBe(200)
+  })
+
+  it('wrong guesses at an admin address do not block the setup secret from another client', async () => {
+    restore.push(freezeRateLimitWindow())
+    const adminAddr = uniq('adm')
+    const token = secret()
+    const over = {
+      ADMIN_ENABLED: 'true',
+      SIGNUPS_ALLOWED: 'false',
+      ADMIN_EMAILS: adminAddr,
+      ADMIN_SETUP_TOKEN: token,
+    }
+    const from = (ip: string, c: string) =>
+      withEnv(over, '/api/cloudwarden/registration/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': ip },
+        body: JSON.stringify({ email: adminAddr, code: c }),
+      })
+    for (let i = 0; i < 6; i++) await from('198.51.100.8', `guess-${i}`)
+    expect((await from('203.0.113.10', token)).status).toBe(200)
   })
 
   it('a new link retires the old one, and an expired code is refused', async () => {
@@ -440,6 +483,82 @@ describe('email address change', () => {
     )
     expect(direct.status).toBe(400)
     expect((await login(me)).status).toBe(200)
+  })
+
+  it('without mail the new address is stored unverified, and an invited address is refused', async () => {
+    const me = uniq('chg')
+    const s = await createSession(me)
+    await env.DB.prepare('UPDATE users SET verified_at = ?1 WHERE email = ?2')
+      .bind(Date.now(), me)
+      .run()
+    const invited = uniq('inv')
+    await env.DB.prepare(
+      'INSERT INTO invitations (uuid, email, invited_by, created_at) VALUES (?1, ?2, ?3, ?4)',
+    )
+      .bind(crypto.randomUUID(), invited, 'someone', Date.now())
+      .run()
+    const refused = await change({}, s.access_token, invited)
+    expect(refused.status).toBe(400)
+    expect(((await refused.json()) as any).message ?? '').toContain('already in use')
+    // A free address is accepted and ends up unverified.
+    const to = uniq('new')
+    expect((await change({}, s.access_token, to)).status).toBe(200)
+    const row = await env.DB.prepare('SELECT verified_at FROM users WHERE email = ?1')
+      .bind(to)
+      .first<{ verified_at: number | null }>()
+    expect(row?.verified_at).toBeNull()
+  }, 150_000)
+
+  it('with mail the proven address stays verified', async () => {
+    const me = uniq('chg')
+    const s = await createSession(me)
+    await env.DB.prepare('UPDATE users SET verified_at = ?1 WHERE email = ?2')
+      .bind(Date.now(), me)
+      .run()
+    const to = uniq('new')
+    const { mb, over } = mailOver()
+    await change(over, s.access_token, to)
+    const code = /\b(\d{6})\b/.exec(mb.sent.at(-1)?.text ?? '')?.[1] ?? ''
+    const ok = await post(
+      over,
+      '/api/accounts/email',
+      {
+        newEmail: to,
+        masterPasswordHash: 'client-derived-hash',
+        newMasterPasswordHash: 'client-derived-hash',
+        key: '2.k',
+        token: code,
+      },
+      s.access_token,
+    )
+    expect(ok.status).toBe(200)
+    const row = await env.DB.prepare('SELECT verified_at FROM users WHERE email = ?1')
+      .bind(to)
+      .first<{ verified_at: number | null }>()
+    expect(row?.verified_at).not.toBeNull()
+  }, 150_000)
+
+  it('answers an admin address exactly like an address that is taken', async () => {
+    const me = uniq('chg')
+    const s = await createSession(me)
+    const taken = uniq('taken')
+    await createSession(taken)
+    const adminAddr = uniq('adm')
+    const over = { ADMIN_ENABLED: 'true', ADMIN_EMAILS: adminAddr }
+    const ask = async (addr: string) => {
+      const res = await post(
+        over,
+        '/api/accounts/email-token',
+        { newEmail: addr, masterPasswordHash: 'client-derived-hash' },
+        s.access_token,
+      )
+      return { status: res.status, body: await res.text() }
+    }
+    const a = await ask(adminAddr)
+    const b = await ask(taken)
+    expect(a.status).toBe(400)
+    expect(a).toEqual(b)
+    expect(a.body).not.toContain('reserved')
   })
 
   it('with mail still needs the emailed code', async () => {

@@ -301,31 +301,42 @@ register.post(
     if (mailConfigured(c.env)) {
       throw new ApiError(400, 'This server sends email, so register with the usual email link.')
     }
-    // Counted before anything is checked, per address and per client, so guessing is bounded.
-    if (!(await attemptWithinLimit(c.env.DB, email))) return tooManyRequests(c)
     const db = createDb(c.env.DB)
     const refuse = () => new ApiError(400, 'The code is not valid, or it has already been used.')
+    // Failures are counted per address and client, so someone who only knows an address cannot use
+    // up the allowance of the person holding the right code. A blocked client is refused before
+    // anything is checked.
+    const failKey = `redeem:${email}:${c.req.header('CF-Connecting-IP') ?? 'unknown'}`
+    if (await redeemBlocked(c.env.DB, failKey)) return tooManyRequests(c)
     let setup = false
-    if (isAdminEmail(c.env.ADMIN_EMAILS, email)) {
-      const secret = setupToken(c.env)
-      // Always compare, so the work done does not depend on whether a secret is set.
-      const matches = await codeMatches(presented, secret ?? crypto.randomUUID())
-      if (!secret || !matches) throw refuse()
-      if ((await adminAccountExists(c.env, db)) || (await setupTokenSpent(db, secret))) {
-        throw refuse()
+    try {
+      if (isAdminEmail(c.env.ADMIN_EMAILS, email)) {
+        const secret = setupToken(c.env)
+        // Always compare, so the work done does not depend on whether a secret is set.
+        const matches = await codeMatches(presented, secret ?? crypto.randomUUID())
+        if (!secret || !matches) throw refuse()
+        if ((await adminAccountExists(c.env, db)) || (await setupTokenSpent(db, secret))) {
+          throw refuse()
+        }
+        setup = true
+      } else {
+        const [invite] = await db
+          .select({
+            hash: schema.invitations.tokenHash,
+            expires: schema.invitations.tokenExpiresAt,
+          })
+          .from(schema.invitations)
+          .where(sql`lower(${schema.invitations.email}) = ${email}`)
+          .limit(1)
+        const matches = await codeMatches(
+          await inviteCodeHash(presented),
+          invite?.hash ?? crypto.randomUUID(),
+        )
+        if (!invite?.hash || !matches || (invite.expires ?? 0) < Date.now()) throw refuse()
       }
-      setup = true
-    } else {
-      const [invite] = await db
-        .select({ hash: schema.invitations.tokenHash, expires: schema.invitations.tokenExpiresAt })
-        .from(schema.invitations)
-        .where(sql`lower(${schema.invitations.email}) = ${email}`)
-        .limit(1)
-      const matches = await codeMatches(
-        await inviteCodeHash(presented),
-        invite?.hash ?? crypto.randomUUID(),
-      )
-      if (!invite?.hash || !matches || (invite.expires ?? 0) < Date.now()) throw refuse()
+    } catch (e) {
+      await windowLimit(c.env.DB, failKey, REDEEM_ATTEMPTS, REDEEM_WINDOW_MS, Date.now())
+      throw e
     }
     if (await findUserByEmail(db, email)) throw refuse()
     const now = Math.floor(Date.now() / 1000)
@@ -341,7 +352,12 @@ register.post(
   },
 )
 
-/** Fixed window of attempts per address in D1, independent of the client address. */
-async function attemptWithinLimit(db: D1Database, email: string): Promise<boolean> {
-  return windowLimit(db, `redeem:${email}`, REDEEM_ATTEMPTS, REDEEM_WINDOW_MS, Date.now())
+/** Whether this address and client already failed REDEEM_ATTEMPTS times in the current window. */
+async function redeemBlocked(db: D1Database, key: string): Promise<boolean> {
+  const windowStart = Math.floor(Date.now() / REDEEM_WINDOW_MS) * REDEEM_WINDOW_MS
+  const row = await db
+    .prepare('SELECT count FROM admin_rate_limits WHERE key = ?1 AND window_start = ?2')
+    .bind(key, windowStart)
+    .first<{ count: number }>()
+  return (row?.count ?? 0) >= REDEEM_ATTEMPTS
 }

@@ -61,6 +61,14 @@ export class InstanceSetupComponent implements OnInit {
     // Invite links carry both values in the fragment query, so they never reach a server log.
     const params = this.route.snapshot.queryParams;
     this.form.patchValue({ email: params["email"] ?? "", code: params["code"] ?? "" });
+    if (params["code"] !== undefined) {
+      // Do not leave the one-time code in the address bar and the browser history.
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: {},
+        replaceUrl: true,
+      });
+    }
   }
 
   protected submit = async () => {

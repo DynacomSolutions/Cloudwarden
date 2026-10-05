@@ -97,6 +97,17 @@ describe("InstanceSetupComponent", () => {
     expect(component.form.value).toEqual({ email: "guest@example.com", code: "abc" });
   });
 
+  it("removes the code from the URL after reading it, and leaves a bare page alone", async () => {
+    const withCode = await setup({ email: "guest@example.com", code: "abc" });
+    expect(withCode.navigate).toHaveBeenCalledWith(
+      [],
+      expect.objectContaining({ queryParams: {}, replaceUrl: true }),
+    );
+    TestBed.resetTestingModule();
+    const bare = await setup({});
+    expect(bare.navigate).not.toHaveBeenCalled();
+  });
+
   it("redeems the code and continues to the standard registration", async () => {
     const { api, navigate, component } = await setup({});
     api.redeem.mockResolvedValue("reg-token");

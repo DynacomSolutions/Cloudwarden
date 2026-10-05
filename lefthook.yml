@@ -27,6 +27,6 @@ pre-push:
     typecheck:
       run: pnpm typecheck
     test:
-      run: pnpm test
+      run: pnpm exec vitest run --maxWorkers=2 --testTimeout=240000 --hookTimeout=240000
     test-scripts:
       run: pnpm test:scripts

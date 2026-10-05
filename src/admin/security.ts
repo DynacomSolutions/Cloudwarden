@@ -33,6 +33,16 @@ export function instanceRoleOf(
 }
 
 /**
+ * Whether the account holds an instance role (owner address, or a stored `admin` role), whatever
+ * the state of the admin feature. Account recovery and emergency takeover refuse such accounts, so
+ * an organisation admin or emergency contact can never inherit instance admin rights.
+ */
+export const holdsInstanceRole = (
+  env: { ADMIN_EMAILS?: string },
+  user: { email: string; instanceRole?: string | null },
+): boolean => instanceRoleOf(env, user) !== 'user'
+
+/**
  * Whether `user` may act as an instance admin: the admin feature is on, the address was verified
  * (so it cannot be claimed by registering it) and the user is an owner (address in ADMIN_EMAILS)
  * or was granted the `admin` role in D1.

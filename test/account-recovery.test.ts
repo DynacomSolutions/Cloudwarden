@@ -379,3 +379,66 @@ it('re-wraps recovery keys during key rotation and withdraws them on the legacy 
   const d = await owner.json(`/api/organizations/${orgId}/users/${memberId}/reset-password-details`)
   expect(d.resetPasswordKey).toBe('4.rotatedRecovery')
 })
+
+const roleOf = async (id: string) =>
+  (
+    await env.DB.prepare('SELECT instance_role AS r FROM users WHERE uuid = ?1').bind(id).first<{
+      r: string
+    }>()
+  )?.r
+
+it('refuses to recover an instance admin (granted role) and leaves the role alone', async () => {
+  const { owner, member, orgId, memberId } = await setup('ar-inst-admin')
+  await enablePolicy(owner, orgId)
+  expect((await enroll(member, orgId)).status).toBe(200)
+  await env.DB.prepare("UPDATE users SET instance_role = 'admin' WHERE uuid = ?1")
+    .bind(member.uuid)
+    .run()
+  const base = `/api/organizations/${orgId}/users/${memberId}`
+  expect((await owner.call(`${base}/reset-password-details`)).status).toBe(400)
+  for (const [resetMasterPassword, resetTwoFactor] of [
+    [true, false],
+    [false, true],
+  ]) {
+    const res = await owner.call(`${base}/recover-account`, 'PUT', {
+      resetMasterPassword,
+      resetTwoFactor,
+      ...nested(member.email, 'temp-hash', '2.newKey'),
+    })
+    expect(res.status).toBe(400)
+  }
+  expect(await roleOf(member.uuid)).toBe('admin')
+  expect((await login(member.email, PASSWORD)).status).toBe(200)
+})
+
+it('refuses to recover an owner address even without a stored role', async () => {
+  const mb = (await import('./org-helpers')).mail
+  const ownerActor = await actor('ar-inst-owner-o@example.com', mb, {
+    ADMIN_EMAILS: 'ar-inst-owner-m@example.com',
+  })
+  const member = await actor('ar-inst-owner-m@example.com')
+  const { id: orgId } = await createOrg(ownerActor)
+  const memberId = await addMember(ownerActor, orgId, member, { type: 2 })
+  await enablePolicy(ownerActor, orgId)
+  expect((await enroll(member, orgId)).status).toBe(200)
+  const res = await ownerActor.call(
+    `/api/organizations/${orgId}/users/${memberId}/recover-account`,
+    'PUT',
+    { resetMasterPassword: true, resetTwoFactor: true, ...nested(member.email, 'x', '2.k') },
+  )
+  expect(res.status).toBe(400)
+  expect((await login(member.email, PASSWORD)).status).toBe(200)
+})
+
+it('clears nothing for a normal recovery but never leaves an admin role on the account', async () => {
+  const { owner, member, orgId, memberId } = await setup('ar-inst-plain')
+  await enablePolicy(owner, orgId)
+  expect((await enroll(member, orgId)).status).toBe(200)
+  const res = await owner.call(
+    `/api/organizations/${orgId}/users/${memberId}/recover-account`,
+    'PUT',
+    { resetMasterPassword: true, resetTwoFactor: true, ...nested(member.email, 'n-hash', '2.k') },
+  )
+  expect(res.status).toBe(200)
+  expect(await roleOf(member.uuid)).toBe('user')
+})

@@ -34,7 +34,11 @@ export interface Actor {
   json(path: string, method?: string, body?: unknown): Promise<any>
 }
 
-export async function actor(email: string, mb: Mailbox = mail): Promise<Actor> {
+export async function actor(
+  email: string,
+  mb: Mailbox = mail,
+  over: Record<string, unknown> = {},
+): Promise<Actor> {
   const { default: app } = await import('../src/index')
   const s = await createSession(email)
   const call = async (path: string, method = 'GET', body?: unknown) =>
@@ -47,7 +51,7 @@ export async function actor(email: string, mb: Mailbox = mail): Promise<Actor> {
         },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       }),
-      { ...env, EMAIL: mb.EMAIL, MAIL_FROM: mb.MAIL_FROM },
+      { ...env, EMAIL: mb.EMAIL, MAIL_FROM: mb.MAIL_FROM, ...over },
     )
   const me = (await (await call('/api/accounts/profile')).json()) as { id: string }
   return {

@@ -74,16 +74,26 @@ Owners and admins change a user's role from the Role menu (a confirmation dialog
 - Only an owner or admin may call it; everyone else gets 403, so nobody can promote themselves.
 - The role must be `admin` or `user`; `owner` and anything else is a 400. Owners are only defined by
   `ADMIN_EMAILS`, which the UI cannot edit (the Owner row is locked, with a tooltip saying so).
-- An owner's role cannot be changed, and nobody can change their own role (400). Owners always
+- An owner cannot be granted a role (400), and nobody can change their own role (400). Owners always
   exist because they come from the server setting, so the instance cannot be left without an admin.
-- Only a verified, enabled user can be made an admin (400 otherwise). Taking the role away is always
-  allowed. Admin rights still need a verified address at every request, so clearing verification
+  Revoking (`user`) is allowed for an owner address: it changes nothing while the address stays in
+  `ADMIN_EMAILS`, but it clears a stored `admin` role so it does not come back if the address is
+  later removed from the setting (the D1 value is otherwise left as it was).
+- A federation stand-in account (a peer's user on the hosting side) cannot be made an admin (400).
+- Only a verified, enabled, non-stand-in user can be made an admin (400 otherwise). The grant
+  statement re-checks all of this and the email read at check time. Taking the role away is always
+  allowed; revoking a user that no longer exists answers 404. Admin rights still need a verified address at every request, so clearing verification
   removes them at once.
 - A granted role is **cleared when the user changes their email address**, with or without mail
   (it was granted to the person at the old address, and a changed address must never inherit it).
   An owner or admin must grant it again. Owners are unaffected because `ADMIN_EMAILS` names addresses.
 - Granting and revoking are audited as event 9013 (`UserRoleChanged`) with the acting admin and the
   target user. The endpoint shares the per-admin rate limit of 120 requests per minute.
+- Instance admins are **not recoverable** by organisation admins or emergency contacts. Organisation
+  account recovery (admin reset of master password or two-step login) and emergency access takeover
+  answer 400 when the target is an owner address or holds a granted admin role, and both paths also
+  set `instance_role = 'user'` when they change credentials, so a recovered or taken-over account
+  never carries instance admin rights. To recover an admin, revoke the role first.
 - The existing protection of owner accounts stays: disable, deauthorize, remove 2FA and delete are
   refused for owners. A granted admin is managed like any user (set them back to User first if you
   want them to lose the role).

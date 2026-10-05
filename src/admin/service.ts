@@ -221,6 +221,13 @@ export async function setUserEnabled(
   return true
 }
 
+const isStandIn = async (db: D1Database, id: string, passwordHash: string) =>
+  passwordHash.startsWith('!federated.') ||
+  (await db
+    .prepare('SELECT 1 AS x FROM federation_shadow_users WHERE user_uuid = ?1')
+    .bind(id)
+    .first()) !== null
+
 /**
  * Grants or revokes the instance `admin` role (TASKS #360). Returns false when the user does not
  * exist. Refused (400) for an owner (the role comes from ADMIN_EMAILS and only the operator can
@@ -236,11 +243,22 @@ export async function setUserRole(
 ): Promise<boolean> {
   const db = env.DB
   const row = await db
-    .prepare('SELECT email, instance_role, verified_at, enabled FROM users WHERE uuid = ?1')
+    .prepare(
+      'SELECT email, password_hash, instance_role, verified_at, enabled FROM users WHERE uuid = ?1',
+    )
     .bind(id)
-    .first<{ email: string; instance_role: string; verified_at: number | null; enabled: number }>()
+    .first<{
+      email: string
+      password_hash: string
+      instance_role: string
+      verified_at: number | null
+      enabled: number
+    }>()
   if (!row) return false
-  if (instanceRoleOf(env, { email: row.email }) === 'owner') {
+  const isOwner = instanceRoleOf(env, { email: row.email }) === 'owner'
+  // Owners cannot be granted a role. Revoking is allowed so a stored `admin` does not outlive the
+  // address leaving ADMIN_EMAILS; it has no effect while the address is still listed.
+  if (isOwner && role === 'admin') {
     throw new ApiError(
       400,
       'Owners come from the ADMIN_EMAILS setting of the server and cannot be changed here.',
@@ -248,17 +266,23 @@ export async function setUserRole(
   }
   if (audit.actor === id) throw new ApiError(400, 'You cannot change your own role.')
   if (role === 'admin') {
+    if (await isStandIn(db, id, row.password_hash)) {
+      throw new ApiError(400, 'A federated stand-in account cannot be made an admin.')
+    }
     if (row.verified_at === null) {
       throw new ApiError(400, 'Only a user with a verified email address can be made an admin.')
     }
     if (row.enabled !== 1) throw new ApiError(400, 'A disabled user cannot be made an admin.')
   }
   if (row.instance_role === role) return true
-  const grantGuard = role === 'admin' ? ' AND verified_at IS NOT NULL AND enabled = 1' : ''
+  const grantGuard =
+    role === 'admin'
+      ? " AND verified_at IS NOT NULL AND enabled = 1 AND email = ?4 AND password_hash NOT LIKE '!federated.%'"
+      : ''
   const results = await db.batch([
     db
       .prepare(`UPDATE users SET instance_role = ?1, updated_at = ?2 WHERE uuid = ?3${grantGuard}`)
-      .bind(role, nowOf(audit), id),
+      .bind(...(role === 'admin' ? [role, nowOf(audit), id, row.email] : [role, nowOf(audit), id])),
     auditStatement(
       db,
       audit,
@@ -271,6 +295,7 @@ export async function setUserRole(
     ),
   ])
   if ((results[0]?.meta.changes ?? 0) === 0) {
+    if (role !== 'admin') return false
     throw new ApiError(400, 'This user cannot be made an admin right now. Reload and try again.')
   }
   return true

@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { z } from 'zod'
+import { holdsInstanceRole } from '../admin/security'
 import { authenticationData, checkNested, unlockData } from '../auth/credentials'
 import { hashMasterPassword, verifyMasterPassword } from '../auth/passwords'
 import { stampRotationStatements } from '../auth/session'
@@ -137,6 +138,10 @@ async function loadTarget(c: Ctx, db: Db, id: string) {
   const [u] = await db.select().from(schema.users).where(eq(schema.users.uuid, target.userUuid))
   if (!u) throw new ApiError(404, 'User not found.')
   await assertNotUnrecoverable(db, target, u)
+  // Instance admins and owners are never recoverable by an organisation admin.
+  if (holdsInstanceRole(c.env, u)) {
+    throw new ApiError(400, 'This member cannot be recovered.')
+  }
   return { actor, orgRow, target, user: u }
 }
 
@@ -238,6 +243,8 @@ async function recover(
               akey: password.key,
               passwordHint: null,
               forcePasswordReset: true,
+              // Defence in depth: loadTarget already refuses instance admins.
+              instanceRole: 'user',
               ...(password.kdf
                 ? {
                     kdfType: password.kdf.kdf,
@@ -250,6 +257,14 @@ async function recover(
             })
             .where(eq(schema.users.uuid, user.uuid)),
           eventStatement(db, c, { type: EventType.OrganizationUserAdminResetPassword, ...base }),
+        ]
+      : []),
+    ...(resetTwoFactor && !password
+      ? [
+          db
+            .update(schema.users)
+            .set({ instanceRole: 'user' })
+            .where(eq(schema.users.uuid, user.uuid)),
         ]
       : []),
     ...(resetTwoFactor

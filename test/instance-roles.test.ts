@@ -185,7 +185,7 @@ describe('refusals', () => {
     expect(res.status).toBe(403)
   })
 
-  it('refuses to change an owner, by an owner or an admin', async () => {
+  it('refuses to grant a role to an owner, by an owner or an admin', async () => {
     const owner = await person('own', true)
     const other = await person('own2', true)
     const admin = await person('adm')
@@ -195,13 +195,48 @@ describe('refusals', () => {
     owner.over.ADMIN_EMAILS = both
     admin.over.ADMIN_EMAILS = both
     for (const who of [owner, admin]) {
-      for (const role of ['user', 'admin']) {
-        const res = await who.call(`${P}/users/${other.id}/role`, 'PUT', { role })
-        expect(res.status).toBe(400)
-        expect(await res.json()).toMatchObject({ message: expect.stringMatching(/ADMIN_EMAILS/) })
-      }
+      const res = await who.call(`${P}/users/${other.id}/role`, 'PUT', { role: 'admin' })
+      expect(res.status).toBe(400)
+      expect(await res.json()).toMatchObject({ message: expect.stringMatching(/ADMIN_EMAILS/) })
     }
     expect(await roleOf(other.id)).toBe('user')
+  })
+
+  it('lets a stale stored admin role on an owner address be revoked', async () => {
+    const owner = await person('own', true)
+    const other = await person('own2', true)
+    owner.over.ADMIN_EMAILS = `${owner.email},${other.email}`
+    await env.DB.prepare("UPDATE users SET instance_role = 'admin' WHERE uuid = ?1")
+      .bind(other.id)
+      .run()
+    const res = await owner.call(`${P}/users/${other.id}/role`, 'PUT', { role: 'user' })
+    expect(res.status).toBe(204)
+    expect(await roleOf(other.id)).toBe('user')
+    expect((await listed(owner, other.id))?.role).toBe('owner')
+  })
+
+  it('refuses to make a federation stand-in an admin', async () => {
+    const owner = await person('own', true)
+    const prefixed = await person('standin')
+    await env.DB.prepare("UPDATE users SET password_hash = '!federated.x' WHERE uuid = ?1")
+      .bind(prefixed.id)
+      .run()
+    const res = await owner.call(`${P}/users/${prefixed.id}/role`, 'PUT', { role: 'admin' })
+    expect(res.status).toBe(400)
+    expect(await roleOf(prefixed.id)).toBe('user')
+
+    const shadow = await person('shadow')
+    await env.DB.prepare(
+      "INSERT INTO federation_peers (uuid, instance_id, domain, public_key, fingerprint, protocol_version, status, created_at, updated_at) VALUES ('p-1', 'inst-1', 'peer.example.com', 'k', 'f', 1, 'active', 0, 0)",
+    ).run()
+    await env.DB.prepare(
+      "INSERT INTO federation_shadow_users (user_uuid, peer_uuid, remote_email, created_at) VALUES (?1, 'p-1', 'r@example.com', 0)",
+    )
+      .bind(shadow.id)
+      .run()
+    const res2 = await owner.call(`${P}/users/${shadow.id}/role`, 'PUT', { role: 'admin' })
+    expect(res2.status).toBe(400)
+    expect(await roleOf(shadow.id)).toBe('user')
   })
 
   it('refuses a role change on your own account, owner or admin', async () => {

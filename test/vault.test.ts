@@ -291,7 +291,7 @@ it('bulk operations accept more ids than one SQL statement can bind', async () =
   expect(list.every((c: any) => c.deletedDate !== null)).toBe(true)
   expect((await call('/api/ciphers/delete', 'POST', { ids })).status).toBe(200)
   expect((await j(await call('/api/ciphers'))).data).toHaveLength(0)
-}, 30_000)
+})
 
 it('purges the vault only with the master password', async () => {
   const { call } = await setup('purge@example.com')
@@ -341,7 +341,7 @@ it('rejects stale updates and accepts current ones', async () => {
     lastKnownRevisionDate: 'nope',
   })
   expect(bad.status).toBe(400)
-}, 30_000)
+})
 
 it('bumps the account revision date on every vault write', async () => {
   const { call } = await setup('rev2@example.com')
@@ -377,7 +377,7 @@ it('bumps the account revision date on every vault write', async () => {
   )
   await step(() => call(`/api/folders/${fid}`, 'DELETE'))
   await step(() => call(`/api/ciphers/${cid}`, 'DELETE'))
-}, 30_000)
+})
 
 it('manages folders and unfiles ciphers when a folder is deleted', async () => {
   const { call } = await setup('folders@example.com')
@@ -622,7 +622,7 @@ it('caps the size of an import', async () => {
   const ok = Array.from({ length: 300 }, () => note())
   expect((await call('/api/ciphers/import', 'POST', { folders: [], ciphers: ok })).status).toBe(200)
   expect((await j(await call('/api/ciphers'))).data).toHaveLength(300)
-}, 30_000)
+})
 
 it('imports several thousand items in sequential batches', async () => {
   const { call } = await setup('bigimport@example.com')

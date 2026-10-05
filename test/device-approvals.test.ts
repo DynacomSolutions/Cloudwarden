@@ -1,7 +1,7 @@
 import { env } from 'cloudflare:workers'
 import { expect, it } from 'vitest'
 import { createDb, schema } from '../src/db'
-import { freezeRateLimitWindow, json } from './helpers'
+import { freezeRateLimitWindow, json, waitFor } from './helpers'
 import { type Actor, actor, addMember, createOrg, enableRecoveryPolicy, mail } from './org-helpers'
 
 /** Enables SSO with trusted device decryption for an organisation (the admin approval context). */
@@ -30,11 +30,9 @@ const adminRequest = (a: Actor, deviceIdentifier = 'tde-device', email = a.email
   })
 
 async function mailTo(to: string, from: number) {
-  for (let i = 0; i < 200; i++) {
-    if (mail.sent.slice(from).some((m) => m.to === to)) return
-    await new Promise((r) => setTimeout(r, 10))
-  }
-  throw new Error(`no mail to ${to}`)
+  await waitFor(() => mail.sent.slice(from).some((m) => m.to === to), {
+    message: `mail to ${to}`,
+  })
 }
 
 async function setup(prefix: string) {

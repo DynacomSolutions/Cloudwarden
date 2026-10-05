@@ -1,6 +1,6 @@
 import { SELF } from 'cloudflare:test'
 import { expect, it } from 'vitest'
-import { authed, BASE, createSession, login } from './helpers'
+import { authed, BASE, createSession, login, waitFor } from './helpers'
 
 const RS = '\x1e'
 const cipher = (name = '2.n') => ({ type: 2, name, secureNote: { type: 0 } })
@@ -34,7 +34,7 @@ async function twoDevices(email: string) {
     })
     ws.accept()
     ws.send(`{"protocol":"json","version":1}${RS}`)
-    while (!ready) await new Promise((r) => setTimeout(r, 5))
+    await waitFor(() => ready, { interval: 5, message: 'the hub handshake' })
     return { ws, events }
   }
   const la = await listen(a.access_token)
@@ -42,8 +42,7 @@ async function twoDevices(email: string) {
   const call = (path: string, method = 'GET', body?: unknown) =>
     authed(path, a.access_token, method, body)
   const next = async (n = 1) => {
-    const end = Date.now() + 3000
-    while (lb.events.length < n && Date.now() < end) await new Promise((r) => setTimeout(r, 10))
+    await waitFor(() => lb.events.length >= n, { message: `${n} event(s) on the other device` })
     return lb.events.splice(0, n)
   }
   const close = () => {

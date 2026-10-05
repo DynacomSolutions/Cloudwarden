@@ -25,16 +25,25 @@ interface SendOut {
 
 /** Anonymous requests with a recording mail transport bound. */
 let nextIp = 1
+const background: Promise<unknown>[] = []
+const ctx = {
+  waitUntil: (p: Promise<unknown>) => void background.push(p.catch(() => undefined)),
+  passThroughOnException() {},
+} as unknown as ExecutionContext
 async function anon(mb: Mailbox, path: string, init: RequestInit, ip?: string) {
   const { default: app } = await import('../src/index')
   // A fresh client address per call, so only the limit under test is hit.
   const headers = new Headers(init.headers)
   headers.set('CF-Connecting-IP', ip ?? `10.1.${Math.floor(nextIp / 250)}.${nextIp++ % 250}`)
-  return app.fetch(new Request(`${BASE}${path}`, { ...init, headers }), {
-    ...env,
-    EMAIL: mb.EMAIL,
-    MAIL_FROM: mb.MAIL_FROM,
-  })
+  return app.fetch(
+    new Request(`${BASE}${path}`, { ...init, headers }),
+    {
+      ...env,
+      EMAIL: mb.EMAIL,
+      MAIL_FROM: mb.MAIL_FROM,
+    },
+    ctx,
+  )
 }
 
 const grant = async (mb: Mailbox, accessId: string, extra: Record<string, string> = {}) => {
@@ -55,8 +64,10 @@ const grantNow = (mb: Mailbox, accessId: string, extra: Record<string, string> =
     }).toString(),
   })
 
-/** The mail is sent in the background, so let it land before reading the mailbox. */
-const settle = () => new Promise((r) => setTimeout(r, 20))
+/** The mail is sent in the background (ctx.waitUntil): await it before reading the mailbox. */
+const settle = async () => {
+  while (background.length) await Promise.all(background.splice(0))
+}
 
 const codeIn = (m: { text: string } | undefined) => /\b(\d{8})\b/.exec(m?.text ?? '')?.[1] ?? ''
 

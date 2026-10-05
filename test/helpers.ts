@@ -107,3 +107,22 @@ export async function withEnv(overrides: Record<string, unknown>, path: string, 
   const { default: app } = await import('../src/index')
   return app.fetch(new Request(`${BASE}${path}`, init), { ...env, ...overrides })
 }
+
+/**
+ * Polls `fn` until it returns something other than `undefined`/`false`, then returns it.
+ * Use this for work that finishes in the background (ctx.waitUntil, websocket pushes, mail),
+ * instead of a fixed sleep. The default timeout is generous on purpose: it only costs time
+ * when the condition is never met, and the shared CI host can stall a worker for many seconds.
+ */
+export async function waitFor<T>(
+  fn: () => T | undefined | false | Promise<T | undefined | false>,
+  { timeout = 20_000, interval = 10, message = 'condition' } = {},
+): Promise<T> {
+  const end = Date.now() + timeout
+  for (;;) {
+    const v = await fn()
+    if (v !== undefined && v !== false) return v
+    if (Date.now() > end) throw new Error(`timed out after ${timeout}ms waiting for ${message}`)
+    await new Promise((r) => setTimeout(r, interval))
+  }
+}

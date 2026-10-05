@@ -62,7 +62,8 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm test
+      # Bounded workers: the shared runner is heavily loaded (matches the pre-push hook).
+      - run: pnpm exec vitest run --maxWorkers=2
 
   e2e:
     name: E2E (Bitwarden CLI)

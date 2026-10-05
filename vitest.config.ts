@@ -32,8 +32,12 @@ export default defineConfig(async () => {
     ],
     test: {
       include: ['test/**/*.test.ts'],
-      // Organisation flows register several accounts, each costing a password hash.
-      testTimeout: 30_000,
+      // Organisation flows register several accounts, each costing a password hash, and the
+      // shared CI host runs at load averages of 60-120, so a worker can stall for many seconds.
+      // These only bound a hung test; a healthy run finishes far inside them.
+      testTimeout: 120_000,
+      // Hooks (migrations, account setup) hit the same stalls; the default is 10 s.
+      hookTimeout: 60_000,
       setupFiles: ['./test/setup.ts'],
     },
   }

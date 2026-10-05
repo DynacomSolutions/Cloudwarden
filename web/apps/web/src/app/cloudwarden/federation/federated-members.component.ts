@@ -1,12 +1,23 @@
-// Cloudwarden: Admin Console, federated members (docs/federation.md, web/NOTICE.md). Invites
-// users of a paired instance, lists them with their home instance and confirms accepted members:
-// the fingerprint phrase is always shown and the organisation key is wrapped in this browser.
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from "@angular/core";
+// Cloudwarden: Admin Console, external people (docs/federation.md, web/NOTICE.md): an overview of
+// the people of other workspaces who belong to this organisation, with the collections they hold.
+// Sharing starts from a collection's Access dialog; this page also still invites people, and
+// confirms accepted ones: the fingerprint phrase is always shown and the organisation key is
+// wrapped in this browser.
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  inject,
+  signal,
+} from "@angular/core";
 import { FormBuilder, Validators } from "@angular/forms";
 import { ActivatedRoute, RouterModule } from "@angular/router";
 import { firstValueFrom, lastValueFrom } from "rxjs";
 
-import { OrganizationUserService } from "@bitwarden/admin-console/common";
+import {
+  CollectionAdminService,
+  OrganizationUserService,
+} from "@bitwarden/admin-console/common";
 import { ApiService } from "@bitwarden/common/abstractions/api.service";
 import {
   getOrganizationById,
@@ -16,6 +27,7 @@ import { AccountService } from "@bitwarden/common/auth/abstractions/account.serv
 import { getUserId } from "@bitwarden/common/auth/services/account.service";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { Utils } from "@bitwarden/common/platform/misc/utils";
+import { OrganizationId } from "@bitwarden/common/types/guid";
 import { DialogService, ToastService } from "@bitwarden/components";
 
 import { UserConfirmComponent } from "../../admin-console/organizations/manage/user-confirm.component";
@@ -36,7 +48,12 @@ const STATUS_KEYS: Record<number, string> = {
   1: "accepted",
   2: "confirmed",
 };
-const ROLE_KEYS: Record<number, string> = { 0: "owner", 1: "admin", 2: "user", 4: "custom" };
+const ROLE_KEYS: Record<number, string> = {
+  0: "owner",
+  1: "admin",
+  2: "user",
+  4: "custom",
+};
 
 @Component({
   selector: "cw-federated-members",
@@ -46,18 +63,32 @@ const ROLE_KEYS: Record<number, string> = { 0: "owner", 1: "admin", 2: "user", 4
     <app-header></app-header>
     <bit-container>
       @if (status() === null && !loading()) {
-        <bit-callout type="info" data-testid="cw-fed-disabled">{{ "cwFedDisabled" | i18n }}</bit-callout>
+        <bit-callout type="info" data-testid="cw-fed-disabled">{{
+          "cwFedDisabled" | i18n
+        }}</bit-callout>
       } @else {
         <p bitTypography="body1">{{ "cwFedMembersDesc" | i18n }}</p>
+        <p bitTypography="body2" class="tw-text-muted">
+          {{ "cwExtPeopleHowTo" | i18n }}
+        </p>
         @if ((status()?.peers ?? []).length === 0) {
           <bit-callout type="warning">{{ "cwFedNoPeers" | i18n }}</bit-callout>
         } @else {
           <bit-section>
             <h2 bitTypography="h4">{{ "cwFedInvite" | i18n }}</h2>
-            <form [formGroup]="form" [bitSubmit]="invite" class="tw-grid tw-gap-2 md:tw-grid-cols-2">
+            <form
+              [formGroup]="form"
+              [bitSubmit]="invite"
+              class="tw-grid tw-gap-2 md:tw-grid-cols-2"
+            >
               <bit-form-field>
                 <bit-label>{{ "email" | i18n }}</bit-label>
-                <input bitInput type="email" formControlName="email" data-testid="cw-fed-email" />
+                <input
+                  bitInput
+                  type="email"
+                  formControlName="email"
+                  data-testid="cw-fed-email"
+                />
               </bit-form-field>
               <bit-form-field>
                 <bit-label>{{ "cwFedHomeInstance" | i18n }}</bit-label>
@@ -75,12 +106,23 @@ const ROLE_KEYS: Record<number, string> = { 0: "owner", 1: "admin", 2: "user", 4
                 </select>
               </bit-form-field>
               <bit-form-control class="tw-mt-6">
-                <input type="checkbox" bitCheckbox formControlName="accessAll" />
+                <input
+                  type="checkbox"
+                  bitCheckbox
+                  formControlName="accessAll"
+                />
                 <bit-label>{{ "cwFedAccessAll" | i18n }}</bit-label>
               </bit-form-control>
-              <p bitTypography="helper" class="md:tw-col-span-2">{{ "cwFedInviteHint" | i18n }}</p>
+              <p bitTypography="helper" class="md:tw-col-span-2">
+                {{ "cwFedInviteHint" | i18n }}
+              </p>
               <div>
-                <button type="submit" bitButton bitFormButton buttonType="primary">
+                <button
+                  type="submit"
+                  bitButton
+                  bitFormButton
+                  buttonType="primary"
+                >
                   {{ "invite" | i18n }}
                 </button>
               </div>
@@ -103,27 +145,61 @@ const ROLE_KEYS: Record<number, string> = { 0: "owner", 1: "admin", 2: "user", 4
           <ng-template body>
             @for (m of members(); track m.id) {
               <tr bitRow>
-                <td bitCell>{{ m.email }}</td>
+                <td bitCell>
+                  {{ m.email }}
+                  <div class="tw-text-xs" data-testid="cw-fed-collections">
+                    @if ((m.collectionIds ?? []).length === 0) {
+                      <span class="tw-text-muted">{{
+                        "cwExtNoCollections" | i18n
+                      }}</span>
+                    } @else {
+                      @for (name of collectionNames(m); track $index) {
+                        <a
+                          bitLink
+                          class="tw-mr-2"
+                          [routerLink]="['../vault']"
+                          [queryParams]="{ collectionId: name.id }"
+                          >{{ name.name }}</a
+                        >
+                      }
+                    }
+                  </div>
+                </td>
                 <td bitCell>
                   {{ m.peerDomain }}
                   @if (m.peerStatus !== "active") {
-                    <span bitBadge variant="danger">{{ "cwFedSuspended" | i18n }}</span>
+                    <span bitBadge variant="danger">{{
+                      "cwFedSuspended" | i18n
+                    }}</span>
                   }
                 </td>
                 <td bitCell>{{ roleKey(m.type) | i18n }}</td>
                 <td bitCell>
-                  <span bitBadge [variant]="m.status === 2 ? 'success' : 'warning'">
+                  <span
+                    bitBadge
+                    [variant]="m.status === 2 ? 'success' : 'warning'"
+                  >
                     {{ statusKey(m.status) | i18n }}
                   </span>
                 </td>
                 <td bitCell class="tw-text-right">
                   <div class="tw-flex tw-justify-end tw-gap-1">
                     @if (m.status === 1) {
-                      <button type="button" bitButton buttonType="primary" (click)="confirm(m)">
+                      <button
+                        type="button"
+                        bitButton
+                        buttonType="primary"
+                        (click)="confirm(m)"
+                      >
                         {{ "confirm" | i18n }}
                       </button>
                     }
-                    <button type="button" bitButton buttonType="danger" (click)="remove(m)">
+                    <button
+                      type="button"
+                      bitButton
+                      buttonType="danger"
+                      (click)="remove(m)"
+                    >
                       {{ "remove" | i18n }}
                     </button>
                   </div>
@@ -132,7 +208,9 @@ const ROLE_KEYS: Record<number, string> = { 0: "owner", 1: "admin", 2: "user", 4
             }
           </ng-template>
         </bit-table>
-        <p bitTypography="helper" class="tw-mt-4">{{ "cwFedNotFederated" | i18n }}</p>
+        <p bitTypography="helper" class="tw-mt-4">
+          {{ "cwFedNotFederated" | i18n }}
+        </p>
       }
     </bit-container>
   `,
@@ -142,6 +220,7 @@ export class FederatedMembersComponent implements OnInit {
   private readonly apiService = inject(ApiService);
   private readonly organizationService = inject(OrganizationService);
   private readonly organizationUserService = inject(OrganizationUserService);
+  private readonly collectionAdminService = inject(CollectionAdminService);
   private readonly accountService = inject(AccountService);
   private readonly dialogService = inject(DialogService);
   private readonly toastService = inject(ToastService);
@@ -153,6 +232,12 @@ export class FederatedMembersComponent implements OnInit {
   protected readonly status = signal<FederationStatus | null>(null);
   protected readonly members = signal<FederatedMember[]>([]);
   protected readonly error = signal<string | null>(null);
+  protected readonly inviteSetting = signal<{
+    collectionManagersMayInvite: boolean;
+    canChange: boolean;
+  } | null>(null);
+  /** Collection names (encrypted on the server, decrypted in this browser) by id. */
+  private readonly collectionNameById = signal<Map<string, string>>(new Map());
   protected readonly form = inject(FormBuilder).group({
     email: ["", [Validators.required, Validators.email]],
     peerId: ["", [Validators.required]],
@@ -168,10 +253,27 @@ export class FederatedMembersComponent implements OnInit {
         this.form.patchValue({ peerId: status.peers[0].id });
       }
       await this.load();
+      this.inviteSetting.set(
+        await this.api.inviteSetting(this.orgId).catch((): null => null),
+      );
     } catch {
       this.status.set(null);
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  protected async toggleInvite(enabled: boolean) {
+    try {
+      await this.api.setInviteSetting(this.orgId, enabled);
+      this.inviteSetting.update((s) =>
+        s ? { ...s, collectionManagersMayInvite: enabled } : s,
+      );
+    } catch (e) {
+      this.toast("error", (e as Error)?.message ?? String(e));
+      this.inviteSetting.set(
+        await this.api.inviteSetting(this.orgId).catch((): null => null),
+      );
     }
   }
 
@@ -190,6 +292,36 @@ export class FederatedMembersComponent implements OnInit {
     } catch (e) {
       this.error.set((e as Error)?.message ?? String(e));
     }
+    await this.loadCollectionNames();
+  }
+
+  private async loadCollectionNames() {
+    try {
+      const userId = await firstValueFrom(
+        this.accountService.activeAccount$.pipe(getUserId),
+      );
+      const views = await firstValueFrom(
+        this.collectionAdminService.collectionAdminViews$(
+          this.orgId as OrganizationId,
+          userId,
+        ),
+      );
+      this.collectionNameById.set(
+        new Map(views.map((v) => [v.id as string, v.name])),
+      );
+    } catch {
+      // Names are a convenience: the ids are shown when they cannot be decrypted here.
+    }
+  }
+
+  protected collectionNames(
+    m: FederatedMember,
+  ): { id: string; name: string }[] {
+    const names = this.collectionNameById();
+    return (m.collectionIds ?? []).map((id) => ({
+      id,
+      name: names.get(id) ?? id,
+    }));
   }
 
   private toast(variant: "success" | "error", message: string) {
@@ -232,14 +364,20 @@ export class FederatedMembersComponent implements OnInit {
       if (!(await lastValueFrom(dialog.closed))) {
         return;
       }
-      const userId = await firstValueFrom(this.accountService.activeAccount$.pipe(getUserId));
+      const userId = await firstValueFrom(
+        this.accountService.activeAccount$.pipe(getUserId),
+      );
       const organization = await firstValueFrom(
-        this.organizationService.organizations$(userId).pipe(getOrganizationById(this.orgId)),
+        this.organizationService
+          .organizations$(userId)
+          .pipe(getOrganizationById(this.orgId)),
       );
       if (!organization) {
         return;
       }
-      await firstValueFrom(this.organizationUserService.confirmUser(organization, m.id, publicKey));
+      await firstValueFrom(
+        this.organizationUserService.confirmUser(organization, m.id, publicKey),
+      );
       this.toast("success", this.i18n.t("hasBeenConfirmed", m.email));
     } catch (e) {
       this.toast("error", (e as Error)?.message ?? String(e));

@@ -90,6 +90,23 @@ async function requireManage(db: Db, actor: Member, orgUuid: string, id: string)
 }
 
 /**
+ * The caller must be able to manage the collection: Manage access or edit any collection, the
+ * same rule as editing its local access (404 for outsiders, 403 for others). Used by the
+ * federation sharing endpoints (TASKS #370).
+ */
+export async function requireCollectionManager(
+  db: Db,
+  userUuid: string,
+  orgUuid: string,
+  id: string,
+): Promise<Member> {
+  const actor = await requireMember(db, userUuid, orgUuid)
+  await loadCollection(db, orgUuid, id)
+  await requireManage(db, actor, orgUuid, id)
+  return actor
+}
+
+/**
  * Deleting collections: members with "delete any collection", or, when the organisation does not
  * limit deletion to them (TASKS #231), members with Manage access to every collection deleted.
  */

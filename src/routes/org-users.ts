@@ -86,6 +86,22 @@ const bulkOk = (rows: { id: string; error: string | null }[], c: Ctx) =>
 
 // ----- listing -----
 
+async function isCollectionOnlyFederated(db: Db, m: Member): Promise<boolean> {
+  if (m.atype !== Role.User || m.accessAll) return false
+  const [fed] = await db
+    .select({ id: schema.federationMembers.organizationUserUuid })
+    .from(schema.federationMembers)
+    .where(eq(schema.federationMembers.organizationUserUuid, m.uuid))
+    .limit(1)
+  if (!fed) return false
+  const [group] = await db
+    .select({ id: schema.groupsUsers.groupUuid })
+    .from(schema.groupsUsers)
+    .where(eq(schema.groupsUsers.organizationUserUuid, m.uuid))
+    .limit(1)
+  return !group
+}
+
 const listMembers = async (c: Ctx, mini: boolean) => {
   const orgUuid = org(c)
   const db = createDb(c.env.DB)
@@ -94,11 +110,16 @@ const listMembers = async (c: Ctx, mini: boolean) => {
     throw new ApiError(403, 'You do not have permission to do this.')
   const includeCollections = c.req.query('includeCollections') === 'true'
   const includeGroups = c.req.query('includeGroups') === 'true'
-  const rows = await db
+  let rows = await db
     .select({ m: schema.usersOrganizations, u: schema.users })
     .from(schema.usersOrganizations)
     .leftJoin(schema.users, eq(schema.users.uuid, schema.usersOrganizations.userUuid))
     .where(eq(schema.usersOrganizations.organizationUuid, orgUuid))
+  // A person of another workspace who holds only collection grants does not get the member
+  // directory: they see themselves only (TASKS #377).
+  if (await isCollectionOnlyFederated(db, actor)) {
+    rows = rows.filter((r) => r.m.uuid === actor.uuid)
+  }
   const lists = await loadMemberLists(db, orgUuid, {
     collections: includeCollections,
     groups: includeGroups,
@@ -473,6 +494,13 @@ async function confirmStatements(
     assertCanAssign(actor, target.atype)
     await assertTwoFactorCompliant(db, target.userUuid, actor.organizationUuid)
     if (auto) {
+      // Stand-in accounts of other instances are confirmed by hand, with the fingerprint phrase.
+      const [fed] = await db
+        .select({ id: schema.federationMembers.organizationUserUuid })
+        .from(schema.federationMembers)
+        .where(eq(schema.federationMembers.organizationUserUuid, id))
+        .limit(1)
+      if (fed) throw new ApiError(400, 'Federated members must be confirmed manually.')
       await assertAutoConfirmEligible(
         db,
         actor.organizationUuid,
@@ -684,10 +712,22 @@ orgUsers.get('/api/organizations/:orgId/users/pending-auto-confirm', async (c) =
         eq(schema.usersOrganizations.status, Status.Accepted),
       ),
     )
+  const federated = new Set(
+    (
+      await db
+        .select({ id: schema.federationMembers.organizationUserUuid })
+        .from(schema.federationMembers)
+        .innerJoin(
+          schema.usersOrganizations,
+          eq(schema.usersOrganizations.uuid, schema.federationMembers.organizationUserUuid),
+        )
+        .where(eq(schema.usersOrganizations.organizationUuid, org(c)))
+    ).map((r) => r.id),
+  )
   return c.json({
     object: 'list',
     data: rows
-      .filter((r) => r.userId)
+      .filter((r) => r.userId && !federated.has(r.id))
       .map((r) => ({ object: 'organizationUserPendingAutoConfirm', ...r })),
     continuationToken: null,
   })

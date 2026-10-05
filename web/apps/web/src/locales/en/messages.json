@@ -18817,19 +18817,19 @@
     "message": "Events"
   },
   "cwFederation": {
-    "message": "Federation"
+    "message": "Trusted workspaces"
   },
   "cwFederatedMembers": {
-    "message": "Federated members"
+    "message": "External people"
   },
   "cwFederatedInvitations": {
-    "message": "Federated organisations"
+    "message": "Shared with you from other workspaces"
   },
   "cwFedDisabled": {
     "message": "Federation is not enabled on this server."
   },
   "cwFedAdminDesc": {
-    "message": "Pair this server with other Cloudwarden servers so their users can join organisations hosted here, and yours can join theirs. Compare fingerprints with the other administrator by a trusted channel before approving."
+    "message": "A trusted workspace is another Cloudwarden server this server has a signed trust channel with. It links no organisations: people share individual collections through it, from the collection's Access dialog. Compare fingerprints with the other administrator by a trusted channel before approving. Only instance administrators can make a workspace trusted; requests from other users wait here."
   },
   "cwFedThisInstance": {
     "message": "This server"
@@ -18946,10 +18946,10 @@
     }
   },
   "cwFedMembersDesc": {
-    "message": "Members whose account is on another Cloudwarden server. They use this organisation from their own server; permissions are enforced here."
+    "message": "People whose account is on another workspace and who hold collections of this organisation. They use them from their own server; permissions are enforced here."
   },
   "cwFedNoPeers": {
-    "message": "No paired server yet. An instance administrator pairs servers under Instance admin, Federation."
+    "message": "No trusted workspace yet. You can add one from a collection's Access dialog (an instance administrator approves it under Instance admin, Trusted workspaces)."
   },
   "cwFedInvite": {
     "message": "Invite a member from another server"
@@ -18989,7 +18989,7 @@
     "message": "Not available to federated members: single sign-on, SCIM, account recovery, Require SSO, emergency access across servers and Secrets Manager."
   },
   "cwFedInvitationsDesc": {
-    "message": "Invitations to organisations hosted on other Cloudwarden servers. Your account stays here."
+    "message": "Collections other workspaces want to share with you. Your account stays here."
   },
   "cwFedInvitedBy": {
     "message": "Invited by"
@@ -19180,5 +19180,248 @@
   },
   "cwHealthFresh": {
     "message": "Figures are cached for about a minute and Cloudflare analytics can lag by a few minutes."
+  },
+  "cwFedRemoteRequested": {
+    "message": "Requested by the other workspace"
+  },
+  "cwFedRequestedBy": {
+    "message": "Requested by $EMAIL$ from a collection",
+    "placeholders": {
+      "email": {
+        "content": "$1",
+        "example": "user@example.com"
+      }
+    }
+  },
+  "cwFedNothingShared": {
+    "message": "No collections shared through this workspace."
+  },
+  "cwFedSharedCollections": {
+    "message": "Shared through this workspace"
+  },
+  "cwFedSharedLine": {
+    "message": "$ORG$: $COLLECTIONS$ collection(s), $PEOPLE$ person(s)",
+    "placeholders": {
+      "org": {
+        "content": "$1",
+        "example": "Acme"
+      },
+      "collections": {
+        "content": "$2",
+        "example": "2"
+      },
+      "people": {
+        "content": "$3",
+        "example": "3"
+      }
+    }
+  },
+  "cwFedInvitationsExplain": {
+    "message": "An administrator of another workspace shared one or more collections with you. Accepting adds only those collections to your vault, after their administrator confirms you. Nothing else of yours is shared. Your own instance administrator must also have approved their workspace as trusted."
+  },
+  "cwFedInvitationBlocked": {
+    "message": "$DOMAIN$ is not trusted on this server yet. An instance administrator must approve it under Instance admin, Trusted workspaces.",
+    "placeholders": {
+      "domain": {
+        "content": "$1",
+        "example": "vault.example.com"
+      }
+    }
+  },
+  "cwExtTitle": {
+    "message": "External workspace"
+  },
+  "cwExtDesc": {
+    "message": "Share this collection with people on another Cloudwarden workspace. They keep their own account and only get this collection. Items must be in an organisation collection to be shared: items in a personal vault cannot be shared directly, move them to the organisation first."
+  },
+  "cwExtUnavailable": {
+    "message": "This organisation cannot share with other workspaces (it requires single sign-on or two-step login)."
+  },
+  "cwExtWorkspace": {
+    "message": "Workspace"
+  },
+  "cwExtChooseWorkspace": {
+    "message": "Choose a workspace"
+  },
+  "cwExtAddWorkspace": {
+    "message": "Add a workspace..."
+  },
+  "cwExtWorkspaceUrl": {
+    "message": "Workspace URL"
+  },
+  "cwExtLookup": {
+    "message": "Look up"
+  },
+  "cwExtFingerprintShown": {
+    "message": "This server fetched the key fingerprint below. Compare it with the one the other workspace's administrator gives you by a trusted channel."
+  },
+  "cwExtFingerprintHintAdmin": {
+    "message": "Type or paste the fingerprint of $DOMAIN$ to trust it.",
+    "placeholders": {
+      "domain": {
+        "content": "$1",
+        "example": "vault.example.com"
+      }
+    }
+  },
+  "cwExtFingerprintHintUser": {
+    "message": "Type or paste the fingerprint of $DOMAIN$. An instance administrator of this server still has to approve it.",
+    "placeholders": {
+      "domain": {
+        "content": "$1",
+        "example": "vault.example.com"
+      }
+    }
+  },
+  "cwExtAddTrust": {
+    "message": "Trust this workspace"
+  },
+  "cwExtRequestTrust": {
+    "message": "Ask an administrator to trust it"
+  },
+  "cwExtStateAwaitingAdmin": {
+    "message": "waiting for your instance administrator"
+  },
+  "cwExtStateAwaitingRemote": {
+    "message": "waiting for the other workspace"
+  },
+  "cwExtWsAwaitingAdmin": {
+    "message": "Waiting for your instance administrator to approve $DOMAIN$ under Instance admin, Trusted workspaces. You cannot share with it until then.",
+    "placeholders": {
+      "domain": {
+        "content": "$1",
+        "example": "vault.example.com"
+      }
+    }
+  },
+  "cwExtWsAwaitingYou": {
+    "message": "$DOMAIN$ is waiting for your approval under Instance admin, Trusted workspaces.",
+    "placeholders": {
+      "domain": {
+        "content": "$1",
+        "example": "vault.example.com"
+      }
+    }
+  },
+  "cwExtWsAwaitingRemote": {
+    "message": "You approved $DOMAIN$. Waiting for its administrator to approve this server; the request is in their Trusted workspaces list.",
+    "placeholders": {
+      "domain": {
+        "content": "$1",
+        "example": "vault.example.com"
+      }
+    }
+  },
+  "cwExtWsSuspended": {
+    "message": "$DOMAIN$ is suspended by an instance administrator.",
+    "placeholders": {
+      "domain": {
+        "content": "$1",
+        "example": "vault.example.com"
+      }
+    }
+  },
+  "cwExtWsReady": {
+    "message": "$DOMAIN$ is trusted. Enter the people to share with.",
+    "placeholders": {
+      "domain": {
+        "content": "$1",
+        "example": "vault.example.com"
+      }
+    }
+  },
+  "cwExtRefresh": {
+    "message": "Check again"
+  },
+  "cwExtEmails": {
+    "message": "Email addresses on that workspace"
+  },
+  "cwExtEmailsHint": {
+    "message": "One or more addresses of accounts on $DOMAIN$, separated by commas or new lines.",
+    "placeholders": {
+      "domain": {
+        "content": "$1",
+        "example": "vault.example.com"
+      }
+    }
+  },
+  "cwExtShare": {
+    "message": "Share"
+  },
+  "cwExtNeedEmail": {
+    "message": "Enter at least one email address."
+  },
+  "cwExtBadEmail": {
+    "message": "$EMAIL$ is not a valid email address.",
+    "placeholders": {
+      "email": {
+        "content": "$1",
+        "example": "user@example.com"
+      }
+    }
+  },
+  "cwExtShared": {
+    "message": "Shared with $COUNT$ person(s).",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "2"
+      }
+    }
+  },
+  "cwExtInvited": {
+    "message": "Invited"
+  },
+  "cwExtAccepted": {
+    "message": "Accepted, awaiting confirm"
+  },
+  "cwExtActive": {
+    "message": "Active"
+  },
+  "cwExtConfirmHint": {
+    "message": "Confirm to give them access."
+  },
+  "cwExtRemoveDesc": {
+    "message": "Remove access of $EMAIL$ (from $DOMAIN$) to this collection? If they hold nothing else here they leave the organisation.",
+    "placeholders": {
+      "email": {
+        "content": "$1",
+        "example": "user@example.com"
+      },
+      "domain": {
+        "content": "$2",
+        "example": "vault.example.com"
+      }
+    }
+  },
+  "cwExtVaultNote": {
+    "message": "Only items in an organisation collection can be shared. Personal vault items cannot: use Move to organisation on an item first."
+  },
+  "cwExtNoCollections": {
+    "message": "No collections yet"
+  },
+  "cwExtPeopleHowTo": {
+    "message": "To share more, open a collection, choose Access and add an external workspace."
+  },
+  "cwExtNoInvite": {
+    "message": "Inviting new external people needs the manage users permission. You can still add or change access for people who already belong to this organisation through this workspace. An owner or admin can allow collection managers to invite on the External people page."
+  },
+  "cwExtEmailsExisting": {
+    "message": "Email addresses of external people already in this organisation"
+  },
+  "cwExtKnownAwaitingAdmin": {
+    "message": "$DOMAIN$ is already known to this server and is waiting for an instance administrator. You cannot use it until it is approved.",
+    "placeholders": {
+      "domain": {
+        "content": "$1",
+        "example": "vault.example.com"
+      }
+    }
+  },
+  "cwExtMayInviteLabel": {
+    "message": "Collection managers may invite external people"
+  },
+  "cwExtMayInviteHint": {
+    "message": "Off by default: only people with the manage users permission can invite new external people. Managers can always change access for external people already in the organisation."
   }
 }

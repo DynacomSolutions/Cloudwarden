@@ -2,7 +2,13 @@
 // invitations from organisations hosted on paired instances, to accept or decline, and the
 // federated organisations the account already belongs to.
 import { DatePipe } from "@angular/common";
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from "@angular/core";
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  inject,
+  signal,
+} from "@angular/core";
 
 import { SyncService } from "@bitwarden/common/platform/sync";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
@@ -25,9 +31,18 @@ import {
     <app-header></app-header>
     <bit-container>
       @if (disabled()) {
-        <bit-callout type="info" data-testid="cw-fed-disabled">{{ "cwFedDisabled" | i18n }}</bit-callout>
+        <bit-callout type="info" data-testid="cw-fed-disabled">{{
+          "cwFedDisabled" | i18n
+        }}</bit-callout>
       } @else {
         <p bitTypography="body1">{{ "cwFedInvitationsDesc" | i18n }}</p>
+        <p
+          bitTypography="body2"
+          class="tw-text-muted"
+          data-testid="cw-fed-invitations-explain"
+        >
+          {{ "cwFedInvitationsExplain" | i18n }}
+        </p>
         @if (error()) {
           <bit-callout type="danger">{{ error() }}</bit-callout>
         }
@@ -44,10 +59,22 @@ import {
           <ng-template body>
             @for (i of invitations(); track i.id) {
               <tr bitRow>
-                <td bitCell>{{ i.organizationName }}</td>
+                <td bitCell>
+                  {{ i.organizationName }}
+                  @if (!i.peerActive && i.status === "pending") {
+                    <div
+                      class="tw-text-xs tw-text-danger"
+                      data-testid="cw-fed-invite-blocked"
+                    >
+                      {{ "cwFedInvitationBlocked" | i18n: i.peerDomain }}
+                    </div>
+                  }
+                </td>
                 <td bitCell>{{ i.peerDomain }}</td>
                 <td bitCell>{{ i.inviterEmail }}</td>
-                <td bitCell>{{ i.creationDate | date: "short" }} · {{ i.status }}</td>
+                <td bitCell>
+                  {{ i.creationDate | date: "short" }} · {{ i.status }}
+                </td>
                 <td bitCell class="tw-text-right">
                   @if (i.status === "pending") {
                     <div class="tw-flex tw-justify-end tw-gap-1">
@@ -60,7 +87,12 @@ import {
                       >
                         {{ "accept" | i18n }}
                       </button>
-                      <button type="button" bitButton buttonType="secondary" (click)="respond(i, false)">
+                      <button
+                        type="button"
+                        bitButton
+                        buttonType="secondary"
+                        (click)="respond(i, false)"
+                      >
                         {{ "decline" | i18n }}
                       </button>
                     </div>
@@ -87,7 +119,9 @@ import {
                   <td bitCell>
                     {{ m.peerDomain }}
                     @if (m.peerStatus !== "active") {
-                      <span bitBadge variant="danger">{{ "cwFedSuspended" | i18n }}</span>
+                      <span bitBadge variant="danger">{{
+                        "cwFedSuspended" | i18n
+                      }}</span>
                     }
                   </td>
                   <td bitCell>{{ m.syncedDate | date: "short" }}</td>
@@ -117,7 +151,10 @@ export class FederatedInvitationsComponent implements OnInit {
 
   private async load() {
     try {
-      const [inv, mem] = await Promise.all([this.api.invitations(), this.api.memberships()]);
+      const [inv, mem] = await Promise.all([
+        this.api.invitations(),
+        this.api.memberships(),
+      ]);
       this.invitations.set(inv.data);
       this.memberships.set(mem.data);
       this.error.set(null);
@@ -135,13 +172,19 @@ export class FederatedInvitationsComponent implements OnInit {
       await this.api.respond(i.id, accept);
       this.toastService.showToast({
         variant: "success",
-        message: this.i18n.t(accept ? "cwFedAccepted" : "cwFedDeclined", i.organizationName),
+        message: this.i18n.t(
+          accept ? "cwFedAccepted" : "cwFedDeclined",
+          i.organizationName,
+        ),
       });
       if (accept) {
         await this.syncService.fullSync(true);
       }
     } catch (e) {
-      this.toastService.showToast({ variant: "error", message: (e as Error)?.message ?? "" });
+      this.toastService.showToast({
+        variant: "error",
+        message: (e as Error)?.message ?? "",
+      });
     }
     await this.load();
   }

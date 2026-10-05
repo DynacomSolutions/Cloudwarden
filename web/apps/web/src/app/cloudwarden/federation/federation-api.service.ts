@@ -2,7 +2,15 @@
 // docs/federation.md, web/NOTICE.md). Uses the vault's authenticated ApiService.
 import { Injectable, inject } from "@angular/core";
 import { ActivatedRoute } from "@angular/router";
-import { Observable, catchError, from, map, of, shareReplay, switchMap } from "rxjs";
+import {
+  Observable,
+  catchError,
+  from,
+  map,
+  of,
+  shareReplay,
+  switchMap,
+} from "rxjs";
 
 import { ApiService } from "@bitwarden/common/abstractions/api.service";
 import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
@@ -27,6 +35,70 @@ export interface FederationPeer {
   lastSeenDate: string | null;
   lastError: string | null;
   creationDate: string;
+  /** Account that asked for this workspace from a collection dialog (awaiting an instance admin). */
+  requestedByEmail?: string | null;
+  /** Organisations sharing with this workspace (counts only, collection names are encrypted). */
+  sharing?: {
+    organizationId: string;
+    organizationName: string;
+    people: number;
+    collections: number;
+  }[];
+}
+
+export type WorkspaceState =
+  "active" | "suspended" | "awaitingInstanceAdmin" | "awaitingRemote";
+
+export interface ExternalWorkspace {
+  id: string;
+  domain: string;
+  fingerprint: string;
+  state: WorkspaceState;
+  active: boolean;
+}
+
+export interface ExternalGrantee {
+  id: string;
+  userId: string | null;
+  email: string;
+  /** Membership status: 0 invited, 1 accepted (awaiting confirm), 2 confirmed. */
+  status: number;
+  peerId: string;
+  peerDomain: string;
+  peerState: WorkspaceState;
+  readOnly: boolean;
+  hidePasswords: boolean;
+  manage: boolean;
+}
+
+export interface ExternalAccessState {
+  isInstanceAdmin: boolean;
+  /** May invite new external people (manage users, or the organisation allows collection managers). */
+  canInvite: boolean;
+  canChangeInviteSetting: boolean;
+  collectionManagersMayInvite: boolean;
+  available: boolean;
+  workspaces: ExternalWorkspace[];
+  grantees: ExternalGrantee[];
+}
+
+export interface ExternalAccessFlags {
+  readOnly: boolean;
+  hidePasswords: boolean;
+  manage: boolean;
+}
+
+export interface InviteSetting {
+  collectionManagersMayInvite: boolean;
+  canChange: boolean;
+}
+
+export interface ShareResult {
+  email: string;
+  ok: boolean;
+  result?: "invited" | "updated";
+  id?: string;
+  error?: string;
 }
 
 export interface FederationDescriptor {
@@ -55,6 +127,7 @@ export interface FederatedMember {
   peerId: string;
   peerDomain: string;
   peerStatus: string;
+  collectionIds?: string[];
 }
 
 export interface FederatedInvitation {
@@ -82,7 +155,12 @@ export interface FederatedInvite {
   peerId: string;
   type: number;
   accessAll: boolean;
-  collections: { id: string; readOnly: boolean; hidePasswords: boolean; manage: boolean }[];
+  collections: {
+    id: string;
+    readOnly: boolean;
+    hidePasswords: boolean;
+    manage: boolean;
+  }[];
 }
 
 const BASE = "/cloudwarden/federation";
@@ -115,16 +193,21 @@ export class FederationApiService {
   private readonly accountService = inject(AccountService);
 
   /** Federation status, or null when the server has federation off (404) or on error. */
-  readonly status$: Observable<FederationStatus | null> = this.accountService.activeAccount$.pipe(
-    switchMap((account) =>
-      account == null
-        ? of(null)
-        : from(this.status()).pipe(catchError(() => of(null as FederationStatus | null))),
-    ),
-    shareReplay({ bufferSize: 1, refCount: true }),
-  );
+  readonly status$: Observable<FederationStatus | null> =
+    this.accountService.activeAccount$.pipe(
+      switchMap((account) =>
+        account == null
+          ? of(null)
+          : from(this.status()).pipe(
+              catchError(() => of(null as FederationStatus | null)),
+            ),
+      ),
+      shareReplay({ bufferSize: 1, refCount: true }),
+    );
 
-  readonly enabled$: Observable<boolean> = this.status$.pipe(map((s) => s?.enabled === true));
+  readonly enabled$: Observable<boolean> = this.status$.pipe(
+    map((s) => s?.enabled === true),
+  );
 
   status(): Promise<FederationStatus> {
     return this.apiService.send("GET", `${BASE}/status`, null, true, true);
@@ -133,7 +216,13 @@ export class FederationApiService {
   // ----- instance admin -----
 
   identity(): Promise<FederationDescriptor> {
-    return this.apiService.send("GET", `${BASE}/admin/identity`, null, true, true);
+    return this.apiService.send(
+      "GET",
+      `${BASE}/admin/identity`,
+      null,
+      true,
+      true,
+    );
   }
 
   peers(): Promise<{ data: FederationPeer[] }> {
@@ -141,7 +230,13 @@ export class FederationApiService {
   }
 
   addPeer(domain: string): Promise<FederationPeer> {
-    return this.apiService.send("POST", `${BASE}/admin/peers`, { domain }, true, true);
+    return this.apiService.send(
+      "POST",
+      `${BASE}/admin/peers`,
+      { domain },
+      true,
+      true,
+    );
   }
 
   approvePeer(id: string, fingerprint: string): Promise<FederationPeer> {
@@ -154,20 +249,49 @@ export class FederationApiService {
     );
   }
 
-  peerAction(id: string, action: "suspend" | "resume"): Promise<FederationPeer> {
-    return this.apiService.send("POST", `${BASE}/admin/peers/${enc(id)}/${action}`, null, true, true);
+  peerAction(
+    id: string,
+    action: "suspend" | "resume",
+  ): Promise<FederationPeer> {
+    return this.apiService.send(
+      "POST",
+      `${BASE}/admin/peers/${enc(id)}/${action}`,
+      null,
+      true,
+      true,
+    );
   }
 
-  checkPeer(id: string): Promise<{ ok: boolean; latencyMs?: number; error?: string }> {
-    return this.apiService.send("POST", `${BASE}/admin/peers/${enc(id)}/check`, null, true, true);
+  checkPeer(
+    id: string,
+  ): Promise<{ ok: boolean; latencyMs?: number; error?: string }> {
+    return this.apiService.send(
+      "POST",
+      `${BASE}/admin/peers/${enc(id)}/check`,
+      null,
+      true,
+      true,
+    );
   }
 
   removePeer(id: string): Promise<void> {
-    return this.apiService.send("DELETE", `${BASE}/admin/peers/${enc(id)}`, null, true, false);
+    return this.apiService.send(
+      "DELETE",
+      `${BASE}/admin/peers/${enc(id)}`,
+      null,
+      true,
+      false,
+    );
   }
 
   events(): Promise<{ data: FederationEvent[] }> {
-    return this.apiService.send("GET", `${BASE}/admin/events`, null, true, true);
+    return this.apiService.send(
+      "GET",
+      `${BASE}/admin/events`,
+      null,
+      true,
+      true,
+    );
   }
 
   // ----- organisation admin -----
@@ -183,7 +307,13 @@ export class FederationApiService {
   }
 
   invite(orgId: string, body: FederatedInvite): Promise<{ id: string }> {
-    return this.apiService.send("POST", `${BASE}/organizations/${enc(orgId)}/members`, body, true, true);
+    return this.apiService.send(
+      "POST",
+      `${BASE}/organizations/${enc(orgId)}/members`,
+      body,
+      true,
+      true,
+    );
   }
 
   removeMember(orgId: string, id: string): Promise<void> {
@@ -194,6 +324,134 @@ export class FederationApiService {
       true,
       false,
     );
+  }
+
+  // ----- collection Access dialog -----
+
+  externalAccess(
+    orgId: string,
+    collectionId: string,
+  ): Promise<ExternalAccessState> {
+    return this.apiService.send(
+      "GET",
+      this.ext(orgId, collectionId),
+      null,
+      true,
+      true,
+    );
+  }
+
+  lookupWorkspace(
+    orgId: string,
+    collectionId: string,
+    domain: string,
+  ): Promise<{
+    domain: string;
+    fingerprint: string | null;
+    workspace: ExternalWorkspace | null;
+    /** A domain this server knows but only an instance admin may see: no detail is returned. */
+    awaitingAdmin?: boolean;
+  }> {
+    return this.apiService.send(
+      "POST",
+      `${this.ext(orgId, collectionId)}/workspaces/lookup`,
+      { domain },
+      true,
+      true,
+    );
+  }
+
+  addWorkspace(
+    orgId: string,
+    collectionId: string,
+    domain: string,
+    fingerprint: string,
+  ): Promise<{
+    created: boolean;
+    workspace: ExternalWorkspace | null;
+    awaitingAdmin?: boolean;
+  }> {
+    return this.apiService.send(
+      "POST",
+      `${this.ext(orgId, collectionId)}/workspaces`,
+      { domain, fingerprint },
+      true,
+      true,
+    );
+  }
+
+  share(
+    orgId: string,
+    collectionId: string,
+    workspaceId: string,
+    emails: string[],
+    access: ExternalAccessFlags,
+  ): Promise<{ data: ShareResult[] }> {
+    return this.apiService.send(
+      "POST",
+      this.ext(orgId, collectionId),
+      { workspaceId, emails, ...access },
+      true,
+      true,
+    );
+  }
+
+  updateExternalAccess(
+    orgId: string,
+    collectionId: string,
+    memberId: string,
+    access: ExternalAccessFlags,
+  ): Promise<void> {
+    return this.apiService.send(
+      "PUT",
+      `${this.ext(orgId, collectionId)}/${enc(memberId)}`,
+      access,
+      true,
+      false,
+    );
+  }
+
+  removeExternalAccess(
+    orgId: string,
+    collectionId: string,
+    memberId: string,
+  ): Promise<{ removedMember: boolean }> {
+    return this.apiService.send(
+      "DELETE",
+      `${this.ext(orgId, collectionId)}/${enc(memberId)}`,
+      null,
+      true,
+      true,
+    );
+  }
+
+  inviteSetting(
+    orgId: string,
+  ): Promise<{ collectionManagersMayInvite: boolean; canChange: boolean }> {
+    return this.apiService.send(
+      "GET",
+      `${BASE}/organizations/${enc(orgId)}/settings`,
+      null,
+      true,
+      true,
+    );
+  }
+
+  setInviteSetting(
+    orgId: string,
+    collectionManagersMayInvite: boolean,
+  ): Promise<unknown> {
+    return this.apiService.send(
+      "PUT",
+      `${BASE}/organizations/${enc(orgId)}/settings`,
+      { collectionManagersMayInvite },
+      true,
+      true,
+    );
+  }
+
+  private ext(orgId: string, collectionId: string): string {
+    return `${BASE}/organizations/${enc(orgId)}/collections/${enc(collectionId)}/external-access`;
   }
 
   // ----- invited user -----

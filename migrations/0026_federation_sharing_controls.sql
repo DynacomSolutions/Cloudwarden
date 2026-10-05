@@ -1,0 +1,2 @@
+ALTER TABLE `organizations` ADD `federation_managers_invite` integer DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE `federation_members` ADD `created_via_share` integer DEFAULT false NOT NULL;

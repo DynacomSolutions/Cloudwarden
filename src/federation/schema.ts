@@ -31,6 +31,8 @@ export const federationPeers = sqliteTable(
     remoteApproved: integer('remote_approved', { mode: 'boolean' }).notNull().default(false),
     lastSeenAt: integer('last_seen_at'),
     lastError: text('last_error'),
+    /** User who asked for this peer from a collection's Access dialog (a non-admin request), if any. */
+    requestedBy: text('requested_by'),
     createdAt: integer('created_at').notNull(),
     updatedAt: integer('updated_at').notNull(),
   },
@@ -89,6 +91,8 @@ export const federationMembers = sqliteTable(
       .references(() => federationPeers.uuid, { onDelete: 'cascade' }),
     remoteEmail: text('remote_email').notNull(),
     remoteUserUuid: text('remote_user_uuid'),
+    /** Created by the collection sharing flow (TASKS #377): only these may be purged by a collection manager. */
+    createdViaShare: integer('created_via_share', { mode: 'boolean' }).notNull().default(false),
     createdAt: integer('created_at').notNull(),
   },
   (t) => [index('federation_members_peer_idx').on(t.peerUuid)],

@@ -27,6 +27,7 @@ import {
   assertIdsInOrg,
   dedupeSelections,
   permissionsColumn,
+  type Selection,
   VALID_ROLES,
 } from '../orgs/members'
 import { listUserPolicies, policyJson, twoFactorRequired } from '../orgs/policies'
@@ -100,7 +101,7 @@ export async function federatableOrg(db: Db, orgUuid: string): Promise<boolean> 
   }
 }
 
-async function assertFederatable(db: Db, orgUuid: string) {
+export async function assertFederatable(db: Db, orgUuid: string) {
   if (await twoFactorRequired(db, orgUuid)) throw new ApiError(400, NOT_FEDERATED_2FA)
   const [sso] = await db
     .select({ enabled: schema.ssoConfigs.enabled })
@@ -164,6 +165,40 @@ export async function inviteFederated(
     )
   }
   if (groupIds.length) await assertIdsInOrg(db, 'group', orgUuid, groupIds)
+  return createFederatedInvite(c, orgUuid, {
+    org,
+    email,
+    peer,
+    type: body.type,
+    accessAll: body.accessAll === true,
+    collections,
+    groupIds,
+    permissions: body.permissions,
+  })
+}
+
+export interface FederatedInviteInput {
+  org: { name: string }
+  email: string
+  peer: Peer
+  type: number
+  accessAll: boolean
+  collections: Selection[]
+  groupIds: string[]
+  permissions?: Record<string, boolean | null> | null
+  /** Created by the collection sharing flow (a collection manager may later undo it). */
+  viaShare?: boolean
+}
+
+/**
+ * Creates the invited membership and asks the peer to invite the user. The caller has already
+ * authorised the actor, checked `assertFederatable` and validated the collection and group ids.
+ */
+export async function createFederatedInvite(c: Ctx, orgUuid: string, input: FederatedInviteInput) {
+  const env = c.env
+  const db = createDb(env.DB)
+  const { org, email, peer, collections, groupIds } = input
+  const body = { type: input.type, accessAll: input.accessAll, permissions: input.permissions }
   const [local] = await db
     .select({ uuid: schema.users.uuid })
     .from(schema.users)
@@ -212,6 +247,7 @@ export async function inviteFederated(
       peerUuid: peer.uuid,
       remoteEmail: email,
       remoteUserUuid: null,
+      createdViaShare: input.viaShare === true,
       createdAt: now,
     }),
     ...(body.accessAll
@@ -309,22 +345,43 @@ export async function removeFederatedMember(c: Ctx, orgUuid: string, memberUuid:
   if (!row) throw new ApiError(404, 'User not found.')
   const actor = await requirePermission(db, c.var.user.uuid, orgUuid, 'manageUsers')
   assertCanAssign(actor, row.m.atype)
+  await purgeFederatedMember(c, orgUuid, row.m, row.f)
+}
+
+/** Deletes a federated membership in any status and tells the peer (shared with collection sharing). */
+export async function purgeFederatedMember(
+  c: Ctx,
+  orgUuid: string,
+  m: typeof schema.usersOrganizations.$inferSelect,
+  f: typeof schema.federationMembers.$inferSelect,
+) {
+  const db = createDb(c.env.DB)
+  const memberUuid = m.uuid
   await runBatch(db, [
     db.delete(schema.usersOrganizations).where(eq(schema.usersOrganizations.uuid, memberUuid)),
     eventStatement(db, c, {
       type: EventType.OrganizationUserRemoved,
       organizationUuid: orgUuid,
       organizationUserUuid: memberUuid,
-      userUuid: row.m.userUuid,
+      userUuid: m.userUuid,
     }),
   ])
-  const peer = await getPeer(c.env, row.f.peerUuid)
+  await tellPeerMemberRemoved(c, m, f)
+}
+
+/** After a membership row is gone: withdraw the invitation and make the home instance purge. */
+export async function tellPeerMemberRemoved(
+  c: Ctx,
+  m: typeof schema.usersOrganizations.$inferSelect,
+  f: typeof schema.federationMembers.$inferSelect,
+) {
+  const peer = await getPeer(c.env, f.peerUuid)
   if (peer && isActive(peer)) {
     // Pending invitations are withdrawn; for members the push below makes the peer purge.
-    await peerJsonCall(c.env, peer, `/federation/v1/invitations/${memberUuid}/revoke`, {
+    await peerJsonCall(c.env, peer, `/federation/v1/invitations/${m.uuid}/revoke`, {
       body: {},
     }).catch(() => {})
-    if (row.m.userUuid) await notifyPeerOfUser(c.env, row.m.userUuid, 5, {}, null)
+    if (m.userUuid) await notifyPeerOfUser(c.env, m.userUuid, 5, {}, null)
   }
 }
 

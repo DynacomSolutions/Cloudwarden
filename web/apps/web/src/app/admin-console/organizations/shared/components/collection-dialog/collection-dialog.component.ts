@@ -56,8 +56,13 @@ import {
   DialogService,
   ToastService,
 } from "@bitwarden/components";
-import { Vfo1I18nPipe, Vfo1IconPipe, Vfo1TerminologyService } from "@bitwarden/vault";
+import {
+  Vfo1I18nPipe,
+  Vfo1IconPipe,
+  Vfo1TerminologyService,
+} from "@bitwarden/vault";
 
+import { CollectionExternalAccessComponent } from "../../../../../cloudwarden/federation/collection-external-access.component";
 import { openChangePlanDialog } from "../../../../../billing/organizations/change-plan-dialog.component";
 import { SharedModule } from "../../../../../shared";
 import { GroupApiService, GroupView } from "../../../core";
@@ -98,18 +103,22 @@ type ButtonType = (typeof ButtonType)[keyof typeof ButtonType];
     SelectModule,
     Vfo1IconPipe,
     Vfo1I18nPipe,
+    CollectionExternalAccessComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CollectionDialogComponent implements OnInit {
   private readonly params = inject<CollectionDialogParams>(DIALOG_DATA);
   private readonly formBuilder = inject(FormBuilder);
-  private readonly dialogRef = inject<DialogRef<CollectionDialogResult>>(DialogRef);
+  private readonly dialogRef =
+    inject<DialogRef<CollectionDialogResult>>(DialogRef);
   private readonly organizationService = inject(OrganizationService);
   private readonly groupService = inject(GroupApiService);
   private readonly collectionAdminService = inject(CollectionAdminService);
   private readonly i18nService = inject(I18nService);
-  private readonly organizationUserApiService = inject(OrganizationUserApiService);
+  private readonly organizationUserApiService = inject(
+    OrganizationUserApiService,
+  );
   private readonly dialogService = inject(DialogService);
   private readonly accountService = inject(AccountService);
   private readonly toastService = inject(ToastService);
@@ -128,7 +137,9 @@ export class CollectionDialogComponent implements OnInit {
   });
 
   private readonly externalIdValue = toSignal(
-    this.formGroup.controls.externalId.valueChanges.pipe(map((value) => value || undefined)),
+    this.formGroup.controls.externalId.valueChanges.pipe(
+      map((value) => value || undefined),
+    ),
     { initialValue: this.formGroup.controls.externalId.value || undefined },
   );
 
@@ -137,28 +148,33 @@ export class CollectionDialogComponent implements OnInit {
     this.params.isAdminConsoleActive ? this.externalIdValue() : undefined,
   );
 
-  private readonly activeUserId$ = this.accountService.activeAccount$.pipe(getUserId);
+  private readonly activeUserId$ =
+    this.accountService.activeAccount$.pipe(getUserId);
 
-  protected readonly organizations$: Observable<Organization[]> = this.activeUserId$.pipe(
-    switchMap((userId) => this.organizationService.organizations$(userId)),
-    map((orgs) =>
-      orgs
-        .filter((o) => o.canCreateNewCollections && !o.isProviderUser)
-        .sort(Utils.getSortFunction(this.i18nService, "name")),
-    ),
-  );
+  protected readonly organizations$: Observable<Organization[]> =
+    this.activeUserId$.pipe(
+      switchMap((userId) => this.organizationService.organizations$(userId)),
+      map((orgs) =>
+        orgs
+          .filter((o) => o.canCreateNewCollections && !o.isProviderUser)
+          .sort(Utils.getSortFunction(this.i18nService, "name")),
+      ),
+    );
 
-  private readonly selectedOrgId$ = this.formGroup.controls.selectedOrg.valueChanges.pipe(
-    startWith(this.params.organizationId),
-    distinctUntilChanged(),
-    shareReplay({ refCount: true, bufferSize: 1 }),
-  );
+  private readonly selectedOrgId$ =
+    this.formGroup.controls.selectedOrg.valueChanges.pipe(
+      startWith(this.params.organizationId),
+      distinctUntilChanged(),
+      shareReplay({ refCount: true, bufferSize: 1 }),
+    );
 
   protected readonly organization$ = this.selectedOrgId$.pipe(
     switchMap((orgId) =>
       orgId
         ? this.activeUserId$.pipe(
-            switchMap((userId) => this.organizationService.organizations$(userId)),
+            switchMap((userId) =>
+              this.organizationService.organizations$(userId),
+            ),
             map((orgs) => orgs.find((o) => o.id === orgId)),
           )
         : of(undefined),
@@ -172,7 +188,9 @@ export class CollectionDialogComponent implements OnInit {
     switchMap((orgId) =>
       orgId
         ? this.activeUserId$.pipe(
-            switchMap((userId) => this.collectionAdminService.collectionAdminViews$(orgId, userId)),
+            switchMap((userId) =>
+              this.collectionAdminService.collectionAdminViews$(orgId, userId),
+            ),
           )
         : of([]),
     ),
@@ -206,7 +224,9 @@ export class CollectionDialogComponent implements OnInit {
 
   private readonly users$ = this.selectedOrgId$.pipe(
     switchMap((orgId) =>
-      orgId ? this.organizationUserApiService.getAllMiniUserDetails(orgId) : of({ data: [] }),
+      orgId
+        ? this.organizationUserApiService.getAllMiniUserDetails(orgId)
+        : of({ data: [] }),
     ),
     shareReplay({ refCount: true, bufferSize: 1 }),
   );
@@ -241,7 +261,9 @@ export class CollectionDialogComponent implements OnInit {
       let deletedParentName: string | undefined = undefined;
 
       if (collection) {
-        nestOptions = nestOptions.filter((c) => c.id !== this.params.collectionId);
+        nestOptions = nestOptions.filter(
+          (c) => c.id !== this.params.collectionId,
+        );
 
         const { parent: parentName } = parseName(collection);
 
@@ -252,7 +274,10 @@ export class CollectionDialogComponent implements OnInit {
           ) {
             deletedParentName = parentName;
           } else if (!nestOptions.find((c) => c.name === parentName)) {
-            nestOptions = [{ name: parentName } as CollectionView, ...nestOptions];
+            nestOptions = [
+              { name: parentName } as CollectionView,
+              ...nestOptions,
+            ];
           }
         }
       }
@@ -288,15 +313,16 @@ export class CollectionDialogComponent implements OnInit {
     { initialValue: false },
   );
 
-  protected readonly buttonDisplayName$ = this.formGroup.controls.selectedOrg.statusChanges.pipe(
-    startWith(null),
-    map(() =>
-      this.formGroup.controls.selectedOrg.errors?.cannotCreateCollections
-        ? ButtonType.Upgrade
-        : ButtonType.Save,
-    ),
-    shareReplay({ refCount: true, bufferSize: 1 }),
-  );
+  protected readonly buttonDisplayName$ =
+    this.formGroup.controls.selectedOrg.statusChanges.pipe(
+      startWith(null),
+      map(() =>
+        this.formGroup.controls.selectedOrg.errors?.cannotCreateCollections
+          ? ButtonType.Upgrade
+          : ButtonType.Save,
+      ),
+      shareReplay({ refCount: true, bufferSize: 1 }),
+    );
 
   protected readonly initialPermission = signal(
     this.params.initialPermission ?? CollectionPermission.View,
@@ -306,28 +332,38 @@ export class CollectionDialogComponent implements OnInit {
     this.configService.getFeatureFlag$(FeatureFlag.PM32380_BtnTextAddCreate),
   );
 
-  private readonly orgExceedingCollectionLimit$ = this.organizationSelected.statusChanges.pipe(
-    filter(() => !!this.organizationSelected.errors?.cannotCreateCollections),
-    switchMap(() =>
-      this.organizations$.pipe(getById(this.organizationSelected.value as OrganizationId)),
-    ),
-    tap(() => {
-      this.organizationSelected.markAsTouched();
-      this.formGroup.updateValueAndValidity();
-    }),
-    shareReplay({ refCount: true, bufferSize: 1 }),
+  private readonly orgExceedingCollectionLimit$ =
+    this.organizationSelected.statusChanges.pipe(
+      filter(() => !!this.organizationSelected.errors?.cannotCreateCollections),
+      switchMap(() =>
+        this.organizations$.pipe(
+          getById(this.organizationSelected.value as OrganizationId),
+        ),
+      ),
+      tap(() => {
+        this.organizationSelected.markAsTouched();
+        this.formGroup.updateValueAndValidity();
+      }),
+      shareReplay({ refCount: true, bufferSize: 1 }),
+    );
+
+  private readonly orgExceedingCollectionLimit = toSignal(
+    this.orgExceedingCollectionLimit$,
   );
 
-  private readonly orgExceedingCollectionLimit = toSignal(this.orgExceedingCollectionLimit$);
-
-  protected readonly loading = toSignal(this.accessItems$.pipe(map(() => false)), {
-    initialValue: true,
-  });
+  protected readonly loading = toSignal(
+    this.accessItems$.pipe(map(() => false)),
+    {
+      initialValue: true,
+    },
+  );
 
   protected readonly showAddAccessWarning = toSignal(
     this.organization$.pipe(
       map(
-        (org) => !org?.allowAdminAccessToAllCollectionItems && !!this.params.isAddAccessCollection,
+        (org) =>
+          !org?.allowAdminAccessToAllCollectionItems &&
+          !!this.params.isAddAccessCollection,
       ),
     ),
     { initialValue: false },
@@ -343,7 +379,10 @@ export class CollectionDialogComponent implements OnInit {
       this.showOrgSelector.set(true);
     }
 
-    this.formGroup.patchValue({ selectedOrg: this.params.organizationId }, { emitEvent: false });
+    this.formGroup.patchValue(
+      { selectedOrg: this.params.organizationId },
+      { emitEvent: false },
+    );
 
     this.organizationSelected.setAsyncValidators(
       freeOrgCollectionLimitValidator(
@@ -358,17 +397,23 @@ export class CollectionDialogComponent implements OnInit {
 
     this.formGroup.updateValueAndValidity();
 
-    this.organization$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((organization) => {
-      if (!organization) {
-        return;
-      }
-      if (!organization.allowAdminAccessToAllCollectionItems) {
-        this.formGroup.controls.access.addValidators(validateCanManagePermission);
-      } else {
-        this.formGroup.controls.access.removeValidators(validateCanManagePermission);
-      }
-      this.formGroup.controls.access.updateValueAndValidity();
-    });
+    this.organization$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((organization) => {
+        if (!organization) {
+          return;
+        }
+        if (!organization.allowAdminAccessToAllCollectionItems) {
+          this.formGroup.controls.access.addValidators(
+            validateCanManagePermission,
+          );
+        } else {
+          this.formGroup.controls.access.removeValidators(
+            validateCanManagePermission,
+          );
+        }
+        this.formGroup.controls.access.updateValueAndValidity();
+      });
 
     combineLatest([this.collection$, this.organization$])
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -400,11 +445,16 @@ export class CollectionDialogComponent implements OnInit {
             access: mapToAccessSelections(collection),
           });
         } else {
-          const nestOptions: CollectionView[] = this.params.limitNestedCollections
+          const nestOptions: CollectionView[] = this.params
+            .limitNestedCollections
             ? allCollections.filter((c) => c.manage)
             : allCollections;
-          const parent = nestOptions.find((c) => c.id === this.params.parentCollectionId);
-          const currentOrgUserId = users.data.find((u) => u.userId === organization.userId)?.id;
+          const parent = nestOptions.find(
+            (c) => c.id === this.params.parentCollectionId,
+          );
+          const currentOrgUserId = users.data.find(
+            (u) => u.userId === organization.userId,
+          )?.id;
           const initialSelection: AccessItemValue[] =
             currentOrgUserId !== undefined
               ? [
@@ -468,11 +518,18 @@ export class CollectionDialogComponent implements OnInit {
     }
 
     if (this.formGroup.invalid) {
-      const accessTabError = this.formGroup.controls.access.hasError("managePermissionRequired");
+      const accessTabError = this.formGroup.controls.access.hasError(
+        "managePermissionRequired",
+      );
 
-      if (this.tabIndex() === CollectionDialogTabType.Access && !accessTabError) {
+      if (
+        this.tabIndex() === CollectionDialogTabType.Access &&
+        !accessTabError
+      ) {
         // Must match the info tab's label in the template so the toast names the tab the user sees.
-        const infoTabKey = this.vfo1TerminologyService.enabled() ? "details" : "collectionInfo";
+        const infoTabKey = this.vfo1TerminologyService.enabled()
+          ? "details"
+          : "collectionInfo";
         this.toastService.showToast({
           variant: "error",
           message: this.i18nService.t(
@@ -480,10 +537,16 @@ export class CollectionDialogComponent implements OnInit {
             this.i18nService.t(infoTabKey),
           ),
         });
-      } else if (this.tabIndex() === CollectionDialogTabType.Info && accessTabError) {
+      } else if (
+        this.tabIndex() === CollectionDialogTabType.Info &&
+        accessTabError
+      ) {
         this.toastService.showToast({
           variant: "error",
-          message: this.i18nService.t("fieldOnTabRequiresAttention", this.i18nService.t("access")),
+          message: this.i18nService.t(
+            "fieldOnTabRequiresAttention",
+            this.i18nService.t("access"),
+          ),
         });
       }
       return;
@@ -516,7 +579,8 @@ export class CollectionDialogComponent implements OnInit {
     collectionView.id = this.params.collectionId as CollectionId;
     collectionView.organizationId =
       this.formGroup.controls.selectedOrg.value ?? ("" as OrganizationId);
-    collectionView.externalId = this.formGroup.controls.externalId.value ?? undefined;
+    collectionView.externalId =
+      this.formGroup.controls.externalId.value ?? undefined;
     const accessValue = this.formGroup.controls.access.value ?? [];
     collectionView.groups = accessValue
       .filter((v) => v.type === AccessItemType.Group)
@@ -558,7 +622,9 @@ export class CollectionDialogComponent implements OnInit {
     const confirmed = await this.dialogService.openSimpleDialog({
       title: collection?.name ?? "",
       content: {
-        key: vfo1Enabled ? "deleteSharedFolderConfirmation" : "deleteCollectionConfirmation",
+        key: vfo1Enabled
+          ? "deleteSharedFolderConfirmation"
+          : "deleteCollectionConfirmation",
       },
       type: "warning",
     });
@@ -620,7 +686,10 @@ export class CollectionDialogComponent implements OnInit {
     this.formGroup.controls.parent[canEditName ? "enable" : "disable"]();
   }
 
-  private close(action: CollectionDialogAction, collection?: CollectionResponse | CollectionView) {
+  private close(
+    action: CollectionDialogAction,
+    collection?: CollectionResponse | CollectionView,
+  ) {
     void this.dialogRef.close({ action, collection } as CollectionDialogResult);
   }
 }
@@ -628,7 +697,8 @@ export class CollectionDialogComponent implements OnInit {
 function parseName(collection: CollectionView) {
   const nameParts = collection.name.split("/");
   const name = nameParts[nameParts.length - 1];
-  const parent = nameParts.length > 1 ? nameParts.slice(0, -1).join("/") : undefined;
+  const parent =
+    nameParts.length > 1 ? nameParts.slice(0, -1).join("/") : undefined;
 
   return { name, parent };
 }
@@ -658,7 +728,9 @@ function mapToAccessSelections(
  */
 function validateCanManagePermission(control: AbstractControl) {
   const access = control.value as AccessItemValue[];
-  const hasManagePermission = access.some((a) => a.permission === CollectionPermission.Manage);
+  const hasManagePermission = access.some(
+    (a) => a.permission === CollectionPermission.Manage,
+  );
 
   return hasManagePermission ? null : { managePermissionRequired: true };
 }
@@ -701,7 +773,8 @@ function mapUserToAccessItemView(
     type: AccessItemType.Member,
     email: user.email,
     role: user.type,
-    listName: user.name?.length > 0 ? `${user.name} (${user.email})` : user.email,
+    listName:
+      user.name?.length > 0 ? `${user.name} (${user.email})` : user.email,
     labelName: user.name ?? user.email,
     status: user.status,
     readonly: false,
@@ -721,5 +794,8 @@ export function openCollectionDialog(
   dialogService: DialogService,
   config: DialogConfig<CollectionDialogParams, CollectionDialogResult>,
 ) {
-  return dialogService.open<CollectionDialogResult>(CollectionDialogComponent, config);
+  return dialogService.open<CollectionDialogResult>(
+    CollectionDialogComponent,
+    config,
+  );
 }

@@ -19,6 +19,9 @@ export const FederationEvent = {
   ReplicaPurged: 9115,
   WriteForwarded: 9116,
   InvitationRevoked: 9117,
+  CollectionSharedExternally: 9118,
+  CollectionUnsharedExternally: 9119,
+  PeerRequested: 9120,
 } as const
 
 export const FEDERATION_EVENT_MIN = 9101

@@ -31,6 +31,8 @@ export const federationPeers = sqliteTable(
     remoteApproved: integer('remote_approved', { mode: 'boolean' }).notNull().default(false),
     lastSeenAt: integer('last_seen_at'),
     lastError: text('last_error'),
+    /** User who asked for this peer from a collection's Access dialog (a non-admin request), if any. */
+    requestedBy: text('requested_by'),
     createdAt: integer('created_at').notNull(),
     updatedAt: integer('updated_at').notNull(),
   },

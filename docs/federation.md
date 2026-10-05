@@ -1,9 +1,15 @@
-# Federated organisations
+# Federated organisations and collection sharing
 
-Cloudwarden extension (TASKS #300 to #309), not part of the Bitwarden API. A user with an account
+Cloudwarden extension (TASKS #300 to #309, #370 to #376), not part of the Bitwarden API. A user with an account
 on one Cloudwarden instance can be a member of an organisation hosted on another instance and use
 it from the official clients as if it were a local organisation: the items appear in the normal
 sync, can be edited, shared into, deleted and restored, and changes arrive live.
+
+Federation does not tie two organisations together. A pairing is only a signed trust channel
+between two instances (a "trusted workspace"). What users do with it is share individual
+collections with a specific person on the other workspace, from the collection's own Access
+dialog (see "Sharing a collection"). Underneath, that person is a federated member of the hosting
+organisation who holds only the collections shared with them.
 
 Federation is off unless `FEDERATION_ENABLED` is `true`. Off, every federation route answers 404
 and nothing in the normal request path changes.
@@ -80,7 +86,8 @@ Redirects are refused, calls time out after 15 seconds and response bodies are s
 
 ### Pairing
 
-1. An instance admin on A opens Instance admin, Federation, and adds B's domain. A fetches B's
+1. An instance admin on A opens Instance admin, Trusted workspaces (or adds the workspace from a
+   collection's Access dialog, see "Sharing a collection"), and adds B's domain. A fetches B's
    descriptor and shows its fingerprint. The peer is `pending`.
 2. The admins compare fingerprints out of band (for example by phone). A's admin types or pastes
    B's fingerprint to approve; a mismatch is refused. A then sends a signed `POST /federation/v1/pair`
@@ -91,6 +98,74 @@ Redirects are refused, calls time out after 15 seconds and response bodies are s
 Admins can suspend a peer (effective immediately: requests in both directions are refused and
 federated organisations disappear from users' vaults until it is resumed), run a health check
 (signed ping) and remove it (unpair: both sides purge everything tied to the peer).
+
+### Sharing a collection
+
+The web client's collection dialog (Access tab, edit mode) has an "External workspace" section
+(`web/apps/web/src/app/cloudwarden/federation/collection-external-access.component.ts`). It is a
+Cloudwarden addition; nothing of it comes from `bitwarden_license/`.
+
+1. Open a shared collection, choose Access, and in "External workspace" pick the workspace: an
+   already trusted one from the list, or "Add a workspace" with its URL.
+2. For a new workspace, "Look up" asks this server to fetch the remote descriptor
+   (`POST .../external-access/workspaces/lookup`). The fetched fingerprint is shown; the user types
+   or pastes the fingerprint the other administrator gave them out of band, and it must match
+   (checked in the browser and again on the server, as pairing does).
+3. Who can make the workspace trusted:
+   - An **instance admin** creates and approves the peer in one step. The signed pairing request goes
+     to the remote instance, whose own administrator must still approve it on their Instance admin,
+     Trusted workspaces list (both sides approve; there is no auto-accept). Until then the dialog
+     says "waiting for the other workspace".
+   - **Anyone else** who manages the collection only creates a pending request
+     (`federation_peers.requested_by`, no signed request is sent, nothing is trusted). The dialog
+     says "waiting for your instance administrator". An instance admin approves it on Instance
+     admin, Trusted workspaces (the list shows who asked), typing the fingerprint again. Trust is
+     never activated by a non-admin, because a pairing lets another server act for its users
+     inside this instance.
+4. When the workspace is active, enter one or more email addresses of accounts on it and choose the
+   permission (Can view, Can view except passwords, Can edit, Can edit except passwords, Can
+   manage; the same mapping as local access). "Share" sends one federated invitation per new
+   address, scoped to exactly this collection: role User, no groups, no access to all collections.
+   An address that is already a federated member of the organisation through that workspace only
+   gets this collection added or its permission changed; no second invitation or mail is sent. An
+   address with an account on this instance, or a member through another workspace, is refused
+   with a message for that address; the others are still processed.
+5. The invited person sees the invitation on their own instance (Shared with you from other
+   workspaces, and by mail), with an explanation of what accepting shares and, if their instance
+   has not approved the workspace yet, what is missing. Accepting makes the grantee "Accepted,
+   awaiting confirm" in the dialog.
+6. An organisation admin (anyone with the manage users permission) confirms from the same list:
+   "Confirm" opens the standard confirm dialog with the fingerprint phrase and wraps the
+   organisation key in the browser, exactly as for a local member. Auto-confirm is not offered:
+   the existing auto-confirm machinery is for local members who enrolled their own key, and
+   confirming a stand-in account must stay a deliberate step with the phrase checked.
+7. The list shows each external person with a workspace badge, the status (Invited, Accepted
+   awaiting confirm, Active), the permission (editable) and Remove. Removing drops the grant on
+   this collection. If the person then holds nothing else (role User, no other collection, no
+   group, no access to all) the federated membership is removed and the home instance purges its
+   replica (the same mechanisms as removing a federated member); otherwise only the grant goes and
+   their instance resyncs. Removing the workspace itself (unpairing) still purges both sides.
+
+Authorisation matches local access edits: the caller must be able to manage the collection
+(Manage access to it, or the edit any collection permission). Creating the invitation does not
+need the manage users permission, because it grants nothing by itself: the member only gets keys
+when an admin confirms them. Rate limits: lookups 20 per minute, workspace requests 5 per hour
+(30 for instance admins) and shares 60 per hour, per user, on top of the existing per-peer limits
+(30 invitations per peer per hour, 5 invitation emails per user per day).
+
+API (`/api/cloudwarden/federation/organizations/{orgId}/collections/{id}/external-access`, see
+`docs/api/openapi.yaml`): `GET` (workspaces and grantees), `POST` (share), `PUT /{memberId}`,
+`DELETE /{memberId}`, `POST /workspaces/lookup`, `POST /workspaces`. `GET .../admin/peers` adds
+`requestedByEmail` and `sharing` (per organisation: collections and people counts; collection
+names are encrypted, so they are shown only in the organisation's own Admin Console).
+
+Web pages: Instance admin, "Trusted workspaces" (the trust channels, with what is shared through
+each); Admin Console, "External people" (overview with the collections each person holds, linking
+to the vault); the invited person's "Shared with you from other workspaces".
+
+What can be shared: Bitwarden personal vaults cannot be shared, only items in an organisation
+collection. To share a personal item, use "Move to organisation" on the item and pick a
+collection, then share that collection here. Cloudwarden does not add personal-item sharing.
 
 ### Federated membership
 
@@ -229,6 +304,8 @@ federated organisations.
 | SSRF through peer domains | Host names only, https on 443, DNS over HTTPS checks of every address, no redirects, timeouts and size caps. |
 | Instance key theft from a database dump | The private key is encrypted under a key derived from a Worker secret. |
 | Denial of service by a peer | Per-peer rate limit; outbound calls time out; admins can suspend instantly. |
+| A non-admin activates trust through the Access dialog | Only `approvePeerLocally` activates trust and its callers check the instance admin role; the dialog's request path creates an inert pending row (`requested_by`) and sends nothing to the other instance. Fingerprint typed must equal the one the server fetched, and the key is re-checked at approval. Requests are rate limited and capped (20 pending peers) |
+| A collection manager over-shares through the dialog | An invitation carries exactly one collection, role User, no groups and no access to all; it grants nothing until an admin confirms the member with the fingerprint phrase. Existing federated members only get this collection changed. Removal drops the grant, and the membership when nothing else is held |
 | A user account takeover on A through the stand-in account | The stand-in account has no usable password, no API key and no passkeys. Tokens for it are only minted in-process for verified peer requests. Its address cannot also register on A. |
 
 ## Operator guide
@@ -239,10 +316,11 @@ federated organisations.
    `federation_identity`, and pair again.
 2. Make sure `/.well-known/cloudwarden-federation` and `/federation/*` reach the Worker (they are in
    `runWorkerFirst` in `cloudflare.config.ts`).
-3. Instance admin, Federation: add the peer's domain, compare fingerprints with the other admin,
+3. Instance admin, Trusted workspaces: add the peer's domain, compare fingerprints with the other admin,
    approve. Both sides must approve.
-4. Organisation admins invite federated members from Admin Console, Federated members, and confirm
-   them with the standard Confirm action once accepted.
+4. Organisation users who manage a collection share it from its Access dialog, and organisation
+   admins confirm accepted people there or on Admin Console, External people (which can still
+   invite people without a collection).
 5. Monitor peers on the same page (status, last seen, last error, health check) and the federation
    events list. Suspend a peer to cut it off at once; remove it to purge everything.
 

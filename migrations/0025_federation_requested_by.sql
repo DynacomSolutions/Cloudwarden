@@ -1,0 +1,1 @@
+ALTER TABLE `federation_peers` ADD `requested_by` text;

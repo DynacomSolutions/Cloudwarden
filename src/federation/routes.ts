@@ -35,12 +35,18 @@ import {
   baseUrl,
   descriptor,
   federationEnabled,
-  normaliseFingerprint,
   ownDomain,
   requireFederation,
   WELL_KNOWN_PATH,
 } from './identity'
 import { safeFetch } from './net'
+import {
+  addPendingPeer,
+  approvePeerLocally,
+  assertPendingRoom,
+  nextStatus,
+  setPeer,
+} from './peer-admin'
 import {
   claimNonce,
   fetchDescriptor,
@@ -54,7 +60,6 @@ import {
   peerByDomain,
   peerFetch,
   peerJson,
-  peerJsonCall,
   requirePeer,
   verifyInbound,
 } from './peers'
@@ -69,6 +74,19 @@ import {
   respondToInvitation,
   revokeInvitation,
 } from './replica'
+import {
+  addWorkspace,
+  collectionsByMember,
+  externalAccessState,
+  lookupWorkspace,
+  removeExternalAccess,
+  shareCollection,
+  shareSchema,
+  sharingByPeer,
+  updateExternalAccess,
+  updateSchema,
+  workspaceSchema,
+} from './sharing'
 import { parseSignature } from './signature'
 
 type Ctx = Context<Env>
@@ -77,17 +95,8 @@ export const federation = new Hono<Env>()
 
 /** Relayed attachment downloads per client address per minute. */
 const ATTACHMENT_RATE_LIMIT = 120
-/** Peers waiting for approval, across the instance; pairing requests beyond it are refused. */
-const MAX_PENDING_PEERS = 20
 /** Pairing requests per minute across the instance. */
 const PAIR_GLOBAL_LIMIT = 30
-
-async function assertPendingRoom(env: Bindings) {
-  const pending = (await listPeers(env)).filter((p) => p.status === PeerStatus.Pending)
-  if (pending.length >= MAX_PENDING_PEERS) {
-    throw new ApiError(429, 'Too many peers are waiting for approval.')
-  }
-}
 
 const fedBody = <S extends z.ZodType>(c: Ctx, s: S): z.infer<S> => {
   let raw: unknown
@@ -110,14 +119,6 @@ federation.get(WELL_KNOWN_PATH, async (c) => {
 })
 
 // ----- pairing (signed by a peer that may not be known yet) -----
-
-/** Status after an approval change; suspension is only lifted explicitly. */
-const nextStatus = (p: Pick<Peer, 'status' | 'localApproved' | 'remoteApproved'>) =>
-  p.status === PeerStatus.Suspended
-    ? PeerStatus.Suspended
-    : p.localApproved && p.remoteApproved
-      ? PeerStatus.Active
-      : PeerStatus.Pending
 
 federation.post('/federation/v1/pair', async (c) => {
   requireFederation(c.env)
@@ -344,16 +345,6 @@ federation.get('/federation/attachments/:peerId/:cipherId/:attachmentId', async 
 
 // ----- peer lifecycle shared by the admin API and the unpair call -----
 
-async function setPeer(env: Bindings, peer: Peer, patch: Partial<Peer>) {
-  const merged = { ...peer, ...patch }
-  const status = patch.status ?? nextStatus(merged)
-  await createDb(env.DB)
-    .update(schema.federationPeers)
-    .set({ ...patch, status, updatedAt: Date.now() })
-    .where(eq(schema.federationPeers.uuid, peer.uuid))
-  return (await getPeer(env, peer.uuid)) as Peer
-}
-
 /** Users of this instance holding replicas from the peer get a resync so clients add or drop it. */
 async function announcePeerUsers(env: Bindings, peer: Peer) {
   const rows = await createDb(env.DB)
@@ -429,47 +420,30 @@ federation.get(`${ADMIN}/identity`, async (c) => {
 
 federation.get(`${ADMIN}/peers`, async (c) => {
   await requireInstanceAdmin(c)
-  return c.json({ object: 'list', data: await Promise.all((await listPeers(c.env)).map(peerJson)) })
+  const sharing = await sharingByPeer(c)
+  const db = createDb(c.env.DB)
+  const peers = await listPeers(c.env)
+  const data = await Promise.all(
+    peers.map(async (p) => {
+      let requestedByEmail: string | null = null
+      if (p.requestedBy) {
+        const [u] = await db
+          .select({ email: schema.users.email })
+          .from(schema.users)
+          .where(eq(schema.users.uuid, p.requestedBy))
+          .limit(1)
+        requestedByEmail = u?.email ?? null
+      }
+      return { ...(await peerJson(p)), requestedByEmail, sharing: sharing.get(p.uuid) ?? [] }
+    }),
+  )
+  return c.json({ object: 'list', data })
 })
 
 federation.post(`${ADMIN}/peers`, async (c) => {
   await requireInstanceAdmin(c)
-  const { domain: input } = await parseBody(c, z.object({ domain: z.string().min(1).max(260) }))
-  const domain = normaliseDomainOrThrow(input)
-  if (domain === ownDomain(c.env)) throw new ApiError(400, 'An instance cannot pair with itself.')
-  await assertPendingRoom(c.env)
-  if (await peerByDomain(c.env, domain)) throw new ApiError(400, 'This peer already exists.')
-  const d = await fetchDescriptor(c.env, domain)
-  const db = createDb(c.env.DB)
-  const [byId] = await db
-    .select()
-    .from(schema.federationPeers)
-    .where(eq(schema.federationPeers.instanceId, d.instanceId))
-    .limit(1)
-  if (byId) throw new ApiError(400, 'This instance is already paired under another domain.')
-  const now = Date.now()
-  const uuid = crypto.randomUUID()
-  await runBatch(db, [
-    db.insert(schema.federationPeers).values({
-      uuid,
-      instanceId: d.instanceId,
-      domain,
-      publicKey: d.publicKey,
-      fingerprint: d.fingerprint,
-      protocolVersion: d.version,
-      status: PeerStatus.Pending,
-      localApproved: false,
-      remoteApproved: false,
-      createdAt: now,
-      updatedAt: now,
-    }),
-    federationEventStatement(db, {
-      type: FederationEvent.PeerAdded,
-      actingUserUuid: c.var.user.uuid,
-      peerDomain: domain,
-    }),
-  ])
-  return c.json(await peerJson((await getPeer(c.env, uuid)) as Peer))
+  const { domain } = await parseBody(c, z.object({ domain: z.string().min(1).max(260) }))
+  return c.json(await peerJson(await addPendingPeer(c.env, domain, c.var.user.uuid, null)))
 })
 
 const adminPeer = async (c: Ctx) => {
@@ -484,31 +458,9 @@ const adminPeer = async (c: Ctx) => {
  * record our approval. The peer is active once both sides approved.
  */
 federation.post(`${ADMIN}/peers/:id/approve`, async (c) => {
-  let peer = await adminPeer(c)
+  const peer = await adminPeer(c)
   const { fingerprint } = await parseBody(c, z.object({ fingerprint: z.string().min(1).max(200) }))
-  if (normaliseFingerprint(fingerprint) !== normaliseFingerprint(peer.fingerprint)) {
-    throw new ApiError(
-      400,
-      'The fingerprint does not match the peer key. Do not approve this peer.',
-    )
-  }
-  // The key must still be the one the admin checked.
-  const d = await fetchDescriptor(c.env, peer.domain)
-  if (d.publicKey !== peer.publicKey) {
-    throw new ApiError(409, 'The peer now presents a different key. Remove it and add it again.')
-  }
-  peer = await setPeer(c.env, peer, { localApproved: true })
-  await federationEventStatement(createDb(c.env.DB), {
-    type: FederationEvent.PeerApproved,
-    actingUserUuid: c.var.user.uuid,
-    peerDomain: peer.domain,
-  })
-  const res = await peerJsonCall<{ localApproved: boolean }>(c.env, peer, '/federation/v1/pair', {
-    body: { domain: ownDomain(c.env) },
-    allowInactive: true,
-  })
-  if (res?.localApproved) peer = await setPeer(c.env, peer, { remoteApproved: true })
-  return c.json(await peerJson(peer))
+  return c.json(await peerJson(await approvePeerLocally(c.env, peer, fingerprint, c.var.user.uuid)))
 })
 
 federation.post(`${ADMIN}/peers/:id/suspend`, async (c) => {
@@ -582,7 +534,12 @@ federation.get(`${UI}/organizations/:orgId/members`, async (c) => {
   const orgUuid = c.req.param('orgId')
   const member = await requireMember(createDb(c.env.DB), c.var.user.uuid, orgUuid)
   if (!canListMembers(member)) throw new ApiError(403, 'You do not have permission to do this.')
-  return c.json({ object: 'list', data: await listFederatedMembers(c.env, orgUuid) })
+  const held = await collectionsByMember(c, orgUuid)
+  const data = (await listFederatedMembers(c.env, orgUuid)).map((m) => ({
+    ...m,
+    collectionIds: held.get(m.id) ?? [],
+  }))
+  return c.json({ object: 'list', data })
 })
 
 federation.post(`${UI}/organizations/:orgId/members`, async (c) => {
@@ -594,6 +551,65 @@ federation.delete(`${UI}/organizations/:orgId/members/:id`, async (c) => {
   await removeFederatedMember(c, c.req.param('orgId'), c.req.param('id'))
   return c.body(null, 200)
 })
+
+// Collection-first sharing (docs/federation.md, "Sharing a collection"): everything is scoped to a
+// collection the caller can manage.
+
+const EXT = `${UI}/organizations/:orgId/collections/:colId/external-access`
+
+federation.get(EXT, async (c) =>
+  c.json(await externalAccessState(c, c.req.param('orgId'), c.req.param('colId'))),
+)
+
+federation.post(`${EXT}/workspaces/lookup`, async (c) => {
+  const { domain } = await parseBody(c, z.object({ domain: z.string().min(1).max(260) }))
+  return c.json(await lookupWorkspace(c, c.req.param('orgId'), c.req.param('colId'), domain))
+})
+
+federation.post(`${EXT}/workspaces`, async (c) =>
+  c.json(
+    await addWorkspace(
+      c,
+      c.req.param('orgId'),
+      c.req.param('colId'),
+      await parseBody(c, workspaceSchema),
+    ),
+  ),
+)
+
+federation.post(EXT, async (c) =>
+  c.json({
+    object: 'list',
+    data: await shareCollection(
+      c,
+      c.req.param('orgId'),
+      c.req.param('colId'),
+      await parseBody(c, shareSchema),
+    ),
+  }),
+)
+
+federation.put(`${EXT}/:memberId`, async (c) => {
+  await updateExternalAccess(
+    c,
+    c.req.param('orgId'),
+    c.req.param('colId'),
+    c.req.param('memberId'),
+    await parseBody(c, updateSchema),
+  )
+  return c.body(null, 200)
+})
+
+federation.delete(`${EXT}/:memberId`, async (c) =>
+  c.json(
+    await removeExternalAccess(
+      c,
+      c.req.param('orgId'),
+      c.req.param('colId'),
+      c.req.param('memberId'),
+    ),
+  ),
+)
 
 // The invited user on the serving side.
 

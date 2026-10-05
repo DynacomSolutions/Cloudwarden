@@ -1,8 +1,16 @@
-// Cloudwarden: instance admin, federation peers (docs/federation.md, web/NOTICE.md). Admins add a
-// peer by domain, compare fingerprints with the other admin out of band, approve, and can check,
-// suspend, resume or remove peers.
+// Cloudwarden: instance admin, trusted workspaces (docs/federation.md, web/NOTICE.md). A trusted
+// workspace is a signed trust channel with another Cloudwarden instance; it links no organisations.
+// Admins add one by domain (or approve a request made from a collection's Access dialog), compare
+// fingerprints with the other admin out of band, approve, and can check, suspend, resume or remove
+// it. The list shows which organisations currently share collections through each workspace.
 import { DatePipe } from "@angular/common";
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from "@angular/core";
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  inject,
+  signal,
+} from "@angular/core";
 import { FormBuilder, Validators } from "@angular/forms";
 
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
@@ -27,7 +35,9 @@ import {
     <app-header></app-header>
     <bit-container>
       @if (disabled()) {
-        <bit-callout type="info" data-testid="cw-fed-disabled">{{ "cwFedDisabled" | i18n }}</bit-callout>
+        <bit-callout type="info" data-testid="cw-fed-disabled">{{
+          "cwFedDisabled" | i18n
+        }}</bit-callout>
       } @else {
         <p bitTypography="body1">{{ "cwFedAdminDesc" | i18n }}</p>
         @if (identity(); as id) {
@@ -36,17 +46,34 @@ import {
             <p bitTypography="body2">{{ id.domain }}</p>
             <p bitTypography="body2">
               {{ "cwFedFingerprint" | i18n }}:
-              <code class="tw-break-all" data-testid="cw-fed-own-fingerprint">{{ id.fingerprint }}</code>
+              <code class="tw-break-all" data-testid="cw-fed-own-fingerprint">{{
+                id.fingerprint
+              }}</code>
             </p>
           </bit-section>
         }
         <bit-section>
-          <form [formGroup]="form" [bitSubmit]="add" class="tw-flex tw-items-start tw-gap-2">
+          <form
+            [formGroup]="form"
+            [bitSubmit]="add"
+            class="tw-flex tw-items-start tw-gap-2"
+          >
             <bit-form-field class="tw-grow tw-max-w-md">
               <bit-label>{{ "cwFedPeerDomain" | i18n }}</bit-label>
-              <input bitInput type="text" formControlName="domain" placeholder="vault.example.com" />
+              <input
+                bitInput
+                type="text"
+                formControlName="domain"
+                placeholder="vault.example.com"
+              />
             </bit-form-field>
-            <button type="submit" bitButton bitFormButton buttonType="primary" class="tw-mt-6">
+            <button
+              type="submit"
+              bitButton
+              bitFormButton
+              buttonType="primary"
+              class="tw-mt-6"
+            >
               {{ "cwFedAddPeer" | i18n }}
             </button>
           </form>
@@ -68,46 +95,121 @@ import {
               <tr bitRow>
                 <td bitCell>
                   <div>{{ p.domain }}</div>
-                  <div class="tw-text-muted tw-text-xs tw-break-all">{{ p.fingerprint }}</div>
+                  <div class="tw-text-muted tw-text-xs tw-break-all">
+                    {{ p.fingerprint }}
+                  </div>
                   @if (p.lastError) {
-                    <div class="tw-text-danger tw-text-xs">{{ p.lastError }}</div>
+                    <div class="tw-text-danger tw-text-xs">
+                      {{ p.lastError }}
+                    </div>
                   }
+                  @if (p.requestedByEmail) {
+                    <div class="tw-text-xs" data-testid="cw-fed-requested-by">
+                      {{ "cwFedRequestedBy" | i18n: p.requestedByEmail }}
+                    </div>
+                  }
+                  <div class="tw-mt-1 tw-text-xs" data-testid="cw-fed-sharing">
+                    @if ((p.sharing ?? []).length === 0) {
+                      <span class="tw-text-muted">{{
+                        "cwFedNothingShared" | i18n
+                      }}</span>
+                    } @else {
+                      <div class="tw-font-semibold">
+                        {{ "cwFedSharedCollections" | i18n }}
+                      </div>
+                      @for (o of p.sharing; track o.organizationId) {
+                        <div>
+                          {{
+                            "cwFedSharedLine"
+                              | i18n
+                                : o.organizationName
+                                : o.collections
+                                : o.people
+                          }}
+                        </div>
+                      }
+                    }
+                  </div>
                 </td>
                 <td bitCell>
-                  <span bitBadge [variant]="badge(p)">{{ statusKey(p) | i18n }}</span>
+                  <span bitBadge [variant]="badge(p)">{{
+                    statusKey(p) | i18n
+                  }}</span>
                 </td>
                 <td bitCell>{{ p.lastSeenDate | date: "short" }}</td>
                 <td bitCell class="tw-text-right">
                   <div class="tw-flex tw-flex-wrap tw-justify-end tw-gap-1">
                     @if (!p.localApproved) {
-                      <button type="button" bitButton buttonType="primary" (click)="approving.set(p.id)">
+                      <button
+                        type="button"
+                        bitButton
+                        buttonType="primary"
+                        (click)="approving.set(p.id)"
+                      >
                         {{ "cwFedApprove" | i18n }}
                       </button>
                     }
-                    <button type="button" bitButton buttonType="secondary" (click)="check(p)">
+                    <button
+                      type="button"
+                      bitButton
+                      buttonType="secondary"
+                      (click)="check(p)"
+                    >
                       {{ "cwFedCheck" | i18n }}
                     </button>
                     @if (p.status === "suspended") {
-                      <button type="button" bitButton buttonType="secondary" (click)="act(p, 'resume')">
+                      <button
+                        type="button"
+                        bitButton
+                        buttonType="secondary"
+                        (click)="act(p, 'resume')"
+                      >
                         {{ "cwFedResume" | i18n }}
                       </button>
                     } @else {
-                      <button type="button" bitButton buttonType="secondary" (click)="act(p, 'suspend')">
+                      <button
+                        type="button"
+                        bitButton
+                        buttonType="secondary"
+                        (click)="act(p, 'suspend')"
+                      >
                         {{ "cwFedSuspend" | i18n }}
                       </button>
                     }
-                    <button type="button" bitButton buttonType="danger" (click)="remove(p)">
+                    <button
+                      type="button"
+                      bitButton
+                      buttonType="danger"
+                      (click)="remove(p)"
+                    >
                       {{ "remove" | i18n }}
                     </button>
                   </div>
                   @if (approving() === p.id) {
-                    <form [formGroup]="approveForm" [bitSubmit]="approve" class="tw-mt-2 tw-text-left">
+                    <form
+                      [formGroup]="approveForm"
+                      [bitSubmit]="approve"
+                      class="tw-mt-2 tw-text-left"
+                    >
                       <bit-form-field>
-                        <bit-label>{{ "cwFedEnterFingerprint" | i18n }}</bit-label>
-                        <input bitInput type="text" formControlName="fingerprint" />
-                        <bit-hint>{{ "cwFedFingerprintHint" | i18n: p.domain }}</bit-hint>
+                        <bit-label>{{
+                          "cwFedEnterFingerprint" | i18n
+                        }}</bit-label>
+                        <input
+                          bitInput
+                          type="text"
+                          formControlName="fingerprint"
+                        />
+                        <bit-hint>{{
+                          "cwFedFingerprintHint" | i18n: p.domain
+                        }}</bit-hint>
                       </bit-form-field>
-                      <button type="submit" bitButton bitFormButton buttonType="primary">
+                      <button
+                        type="submit"
+                        bitButton
+                        bitFormButton
+                        buttonType="primary"
+                      >
                         {{ "cwFedApprove" | i18n }}
                       </button>
                     </form>
@@ -155,8 +257,12 @@ export class InstanceAdminFederationComponent implements OnInit {
   protected readonly events = signal<FederationEvent[]>([]);
   protected readonly error = signal<string | null>(null);
   protected readonly approving = signal<string | null>(null);
-  protected readonly form = this.fb.group({ domain: ["", [Validators.required]] });
-  protected readonly approveForm = this.fb.group({ fingerprint: ["", [Validators.required]] });
+  protected readonly form = this.fb.group({
+    domain: ["", [Validators.required]],
+  });
+  protected readonly approveForm = this.fb.group({
+    fingerprint: ["", [Validators.required]],
+  });
 
   async ngOnInit() {
     await this.load();
@@ -169,11 +275,18 @@ export class InstanceAdminFederationComponent implements OnInit {
     if (p.active) {
       return "cwFedActive";
     }
-    return p.localApproved ? "cwFedWaitingForPeer" : "cwFedPendingApproval";
+    if (p.localApproved) {
+      return "cwFedWaitingForPeer";
+    }
+    return p.remoteApproved ? "cwFedRemoteRequested" : "cwFedPendingApproval";
   }
 
   protected badge(p: FederationPeer): "success" | "warning" | "danger" {
-    return p.status === "suspended" ? "danger" : p.active ? "success" : "warning";
+    return p.status === "suspended"
+      ? "danger"
+      : p.active
+        ? "success"
+        : "warning";
   }
 
   private async load() {
@@ -237,7 +350,10 @@ export class InstanceAdminFederationComponent implements OnInit {
       const updated = await this.api.approvePeer(peer.id, typed);
       this.toast(
         "success",
-        this.i18n.t(updated.active ? "cwFedPaired" : "cwFedApprovedWaiting", updated.domain),
+        this.i18n.t(
+          updated.active ? "cwFedPaired" : "cwFedApprovedWaiting",
+          updated.domain,
+        ),
       );
       this.approving.set(null);
       this.approveForm.reset();
@@ -252,7 +368,9 @@ export class InstanceAdminFederationComponent implements OnInit {
       const r = await this.api.checkPeer(p.id);
       this.toast(
         r.ok ? "success" : "error",
-        r.ok ? this.i18n.t("cwFedHealthy", String(r.latencyMs ?? 0)) : (r.error ?? ""),
+        r.ok
+          ? this.i18n.t("cwFedHealthy", String(r.latencyMs ?? 0))
+          : (r.error ?? ""),
       );
     } catch (e) {
       this.toast("error", this.message(e));

@@ -17085,6 +17085,238 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+  /api/cloudwarden/federation/organizations/{orgId}/collections/{colId}/external-access:
+    get:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationCollectionExternalAccess
+      summary: 'Collection Access dialog: workspaces and the external people holding this collection (needs Manage on the collection)'
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: colId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationExternalAccess'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationCollectionShare
+      summary: 'Share the collection with people of a paired workspace: new people get an invitation scoped to this collection (role User), existing federated members get this collection added or updated'
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: colId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FederationShare'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationShareResults'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/cloudwarden/federation/organizations/{orgId}/collections/{colId}/external-access/workspaces/lookup:
+    post:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationCollectionWorkspaceLookup
+      summary: 'Fetch a workspace descriptor (SSRF checked) and return the fingerprint to compare out of band'
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: colId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FederationAddPeer'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationWorkspaceLookup'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/cloudwarden/federation/organizations/{orgId}/collections/{colId}/external-access/workspaces:
+    post:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationCollectionAddWorkspace
+      summary: 'Add a workspace from the dialog. The fingerprint must match the one the server fetched. Instance admins create and approve locally; everyone else only creates a pending request an instance admin must approve. The remote side always approves separately'
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: colId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FederationAddWorkspace'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationAddWorkspaceResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/cloudwarden/federation/organizations/{orgId}/collections/{colId}/external-access/{memberId}:
+    put:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationCollectionUpdateExternalAccess
+      summary: 'Change the permission of an external person on this collection'
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: colId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: memberId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FederationAccess'
+      responses:
+        '200':
+          description: Success.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    delete:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationCollectionRemoveExternalAccess
+      summary: 'Remove the access; the federated membership and the remote replica go too when nothing else is held'
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: colId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: memberId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationRemoveAccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
   /api/cloudwarden/federation/invitations:
     get:
       tags:
@@ -17554,6 +17786,154 @@ components:
           type: [string, 'null']
         creationDate:
           type: string
+        requestedByEmail:
+          type: [string, 'null']
+          description: Account that asked for this workspace from a collection dialog (a request awaiting an instance admin), if any.
+        sharing:
+          type: array
+          description: Organisations sharing collections with this workspace (counts; collection names are encrypted).
+          items:
+            type: object
+            properties:
+              organizationId:
+                type: string
+              organizationName:
+                type: string
+              people:
+                type: integer
+              collections:
+                type: integer
+    FederationAccess:
+      type: object
+      properties:
+        readOnly:
+          type: [boolean, 'null']
+        hidePasswords:
+          type: [boolean, 'null']
+        manage:
+          type: [boolean, 'null']
+    FederationShare:
+      type: object
+      required: [workspaceId, emails]
+      properties:
+        workspaceId:
+          type: string
+        emails:
+          type: array
+          maxItems: 10
+          items:
+            type: string
+        readOnly:
+          type: [boolean, 'null']
+        hidePasswords:
+          type: [boolean, 'null']
+        manage:
+          type: [boolean, 'null']
+    FederationShareResults:
+      type: object
+      properties:
+        object:
+          type: string
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              email:
+                type: string
+              ok:
+                type: boolean
+              result:
+                type: string
+                enum: [invited, updated]
+              id:
+                type: string
+              error:
+                type: string
+    FederationWorkspace:
+      type: object
+      properties:
+        id:
+          type: string
+        domain:
+          type: string
+        fingerprint:
+          type: string
+        state:
+          type: string
+          enum: [active, suspended, awaitingInstanceAdmin, awaitingRemote]
+        active:
+          type: boolean
+    FederationWorkspaceLookup:
+      type: object
+      properties:
+        domain:
+          type: string
+        fingerprint:
+          type: string
+        workspace:
+          oneOf:
+          - $ref: '#/components/schemas/FederationWorkspace'
+          - type: 'null'
+    FederationAddWorkspace:
+      type: object
+      required: [domain, fingerprint]
+      properties:
+        domain:
+          type: string
+        fingerprint:
+          type: string
+    FederationAddWorkspaceResponse:
+      type: object
+      properties:
+        created:
+          type: boolean
+        workspace:
+          $ref: '#/components/schemas/FederationWorkspace'
+    FederationExternalAccess:
+      type: object
+      properties:
+        object:
+          type: string
+        isInstanceAdmin:
+          type: boolean
+        available:
+          type: boolean
+        workspaces:
+          type: array
+          items:
+            $ref: '#/components/schemas/FederationWorkspace'
+        grantees:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              userId:
+                type: [string, 'null']
+              email:
+                type: string
+              status:
+                type: integer
+                description: Membership status, 0 invited, 1 accepted (awaiting confirm), 2 confirmed.
+              peerId:
+                type: string
+              peerDomain:
+                type: string
+              peerState:
+                type: string
+              readOnly:
+                type: boolean
+              hidePasswords:
+                type: boolean
+              manage:
+                type: boolean
+    FederationRemoveAccessResponse:
+      type: object
+      properties:
+        removedMember:
+          type: boolean
     FederationPeerList:
       type: object
       properties:
@@ -17628,6 +18008,11 @@ components:
                 type: string
               peerStatus:
                 type: string
+              collectionIds:
+                type: array
+                description: Collections the person holds (granted from the collection Access dialog or the members page).
+                items:
+                  type: string
     FederationInvite:
       type: object
       required: [email, type]

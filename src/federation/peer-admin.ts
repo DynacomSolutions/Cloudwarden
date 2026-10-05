@@ -18,13 +18,48 @@ import {
   peerJsonCall,
 } from './peers'
 
-/** Peers waiting for approval, across the instance; further pairing requests are refused. */
+/**
+ * Peers waiting for approval that an admin added or that arrived as a signed pairing request;
+ * further ones are refused. Requests made by non-admins from the Access dialog have their own,
+ * smaller caps below and do not count here.
+ */
 export const MAX_PENDING_PEERS = 20
+/** Open non-admin workspace requests across the instance, and per user. */
+export const MAX_USER_REQUESTS = 5
+export const MAX_USER_REQUESTS_PER_USER = 2
+/** A non-admin request nobody approved is dropped after this long. */
+export const REQUEST_TTL_MS = 7 * 24 * 3_600_000
+
+const isOpenRequest = (p: Peer) =>
+  p.requestedBy !== null && p.status === PeerStatus.Pending && !p.localApproved
 
 export async function assertPendingRoom(env: Bindings) {
-  const pending = (await listPeers(env)).filter((p) => p.status === PeerStatus.Pending)
+  const pending = (await listPeers(env)).filter(
+    (p) => p.status === PeerStatus.Pending && p.requestedBy === null,
+  )
   if (pending.length >= MAX_PENDING_PEERS) {
     throw new ApiError(429, 'Too many peers are waiting for approval.')
+  }
+}
+
+/** Drops non-admin requests nobody approved within the time to live. */
+export async function expireWorkspaceRequests(env: Bindings, now = Date.now()) {
+  const db = createDb(env.DB)
+  const stale = (await listPeers(env)).filter(
+    (p) => isOpenRequest(p) && p.createdAt < now - REQUEST_TTL_MS,
+  )
+  for (const p of stale) {
+    await db.delete(schema.federationPeers).where(eq(schema.federationPeers.uuid, p.uuid))
+  }
+}
+
+async function assertRequestRoom(env: Bindings, userUuid: string) {
+  const open = (await listPeers(env)).filter(isOpenRequest)
+  if (open.length >= MAX_USER_REQUESTS) {
+    throw new ApiError(429, 'Too many workspace requests are waiting for an administrator.')
+  }
+  if (open.filter((p) => p.requestedBy === userUuid).length >= MAX_USER_REQUESTS_PER_USER) {
+    throw new ApiError(429, 'You already have workspace requests waiting for an administrator.')
   }
 }
 
@@ -66,7 +101,8 @@ export async function addPendingPeer(
   requestedBy: string | null,
 ): Promise<Peer> {
   const domain = checkedDomain(env, input)
-  await assertPendingRoom(env)
+  if (requestedBy) await assertRequestRoom(env, requestedBy)
+  else await assertPendingRoom(env)
   if (await peerByDomain(env, domain)) throw new ApiError(400, 'This peer already exists.')
   const d = await fetchDescriptor(env, domain)
   const db = createDb(env.DB)

@@ -117,14 +117,23 @@ Cloudwarden addition; nothing of it comes from `bitwarden_license/`.
      Trusted workspaces list (both sides approve; there is no auto-accept). Until then the dialog
      says "waiting for the other workspace".
    - **Anyone else** who manages the collection only creates a pending request
-     (`federation_peers.requested_by`, no signed request is sent, nothing is trusted). The dialog
+     (`federation_peers.requested_by`, no signed request is sent, nothing is trusted). Such
+     requests have their own caps (5 open instance wide, 2 per user, not counted against the 20
+     pending peers of admins and inbound pairing) and are dropped after 7 days. A non-admin sees
+     only active workspaces and their own requests; any other known domain is reported only as
+     "waiting for an instance administrator", with no state or fingerprint. The dialog
      says "waiting for your instance administrator". An instance admin approves it on Instance
      admin, Trusted workspaces (the list shows who asked), typing the fingerprint again. Trust is
      never activated by a non-admin, because a pairing lets another server act for its users
      inside this instance.
 4. When the workspace is active, enter one or more email addresses of accounts on it and choose the
    permission (Can view, Can view except passwords, Can edit, Can edit except passwords, Can
-   manage; the same mapping as local access). "Share" sends one federated invitation per new
+   manage; the same mapping as local access). Creating NEW external invitations needs the manage
+   users permission, unless an owner or admin turned on "Collection managers may invite external
+   people" (default off; External people page, `GET/PUT .../organizations/{orgId}/settings`,
+   `organizations.federation_managers_invite`). Granting, changing and removing access for people
+   who already belong to the organisation through the workspace stays with collection managers.
+   "Share" sends one federated invitation per new
    address, scoped to exactly this collection: role User, no groups, no access to all collections.
    An address that is already a federated member of the organisation through that workspace only
    gets this collection added or its permission changed; no second invitation or mail is sent. An
@@ -141,16 +150,26 @@ Cloudwarden addition; nothing of it comes from `bitwarden_license/`.
    confirming a stand-in account must stay a deliberate step with the phrase checked.
 7. The list shows each external person with a workspace badge, the status (Invited, Accepted
    awaiting confirm, Active), the permission (editable) and Remove. Removing drops the grant on
-   this collection. If the person then holds nothing else (role User, no other collection, no
-   group, no access to all) the federated membership is removed and the home instance purges its
-   replica (the same mechanisms as removing a federated member); otherwise only the grant goes and
-   their instance resyncs. Removing the workspace itself (unpairing) still purges both sides.
+   this collection. The federated membership is removed too (and the home instance purges its
+   replica, the same mechanisms as removing a federated member) only when the sharing flow created
+   it (`federation_members.created_via_share`), the person is still Invited or Accepted, and they
+   hold nothing else (role User, no other collection, no group, no access to all); the check and the
+   delete run in the same batch as the grant removal. Anyone already confirmed, or invited on the
+   members page, keeps the membership and a manage users admin removes it from External people.
+   Otherwise only the grant goes and their instance resyncs. Removing the workspace itself (unpairing) still purges both sides.
+
+Auto-confirm (the automatic user confirmation policy) never applies to federated members: they are
+filtered out of `pending-auto-confirm` and refused by `auto-confirm` and `bulk-auto-confirm`, so
+their key is only ever wrapped after a person checked the fingerprint phrase. A federated member
+holding only collection grants (role User, no access to all, no groups) gets only themselves from
+`users/mini-details`, not the member directory.
 
 Authorisation matches local access edits: the caller must be able to manage the collection
-(Manage access to it, or the edit any collection permission). Creating the invitation does not
-need the manage users permission, because it grants nothing by itself: the member only gets keys
-when an admin confirms them. Rate limits: lookups 20 per minute, workspace requests 5 per hour
-(30 for instance admins) and shares 60 per hour, per user, on top of the existing per-peer limits
+(Manage access to it, or the edit any collection permission). Creating a new invitation
+needs the manage users permission unless the organisation setting above is on (the member only
+gets keys when an admin confirms them either way). Rate limits: lookups 20 per minute, workspace
+requests 5 per hour (30 for instance admins) and shares, changes and removals 60 per hour combined,
+per user, on top of the existing per-peer limits
 (30 invitations per peer per hour, 5 invitation emails per user per day).
 
 API (`/api/cloudwarden/federation/organizations/{orgId}/collections/{id}/external-access`, see
@@ -305,7 +324,7 @@ federated organisations.
 | Instance key theft from a database dump | The private key is encrypted under a key derived from a Worker secret. |
 | Denial of service by a peer | Per-peer rate limit; outbound calls time out; admins can suspend instantly. |
 | A non-admin activates trust through the Access dialog | Only `approvePeerLocally` activates trust and its callers check the instance admin role; the dialog's request path creates an inert pending row (`requested_by`) and sends nothing to the other instance. Fingerprint typed must equal the one the server fetched, and the key is re-checked at approval. Requests are rate limited and capped (20 pending peers) |
-| A collection manager over-shares through the dialog | An invitation carries exactly one collection, role User, no groups and no access to all; it grants nothing until an admin confirms the member with the fingerprint phrase. Existing federated members only get this collection changed. Removal drops the grant, and the membership when nothing else is held |
+| A collection manager over-shares through the dialog | New invitations need manage users unless owners and admins opted in (default off). An invitation carries exactly one collection, role User, no groups and no access to all; it grants nothing until an admin confirms the member with the fingerprint phrase. Existing federated members only get this collection changed. Removal drops the grant, and the membership when nothing else is held |
 | A user account takeover on A through the stand-in account | The stand-in account has no usable password, no API key and no passkeys. Tokens for it are only minted in-process for verified peer requests. Its address cannot also register on A. |
 
 ## Operator guide

@@ -183,8 +183,19 @@ const NEW_WORKSPACE = "__new";
                   </div>
                 </bit-callout>
               } @else {
+                @if (!s.canInvite) {
+                  <bit-callout
+                    class="md:tw-col-span-2"
+                    type="info"
+                    data-testid="cw-ext-no-invite"
+                  >
+                    {{ "cwExtNoInvite" | i18n }}
+                  </bit-callout>
+                }
                 <bit-form-field class="md:tw-col-span-2">
-                  <bit-label>{{ "cwExtEmails" | i18n }}</bit-label>
+                  <bit-label>{{
+                    (s.canInvite ? "cwExtEmails" : "cwExtEmailsExisting") | i18n
+                  }}</bit-label>
                   <textarea
                     bitInput
                     rows="2"
@@ -449,6 +460,11 @@ export class CollectionExternalAccessComponent implements OnInit {
         this.collectionId(),
         domain,
       );
+      if (r.awaitingAdmin || !r.fingerprint) {
+        // Known to this server but not visible to non-admins: nothing more to show or add.
+        this.error.set(this.i18n.t("cwExtKnownAwaitingAdmin", r.domain));
+        return;
+      }
       if (r.workspace) {
         // Already known: pick it instead of adding it again.
         this.form.patchValue({ workspaceId: r.workspace.id });
@@ -488,6 +504,10 @@ export class CollectionExternalAccessComponent implements OnInit {
       );
       this.found.set(null);
       this.form.patchValue({ domain: "", fingerprint: "" });
+      if (!r.workspace) {
+        this.error.set(this.i18n.t("cwExtKnownAwaitingAdmin", f.domain));
+        return;
+      }
       await this.load();
       this.form.patchValue({ workspaceId: r.workspace.id });
       this.error.set(null);

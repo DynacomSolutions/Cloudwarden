@@ -73,6 +73,10 @@ export interface ExternalGrantee {
 
 export interface ExternalAccessState {
   isInstanceAdmin: boolean;
+  /** May invite new external people (manage users, or the organisation allows collection managers). */
+  canInvite: boolean;
+  canChangeInviteSetting: boolean;
+  collectionManagersMayInvite: boolean;
   available: boolean;
   workspaces: ExternalWorkspace[];
   grantees: ExternalGrantee[];
@@ -82,6 +86,11 @@ export interface ExternalAccessFlags {
   readOnly: boolean;
   hidePasswords: boolean;
   manage: boolean;
+}
+
+export interface InviteSetting {
+  collectionManagersMayInvite: boolean;
+  canChange: boolean;
 }
 
 export interface ShareResult {
@@ -338,8 +347,10 @@ export class FederationApiService {
     domain: string,
   ): Promise<{
     domain: string;
-    fingerprint: string;
+    fingerprint: string | null;
     workspace: ExternalWorkspace | null;
+    /** A domain this server knows but only an instance admin may see: no detail is returned. */
+    awaitingAdmin?: boolean;
   }> {
     return this.apiService.send(
       "POST",
@@ -355,7 +366,11 @@ export class FederationApiService {
     collectionId: string,
     domain: string,
     fingerprint: string,
-  ): Promise<{ created: boolean; workspace: ExternalWorkspace }> {
+  ): Promise<{
+    created: boolean;
+    workspace: ExternalWorkspace | null;
+    awaitingAdmin?: boolean;
+  }> {
     return this.apiService.send(
       "POST",
       `${this.ext(orgId, collectionId)}/workspaces`,
@@ -405,6 +420,31 @@ export class FederationApiService {
       "DELETE",
       `${this.ext(orgId, collectionId)}/${enc(memberId)}`,
       null,
+      true,
+      true,
+    );
+  }
+
+  inviteSetting(
+    orgId: string,
+  ): Promise<{ collectionManagersMayInvite: boolean; canChange: boolean }> {
+    return this.apiService.send(
+      "GET",
+      `${BASE}/organizations/${enc(orgId)}/settings`,
+      null,
+      true,
+      true,
+    );
+  }
+
+  setInviteSetting(
+    orgId: string,
+    collectionManagersMayInvite: boolean,
+  ): Promise<unknown> {
+    return this.apiService.send(
+      "PUT",
+      `${BASE}/organizations/${enc(orgId)}/settings`,
+      { collectionManagersMayInvite },
       true,
       true,
     );

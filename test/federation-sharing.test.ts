@@ -2,6 +2,8 @@
 // Access dialog, sharing with people of a workspace, updating an existing federated member and
 // removal on both sides. Two instances in one workerd (test/federation-helpers.ts).
 import { beforeAll, describe, expect, it } from 'vitest'
+import { loadIdentity } from '../src/federation/identity'
+import { signRequest } from '../src/federation/signature'
 import { type Net, twoInstances, type User, userOn } from './federation-helpers'
 import { addMember } from './org-helpers'
 
@@ -12,6 +14,11 @@ let adminA: User
 let adminB: User
 let owner: User
 let viewer: User
+let mgr: User
+let mgr2: User
+let owner2: User
+let org2: string
+let org2Col: string
 let alice: User
 let bob: User
 let orgId: string
@@ -24,6 +31,18 @@ let aliceMember: string
 
 const ext = (collection: string, rest = '') =>
   `${fed}/organizations/${orgId}/collections/${collection}/external-access${rest}`
+
+const fakePeer = (domain: string, requestedBy: string | null, createdAt = Date.now()) =>
+  (net.A.env.DB as D1Database)
+    .prepare(
+      "INSERT INTO federation_peers (uuid, instance_id, domain, public_key, fingerprint, protocol_version, status, local_approved, remote_approved, requested_by, created_at, updated_at) VALUES (?1, ?1, ?2, 'k', 'f', 1, 'pending', 0, 0, ?3, ?4, ?4)",
+    )
+    .bind(crypto.randomUUID(), domain, requestedBy, createdAt)
+    .run()
+const dropFakePeers = () =>
+  (net.A.env.DB as D1Database)
+    .prepare("DELETE FROM federation_peers WHERE domain LIKE '%.example.net'")
+    .run()
 
 const members = async () => (await owner.json(`${fed}/organizations/${orgId}/members`)).data
 
@@ -55,6 +74,30 @@ beforeAll(async () => {
     { collections: [{ id: col1, readOnly: true, hidePasswords: false, manage: false }] },
     net.A.mail,
   )
+  // Collection managers without the manage users permission.
+  mgr = await userOn(net.A, 'mgr@example.com')
+  mgr2 = await userOn(net.A, 'mgr2@example.com')
+  for (const m of [mgr, mgr2]) {
+    await addMember(
+      owner,
+      orgId,
+      m,
+      { collections: [{ id: col1, readOnly: false, hidePasswords: false, manage: true }] },
+      net.A.mail,
+    )
+  }
+  // A second organisation nobody above belongs to, for cross-organisation checks.
+  owner2 = await userOn(net.A, 'owner2@example.com')
+  const o2 = await owner2.json('/api/organizations', 'POST', {
+    name: 'Other',
+    billingEmail: 'billing2@example.com',
+    key: '4.otherOrgKey',
+    keys: { publicKey: 'orgPublic3', encryptedPrivateKey: '2.pk' },
+    collectionName: '2.otherCollection',
+    planType: 0,
+  })
+  org2 = o2.id
+  org2Col = (await owner2.json('/api/sync')).collections[0].id
   fingerprintB = (await (await net.B.fetch('/.well-known/cloudwarden-federation')).json<any>())
     .fingerprint
 }, 120_000)
@@ -88,6 +131,48 @@ describe('collection-first federated sharing', { timeout: 120_000 }, () => {
     ).toBe(403)
     // Somebody outside the organisation does not learn that it exists.
     expect((await adminA.call(ext(col1))).status).toBe(404)
+  })
+
+  it('keeps non-admin requests under their own small caps and expires them', async () => {
+    // Per user: two open requests at most.
+    await fakePeer('a1.example.net', mgr.uuid)
+    await fakePeer('a2.example.net', mgr.uuid)
+    const perUser = await mgr.call(ext(col1, '/workspaces'), 'POST', {
+      domain: net.B.domain,
+      fingerprint: fingerprintB,
+    })
+    expect(perUser.status).toBe(429)
+    await dropFakePeers()
+    // Instance wide: five open requests at most.
+    for (let i = 0; i < 5; i++) await fakePeer(`o${i}.example.net`, crypto.randomUUID())
+    expect(
+      (
+        await mgr.call(ext(col1, '/workspaces'), 'POST', {
+          domain: net.B.domain,
+          fingerprint: fingerprintB,
+        })
+      ).status,
+    ).toBe(429)
+    await dropFakePeers()
+    // Requests nobody approved within seven days are dropped.
+    await fakePeer('old.example.net', crypto.randomUUID(), Date.now() - 8 * 24 * 3_600_000)
+    await mgr.json(ext(col1))
+    const left = await (net.A.env.DB as D1Database)
+      .prepare("SELECT count(*) AS n FROM federation_peers WHERE domain = 'old.example.net'")
+      .first<{ n: number }>()
+    expect(left?.n).toBe(0)
+    // A full admin and inbound queue does not block them: those are counted separately.
+    for (let i = 0; i < 20; i++) await fakePeer(`p${i}.example.net`, null)
+    const ok = await mgr.call(ext(col1, '/workspaces'), 'POST', {
+      domain: net.B.domain,
+      fingerprint: fingerprintB,
+    })
+    expect(ok.status).toBe(200)
+    await dropFakePeers()
+    await (net.A.env.DB as D1Database)
+      .prepare('DELETE FROM federation_peers WHERE domain = ?1')
+      .bind(net.B.domain)
+      .run()
   })
 
   it('lets a non-admin only request a workspace, which never becomes trusted by itself', async () => {
@@ -131,6 +216,22 @@ describe('collection-first federated sharing', { timeout: 120_000 }, () => {
       requestedByEmail: owner.email,
       sharing: [],
     })
+    // Another non-admin sees neither the request nor its fingerprint: only "awaiting admin".
+    expect((await mgr.json(ext(col1))).workspaces).toEqual([])
+    expect(
+      await mgr.json(ext(col1, '/workspaces/lookup'), 'POST', { domain: net.B.domain }),
+    ).toEqual({ domain: net.B.domain, fingerprint: null, workspace: null, awaitingAdmin: true })
+    expect(
+      await mgr.json(ext(col1, '/workspaces'), 'POST', {
+        domain: net.B.domain,
+        fingerprint: fingerprintB,
+      }),
+    ).toEqual({ created: false, workspace: null, awaitingAdmin: true })
+    expect((await adminA.json(`${fed}/admin/peers`)).data).toHaveLength(1)
+    // The requester sees their own request.
+    expect((await owner.json(ext(col1))).workspaces).toEqual([
+      expect.objectContaining({ id: peerOnA, state: 'awaitingInstanceAdmin' }),
+    ])
   })
 
   it('limits workspace requests per user', async () => {
@@ -290,8 +391,17 @@ describe('collection-first federated sharing', { timeout: 120_000 }, () => {
     // A grantee of another collection cannot be removed through this one.
     expect((await owner.call(ext(col1, `/${aliceMember}`), 'DELETE')).status).toBe(404)
 
+    // Alice is confirmed: a collection manager only removes the grant, never the membership.
     const last = await owner.json(ext(col2, `/${aliceMember}`), 'DELETE')
-    expect(last).toEqual({ removedMember: true })
+    expect(last).toEqual({ removedMember: false })
+    expect(await members()).toHaveLength(1)
+    // Removing the person is a manage users action.
+    expect(
+      (await mgr.call(`${fed}/organizations/${orgId}/members/${aliceMember}`, 'DELETE')).status,
+    ).toBe(403)
+    expect(
+      (await owner.call(`${fed}/organizations/${orgId}/members/${aliceMember}`, 'DELETE')).status,
+    ).toBe(200)
     expect(await members()).toHaveLength(0)
     await net.flush()
     const profile = await alice.json('/api/accounts/profile')
@@ -299,9 +409,185 @@ describe('collection-first federated sharing', { timeout: 120_000 }, () => {
     expect((await alice.json('/api/sync')).collections).toEqual([])
   })
 
+  it('purges only unconfirmed memberships that the sharing flow created', async () => {
+    const shared = await owner.json(ext(col1), 'POST', {
+      workspaceId: peerOnA,
+      emails: [bob.email],
+    })
+    const bobMember = shared.data[0].id
+    expect(await owner.json(ext(col1, `/${bobMember}`), 'DELETE')).toEqual({ removedMember: true })
+    expect(await members()).toHaveLength(0)
+    // A person invited on the members page is not undone by a collection manager.
+    const manual = await owner.json(`${fed}/organizations/${orgId}/members`, 'POST', {
+      email: bob.email,
+      peerId: peerOnA,
+      type: 2,
+      collections: [{ id: col1, readOnly: false, hidePasswords: false, manage: false }],
+    })
+    expect(await owner.json(ext(col1, `/${manual.id}`), 'DELETE')).toEqual({ removedMember: false })
+    expect(await members()).toHaveLength(1)
+    await owner.call(`${fed}/organizations/${orgId}/members/${manual.id}`, 'DELETE')
+    expect(await members()).toHaveLength(0)
+  })
+
+  it('never auto-confirms people of other workspaces', async () => {
+    const shared = await owner.json(ext(col1), 'POST', {
+      workspaceId: peerOnA,
+      emails: [bob.email],
+    })
+    const id = shared.data[0].id
+    const inv = (await bob.json(`${fed}/invitations`)).data[0]
+    expect((await bob.call(`${fed}/invitations/${inv.id}/accept`, 'POST')).status).toBe(200)
+    const o = `/api/organizations/${orgId}/users`
+    expect(
+      (await owner.call(`/api/organizations/${orgId}/policies/18`, 'PUT', { enabled: true }))
+        .status,
+    ).toBe(200)
+    try {
+      const pending = await owner.json(`${o}/pending-auto-confirm`)
+      expect(pending.data.map((r: { id: string }) => r.id)).not.toContain(id)
+      expect((await owner.call(`${o}/${id}/auto-confirm`, 'POST', { key: '4.k' })).status).toBe(400)
+      const bulk = await owner.json(`${o}/bulk-auto-confirm`, 'POST', {
+        keys: [{ id, key: '4.k' }],
+      })
+      expect(bulk.data[0].error).toMatch(/manually/)
+      expect((await owner.json(ext(col1))).grantees[0].status).toBe(1)
+    } finally {
+      await owner.call(`/api/organizations/${orgId}/policies/18`, 'PUT', { enabled: false })
+    }
+    // The manual confirm still works.
+    expect((await owner.call(`${o}/${id}/confirm`, 'POST', { key: '4.wrapped' })).status).toBe(200)
+  })
+
+  it('shows a collection-only external member only themselves in the member directory', async () => {
+    const bobMember = (await members())[0].id
+    const idn = await loadIdentity(net.B.env as never)
+    const send = async (path: string) => {
+      const url = `${net.A.base}/federation/v1/members/${bob.uuid}/proxy${path}`
+      const headers = new Headers({ 'cloudwarden-federated-user': bob.uuid })
+      await signRequest('GET', url, headers, new Uint8Array(), idn.instanceId, idn.privateKey)
+      return net.A.fetch(new URL(url).pathname, { method: 'GET', headers })
+    }
+    const mine = await send(`/api/organizations/${orgId}/users/mini-details`)
+    expect(mine.status).toBe(200)
+    expect((await mine.json<any>()).data.map((r: { id: string }) => r.id)).toEqual([bobMember])
+    // Local members still get the directory.
+    expect(
+      (await owner.json(`/api/organizations/${orgId}/users/mini-details`)).data.length,
+    ).toBeGreaterThan(2)
+    // Giving them access to everything lifts the restriction.
+    await owner.call(`/api/organizations/${orgId}/users/${bobMember}`, 'PUT', {
+      type: 2,
+      accessAll: true,
+      collections: [],
+      groups: [],
+    })
+    const wide = await send(`/api/organizations/${orgId}/users/mini-details`)
+    expect((await wide.json<any>()).data.length).toBeGreaterThan(1)
+    await owner.call(`/api/organizations/${orgId}/users/${bobMember}`, 'PUT', {
+      type: 2,
+      accessAll: false,
+      collections: [{ id: col1, readOnly: false, hidePasswords: false, manage: false }],
+      groups: [],
+    })
+  })
+
+  it('lets only people with manage users invite new external people, unless an admin allows managers', async () => {
+    const before = await mgr.json(ext(col1))
+    expect(before).toMatchObject({ canInvite: false, canChangeInviteSetting: false })
+    expect(await owner.json(ext(col1))).toMatchObject({
+      canInvite: true,
+      canChangeInviteSetting: true,
+    })
+    const denied = await mgr.json(ext(col1), 'POST', {
+      workspaceId: peerOnA,
+      emails: [alice.email],
+    })
+    expect(denied.data[0]).toMatchObject({ ok: false })
+    expect(denied.data[0].error).toMatch(/manage users/)
+    expect(await members()).toHaveLength(1)
+    // Existing federated members can still be granted, changed and have access removed.
+    const upd = await mgr.json(ext(col1), 'POST', {
+      workspaceId: peerOnA,
+      emails: [bob.email],
+      readOnly: true,
+    })
+    expect(upd.data[0]).toMatchObject({ ok: true, result: 'updated' })
+    // The switch belongs to owners and admins.
+    const settings = `${fed}/organizations/${orgId}/settings`
+    expect(await mgr.json(settings)).toEqual({
+      collectionManagersMayInvite: false,
+      canChange: false,
+    })
+    expect((await mgr.call(settings, 'PUT', { collectionManagersMayInvite: true })).status).toBe(
+      403,
+    )
+    expect(await owner.json(settings, 'PUT', { collectionManagersMayInvite: true })).toEqual({
+      collectionManagersMayInvite: true,
+    })
+    const allowed = await mgr.json(ext(col1), 'POST', {
+      workspaceId: peerOnA,
+      emails: [alice.email],
+    })
+    expect(allowed.data[0]).toMatchObject({ ok: true, result: 'invited' })
+    await owner.json(settings, 'PUT', { collectionManagersMayInvite: false })
+    await owner.call(`${fed}/organizations/${orgId}/members/${allowed.data[0].id}`, 'DELETE')
+  })
+
+  it('refuses ids that belong to another organisation or collection', async () => {
+    const bobMember = (await members()).find((m: { email: string }) => m.email === bob.email).id
+    const orgPath = (o: string, col: string, rest = '') =>
+      `${fed}/organizations/${o}/collections/${col}/external-access${rest}`
+    // Not a member of the other organisation: nothing about it is revealed.
+    for (const [method, rest, body] of [
+      ['GET', '', undefined],
+      ['POST', '', { workspaceId: peerOnA, emails: [alice.email] }],
+      ['POST', '/workspaces/lookup', { domain: net.B.domain }],
+      ['POST', '/workspaces', { domain: net.B.domain, fingerprint: fingerprintB }],
+      ['PUT', `/${bobMember}`, { readOnly: true }],
+      ['DELETE', `/${bobMember}`, undefined],
+    ] as const) {
+      expect((await owner.call(orgPath(org2, org2Col, rest), method, body)).status).toBe(404)
+    }
+    // Own organisation, another organisation's collection.
+    expect((await owner.call(orgPath(orgId, org2Col))).status).toBe(404)
+    expect((await owner.call(orgPath(orgId, org2Col, `/${bobMember}`), 'DELETE')).status).toBe(404)
+    // The other organisation's owner cannot reach this organisation's member through theirs.
+    expect((await owner2.call(orgPath(org2, org2Col, `/${bobMember}`), 'DELETE')).status).toBe(404)
+    expect(
+      (await owner2.call(orgPath(org2, org2Col, `/${bobMember}`), 'PUT', { manage: true })).status,
+    ).toBe(404)
+    expect((await owner2.call(orgPath(orgId, col1))).status).toBe(404)
+    expect(
+      (
+        await owner2.call(`${fed}/organizations/${orgId}/settings`, 'PUT', {
+          collectionManagersMayInvite: true,
+        })
+      ).status,
+    ).toBe(404)
+    // A collection the person does not hold: not found through the other collection.
+    expect(
+      (await owner.call(orgPath(orgId, col2, `/${bobMember}`), 'PUT', { manage: true })).status,
+    ).toBe(404)
+    // Nothing changed.
+    expect((await owner.json(orgPath(orgId, col1))).grantees[0]).toMatchObject({ id: bobMember })
+    expect((await owner.json(orgPath(orgId, col2))).grantees).toEqual([])
+  })
+
+  it('rate limits changing and removing access like sharing', async () => {
+    const bobMember = (await members()).find((m: { email: string }) => m.email === bob.email).id
+    let put = 0
+    for (let i = 0; i < 61; i++) {
+      put = (await mgr2.call(ext(col1, `/${bobMember}`), 'PUT', { readOnly: true })).status
+    }
+    expect(put).toBe(429)
+    expect((await mgr2.call(ext(col1, `/${bobMember}`), 'DELETE')).status).toBe(429)
+    expect(await members()).toHaveLength(1)
+  })
+
   it('reports shared people on the trusted workspaces list', async () => {
     const res = await owner.json(ext(col1), 'POST', { workspaceId: peerOnA, emails: [bob.email] })
-    expect(res.data[0].ok).toBe(true)
+    expect(res.data[0]).toMatchObject({ ok: true, result: 'updated' })
     const peers = (await adminA.json(`${fed}/admin/peers`)).data
     expect(peers[0].sharing).toEqual([
       { organizationId: orgId, organizationName: 'Acme', people: 1, collections: 1 },

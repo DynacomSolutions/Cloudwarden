@@ -44,6 +44,7 @@ import {
   addPendingPeer,
   approvePeerLocally,
   assertPendingRoom,
+  expireWorkspaceRequests,
   nextStatus,
   setPeer,
 } from './peer-admin'
@@ -78,8 +79,10 @@ import {
   addWorkspace,
   collectionsByMember,
   externalAccessState,
+  getInviteSetting,
   lookupWorkspace,
   removeExternalAccess,
+  setInviteSetting,
   shareCollection,
   shareSchema,
   sharingByPeer,
@@ -420,6 +423,7 @@ federation.get(`${ADMIN}/identity`, async (c) => {
 
 federation.get(`${ADMIN}/peers`, async (c) => {
   await requireInstanceAdmin(c)
+  await expireWorkspaceRequests(c.env)
   const sharing = await sharingByPeer(c)
   const db = createDb(c.env.DB)
   const peers = await listPeers(c.env)
@@ -576,6 +580,18 @@ federation.post(`${EXT}/workspaces`, async (c) =>
     ),
   ),
 )
+
+federation.get(`${UI}/organizations/:orgId/settings`, async (c) =>
+  c.json(await getInviteSetting(c, c.req.param('orgId'))),
+)
+
+federation.put(`${UI}/organizations/:orgId/settings`, async (c) => {
+  const { collectionManagersMayInvite } = await parseBody(
+    c,
+    z.object({ collectionManagersMayInvite: z.boolean() }),
+  )
+  return c.json(await setInviteSetting(c, c.req.param('orgId'), collectionManagersMayInvite))
+})
 
 federation.post(EXT, async (c) =>
   c.json({

@@ -17317,6 +17317,61 @@ paths:
           $ref: '#/components/responses/NotFound'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+  /api/cloudwarden/federation/organizations/{orgId}/settings:
+    get:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationOrgSettings
+      summary: 'Whether collection managers may invite new external people (default off)'
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationInviteSetting'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+      - x-cloudwarden-federation
+      operationId: federationOrgSetInviteSetting
+      summary: 'Owners and admins: allow or forbid collection managers to invite new external people'
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [collectionManagersMayInvite]
+              properties:
+                collectionManagersMayInvite:
+                  type: boolean
+      responses:
+        '200':
+          description: Success.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /api/cloudwarden/federation/invitations:
     get:
       tags:
@@ -17867,10 +17922,13 @@ components:
     FederationWorkspaceLookup:
       type: object
       properties:
+        awaitingAdmin:
+          type: boolean
+          description: The domain is known to this server but not visible to non-admins; no detail is returned.
         domain:
           type: string
         fingerprint:
-          type: string
+          type: [string, 'null']
         workspace:
           oneOf:
           - $ref: '#/components/schemas/FederationWorkspace'
@@ -17888,14 +17946,32 @@ components:
       properties:
         created:
           type: boolean
+        awaitingAdmin:
+          type: boolean
         workspace:
-          $ref: '#/components/schemas/FederationWorkspace'
+          oneOf:
+          - $ref: '#/components/schemas/FederationWorkspace'
+          - type: 'null'
+    FederationInviteSetting:
+      type: object
+      properties:
+        collectionManagersMayInvite:
+          type: boolean
+        canChange:
+          type: boolean
     FederationExternalAccess:
       type: object
       properties:
         object:
           type: string
         isInstanceAdmin:
+          type: boolean
+        canInvite:
+          type: boolean
+          description: May create new external invitations (manage users, or the organisation allows collection managers).
+        canChangeInviteSetting:
+          type: boolean
+        collectionManagersMayInvite:
           type: boolean
         available:
           type: boolean

@@ -41,6 +41,8 @@ export const scheduled = async (
     }
     try {
       if (env.FEDERATION_ENABLED === 'true') {
+        const { expireWorkspaceRequests } = await import('./federation/peer-admin')
+        await expireWorkspaceRequests(env)
         const { resyncAll } = await import('./federation/replica')
         await resyncAll(env)
       }

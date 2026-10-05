@@ -186,6 +186,8 @@ export interface FederatedInviteInput {
   collections: Selection[]
   groupIds: string[]
   permissions?: Record<string, boolean | null> | null
+  /** Created by the collection sharing flow (a collection manager may later undo it). */
+  viaShare?: boolean
 }
 
 /**
@@ -245,6 +247,7 @@ export async function createFederatedInvite(c: Ctx, orgUuid: string, input: Fede
       peerUuid: peer.uuid,
       remoteEmail: email,
       remoteUserUuid: null,
+      createdViaShare: input.viaShare === true,
       createdAt: now,
     }),
     ...(body.accessAll
@@ -363,10 +366,19 @@ export async function purgeFederatedMember(
       userUuid: m.userUuid,
     }),
   ])
+  await tellPeerMemberRemoved(c, m, f)
+}
+
+/** After a membership row is gone: withdraw the invitation and make the home instance purge. */
+export async function tellPeerMemberRemoved(
+  c: Ctx,
+  m: typeof schema.usersOrganizations.$inferSelect,
+  f: typeof schema.federationMembers.$inferSelect,
+) {
   const peer = await getPeer(c.env, f.peerUuid)
   if (peer && isActive(peer)) {
     // Pending invitations are withdrawn; for members the push below makes the peer purge.
-    await peerJsonCall(c.env, peer, `/federation/v1/invitations/${memberUuid}/revoke`, {
+    await peerJsonCall(c.env, peer, `/federation/v1/invitations/${m.uuid}/revoke`, {
       body: {},
     }).catch(() => {})
     if (m.userUuid) await notifyPeerOfUser(c.env, m.userUuid, 5, {}, null)

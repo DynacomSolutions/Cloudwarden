@@ -232,6 +232,10 @@ export class FederatedMembersComponent implements OnInit {
   protected readonly status = signal<FederationStatus | null>(null);
   protected readonly members = signal<FederatedMember[]>([]);
   protected readonly error = signal<string | null>(null);
+  protected readonly inviteSetting = signal<{
+    collectionManagersMayInvite: boolean;
+    canChange: boolean;
+  } | null>(null);
   /** Collection names (encrypted on the server, decrypted in this browser) by id. */
   private readonly collectionNameById = signal<Map<string, string>>(new Map());
   protected readonly form = inject(FormBuilder).group({
@@ -249,10 +253,27 @@ export class FederatedMembersComponent implements OnInit {
         this.form.patchValue({ peerId: status.peers[0].id });
       }
       await this.load();
+      this.inviteSetting.set(
+        await this.api.inviteSetting(this.orgId).catch((): null => null),
+      );
     } catch {
       this.status.set(null);
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  protected async toggleInvite(enabled: boolean) {
+    try {
+      await this.api.setInviteSetting(this.orgId, enabled);
+      this.inviteSetting.update((s) =>
+        s ? { ...s, collectionManagersMayInvite: enabled } : s,
+      );
+    } catch (e) {
+      this.toast("error", (e as Error)?.message ?? String(e));
+      this.inviteSetting.set(
+        await this.api.inviteSetting(this.orgId).catch((): null => null),
+      );
     }
   }
 

@@ -6,7 +6,7 @@
 // - only an instance admin can activate trust: anyone else creates a pending request that an
 //   instance admin approves on Admin > Federation (never from the dialog);
 // - an invitation carries exactly one collection, role User, no groups, no access to all.
-import { and, eq } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import type { Context } from 'hono'
 import { z } from 'zod'
 import { isAdminUser, rateLimit } from '../admin/security'
@@ -15,16 +15,29 @@ import { createDb, runBatch, schema } from '../db'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
 import { PushType, pushUserUpdate } from '../notifications/publish'
-import { bumpOrgRevision, requireOrg } from '../orgs/access'
-import { EventType, Role } from '../orgs/constants'
+import { bumpOrgRevision, can, isAdminRole, requireMember, requireOrg } from '../orgs/access'
+import { EventType, Role, Status } from '../orgs/constants'
 import { eventStatement } from '../orgs/events'
 import { accessOf } from '../orgs/members'
 import { requireCollectionManager } from '../routes/collections'
 import { FederationEvent, federationEventStatement } from './events'
-import { assertFederatable, createFederatedInvite, purgeFederatedMember } from './hosting'
+import { assertFederatable, createFederatedInvite, tellPeerMemberRemoved } from './hosting'
 import { normaliseFingerprint } from './identity'
-import { addPendingPeer, approvePeerLocally, lookupPeerDescriptor } from './peer-admin'
-import { getPeer, isActive, listPeers, type Peer, PeerStatus, peerByDomain } from './peers'
+import {
+  addPendingPeer,
+  approvePeerLocally,
+  expireWorkspaceRequests,
+  lookupPeerDescriptor,
+} from './peer-admin'
+import {
+  getPeer,
+  isActive,
+  listPeers,
+  normaliseDomainOrThrow,
+  type Peer,
+  PeerStatus,
+  peerByDomain,
+} from './peers'
 
 type Ctx = Context<Env>
 
@@ -47,6 +60,15 @@ const workspaceJson = (p: Peer) => ({
   state: workspaceState(p),
   active: isActive(p),
 })
+
+/**
+ * What a non-instance-admin may know about a peer: active workspaces and the pending requests they
+ * created. Everything else is reported only as "awaiting admin" (no state, no fingerprint).
+ */
+const visibleTo = (p: Peer, userUuid: string, isAdmin: boolean) =>
+  isAdmin || isActive(p) || (p.requestedBy === userUuid && p.status === PeerStatus.Pending)
+
+const AWAITING_ADMIN = { workspace: null, awaitingAdmin: true } as const
 
 /** Emails shared in one request; each one is an outbound invitation. */
 const MAX_EMAILS = 10
@@ -137,16 +159,25 @@ async function granteesOf(c: Ctx, orgUuid: string, collectionUuid: string) {
 
 export async function externalAccessState(c: Ctx, orgUuid: string, collectionUuid: string) {
   const db = createDb(c.env.DB)
-  await requireCollectionManager(db, c.var.user.uuid, orgUuid, collectionUuid)
+  const actor = await requireCollectionManager(db, c.var.user.uuid, orgUuid, collectionUuid)
+  await expireWorkspaceRequests(c.env)
+  const isAdmin = isAdminUser(c.env, c.var.user)
+  const org = await requireOrg(db, orgUuid)
   return {
     object: 'externalAccess',
-    isInstanceAdmin: isAdminUser(c.env, c.var.user),
+    isInstanceAdmin: isAdmin,
+    // New invitations need manage users, unless owners and admins let collection managers do it.
+    canInvite: can(actor, 'manageUsers') || org.federationManagersInvite,
+    canChangeInviteSetting: isAdminRole(actor),
+    collectionManagersMayInvite: org.federationManagersInvite,
     // Whether the organisation may serve federated members at all (no SSO, no required 2FA).
     available: await assertFederatable(db, orgUuid).then(
       () => true,
       () => false,
     ),
-    workspaces: (await listPeers(c.env)).map(workspaceJson),
+    workspaces: (await listPeers(c.env))
+      .filter((p) => visibleTo(p, c.var.user.uuid, isAdmin))
+      .map(workspaceJson),
     grantees: await granteesOf(c, orgUuid, collectionUuid),
   }
 }
@@ -156,13 +187,18 @@ export async function lookupWorkspace(
   c: Ctx,
   orgUuid: string,
   collectionUuid: string,
-  domain: string,
+  input: string,
 ) {
   const db = createDb(c.env.DB)
   await requireCollectionManager(db, c.var.user.uuid, orgUuid, collectionUuid)
   await limit(c, `fedlookup:${c.var.user.uuid}`, LOOKUPS_PER_MINUTE, 60_000)
+  const isAdmin = isAdminUser(c.env, c.var.user)
+  const domain = normaliseDomainOrThrow(input)
+  const existing = await peerByDomain(c.env, domain)
+  if (existing && !visibleTo(existing, c.var.user.uuid, isAdmin)) {
+    return { domain, fingerprint: null, ...AWAITING_ADMIN }
+  }
   const found = await lookupPeerDescriptor(c.env, domain)
-  const existing = await peerByDomain(c.env, found.domain)
   return {
     domain: found.domain,
     fingerprint: found.descriptor.fingerprint,
@@ -192,7 +228,13 @@ export async function addWorkspace(
     isAdmin ? ADMIN_REQUESTS_PER_HOUR : REQUESTS_PER_HOUR,
     3_600_000,
   )
-  const found = await lookupPeerDescriptor(c.env, body.domain)
+  await expireWorkspaceRequests(c.env)
+  const domain = normaliseDomainOrThrow(body.domain)
+  const known = await peerByDomain(c.env, domain)
+  if (known && !visibleTo(known, actor.uuid, isAdmin)) {
+    return { created: false, ...AWAITING_ADMIN }
+  }
+  const found = await lookupPeerDescriptor(c.env, domain)
   if (
     normaliseFingerprint(body.fingerprint) !== normaliseFingerprint(found.descriptor.fingerprint)
   ) {
@@ -201,7 +243,7 @@ export async function addWorkspace(
       'The fingerprint does not match the key this workspace presents. Do not add it.',
     )
   }
-  let peer = await peerByDomain(c.env, found.domain)
+  let peer = known
   if (peer && peer.publicKey !== found.descriptor.publicKey) {
     throw new ApiError(
       409,
@@ -293,9 +335,10 @@ export async function shareCollection(
   body: z.infer<typeof shareSchema>,
 ): Promise<ShareResult[]> {
   const db = createDb(c.env.DB)
-  await requireCollectionManager(db, c.var.user.uuid, orgUuid, collectionUuid)
+  const actor = await requireCollectionManager(db, c.var.user.uuid, orgUuid, collectionUuid)
   await limit(c, `fedshare:${c.var.user.uuid}`, GRANTS_PER_HOUR, 3_600_000)
   const org = await requireOrg(db, orgUuid)
+  const mayInvite = can(actor, 'manageUsers') || org.federationManagersInvite
   await assertFederatable(db, orgUuid)
   const peer = await getPeer(c.env, body.workspaceId)
   if (!peer || !isActive(peer)) {
@@ -339,7 +382,14 @@ export async function shareCollection(
         results.push({ email, ok: true, result: 'updated', id: row.m.uuid })
         continue
       }
+      if (!mayInvite) {
+        throw new ApiError(
+          403,
+          'Inviting new external people needs the manage users permission. Ask an owner or admin, or have them allow collection managers to invite.',
+        )
+      }
       const invite = await createFederatedInvite(c, orgUuid, {
+        viaShare: true,
         org,
         email,
         peer,
@@ -401,6 +451,7 @@ export async function updateExternalAccess(
 ) {
   const db = createDb(c.env.DB)
   await requireCollectionManager(db, c.var.user.uuid, orgUuid, collectionUuid)
+  await limit(c, `fedshare:${c.var.user.uuid}`, GRANTS_PER_HOUR, 3_600_000)
   const row = await grantee(c, orgUuid, collectionUuid, memberUuid)
   await runBatch(db, [
     ...upsertGrant(c, memberUuid, collectionUuid, access),
@@ -415,10 +466,11 @@ export async function updateExternalAccess(
 }
 
 /**
- * Removes the grant on this collection. When the person then holds nothing else in the
- * organisation (role User, no other collection, no group, no access to everything) the federated
- * membership is removed and the home instance is told, so the replica is purged there; otherwise
- * the home instance is told to resync.
+ * Removes the grant on this collection (a collection manager's whole power). The federated
+ * membership itself is purged only when the sharing flow created it, the person has not accepted
+ * yet or is awaiting confirm (never an active member), and nothing else is held; the check and the
+ * delete run in one batch with the grant removal, so a concurrent grant cannot be lost. Anything
+ * else is left to people with the manage users permission.
  */
 export async function removeExternalAccess(
   c: Ctx,
@@ -428,30 +480,10 @@ export async function removeExternalAccess(
 ) {
   const db = createDb(c.env.DB)
   await requireCollectionManager(db, c.var.user.uuid, orgUuid, collectionUuid)
+  await limit(c, `fedshare:${c.var.user.uuid}`, GRANTS_PER_HOUR, 3_600_000)
   const row = await grantee(c, orgUuid, collectionUuid, memberUuid)
-  const others = await db
-    .select({ id: schema.usersCollections.collectionUuid })
-    .from(schema.usersCollections)
-    .where(eq(schema.usersCollections.organizationUserUuid, memberUuid))
-  const groups = await db
-    .select({ id: schema.groupsUsers.groupUuid })
-    .from(schema.groupsUsers)
-    .where(eq(schema.groupsUsers.organizationUserUuid, memberUuid))
-  const holdsNothingElse =
-    row.m.atype === Role.User &&
-    !row.m.accessAll &&
-    groups.length === 0 &&
-    others.every((o) => o.id === collectionUuid)
-  await federationEventStatement(db, {
-    type: FederationEvent.CollectionUnsharedExternally,
-    organizationUuid: orgUuid,
-    organizationUserUuid: memberUuid,
-    actingUserUuid: c.var.user.uuid,
-  })
-  if (holdsNothingElse) {
-    await purgeFederatedMember(c, orgUuid, row.m, row.f)
-    return { removedMember: true }
-  }
+  const fm = schema.federationMembers
+  const uo = schema.usersOrganizations
   await runBatch(db, [
     db
       .delete(schema.usersCollections)
@@ -461,6 +493,26 @@ export async function removeExternalAccess(
           eq(schema.usersCollections.collectionUuid, collectionUuid),
         ),
       ),
+    db
+      .delete(uo)
+      .where(
+        and(
+          eq(uo.uuid, memberUuid),
+          eq(uo.organizationUuid, orgUuid),
+          eq(uo.atype, Role.User),
+          eq(uo.accessAll, false),
+          inArray(uo.status, [Status.Invited, Status.Accepted]),
+          sql`exists (select 1 from ${fm} where ${fm.organizationUserUuid} = ${memberUuid} and ${fm.createdViaShare} = 1)`,
+          sql`not exists (select 1 from ${schema.usersCollections} where ${schema.usersCollections.organizationUserUuid} = ${memberUuid})`,
+          sql`not exists (select 1 from ${schema.groupsUsers} where ${schema.groupsUsers.organizationUserUuid} = ${memberUuid})`,
+        ),
+      ),
+    federationEventStatement(db, {
+      type: FederationEvent.CollectionUnsharedExternally,
+      organizationUuid: orgUuid,
+      organizationUserUuid: memberUuid,
+      actingUserUuid: c.var.user.uuid,
+    }),
     eventStatement(db, c, {
       type: EventType.CollectionUpdated,
       organizationUuid: orgUuid,
@@ -468,6 +520,20 @@ export async function removeExternalAccess(
     }),
     bumpOrgRevision(db, orgUuid, Date.now()),
   ])
+  const [still] = await db.select({ id: uo.uuid }).from(uo).where(eq(uo.uuid, memberUuid)).limit(1)
+  if (!still) {
+    await db.insert(schema.events).values({
+      uuid: crypto.randomUUID(),
+      eventType: EventType.OrganizationUserRemoved,
+      organizationUuid: orgUuid,
+      organizationUserUuid: memberUuid,
+      userUuid: row.m.userUuid,
+      actingUserUuid: c.var.user.uuid,
+      eventDate: Date.now(),
+    })
+    await tellPeerMemberRemoved(c, row.m, row.f)
+    return { removedMember: true }
+  }
   if (row.m.userUuid) {
     await pushUserUpdate(c.env, row.m.userUuid, PushType.SyncVault, {
       UserId: row.m.userUuid,
@@ -475,6 +541,31 @@ export async function removeExternalAccess(
     })
   }
   return { removedMember: false }
+}
+
+/** Org-level switch: may collection managers invite new external people (default off). */
+export async function setInviteSetting(c: Ctx, orgUuid: string, enabled: boolean) {
+  const db = createDb(c.env.DB)
+  const actor = await requireMember(db, c.var.user.uuid, orgUuid)
+  if (!isAdminRole(actor)) throw new ApiError(403, 'You do not have permission to do this.')
+  await runBatch(db, [
+    db
+      .update(schema.organizations)
+      .set({ federationManagersInvite: enabled, updatedAt: Date.now() })
+      .where(eq(schema.organizations.uuid, orgUuid)),
+    eventStatement(db, c, { type: EventType.OrganizationUpdated, organizationUuid: orgUuid }),
+  ])
+  return { collectionManagersMayInvite: enabled }
+}
+
+export async function getInviteSetting(c: Ctx, orgUuid: string) {
+  const db = createDb(c.env.DB)
+  const actor = await requireMember(db, c.var.user.uuid, orgUuid)
+  const org = await requireOrg(db, orgUuid)
+  return {
+    collectionManagersMayInvite: org.federationManagersInvite,
+    canChange: isAdminRole(actor),
+  }
 }
 
 /** Per peer: the organisations sharing with it, with counts (names of collections are encrypted). */

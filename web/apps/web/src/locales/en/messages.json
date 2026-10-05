@@ -19402,5 +19402,26 @@
   },
   "cwExtPeopleHowTo": {
     "message": "To share more, open a collection, choose Access and add an external workspace."
+  },
+  "cwExtNoInvite": {
+    "message": "Inviting new external people needs the manage users permission. You can still add or change access for people who already belong to this organisation through this workspace. An owner or admin can allow collection managers to invite on the External people page."
+  },
+  "cwExtEmailsExisting": {
+    "message": "Email addresses of external people already in this organisation"
+  },
+  "cwExtKnownAwaitingAdmin": {
+    "message": "$DOMAIN$ is already known to this server and is waiting for an instance administrator. You cannot use it until it is approved.",
+    "placeholders": {
+      "domain": {
+        "content": "$1",
+        "example": "vault.example.com"
+      }
+    }
+  },
+  "cwExtMayInviteLabel": {
+    "message": "Collection managers may invite external people"
+  },
+  "cwExtMayInviteHint": {
+    "message": "Off by default: only people with the manage users permission can invite new external people. Managers can always change access for external people already in the organisation."
   }
 }

@@ -39,6 +39,9 @@ const base = (
   over: Partial<ExternalAccessState> = {},
 ): ExternalAccessState => ({
   isInstanceAdmin: false,
+  canInvite: true,
+  canChangeInviteSetting: false,
+  collectionManagersMayInvite: false,
   available: true,
   workspaces: [],
   grantees: [],
@@ -236,6 +239,40 @@ describe("CollectionExternalAccessComponent", () => {
     await f.whenStable();
     expect(confirmDialog).toHaveBeenCalled();
     expect(api.removeExternalAccess).toHaveBeenCalledWith("org1", "col1", "m1");
+  });
+
+  it("explains that inviting new people needs manage users when the user may not invite", async () => {
+    api.externalAccess.mockResolvedValue(
+      base({ workspaces: [ws("active")], canInvite: false }),
+    );
+    const f = await render();
+    await pick(f, "cw-ext-workspace", "w1");
+    expect(q(f, "cw-ext-no-invite")?.textContent).toContain("cwExtNoInvite");
+  });
+
+  it("does not show the explanation to people who may invite", async () => {
+    api.externalAccess.mockResolvedValue(base({ workspaces: [ws("active")] }));
+    const f = await render();
+    await pick(f, "cw-ext-workspace", "w1");
+    expect(q(f, "cw-ext-no-invite")).toBeNull();
+  });
+
+  it("only says a known workspace is waiting for an administrator, without detail", async () => {
+    api.externalAccess.mockResolvedValue(base());
+    api.lookupWorkspace.mockResolvedValue({
+      domain: "peer.example.org",
+      fingerprint: null,
+      workspace: null,
+      awaitingAdmin: true,
+    });
+    const f = await render();
+    await pick(f, "cw-ext-workspace", "__new");
+    await type(f, "cw-ext-domain", "peer.example.org");
+    (q(f, "cw-ext-lookup") as HTMLButtonElement).click();
+    await f.whenStable();
+    f.detectChanges();
+    expect(q(f, "cw-ext-found-fingerprint")).toBeNull();
+    expect(f.nativeElement.textContent).toContain("cwExtKnownAwaitingAdmin");
   });
 
   it("is read only in a read only dialog", async () => {

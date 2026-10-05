@@ -91,6 +91,8 @@ export const federationMembers = sqliteTable(
       .references(() => federationPeers.uuid, { onDelete: 'cascade' }),
     remoteEmail: text('remote_email').notNull(),
     remoteUserUuid: text('remote_user_uuid'),
+    /** Created by the collection sharing flow (TASKS #377): only these may be purged by a collection manager. */
+    createdViaShare: integer('created_via_share', { mode: 'boolean' }).notNull().default(false),
     createdAt: integer('created_at').notNull(),
   },
   (t) => [index('federation_members_peer_idx').on(t.peerUuid)],

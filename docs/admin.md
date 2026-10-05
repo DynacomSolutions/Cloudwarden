@@ -11,7 +11,7 @@ removed (TASKS #226): `/admin` and `/admin/*` now return the standard 404 JSON.
 | Name | Kind | Purpose |
 |---|---|---|
 | `ADMIN_ENABLED` | var | `true` to enable the admin API. Anything else makes the API answer 403 and `/api/cloudwarden/me` report `isAdmin: false` |
-| `ADMIN_EMAILS` | secret | Comma-separated admin addresses (case-insensitive). Defines who is an admin |
+| `ADMIN_EMAILS` | secret | Comma-separated owner addresses (case-insensitive). The bootstrap set of instance admins, shown as **Owner**; only changeable on the server side |
 | `EMAIL` | `send_email` binding | Cloudflare Email Service, needed for invitations, verification and two-factor email |
 | `MAIL_FROM` | var | Sender address, on an onboarded sending domain |
 | `DOMAIN` | var | Public base URL, used for emailed links |
@@ -19,10 +19,11 @@ removed (TASKS #226): `/admin` and `/admin/*` now return the standard 404 JSON.
 ## Sign-in
 
 There is no separate admin password. A vault user is an admin when `ADMIN_ENABLED` is `true`, the
-account is enabled, its email is verified and the address is in `ADMIN_EMAILS`.
+account is enabled, its email is verified and it is an **owner** (address in `ADMIN_EMAILS`) or was
+granted the **admin** role (see Instance roles).
 
 1. After login the client calls `GET /api/cloudwarden/me` with its own access token, which returns
-   `{"isAdmin": boolean, "email": string}`.
+   `{"isAdmin": boolean, "email": string, "role": "owner" | "admin" | "user"}`.
 2. For admins it shows the Instance admin navigation group (overview, users, invitations,
    organisations, diagnostics). A route guard keeps non-admins out of the pages.
 3. The pages call the JSON admin API through the client's authenticated `ApiService`, so the access
@@ -39,6 +40,7 @@ The operations are documented under the `x-cloudwarden` tag in `docs/api/openapi
 |---|---|
 | `GET /overview` | Counts, version and configuration flags |
 | `GET /users?page=&pageSize=` | Users, newest first (page size at most 100) |
+| `PUT` or `POST /users/:id/role` `{role: "admin" \| "user"}` | Set the instance role (204; see Instance roles). The users list returns each user's `role` and a `self` flag |
 | `POST /users/:id/disable`, `/enable`, `/deauthorize`, `/remove-2fa` | Account actions (204; 404 for an unknown user; refused with 400 for any account listed in `ADMIN_EMAILS`, yourself included) |
 | `DELETE /users/:id` | Delete a user and data. Refused for your own account and for the sole owner of an organisation (400) |
 | `GET /invitations`, `POST /invitations` `{email}`, `DELETE /invitations/:email` | Invitations; create returns `emailStatus` of `sent`, `not-configured` or `failed` |
@@ -47,7 +49,7 @@ The operations are documented under the `x-cloudwarden` tag in `docs/api/openapi
 
 Invitations are stored in the `invitations` table and gate registration. Deleting a user or
 organisation also removes its R2 attachment and Send blobs. Every write inserts a row in `events`
-(types 9001 to 9011, outside the codes the official clients use) recording the acting admin.
+(types 9001 to 9013, outside the codes the official clients use) recording the acting admin.
 Invitation events never contain the address.
 
 Registration and admin addresses: invitations and `SIGNUPS_DOMAINS_WHITELIST` only say who may
@@ -55,6 +57,42 @@ register, so those registrations need the emailed verification token (proof of m
 Open signups may skip it, except for addresses in `ADMIN_EMAILS`, which always need the token (and
 get none when no mail transport is configured). Admin checks, including `/api/cloudwarden/me`, also
 require a verified email.
+
+## Instance roles
+
+Every user has one of three instance roles, shown in the **Role** column of Instance admin, Users:
+
+| Role | Source | May use the admin API |
+|---|---|---|
+| Owner | The address is in `ADMIN_EMAILS` (the bootstrap set). Not stored in the database | Yes |
+| Admin | Granted in the database (`users.instance_role`) by an owner or admin | Yes |
+| User | Default | No |
+
+Owners and admins change a user's role from the Role menu (a confirmation dialog follows) or with
+`PUT /api/cloudwarden/admin/users/:id/role`. The rules, all enforced on the server:
+
+- Only an owner or admin may call it; everyone else gets 403, so nobody can promote themselves.
+- The role must be `admin` or `user`; `owner` and anything else is a 400. Owners are only defined by
+  `ADMIN_EMAILS`, which the UI cannot edit (the Owner row is locked, with a tooltip saying so).
+- An owner's role cannot be changed, and nobody can change their own role (400). Owners always
+  exist because they come from the server setting, so the instance cannot be left without an admin.
+- Only a verified, enabled user can be made an admin (400 otherwise). Taking the role away is always
+  allowed. Admin rights still need a verified address at every request, so clearing verification
+  removes them at once.
+- A granted role is **cleared when the user changes their email address**, with or without mail
+  (it was granted to the person at the old address, and a changed address must never inherit it).
+  An owner or admin must grant it again. Owners are unaffected because `ADMIN_EMAILS` names addresses.
+- Granting and revoking are audited as event 9013 (`UserRoleChanged`) with the acting admin and the
+  target user. The endpoint shares the per-admin rate limit of 120 requests per minute.
+- The existing protection of owner accounts stays: disable, deauthorize, remove 2FA and delete are
+  refused for owners. A granted admin is managed like any user (set them back to User first if you
+  want them to lose the role).
+- If a granted admin must be removed without any admin UI, run
+  `UPDATE users SET instance_role = 'user' WHERE lower(email) = lower('admin@example.com')` with
+  `cf d1 query` (see Recovery).
+
+Federation admin routes (`/api/cloudwarden/federation/admin/*`, `isInstanceAdmin`) use the same
+check, so granted admins can manage peers too.
 
 ## Recovery
 

@@ -16,7 +16,14 @@ import {
   saveWebPush,
   webPushView,
 } from './push-settings'
-import { isAdminUser, isPlausibleEmail, normaliseEmail, rateLimit } from './security'
+import {
+  GRANTABLE_ROLES,
+  instanceRoleOf,
+  isAdminUser,
+  isPlausibleEmail,
+  normaliseEmail,
+  rateLimit,
+} from './security'
 import {
   AdminEventType,
   type Audit,
@@ -37,6 +44,7 @@ import {
   removeTwoFactor,
   serverConfig,
   setUserEnabled,
+  setUserRole,
   tfaName,
 } from './service'
 
@@ -61,6 +69,8 @@ const adminNotificationSchema = z.object({
   organizationId: z.string().nullish(),
 })
 
+const roleSchema = z.object({ role: z.enum(GRANTABLE_ROLES) })
+
 const notFound = (what: string) => new ApiError(404, `${what} not found`)
 
 export function createAdminApi(deps: AdminApiDeps = {}) {
@@ -72,7 +82,11 @@ export function createAdminApi(deps: AdminApiDeps = {}) {
     const match = /^Bearer\s+(\S+)$/i.exec(c.req.header('Authorization') ?? '')
     const authed = match?.[1] ? await authenticateAccessToken(c.env, match[1]) : null
     if (!authed) return c.json(errorBody('Unauthorized'), 401)
-    return c.json({ isAdmin: isAdminUser(c.env, authed.user), email: authed.user.email })
+    return c.json({
+      isAdmin: isAdminUser(c.env, authed.user),
+      email: authed.user.email,
+      role: instanceRoleOf(c.env, authed.user),
+    })
   })
 
   api.use(`${PREFIX}/*`, async (c, next) => {
@@ -194,6 +208,9 @@ export function createAdminApi(deps: AdminApiDeps = {}) {
         twoFactorProviders: parseTfa(u.tfa).map((type) => ({ type, name: tfaName(type) })),
         enabled: u.enabled === 1,
         emailVerified: u.verified_at !== null,
+        role: instanceRoleOf(c.env, { email: u.email, instanceRole: u.instance_role }),
+        // The caller's own row: the UI cannot change your own role.
+        self: u.uuid === c.var.user.uuid,
       })),
       page,
       pageSize,
@@ -220,6 +237,14 @@ export function createAdminApi(deps: AdminApiDeps = {}) {
     `${PREFIX}/users/:id/enable`,
     userAction((c, id) => setUserEnabled(c.env, id, true, auditOf(c))),
   )
+  // Instance role (TASKS #360). Every caller here is already an owner or admin; the service
+  // refuses owners, yourself and unverified or disabled targets.
+  const setRole = userAction(async (c, id) => {
+    const body = await parseBody(c, roleSchema)
+    return setUserRole(c.env, id, body.role, auditOf(c))
+  })
+  api.put(`${PREFIX}/users/:id/role`, setRole)
+  api.post(`${PREFIX}/users/:id/role`, setRole)
   api.post(
     `${PREFIX}/users/:id/deauthorize`,
     userAction((c, id) => deauthorizeUser(c.env, id, auditOf(c))),

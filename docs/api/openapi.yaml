@@ -6459,6 +6459,71 @@ paths:
           $ref: '#/components/responses/NotFound'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+  /api/cloudwarden/admin/users/{id}/role:
+    put:
+      tags:
+      - x-cloudwarden
+      operationId: adminSetUserRole
+      summary: Set a user's instance role (admin or user)
+      description: 'Owners and admins only. Refused with 400 for an owner (listed in `ADMIN_EMAILS`), for yourself, and when granting `admin` to a user whose email is unverified or who is disabled. A granted role is cleared when the user changes their email address. Recorded in the admin audit log (event 9013).'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: User id.
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminSetRoleRequest'
+      responses:
+        '204':
+          description: Success, empty body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags:
+      - x-cloudwarden
+      operationId: adminSetUserRolePost
+      summary: Set a user's instance role (admin or user)
+      description: 'Owners and admins only. Refused with 400 for an owner (listed in `ADMIN_EMAILS`), for yourself, and when granting `admin` to a user whose email is unverified or who is disabled. A granted role is cleared when the user changes their email address. Recorded in the admin audit log (event 9013).'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: User id.
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminSetRoleRequest'
+      responses:
+        '204':
+          description: Success, empty body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
   /api/cloudwarden/admin/users/{id}/enable:
     post:
       tags:
@@ -23649,9 +23714,29 @@ components:
           type: boolean
         email:
           type: string
+        role:
+          $ref: '#/components/schemas/AdminInstanceRole'
       required:
       - isAdmin
       - email
+      - role
+    AdminInstanceRole:
+      type: string
+      description: 'Instance role. `owner` is an address in the server''s `ADMIN_EMAILS` setting and cannot be changed through the API; `admin` is granted in the database by an owner or admin; `user` is the default.'
+      enum:
+      - owner
+      - admin
+      - user
+    AdminSetRoleRequest:
+      type: object
+      properties:
+        role:
+          type: string
+          enum:
+          - admin
+          - user
+      required:
+      - role
     AdminServerConfig:
       type: object
       description: Server version and configuration flags (never secret values).
@@ -23953,6 +24038,11 @@ components:
           type: boolean
         emailVerified:
           type: boolean
+        role:
+          $ref: '#/components/schemas/AdminInstanceRole'
+        self:
+          type: boolean
+          description: True for the row of the caller, whose role cannot be changed.
       required:
       - id
       - email
@@ -23963,6 +24053,8 @@ components:
       - twoFactorProviders
       - enabled
       - emailVerified
+      - role
+      - self
     AdminUserList:
       type: object
       description: One page of users.

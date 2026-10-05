@@ -13,18 +13,36 @@ export function isAdminEmail(list: string | undefined, email: string): boolean {
     .includes(email)
 }
 
+export type InstanceRole = 'owner' | 'admin' | 'user'
+
+/** Roles an owner or admin may grant. `owner` is never stored: it only comes from ADMIN_EMAILS. */
+export const GRANTABLE_ROLES = ['admin', 'user'] as const
+export type GrantableRole = (typeof GRANTABLE_ROLES)[number]
+
 /**
- * Whether `user` may act as an instance admin: the admin feature is on, the address is listed in
- * ADMIN_EMAILS and the address was verified (so it cannot be claimed by registering it).
+ * The instance role of `user`: `owner` when the address is in ADMIN_EMAILS (the bootstrap set that
+ * only the operator can change), otherwise the role granted in D1 (`admin` or `user`). This is the
+ * label; whether the role currently confers admin rights is decided by `isAdminUser`.
+ */
+export function instanceRoleOf(
+  env: { ADMIN_EMAILS?: string },
+  user: { email: string; instanceRole?: string | null },
+): InstanceRole {
+  if (isAdminEmail(env.ADMIN_EMAILS, normaliseEmail(user.email))) return 'owner'
+  return user.instanceRole === 'admin' ? 'admin' : 'user'
+}
+
+/**
+ * Whether `user` may act as an instance admin: the admin feature is on, the address was verified
+ * (so it cannot be claimed by registering it) and the user is an owner (address in ADMIN_EMAILS)
+ * or was granted the `admin` role in D1.
  */
 export function isAdminUser(
   env: { ADMIN_ENABLED?: string; ADMIN_EMAILS?: string },
-  user: { email: string; verifiedAt: number | null },
+  user: { email: string; verifiedAt: number | null; instanceRole?: string | null },
 ): boolean {
   return (
-    env.ADMIN_ENABLED === 'true' &&
-    user.verifiedAt !== null &&
-    isAdminEmail(env.ADMIN_EMAILS, normaliseEmail(user.email))
+    env.ADMIN_ENABLED === 'true' && user.verifiedAt !== null && instanceRoleOf(env, user) !== 'user'
   )
 }
 

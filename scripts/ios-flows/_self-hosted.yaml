@@ -1,0 +1,12 @@
+# Landing screen: point the app at the local server (region selector, then Self-hosted).
+- tapOn: ".*bitwarden\\.com.*"
+- tapOn:
+    text: "Self-hosted"
+- tapOn:
+    id: "ServerUrlEntry"
+- inputText: ${SERVER_URL}
+- tapOn:
+    text: "Save"
+- extendedWaitUntil:
+    visible: ".*127\\.0\\.0\\.1.*"
+    timeout: 15000

@@ -1,0 +1,48 @@
+appId: com.8bit.bitwarden
+---
+- runFlow: _login.yaml
+# Folder (Settings, Vault, Folders).
+- tapOn: "Settings"
+- tapOn: "Vault"
+- tapOn: "Folders"
+- tapOn:
+    id: "AddItemFloatingActionButton"
+- tapOn: "Name.*"
+- inputText: Example folder
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "Example folder"
+    timeout: 15000
+- tapOn: "Example folder"
+- eraseText: 30
+- inputText: Example folder renamed
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "Example folder renamed"
+    timeout: 15000
+- tapOn: "Back"
+- tapOn: "Back"
+- tapOn: "Vault"
+# Login item: create, edit, trash, restore, trash, delete for good.
+- tapOn:
+    id: "AddItemFloatingActionButton"
+- tapOn: "Login"
+- tapOn: "Item name.*"
+- inputText: Example login
+- tapOn: "Username"
+- inputText: alice
+- tapOn: "Password"
+- inputText: p4ssw0rd!
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "Example login"
+    timeout: 15000
+- tapOn: "Example login"
+- tapOn: "Edit"
+- tapOn: "Item name.*"
+- eraseText: 30
+- inputText: Example login edited
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "Example login edited"
+    timeout: 15000

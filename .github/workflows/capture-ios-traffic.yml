@@ -1,0 +1,166 @@
+# Manual capture tool (TASKS #389): builds the official Bitwarden iOS app from source for the iOS
+# Simulator, drives it with Maestro against a local Worker and uploads the sanitised traffic
+# fixtures (ios-*.json) as an artifact. Never runs on pull requests. GitHub-hosted runners only.
+name: Capture iOS traffic
+
+on:
+  # TEMPORARY: lets the workflow run from this branch before it exists on main; removed before merge.
+  push:
+    branches:
+      - test/389-ios-traffic
+  workflow_dispatch:
+    inputs:
+      app_tag:
+        description: Release tag of bitwarden/ios to build
+        default: v2026.9.1-bwpm
+        type: string
+      reuse_build_run:
+        description: Run id of an earlier run whose app artifact to reuse instead of building
+        default: ''
+        type: string
+      only:
+        description: Comma separated scenarios to record (register, login-sync, cipher-write, send); empty for all
+        default: ''
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  MAESTRO_VERSION: 2.11.0
+  MAESTRO_SHA256: 5384593cb4e7a106489e75a821d157dd43f4e438df6bc308b72e82c685e1283a
+
+jobs:
+  build:
+    name: Build the official app
+    if: ${{ inputs.reuse_build_run == '' }}
+    runs-on: macos-26
+    timeout-minutes: 75
+    permissions:
+      contents: read
+    env:
+      MINT_LINK_PATH: .mint/bin
+      MINT_PATH: .mint/lib
+    steps:
+      - name: Check out bitwarden/ios
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: bitwarden/ios
+          ref: ${{ inputs.app_tag || 'v2026.9.1-bwpm' }}
+          persist-credentials: false
+      - name: Xcode
+        run: |
+          echo "required: $(cat .xcode-version)"
+          xcodebuild -version
+      - name: Restore Mint packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .mint
+          key: ${{ runner.os }}-mint-${{ hashFiles('Mintfile') }}
+      - name: Bootstrap (Mint and XcodeGen, as the upstream README describes)
+        timeout-minutes: 40
+        run: |
+          brew install mint
+          ./Scripts/bootstrap.sh
+      - name: Build for the iOS Simulator
+        timeout-minutes: 50
+        run: |
+          xcrun xcodebuild build \
+            -workspace Bitwarden.xcworkspace \
+            -scheme Bitwarden \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/DerivedData \
+            -skipPackagePluginValidation \
+            -skipMacroValidation \
+            ARCHS=arm64 ONLY_ACTIVE_ARCH=NO \
+            -quiet
+      - name: Package the app
+        run: |
+          app=build/DerivedData/Build/Products/Debug-iphonesimulator/Bitwarden.app
+          test -d "$app"
+          mkdir -p out
+          ditto -c -k --keepParent "$app" out/Bitwarden.app.zip
+          git rev-parse HEAD > out/source-sha.txt
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: bitwarden-ios-app
+          path: out/
+          retention-days: 7
+
+  capture:
+    name: Capture traffic
+    needs: build
+    # Runs when the build succeeded or was skipped in favour of an earlier run's app.
+    if: ${{ !cancelled() && (needs.build.result == 'success' || needs.build.result == 'skipped') }}
+    runs-on: macos-26
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        timeout-minutes: 10
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: bitwarden-ios-app
+          path: app
+          run-id: ${{ inputs.reuse_build_run || github.run_id }}
+          github-token: ${{ github.token }}
+      - name: Unpack the app
+        run: |
+          cat app/source-sha.txt
+          ditto -x -k app/Bitwarden.app.zip app/unpacked
+          ls app/unpacked
+      - name: Install Maestro
+        timeout-minutes: 10
+        run: |
+          curl -fsSL -o maestro.zip "https://github.com/mobile-dev-inc/maestro/releases/download/cli-${MAESTRO_VERSION}/maestro.zip"
+          echo "${MAESTRO_SHA256}  maestro.zip" | shasum -a 256 -c -
+          unzip -q maestro.zip -d "$RUNNER_TEMP/maestro"
+          echo "$RUNNER_TEMP/maestro/maestro/bin" >> "$GITHUB_PATH"
+          java -version
+      - name: Boot a simulator
+        id: sim
+        timeout-minutes: 15
+        run: |
+          xcrun simctl list runtimes
+          xcrun simctl list devices available | head -40
+          udid=$(xcrun simctl list devices available "iOS 26.5" | grep "iPhone 17 Pro (" | head -1 | sed -E 's/.*\(([A-F0-9-]{36})\).*/\1/')
+          [ -n "$udid" ] || { echo "no iPhone 17 Pro on iOS 26.5"; exit 1; }
+          xcrun simctl bootstatus "$udid" -b
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+      - name: Capture
+        timeout-minutes: 40
+        env:
+          IOS_UDID: ${{ steps.sim.outputs.udid }}
+          CAPTURE_ONLY: ${{ inputs.only }}
+          CAPTURE_DEBUG_DIR: ${{ runner.temp }}/ios-debug
+        run: |
+          IOS_APP="$PWD/app/unpacked/Bitwarden.app" node scripts/capture-ios-traffic.mjs
+      - name: Identifier check
+        run: node scripts/check-identifiers.mjs
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ always() }}
+        with:
+          name: ios-traffic-fixtures
+          path: test/fixtures/traffic/ios-*.json
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ failure() }}
+        with:
+          name: ios-capture-debug
+          path: ${{ runner.temp }}/ios-debug
+          if-no-files-found: ignore
+          retention-days: 3

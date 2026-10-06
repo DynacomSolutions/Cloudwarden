@@ -1,0 +1,46 @@
+# Walks through the post-login prompts until the vault shows. Each prompt is optional.
+- repeat:
+    while:
+      notVisible:
+        id: "AddItemFloatingActionButton"
+    times: 12
+    commands:
+      - runFlow:
+          when:
+            visible: "Set up later"
+          commands:
+            - tapOn: "Set up later"
+            - tapOn: "Confirm"
+      - runFlow:
+          when:
+            visible: "Turn on later"
+          commands:
+            - tapOn: "Turn on later"
+            - tapOn: "Confirm"
+      - runFlow:
+          when:
+            visible: "Import logins later"
+          commands:
+            - tapOn: "Import logins later"
+            - tapOn: "Confirm"
+      - runFlow:
+          when:
+            visible: "Don.t Allow"
+          commands:
+            - tapOn: "Don.t Allow"
+      - runFlow:
+          when:
+            visible: "Not Now"
+          commands:
+            - tapOn: "Not Now"
+      - runFlow:
+          when:
+            visible: "Skip"
+          commands:
+            - tapOn: "Skip"
+      - waitForAnimationToEnd:
+          timeout: 2000
+- extendedWaitUntil:
+    visible:
+      id: "AddItemFloatingActionButton"
+    timeout: 30000

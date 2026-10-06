@@ -1,0 +1,14 @@
+appId: com.8bit.bitwarden
+---
+- runFlow: _login.yaml
+- tapOn: "Send"
+- tapOn:
+    id: "AddItemFloatingActionButton"
+- tapOn: "Text"
+- tapOn: "Send name.*"
+- inputText: Example send
+- tapOn: "Text to share.*"
+- inputText: Example text
+- tapOn: "Save"
+- waitForAnimationToEnd:
+    timeout: 3000

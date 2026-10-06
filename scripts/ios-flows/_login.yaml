@@ -1,0 +1,23 @@
+- launchApp:
+    clearState: true
+    stopApp: true
+- extendedWaitUntil:
+    visible:
+      id: "LoginEmailAddressEntry"
+    timeout: 60000
+- runFlow: _self-hosted.yaml
+- tapOn:
+    id: "LoginEmailAddressEntry"
+- inputText: ${EMAIL}
+- tapOn:
+    id: "ContinueButton"
+- extendedWaitUntil:
+    visible:
+      id: "LoginMasterPasswordEntry"
+    timeout: 30000
+- tapOn:
+    id: "LoginMasterPasswordEntry"
+- inputText: ${PASSWORD}
+- tapOn:
+    id: "LogInWithMasterPasswordButton"
+- runFlow: _reach-vault.yaml

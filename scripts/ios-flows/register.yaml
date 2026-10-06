@@ -1,0 +1,41 @@
+appId: com.8bit.bitwarden
+---
+- launchApp:
+    clearState: true
+    stopApp: true
+- extendedWaitUntil:
+    visible:
+      id: "LoginEmailAddressEntry"
+    timeout: 60000
+- runFlow: _self-hosted.yaml
+- tapOn:
+    id: "CreateAccountButton"
+- tapOn:
+    id: "EmailAddressEntry"
+- inputText: ${EMAIL}
+- tapOn:
+    id: "NameEntry"
+- inputText: Example User
+- tapOn:
+    id: "ContinueButton"
+- extendedWaitUntil:
+    visible:
+      id: "MasterPasswordEntry"
+    timeout: 30000
+- tapOn:
+    id: "MasterPasswordEntry"
+- inputText: ${PASSWORD}
+- tapOn:
+    id: "ConfirmMasterPasswordEntry"
+- inputText: ${PASSWORD}
+- tapOn:
+    id: "MasterPasswordHintLabel"
+- inputText: example hint
+# Do not send the password to a breach checking service outside the capture.
+- tapOn:
+    id: "CheckExposedMasterPasswordToggle"
+- tapOn:
+    id: "CreateAccountButton"
+- runFlow: _reach-vault.yaml
+- waitForAnimationToEnd:
+    timeout: 3000

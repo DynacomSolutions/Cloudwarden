@@ -30,6 +30,7 @@ export const WHOLE_PLACEHOLDER = new RegExp(`^(?:${PLACEHOLDER_SRC})$`)
 const SENSITIVE_KEYS = new Set([
   'password',
   'masterpasswordhash',
+  'masterpasswordauthenticationhash',
   'newmasterpasswordhash',
   'password_hash_b64',
   'client_secret',

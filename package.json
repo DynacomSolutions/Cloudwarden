@@ -23,7 +23,8 @@
     "prepare": "lefthook install || true",
     "import:server": "node scripts/import-from-server.mjs",
     "e2e": "node e2e/run.mjs",
-    "capture:traffic": "node scripts/capture-traffic.mjs"
+    "capture:traffic": "node scripts/capture-traffic.mjs",
+    "capture:web-traffic": "node scripts/capture-web-traffic.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",
@@ -38,6 +39,7 @@
     "cf": "^1.0.0-beta.5",
     "drizzle-kit": "^0.31.11",
     "lefthook": "^2.1.15",
+    "playwright-core": "^1.63.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.0",
     "vitest": "^4.1.11",

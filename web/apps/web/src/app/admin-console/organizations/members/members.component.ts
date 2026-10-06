@@ -372,8 +372,10 @@ export class MembersComponent {
       allUsers,
     );
 
+    // Reload whatever the dialog reports: when it is dismissed (Escape, backdrop, X) while the
+    // invite request is in flight the server still applies it (TASKS #385), and a read is cheap.
+    await this.load(organization);
     if (result === MemberDialogResult.Saved) {
-      await this.load(organization);
       this.organizationMetadataService.refreshMetadataCache();
     }
   }

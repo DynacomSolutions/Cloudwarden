@@ -125,8 +125,8 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - run: npm ci --no-audit --no-fund --loglevel=error
         working-directory: web
-      # Cloudwarden's own specs in the vendored client (upstream specs are not run here).
-      - run: npx jest src/app/cloudwarden
+      # Cloudwarden's own specs in the vendored client, plus the members page spec (TASKS #385); other upstream specs are not run here.
+      - run: npx jest src/app/cloudwarden src/app/admin-console/organizations/members/members.component.spec.ts
         working-directory: web/apps/web
 
   commitlint:

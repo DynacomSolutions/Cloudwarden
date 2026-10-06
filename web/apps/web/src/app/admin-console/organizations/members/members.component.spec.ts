@@ -466,6 +466,22 @@ describe("MembersComponent", () => {
       expect(mockOrganizationMetadataService.refreshMetadataCache).toHaveBeenCalled();
     });
 
+    it.each([MemberDialogResult.Canceled, undefined])(
+      "should still reload the list when the invite dialog closes with %s",
+      async (result) => {
+        mockBillingConstraint.seatLimitReached.mockResolvedValue(false);
+        mockMemberDialogManager.openInviteDialog.mockResolvedValue(result as MemberDialogResult);
+        mockMemberService.loadUsers.mockClear();
+        mockMemberService.loadUsers.mockResolvedValue([mockUser]);
+
+        await component.invite(mockOrg);
+
+        expect(mockMemberService.loadUsers).toHaveBeenCalledTimes(1);
+        expect(mockMemberService.loadUsers).toHaveBeenCalledWith(mockOrg);
+        expect(mockOrganizationMetadataService.refreshMetadataCache).not.toHaveBeenCalled();
+      },
+    );
+
     it("should not open dialog when seat limit reached", async () => {
       mockBillingConstraint.seatLimitReached.mockResolvedValue(true);
 

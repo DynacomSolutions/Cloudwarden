@@ -31,6 +31,16 @@ test('replaces every kind of identifying value deterministically', () => {
   assert.deepEqual(createSanitiser().value(a), a, 'idempotent')
 })
 
+test('treats the registration authentication hash like the login password', () => {
+  const hash = 'aGFzaGhhc2hoYXNoaGFzaGhhc2hoYXNoaGFzaA=='
+  const out = createSanitiser().value({
+    masterPasswordAuthentication: { masterPasswordAuthenticationHash: hash },
+    password: hash,
+  })
+  assert.equal(out.masterPasswordAuthentication.masterPasswordAuthenticationHash, out.password)
+  assert.match(out.password, /^__[A-Z_]+__$/)
+})
+
 test('every recorded traffic fixture is free of identifying data', () => {
   const files = readdirSync(dir).filter((f) => f.endsWith('.json'))
   assert.ok(files.length > 0)

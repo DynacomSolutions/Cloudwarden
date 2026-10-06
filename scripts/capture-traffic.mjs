@@ -7,15 +7,22 @@
 // are checked again with findIdentifying. See docs/traffic-fixtures.md.
 import { spawn } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { createServer, request } from 'node:http'
-import { createServer as netServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { buildAccount } from '../e2e/crypto.mjs'
 import { makeCert, startProxy } from '../e2e/tls-proxy.mjs'
+import {
+  descendants,
+  formatFiles,
+  freePort,
+  killAll,
+  killStrayWorkerd,
+  startRecorder,
+  toFixture,
+} from './capture-lib.mjs'
 import { migrateLocal } from './local-migrate.mjs'
-import { createSanitiser, findIdentifying } from './traffic-sanitise.mjs'
+import { findIdentifying } from './traffic-sanitise.mjs'
 
 const root = resolve(import.meta.dirname, '..')
 const outDir = join(root, 'test', 'fixtures', 'traffic')
@@ -24,89 +31,6 @@ const PASSWORD = 'correct horse battery staple 1'
 const CLI_VERSION = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).devDependencies[
   '@bitwarden/cli'
 ]
-
-const freePort = () =>
-  new Promise((ok, fail) => {
-    const srv = netServer()
-    srv.once('error', fail)
-    srv.listen(0, '127.0.0.1', () => {
-      const { port } = srv.address()
-      srv.close(() => ok(port))
-    })
-  })
-
-// Request headers worth keeping; everything else (user agent, host, cookies) is dropped.
-const KEEP_REQUEST_HEADERS = ['bitwarden-client-name', 'bitwarden-client-version', 'device-type']
-
-let bucket = null // exchanges of the scenario being recorded, or null when not recording
-
-/** Recording proxy: forwards to the dev server and notes every exchange of the open bucket. */
-function startRecorder(port, target) {
-  const server = createServer((req, res) => {
-    const chunks = []
-    req.on('data', (c) => chunks.push(c))
-    req.on('end', () => {
-      const body = Buffer.concat(chunks)
-      const up = request(
-        {
-          host: '127.0.0.1',
-          port: target,
-          method: req.method,
-          path: req.url,
-          headers: req.headers,
-        },
-        (upRes) => {
-          const out = []
-          upRes.on('data', (c) => out.push(c))
-          upRes.on('end', () => {
-            const resBody = Buffer.concat(out)
-            res.writeHead(upRes.statusCode ?? 502, upRes.headers)
-            res.end(resBody)
-            if (bucket) bucket.push({ req, body, status: upRes.statusCode, upRes, resBody })
-          })
-        },
-      )
-      up.on('error', () => {
-        res.writeHead(502)
-        res.end()
-      })
-      up.end(body)
-    })
-  })
-  return new Promise((ok) => server.listen(port, '127.0.0.1', () => ok(server)))
-}
-
-/** Turns raw recordings into sanitised, replayable exchanges. */
-function toFixture(meta, raw) {
-  const san = createSanitiser()
-  const exchanges = []
-  for (const { req, body, status, upRes, resBody } of raw) {
-    const path = String(req.url)
-    if (!/^\/(api|identity)\//.test(path)) continue
-    const reqType = String(req.headers['content-type'] ?? '').split(';')[0]
-    const resType = String(upRes.headers['content-type'] ?? '').split(';')[0]
-    const headers = {}
-    for (const h of KEEP_REQUEST_HEADERS)
-      if (req.headers[h]) headers[h] = san.string(String(req.headers[h]), h)
-    if (req.headers.authorization) {
-      headers.authorization = `Bearer ${san.string(String(req.headers.authorization).replace(/^Bearer /i, ''), 'access_token')}`
-    }
-    const ex = { method: req.method, path: san.string(path), headers }
-    if (body.length) {
-      if (reqType === 'application/json')
-        ex.requestBody = san.value(JSON.parse(body.toString('utf8')))
-      else if (reqType === 'application/x-www-form-urlencoded') {
-        ex.requestForm = san.value(Object.fromEntries(new URLSearchParams(body.toString('utf8'))))
-      } else continue // multipart uploads are not recorded
-    }
-    ex.status = status
-    if (resBody.length && resType === 'application/json') {
-      ex.responseBody = san.value(JSON.parse(resBody.toString('utf8')))
-    }
-    exchanges.push(ex)
-  }
-  return { ...meta, exchanges }
-}
 
 const run = (cmd, args, env, input) =>
   new Promise((ok) => {
@@ -153,7 +77,11 @@ async function main() {
       process.kill(-server.pid, sig)
     } catch {}
   }
-  process.on('exit', () => killGroup('SIGKILL'))
+  process.on('exit', () => {
+    const tree = descendants(server.pid)
+    killGroup('SIGKILL')
+    killAll(tree)
+  })
   const recorder = await startRecorder(recPort, port)
   const proxy = await startProxy(tls, tlsPort, recPort)
 
@@ -223,11 +151,10 @@ async function main() {
     const scenario = async (name, flows, fn) => {
       await bw(['logout'])
       const email = await freshAccount(name)
-      bucket = []
+      recorder.open()
       const login = await bwOk(['login', email, '--passwordenv', 'BW_PASSWORD', '--raw'])
       await fn({ S: ['--session', login], email, login })
-      const raw = bucket
-      bucket = null
+      const raw = recorder.take()
       fixtures.push(
         toFixture({ client: 'cli', clientVersion: CLI_VERSION, scenario: name, flows }, raw),
       )
@@ -316,6 +243,7 @@ async function main() {
     })
 
     mkdirSync(outDir, { recursive: true })
+    const written = []
     for (const f of fixtures) {
       const bad = findIdentifying(f)
       if (bad.length) {
@@ -323,11 +251,11 @@ async function main() {
           `${f.scenario} still has identifying data:\n${JSON.stringify(bad.slice(0, 10), null, 2)}`,
         )
       }
-      writeFileSync(
-        join(outDir, `${f.client}-${f.scenario}.json`),
-        `${JSON.stringify(f, null, 2)}\n`,
-      )
+      const file = join(outDir, `${f.client}-${f.scenario}.json`)
+      writeFileSync(file, `${JSON.stringify(f, null, 2)}\n`)
+      written.push(file)
     }
+    formatFiles(root, written)
     console.log(`wrote ${fixtures.length} fixtures to test/fixtures/traffic/`)
   } catch (err) {
     console.error(`--- dev server output ---\n${log.slice(-3000)}`)
@@ -335,10 +263,14 @@ async function main() {
   } finally {
     proxy.close()
     recorder.close()
+    const tree = descendants(server.pid)
     const exited = new Promise((ok) => server.once('exit', ok))
     server.kill('SIGINT')
     await Promise.race([exited, sleep(10000)])
     killGroup('SIGKILL')
+    killAll(tree)
+    await sleep(500)
+    killStrayWorkerd(root)
     rmSync(work, { recursive: true, force: true })
   }
 }

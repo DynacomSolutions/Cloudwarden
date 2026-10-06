@@ -1,5 +1,6 @@
-// Recorded client traffic (TASKS #367): sanitised captures of the official Bitwarden CLI driving a
-// local server (scripts/capture-traffic.mjs, docs/traffic-fixtures.md) are replayed against the
+// Recorded client traffic (TASKS #367, #387): sanitised captures of the official Bitwarden CLI and
+// web vault driving a local server (scripts/capture-traffic.mjs, scripts/capture-web-traffic.mjs,
+// docs/traffic-fixtures.md) are replayed against the
 // Worker. Each fixture starts from a freshly registered account, rebinds tokens and ids from the
 // live responses into later requests, and checks
 //   - the recording itself is free of identifying data,
@@ -68,9 +69,12 @@ const typedForm = (form: Record<string, string>) =>
 const label = (ex: Exchange) => `${ex.method} ${ex.path.split('?')[0]} -> ${ex.status}`
 
 describe('traffic fixtures', () => {
-  it('exist for the official CLI covering login, sync, cipher writes and Sends', () => {
+  it('exist for the official CLI and web vault covering login, sync, cipher writes and Sends', () => {
     const flows = new Set(fixtures.flatMap(({ fx }) => fx.flows.map((f) => `${fx.client}:${f}`)))
-    for (const f of ['login', 'sync', 'cipher-write', 'send']) expect(flows).toContain(`cli:${f}`)
+    for (const client of ['cli', 'web'])
+      for (const f of ['login', 'sync', 'cipher-write', 'send'])
+        expect(flows).toContain(`${client}:${f}`)
+    expect(flows).toContain('web:register')
   })
 
   it('sanitiser replaces identifying data and is idempotent', () => {
@@ -124,6 +128,14 @@ describe('traffic fixtures', () => {
         const bindings = new Map<string, string>()
         const sub = (s: string) =>
           s.replaceAll(FIXED_EMAIL, email).replace(PLACEHOLDER, (m: string) => bindings.get(m) ?? m)
+        // X-Request-Email is the address as unpadded base64url.
+        const subHeader = (k: string, v: string) =>
+          k === 'x-request-email'
+            ? btoa(sub(atob(v.replaceAll('-', '+').replaceAll('_', '/'))))
+                .replaceAll('+', '-')
+                .replaceAll('/', '_')
+                .replace(/=+$/, '')
+            : sub(v)
         const subDeep = (v: Json): Json =>
           typeof v === 'string'
             ? sub(v)
@@ -145,6 +157,10 @@ describe('traffic fixtures', () => {
         }
 
         beforeAll(async () => {
+          // A fixture that records the registration itself replays it; the others start from an
+          // account registered here with the password hash the recording logs in with.
+          if (fx.exchanges.some((e) => e.path.startsWith('/identity/accounts/register/finish')))
+            return
           const login = fx.exchanges.find((e) => e.requestForm?.grant_type === 'password')
           const hash = login?.requestForm?.password
           if (!hash) throw new Error('fixture has no password login')
@@ -155,7 +171,7 @@ describe('traffic fixtures', () => {
         for (const [i, ex] of fx.exchanges.entries()) {
           it(`#${i} ${label(ex)}`, async () => {
             const headers: Record<string, string> = Object.fromEntries(
-              Object.entries(ex.headers).map(([k, v]) => [k, sub(v)]),
+              Object.entries(ex.headers).map(([k, v]) => [k, subHeader(k, v)]),
             )
             let body: string | undefined
             if (ex.requestBody !== undefined) {

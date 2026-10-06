@@ -37,6 +37,11 @@ export async function twoInstances(): Promise<Net> {
   const log: string[] = []
   const dns = new Map<string, { A?: string[]; AAAA?: string[] }>()
   const instances: Record<string, Instance> = {}
+  // Work the app defers with waitUntil runs to completion before a call returns, so tests see its
+  // effects. Items are taken out of the list first, so work that makes calls itself cannot wait on itself.
+  const drain = async () => {
+    for (let i = 0; i < 20 && pending.length > 0; i++) await Promise.all(pending.splice(0))
+  }
   const transport = {
     async fetch(req: Request): Promise<Response> {
       const url = new URL(req.url)
@@ -54,7 +59,9 @@ export async function twoInstances(): Promise<Net> {
       log.push(`${req.method} ${req.url}`)
       const target = Object.values(instances).find((i) => i.domain === url.host)
       if (!target) throw new TypeError('network error')
-      return await app.fetch(req, target.env as never, ctx)
+      const res = await app.fetch(req, target.env as never, ctx)
+      await drain()
+      return res
     },
   }
   const make = (name: 'A' | 'B', domain: string, db: D1Database): Instance => {
@@ -89,9 +96,7 @@ export async function twoInstances(): Promise<Net> {
     B,
     log,
     dns,
-    async flush() {
-      for (let i = 0; i < 20 && pending.length > 0; i++) await Promise.all(pending.splice(0))
-    },
+    flush: drain,
   }
 }
 

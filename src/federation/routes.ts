@@ -9,6 +9,7 @@ import { z } from 'zod'
 import { isAdminUser, rateLimit } from '../admin/security'
 import { requireAuth } from '../auth/middleware'
 import { createDb, runBatch, schema } from '../db'
+import { later } from '../email/send'
 import type { Bindings, Env } from '../env'
 import { ApiError } from '../errors'
 import { PushType, pushUserUpdate } from '../notifications/publish'
@@ -43,8 +44,8 @@ import { safeFetch } from './net'
 import {
   addPendingPeer,
   approvePeerLocally,
-  assertPendingRoom,
   expireWorkspaceRequests,
+  insertIncomingPeer,
   nextStatus,
   setPeer,
 } from './peer-admin'
@@ -55,6 +56,7 @@ import {
   isActive,
   listPeers,
   normaliseDomainOrThrow,
+  outboundOk,
   PAIR_RATE_LIMIT,
   type Peer,
   PeerStatus,
@@ -64,6 +66,7 @@ import {
   requirePeer,
   verifyInbound,
 } from './peers'
+import { cancelQueuedForPeer, queuedSummaryByPeer } from './queued-shares'
 import {
   dropServedForPeer,
   eventSchema,
@@ -79,18 +82,34 @@ import {
   addWorkspace,
   collectionsByMember,
   externalAccessState,
+  flushQueuedShares,
   getInviteSetting,
   lookupWorkspace,
   removeExternalAccess,
+  removeQueuedShare,
+  retryQueuedShares,
   setInviteSetting,
   shareCollection,
   shareSchema,
   sharingByPeer,
   updateExternalAccess,
+  updateQueuedShare,
   updateSchema,
   workspaceSchema,
 } from './sharing'
 import { parseSignature } from './signature'
+import {
+  type BlockKind,
+  isBlocked,
+  listBlockedDomains,
+  parseBlockRule,
+  rememberRemoved,
+  requireIncomingApproval,
+  ruleMatches,
+  setRequireIncomingApproval,
+  unblockDomain,
+  wasRemoved,
+} from './trust-settings'
 
 type Ctx = Context<Env>
 
@@ -142,10 +161,16 @@ federation.post('/federation/v1/pair', async (c) => {
     throw new ApiError(400, 'Invalid JSON.')
   }
   const domain = normaliseDomainOrThrow(String(claimed.domain ?? ''))
+  // A blocked domain is refused before anything is fetched or stored.
+  if (await isBlocked(c.env, { domain })) throw new ApiError(403, 'This domain is blocked.')
   // The key is bound to the domain by fetching the caller's descriptor over https.
   const d = await fetchDescriptor(c.env, domain)
   if (d.instanceId !== parsed.params.keyid)
     throw new ApiError(401, 'Key id does not match the peer.')
+  // Blocks by instance id or fingerprint can only be checked once the descriptor is known.
+  if (await isBlocked(c.env, { domain, instanceId: d.instanceId, fingerprint: d.fingerprint })) {
+    throw new ApiError(403, 'This workspace is blocked.')
+  }
   const nonce = await verifyInbound(c, d.publicKey, body)
   // The nonce is spent before anything is written, so a replayed pairing request changes nothing.
   // The peer row may not exist yet, so the nonce lives in the rate limit table (limit 1).
@@ -170,25 +195,20 @@ federation.post('/federation/v1/pair', async (c) => {
       .where(eq(schema.federationPeers.instanceId, d.instanceId))
       .limit(1)
     if (byId) throw new ApiError(409, 'This instance is already paired under another domain.')
-    await assertPendingRoom(c.env)
-    const uuid = crypto.randomUUID()
-    await runBatch(db, [
-      db.insert(schema.federationPeers).values({
-        uuid,
-        instanceId: d.instanceId,
-        domain,
-        publicKey: d.publicKey,
-        fingerprint: d.fingerprint,
-        protocolVersion: d.version,
-        status: PeerStatus.Pending,
-        localApproved: false,
-        remoteApproved: true,
-        lastSeenAt: now,
-        createdAt: now,
-        updatedAt: now,
-      }),
-      federationEventStatement(db, { type: FederationEvent.PeerPairRequested, peerDomain: domain }),
-    ])
+    // The key was bound to the domain by the https descriptor above. Without the admin setting
+    // the peer is trusted for INCOMING traffic at once (it can only send invitations that users
+    // must accept) but stays inbound only: nothing is sent to it until an instance admin approves
+    // it with the fingerprint (`outboundOk`). A domain an admin removed before, and every request
+    // beyond the automatic cap, waits for an admin instead.
+    const wantAuto = !(await requireIncomingApproval(c.env)) && !(await wasRemoved(c.env, domain))
+    const uuid = await insertIncomingPeer(c.env, {
+      instanceId: d.instanceId,
+      domain,
+      publicKey: d.publicKey,
+      fingerprint: d.fingerprint,
+      protocolVersion: d.version,
+      wantAuto,
+    })
     peer = (await getPeer(c.env, uuid)) as Peer
   } else {
     const status = nextStatus({ ...peer, remoteApproved: true })
@@ -198,6 +218,9 @@ federation.post('/federation/v1/pair', async (c) => {
       .where(eq(schema.federationPeers.uuid, peer.uuid))
   }
   await claimNonce(c.env, peer.uuid, nonce)
+  // The peer may now be active (its admin approved while ours had already): send what is queued,
+  // after the response.
+  later(c, flushQueuedShares(c, peer))
   return c.json({
     instanceId: (await descriptor(c.env)).instanceId,
     localApproved: peer.localApproved,
@@ -222,7 +245,11 @@ federation.post('/federation/v1/unpair', async (c) => {
 
 // Serving side: an organisation on the peer invites one of our users.
 federation.post('/federation/v1/invitations', async (c) =>
-  c.json(await receiveInvitation(c.env, c.var.federation.peer, fedBody(c, incomingInviteSchema))),
+  c.json(
+    await receiveInvitation(c.env, c.var.federation.peer, fedBody(c, incomingInviteSchema), (w) =>
+      later(c, w),
+    ),
+  ),
 )
 
 federation.post('/federation/v1/invitations/:id/revoke', async (c) => {
@@ -369,8 +396,12 @@ async function announcePeerUsers(env: Bindings, peer: Peer) {
 
 /** Removes a peer and everything tied to it on this instance. */
 async function dropPeer(env: Bindings, peer: Peer, actor: string | null) {
+  // A request that never became active is declined: what was queued behind it is cancelled.
+  if (!isActive(peer)) await cancelQueuedForPeer(env, peer, 'declined', actor)
   await dropServedForPeer(env, peer)
   await dropHostedForPeer(env, peer)
+  // Remembered so that the same domain's next incoming request waits for an admin.
+  await rememberRemoved(env, peer.domain)
   const db = createDb(env.DB)
   await runBatch(db, [
     db.delete(schema.federationPeers).where(eq(schema.federationPeers.uuid, peer.uuid)),
@@ -398,11 +429,18 @@ federation.use(`${UI}/*`, requireAuth)
 
 /** Whether federation is on, and the active peers an org admin can invite from. */
 federation.get(`${UI}/status`, async (c) => {
-  const peers = (await listPeers(c.env)).filter(isActive)
+  const all = await listPeers(c.env)
+  // Only peers an admin approved can be invited from (inbound-only peers cannot).
+  const peers = all.filter(outboundOk)
+  const isAdmin = isAdminUser(c.env, c.var.user)
   return c.json({
     enabled: true,
     domain: ownDomain(c.env),
-    isInstanceAdmin: isAdminUser(c.env, c.var.user),
+    isInstanceAdmin: isAdmin,
+    // Workspaces waiting for an instance admin's decision (shown as a count in the admin nav).
+    pendingRequests: isAdmin
+      ? all.filter((p) => p.status === PeerStatus.Pending && !p.localApproved).length
+      : 0,
     peers: peers.map((p) => ({ id: p.uuid, domain: p.domain })),
   })
 })
@@ -425,6 +463,9 @@ federation.get(`${ADMIN}/peers`, async (c) => {
   await requireInstanceAdmin(c)
   await expireWorkspaceRequests(c.env)
   const sharing = await sharingByPeer(c)
+  const queued = await queuedSummaryByPeer(c.env)
+  // Items that failed for a passing reason are tried again whenever an admin looks.
+  later(c, retryQueuedShares(c))
   const db = createDb(c.env.DB)
   const peers = await listPeers(c.env)
   const data = await Promise.all(
@@ -438,7 +479,22 @@ federation.get(`${ADMIN}/peers`, async (c) => {
           .limit(1)
         requestedByEmail = u?.email ?? null
       }
-      return { ...(await peerJson(p)), requestedByEmail, sharing: sharing.get(p.uuid) ?? [] }
+      let approvedByEmail: string | null = null
+      if (p.approvedBy) {
+        const [u] = await db
+          .select({ email: schema.users.email })
+          .from(schema.users)
+          .where(eq(schema.users.uuid, p.approvedBy))
+          .limit(1)
+        approvedByEmail = u?.email ?? null
+      }
+      return {
+        ...(await peerJson(p)),
+        requestedByEmail,
+        approvedByEmail,
+        sharing: sharing.get(p.uuid) ?? [],
+        queued: queued.get(p.uuid) ?? [],
+      }
     }),
   )
   return c.json({ object: 'list', data })
@@ -464,7 +520,10 @@ const adminPeer = async (c: Ctx) => {
 federation.post(`${ADMIN}/peers/:id/approve`, async (c) => {
   const peer = await adminPeer(c)
   const { fingerprint } = await parseBody(c, z.object({ fingerprint: z.string().min(1).max(200) }))
-  return c.json(await peerJson(await approvePeerLocally(c.env, peer, fingerprint, c.var.user.uuid)))
+  const approved = await approvePeerLocally(c.env, peer, fingerprint, c.var.user.uuid)
+  // Shares queued behind the request are sent now, each checked again.
+  if (outboundOk(approved)) later(c, flushQueuedShares(c, approved))
+  return c.json(await peerJson(approved))
 })
 
 federation.post(`${ADMIN}/peers/:id/suspend`, async (c) => {
@@ -520,11 +579,90 @@ federation.post(`${ADMIN}/peers/:id/check`, async (c) => {
 
 federation.delete(`${ADMIN}/peers/:id`, async (c) => {
   const peer = await adminPeer(c)
+  // The block comes first, in one batch, so a failure later cannot leave the domain able to pair.
+  if (c.req.query('block') === 'true') await blockRule(c, peer.domain, 'domain')
   if (peer && isActive(peer)) {
     await peerFetch(c.env, peer, '/federation/v1/unpair', { body: {} }).catch(() => {})
   }
   await dropPeer(c.env, peer, c.var.user.uuid)
   return c.body(null, 200)
+})
+
+async function blockRule(c: Ctx, value: string, kind: BlockKind) {
+  const db = createDb(c.env.DB)
+  await runBatch(db, [
+    db
+      .insert(schema.federationBlockedDomains)
+      .values({ domain: value, kind, createdAt: Date.now(), createdBy: c.var.user.uuid })
+      .onConflictDoNothing(),
+    federationEventStatement(db, {
+      type: FederationEvent.PeerBlocked,
+      actingUserUuid: c.var.user.uuid,
+      peerDomain: value,
+    }),
+  ])
+}
+
+federation.get(`${ADMIN}/settings`, async (c) => {
+  await requireInstanceAdmin(c)
+  return c.json({
+    requireIncomingApproval: await requireIncomingApproval(c.env),
+    blockedDomains: await listBlockedDomains(c.env),
+  })
+})
+
+federation.put(`${ADMIN}/settings`, async (c) => {
+  await requireInstanceAdmin(c)
+  const { requireIncomingApproval: value } = await parseBody(
+    c,
+    z.object({ requireIncomingApproval: z.boolean() }),
+  )
+  await setRequireIncomingApproval(c.env, value, c.var.user.uuid)
+  await federationEventStatement(createDb(c.env.DB), {
+    type: FederationEvent.IncomingApprovalChanged,
+    actingUserUuid: c.var.user.uuid,
+  })
+  // Workspaces that were trusted automatically before are listed for review: they stay inbound
+  // only and show "Review" until an admin approves or removes them.
+  const review = value
+    ? (await listPeers(c.env)).filter((p) => p.acceptedAutomatically && p.approvedBy === null)
+    : []
+  return c.json({ requireIncomingApproval: value, reviewPeers: review.length })
+})
+
+federation.post(`${ADMIN}/blocked`, async (c) => {
+  await requireInstanceAdmin(c)
+  const { domain } = await parseBody(c, z.object({ domain: z.string().min(1).max(260) }))
+  const rule = parseBlockRule(domain)
+  if (!rule) {
+    throw new ApiError(
+      400,
+      'Enter a domain such as vault.example.com, a pattern such as *.example.com, instance:<id> or fp:<fingerprint>.',
+    )
+  }
+  if (rule.kind === 'domain' && ruleMatches(rule.value, { domain: ownDomain(c.env) })) {
+    throw new ApiError(400, 'This instance cannot block itself.')
+  }
+  await blockRule(c, rule.value, rule.kind)
+  // Every peer the rule matches is removed.
+  for (const peer of await listPeers(c.env)) {
+    if (ruleMatches(rule.value, peer)) await dropPeer(c.env, peer, c.var.user.uuid)
+  }
+  return c.json({ blockedDomains: await listBlockedDomains(c.env) })
+})
+
+federation.delete(`${ADMIN}/blocked/:domain`, async (c) => {
+  await requireInstanceAdmin(c)
+  const rule = parseBlockRule(c.req.param('domain') ?? '')
+  if (!rule) throw new ApiError(400, 'Invalid rule.')
+  const d = rule.value
+  await unblockDomain(c.env, d)
+  await federationEventStatement(createDb(c.env.DB), {
+    type: FederationEvent.PeerUnblocked,
+    actingUserUuid: c.var.user.uuid,
+    peerDomain: d,
+  })
+  return c.json({ blockedDomains: await listBlockedDomains(c.env) })
 })
 
 federation.get(`${ADMIN}/events`, async (c) => {
@@ -604,6 +742,22 @@ federation.post(EXT, async (c) =>
     ),
   }),
 )
+
+federation.put(`${EXT}/queued/:id`, async (c) => {
+  await updateQueuedShare(
+    c,
+    c.req.param('orgId'),
+    c.req.param('colId'),
+    c.req.param('id'),
+    await parseBody(c, updateSchema),
+  )
+  return c.body(null, 200)
+})
+
+federation.delete(`${EXT}/queued/:id`, async (c) => {
+  await removeQueuedShare(c, c.req.param('orgId'), c.req.param('colId'), c.req.param('id'))
+  return c.body(null, 200)
+})
 
 federation.put(`${EXT}/:memberId`, async (c) => {
   await updateExternalAccess(

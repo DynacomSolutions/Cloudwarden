@@ -35,7 +35,7 @@ import { collectionDetailsJson, profileOrganizations } from '../orgs/views'
 import { attachmentsByCipher } from '../vault/attachments'
 import { FederationEvent, federationEventStatement } from './events'
 import { federationEnabled } from './identity'
-import { getPeer, isActive, type Peer, peerByDomain, peerJsonCall } from './peers'
+import { getPeer, isActive, outboundOk, type Peer, peerByDomain, peerJsonCall } from './peers'
 import { FEDERATION_CLIENT_ID, STAND_IN_HASH_PREFIX } from './standin'
 
 type Ctx = Context<Env>
@@ -149,8 +149,8 @@ export async function inviteFederated(
   const peer = body.peerId
     ? await getPeer(env, body.peerId)
     : await peerByDomain(env, email.split('@')[1] as string)
-  if (!peer || !isActive(peer)) {
-    throw new ApiError(400, 'Choose an active federation peer for this address.', {
+  if (!peer || !outboundOk(peer)) {
+    throw new ApiError(400, 'Choose an approved federation peer for this address.', {
       peerId: ['No active peer.'],
     })
   }
@@ -188,6 +188,8 @@ export interface FederatedInviteInput {
   permissions?: Record<string, boolean | null> | null
   /** Created by the collection sharing flow (a collection manager may later undo it). */
   viaShare?: boolean
+  /** The inviting user when it is not the user of the request (queued shares sent after approval). */
+  actor?: { uuid: string; email: string }
 }
 
 /**
@@ -198,6 +200,14 @@ export async function createFederatedInvite(c: Ctx, orgUuid: string, input: Fede
   const env = c.env
   const db = createDb(env.DB)
   const { org, email, peer, collections, groupIds } = input
+  // Never send to a peer that is only trusted for incoming traffic.
+  if (!outboundOk(peer)) {
+    throw new ApiError(
+      400,
+      'This workspace has not been approved by an instance administrator yet.',
+    )
+  }
+  const actor = input.actor ?? { uuid: c.var.user.uuid, email: c.var.user.email }
   const body = { type: input.type, accessAll: input.accessAll, permissions: input.permissions }
   const [local] = await db
     .select({ uuid: schema.users.uuid })
@@ -262,16 +272,21 @@ export async function createFederatedInvite(c: Ctx, orgUuid: string, input: Fede
     ...groupIds.map((g) =>
       db.insert(schema.groupsUsers).values({ groupUuid: g, organizationUserUuid: memberUuid }),
     ),
-    eventStatement(db, c, {
-      type: EventType.OrganizationUserInvited,
-      organizationUuid: orgUuid,
-      organizationUserUuid: memberUuid,
-    }),
+    eventStatement(
+      db,
+      c,
+      {
+        type: EventType.OrganizationUserInvited,
+        organizationUuid: orgUuid,
+        organizationUserUuid: memberUuid,
+      },
+      actor.uuid,
+    ),
     federationEventStatement(db, {
       type: FederationEvent.MemberInvited,
       organizationUuid: orgUuid,
       organizationUserUuid: memberUuid,
-      actingUserUuid: c.var.user.uuid,
+      actingUserUuid: actor.uuid,
       peerDomain: peer.domain,
     }),
   ])
@@ -281,7 +296,7 @@ export async function createFederatedInvite(c: Ctx, orgUuid: string, input: Fede
         memberId: memberUuid,
         organizationId: orgUuid,
         organizationName: org.name,
-        inviterEmail: c.var.user.email,
+        inviterEmail: actor.email,
         email,
       },
     })

@@ -25,6 +25,7 @@ import {
   USER_HEADER,
   verifyRequest,
 } from './signature'
+import { isBlocked } from './trust-settings'
 
 export type Peer = typeof schema.federationPeers.$inferSelect
 export const PeerStatus = { Pending: 'pending', Active: 'active', Suspended: 'suspended' } as const
@@ -38,6 +39,14 @@ export const PAIR_RATE_LIMIT = 10
 
 export const isActive = (p: Peer | undefined | null): boolean =>
   !!p && p.status === PeerStatus.Active && p.localApproved && p.remoteApproved
+
+/**
+ * Whether this instance may send things to the peer (invitations, shares, org invites): the peer is
+ * active AND an instance admin approved it with the fingerprint. A peer that an incoming request
+ * trusted automatically is inbound only until then (TASKS #381).
+ */
+export const outboundOk = (p: Peer | undefined | null): boolean =>
+  isActive(p) && (!p?.acceptedAutomatically || p.approvedBy !== null)
 
 export async function getPeer(env: Bindings, uuid: string): Promise<Peer | undefined> {
   const [p] = await createDb(env.DB)
@@ -75,6 +84,9 @@ export async function peerJson(p: Peer) {
     active: isActive(p),
     lastSeenDate: p.lastSeenAt === null ? null : new Date(p.lastSeenAt).toISOString(),
     lastError: p.lastError,
+    acceptedAutomatically: p.acceptedAutomatically,
+    inboundOnly: isActive(p) && !outboundOk(p),
+    incoming: p.incoming,
     creationDate: new Date(p.createdAt).toISOString(),
   }
 }
@@ -252,6 +264,8 @@ export const requirePeer: MiddlewareHandler<Env> = async (c, next) => {
     .limit(1)
   if (!peer) throw deny(403, 'Unknown peer.')
   if (!isActive(peer)) throw deny(403, 'The peer is not active on this instance.')
+  // Blocks apply to every signed route, not only to pairing.
+  if (await isBlocked(c.env, peer)) throw deny(403, 'This peer is blocked.')
   if (!(await rateLimit(c.env.DB, `fed:${peer.uuid}`, PEER_RATE_LIMIT, 60_000, Date.now()))) {
     throw deny(429, 'Too many federation requests.')
   }

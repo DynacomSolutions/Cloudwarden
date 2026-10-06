@@ -20,6 +20,8 @@ export interface FederationStatus {
   domain: string;
   isInstanceAdmin: boolean;
   peers: { id: string; domain: string }[];
+  /** For instance admins: workspaces waiting for a decision (the admin nav badge). */
+  pendingRequests?: number;
 }
 
 export interface FederationPeer {
@@ -35,8 +37,23 @@ export interface FederationPeer {
   lastSeenDate: string | null;
   lastError: string | null;
   creationDate: string;
+  /** True when this instance trusted the workspace without an admin step (an incoming request). */
+  acceptedAutomatically?: boolean;
+  /** Trusted for incoming traffic only: nothing is sent to it until an admin approves it. */
+  inboundOnly?: boolean;
+  incoming?: boolean;
+  /** Instance admin who approved the workspace here, when an admin did. */
+  approvedByEmail?: string | null;
   /** Account that asked for this workspace from a collection dialog (awaiting an instance admin). */
   requestedByEmail?: string | null;
+  /** What is queued behind this workspace request: organisation, collections, people, who asked. */
+  queued?: {
+    organizationId: string;
+    organizationName: string;
+    requestedByEmail: string;
+    collections: number;
+    people: number;
+  }[];
   /** Organisations sharing with this workspace (counts only, collection names are encrypted). */
   sharing?: {
     organizationId: string;
@@ -44,6 +61,11 @@ export interface FederationPeer {
     people: number;
     collections: number;
   }[];
+}
+
+export interface TrustSettings {
+  requireIncomingApproval: boolean;
+  blockedDomains: { domain: string; kind?: string; date: string }[];
 }
 
 export type WorkspaceState =
@@ -55,6 +77,7 @@ export interface ExternalWorkspace {
   fingerprint: string;
   state: WorkspaceState;
   active: boolean;
+  inboundOnly?: boolean;
 }
 
 export interface ExternalGrantee {
@@ -71,6 +94,20 @@ export interface ExternalGrantee {
   manage: boolean;
 }
 
+/** A share queued behind a workspace that awaits an instance admin (or that ended without it). */
+export interface QueuedShare {
+  id: string;
+  email: string;
+  peerId: string;
+  peerDomain: string;
+  status: "queued" | "retry" | "declined" | "expired" | "dropped";
+  /** Why a dropped share was not sent. */
+  note: string | null;
+  readOnly: boolean;
+  hidePasswords: boolean;
+  manage: boolean;
+}
+
 export interface ExternalAccessState {
   isInstanceAdmin: boolean;
   /** May invite new external people (manage users, or the organisation allows collection managers). */
@@ -80,6 +117,7 @@ export interface ExternalAccessState {
   available: boolean;
   workspaces: ExternalWorkspace[];
   grantees: ExternalGrantee[];
+  queued: QueuedShare[];
 }
 
 export interface ExternalAccessFlags {
@@ -96,7 +134,7 @@ export interface InviteSetting {
 export interface ShareResult {
   email: string;
   ok: boolean;
-  result?: "invited" | "updated";
+  result?: "invited" | "updated" | "queued";
   id?: string;
   error?: string;
 }
@@ -137,6 +175,8 @@ export interface FederatedInvitation {
   inviterEmail: string | null;
   peerDomain: string;
   peerActive: boolean;
+  /** False for a workspace nobody at this instance approved: shown as unverified. */
+  verified?: boolean;
   status: "pending" | "accepted" | "declined";
   creationDate: string;
 }
@@ -215,6 +255,17 @@ export class FederationApiService {
 
   // ----- instance admin -----
 
+  /** The public descriptor of this instance (same origin), readable by any signed-in user. */
+  async ownDescriptor(): Promise<FederationDescriptor> {
+    const res = await fetch("/.well-known/cloudwarden-federation", {
+      headers: { accept: "application/json" },
+    });
+    if (!res.ok) {
+      throw new Error(`descriptor ${res.status}`);
+    }
+    return (await res.json()) as FederationDescriptor;
+  }
+
   identity(): Promise<FederationDescriptor> {
     return this.apiService.send(
       "GET",
@@ -274,10 +325,53 @@ export class FederationApiService {
     );
   }
 
-  removePeer(id: string): Promise<void> {
+  /** `block` also refuses the workspace's pairing requests until an admin unblocks the domain. */
+  trustSettings(): Promise<TrustSettings> {
+    return this.apiService.send(
+      "GET",
+      `${BASE}/admin/settings`,
+      null,
+      true,
+      true,
+    );
+  }
+
+  setRequireIncomingApproval(
+    value: boolean,
+  ): Promise<{ requireIncomingApproval: boolean; reviewPeers?: number }> {
+    return this.apiService.send(
+      "PUT",
+      `${BASE}/admin/settings`,
+      { requireIncomingApproval: value },
+      true,
+      true,
+    );
+  }
+
+  blockDomain(domain: string): Promise<unknown> {
+    return this.apiService.send(
+      "POST",
+      `${BASE}/admin/blocked`,
+      { domain },
+      true,
+      true,
+    );
+  }
+
+  unblockDomain(domain: string): Promise<unknown> {
     return this.apiService.send(
       "DELETE",
-      `${BASE}/admin/peers/${enc(id)}`,
+      `${BASE}/admin/blocked/${enc(domain)}`,
+      null,
+      true,
+      true,
+    );
+  }
+
+  removePeer(id: string, block = false): Promise<void> {
+    return this.apiService.send(
+      "DELETE",
+      `${BASE}/admin/peers/${enc(id)}${block ? "?block=true" : ""}`,
       null,
       true,
       false,
@@ -406,6 +500,35 @@ export class FederationApiService {
       "PUT",
       `${this.ext(orgId, collectionId)}/${enc(memberId)}`,
       access,
+      true,
+      false,
+    );
+  }
+
+  updateQueuedShare(
+    orgId: string,
+    collectionId: string,
+    id: string,
+    access: ExternalAccessFlags,
+  ): Promise<void> {
+    return this.apiService.send(
+      "PUT",
+      `${this.ext(orgId, collectionId)}/queued/${enc(id)}`,
+      access,
+      true,
+      false,
+    );
+  }
+
+  removeQueuedShare(
+    orgId: string,
+    collectionId: string,
+    id: string,
+  ): Promise<void> {
+    return this.apiService.send(
+      "DELETE",
+      `${this.ext(orgId, collectionId)}/queued/${enc(id)}`,
+      null,
       true,
       false,
     );

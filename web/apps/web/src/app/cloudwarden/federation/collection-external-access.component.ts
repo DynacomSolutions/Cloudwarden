@@ -34,10 +34,12 @@ import { SharedModule } from "../../shared";
 import {
   EXTERNAL_PERMISSIONS,
   accessToPermission,
+  canQueueFor,
   granteeStatusKey,
   isEmailLike,
   parseEmails,
   permissionToAccess,
+  queuedStatusKey,
   workspaceWaitKey,
 } from "./external-access";
 import {
@@ -45,9 +47,17 @@ import {
   ExternalGrantee,
   ExternalWorkspace,
   FederationApiService,
+  FederationDescriptor,
   formatFingerprint,
+  QueuedShare,
   sameFingerprint,
 } from "./federation-api.service";
+import { sameDomain } from "./workspace-qr";
+import {
+  ScannedWorkspace,
+  WorkspaceQrScanComponent,
+} from "./workspace-qr-scan.component";
+import { WorkspaceQrShowComponent } from "./workspace-qr-show.component";
 
 /** Value of the workspace select that opens the "add a workspace" form. */
 const NEW_WORKSPACE = "__new";
@@ -55,7 +65,7 @@ const NEW_WORKSPACE = "__new";
 @Component({
   selector: "cw-collection-external-access",
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SharedModule],
+  imports: [SharedModule, WorkspaceQrShowComponent, WorkspaceQrScanComponent],
   template: `
     @if (state(); as s) {
       <bit-section class="tw-mt-6" data-testid="cw-ext-access">
@@ -120,6 +130,11 @@ const NEW_WORKSPACE = "__new";
                     {{ "cwExtLookup" | i18n }}
                   </button>
                 </bit-form-field>
+                <div class="tw-mb-3">
+                  <cw-workspace-qr-scan
+                    (scanned)="scanned($event)"
+                  ></cw-workspace-qr-scan>
+                </div>
                 @if (found(); as f) {
                   <bit-callout type="info" [title]="f.domain">
                     {{ "cwExtFingerprintShown" | i18n }}
@@ -160,6 +175,14 @@ const NEW_WORKSPACE = "__new";
                     }}
                   </button>
                 }
+                @if (own(); as o) {
+                  <div class="tw-mt-4">
+                    <cw-workspace-qr-show
+                      [domain]="o.domain"
+                      [fingerprint]="o.fingerprint"
+                    ></cw-workspace-qr-show>
+                  </div>
+                }
               </div>
             }
 
@@ -182,7 +205,8 @@ const NEW_WORKSPACE = "__new";
                     </button>
                   </div>
                 </bit-callout>
-              } @else {
+              }
+              @if (!waitKey(w) || canQueue(w)) {
                 @if (!s.canInvite) {
                   <bit-callout
                     class="md:tw-col-span-2"
@@ -237,7 +261,7 @@ const NEW_WORKSPACE = "__new";
           <bit-callout type="danger">{{ error() }}</bit-callout>
         }
 
-        @if (s.grantees.length > 0) {
+        @if (s.grantees.length > 0 || s.queued.length > 0) {
           <bit-table class="tw-mt-4" data-testid="cw-ext-grantees">
             <ng-container header>
               <tr>
@@ -319,6 +343,61 @@ const NEW_WORKSPACE = "__new";
                   </td>
                 </tr>
               }
+              @for (qd of s.queued; track qd.id) {
+                <tr bitRow data-testid="cw-ext-queued">
+                  <td bitCell>{{ qd.email }}</td>
+                  <td bitCell>
+                    <span bitBadge variant="secondary">{{
+                      qd.peerDomain
+                    }}</span>
+                  </td>
+                  <td bitCell>
+                    <span
+                      bitBadge
+                      [variant]="qd.status === 'queued' ? 'warning' : 'danger'"
+                      >{{ queuedKey(qd) | i18n }}</span
+                    >
+                    @if (qd.note) {
+                      <div class="tw-text-xs tw-text-muted">{{ qd.note }}</div>
+                    }
+                  </td>
+                  <td bitCell>
+                    @if (readonly() || qd.status !== "queued") {
+                      {{ queuedPermissionLabel(qd) | i18n }}
+                    } @else {
+                      <select
+                        bitInput
+                        (change)="
+                          changeQueuedPermission(qd, $any($event.target).value)
+                        "
+                        [attr.aria-label]="'permission' | i18n"
+                      >
+                        @for (p of permissions; track p.perm) {
+                          <option
+                            [value]="p.perm"
+                            [selected]="p.perm === queuedPermission(qd)"
+                          >
+                            {{ p.labelId | i18n }}
+                          </option>
+                        }
+                      </select>
+                    }
+                  </td>
+                  <td bitCell class="tw-text-right">
+                    @if (!readonly()) {
+                      <button
+                        type="button"
+                        bitButton
+                        buttonType="danger"
+                        (click)="removeQueued(qd)"
+                        data-testid="cw-ext-queued-remove"
+                      >
+                        {{ "remove" | i18n }}
+                      </button>
+                    }
+                  </td>
+                </tr>
+              }
             </ng-template>
           </bit-table>
         }
@@ -355,6 +434,8 @@ export class CollectionExternalAccessComponent implements OnInit {
     fingerprint: string;
   } | null>(null);
   protected readonly canConfirm = signal(false);
+  /** This instance's own identity, for the "Show this workspace's QR" panel. */
+  protected readonly own = signal<FederationDescriptor | null>(null);
   private readonly choice = signal("");
 
   protected readonly form = this.fb.group({
@@ -374,6 +455,9 @@ export class CollectionExternalAccessComponent implements OnInit {
     this.form.controls.workspaceId.valueChanges.subscribe((v) => {
       this.choice.set(v ?? "");
       this.found.set(null);
+      if (v === NEW_WORKSPACE && this.own() === null) {
+        void this.loadOwn();
+      }
     });
     await this.load();
     try {
@@ -391,6 +475,14 @@ export class CollectionExternalAccessComponent implements OnInit {
     }
   }
 
+  private async loadOwn() {
+    try {
+      this.own.set((await this.api.ownDescriptor()) ?? null);
+    } catch {
+      this.own.set(null);
+    }
+  }
+
   protected stateKey(w: ExternalWorkspace): string {
     return (
       {
@@ -402,7 +494,58 @@ export class CollectionExternalAccessComponent implements OnInit {
     )[w.state];
   }
 
+  protected canQueue(w: ExternalWorkspace): boolean {
+    return canQueueFor(w.state);
+  }
+
+  protected queuedKey(q: QueuedShare): string {
+    return queuedStatusKey(q.status);
+  }
+
+  protected queuedPermission(q: QueuedShare): CollectionPermission {
+    return accessToPermission(q);
+  }
+
+  protected queuedPermissionLabel(q: QueuedShare): string {
+    return (
+      EXTERNAL_PERMISSIONS.find((p) => p.perm === accessToPermission(q))
+        ?.labelId ?? "viewItems"
+    );
+  }
+
+  protected async changeQueuedPermission(q: QueuedShare, value: string) {
+    try {
+      await this.api.updateQueuedShare(
+        this.organizationId(),
+        this.collectionId(),
+        q.id,
+        permissionToAccess(value as CollectionPermission),
+      );
+    } catch (e) {
+      this.error.set(this.message(e));
+    }
+    await this.load();
+  }
+
+  protected async removeQueued(q: QueuedShare) {
+    try {
+      await this.api.removeQueuedShare(
+        this.organizationId(),
+        this.collectionId(),
+        q.id,
+      );
+    } catch (e) {
+      this.error.set(this.message(e));
+    }
+    await this.load();
+  }
+
   protected waitKey(w: ExternalWorkspace): string | null {
+    if (w.inboundOnly && w.state === "awaitingInstanceAdmin") {
+      return this.state()?.isInstanceAdmin === true
+        ? "cwExtWsInboundOnlyAdmin"
+        : "cwExtWsInboundOnly";
+    }
     return workspaceWaitKey(w.state, this.state()?.isInstanceAdmin === true);
   }
 
@@ -483,6 +626,23 @@ export class CollectionExternalAccessComponent implements OnInit {
     }
   }
 
+  /**
+   * A scanned QR fills the domain and runs the same server lookup as typing it. The fingerprint is
+   * put in the field only when the server's own fetch of that domain matches the scanned domain;
+   * adding the workspace is still the user's click and the server checks the fingerprint again.
+   */
+  protected async scanned(s: ScannedWorkspace) {
+    this.form.patchValue({ domain: s.domain, fingerprint: "" });
+    await this.lookup();
+    const f = this.found();
+    if (f && sameDomain(f.domain, s.domain)) {
+      this.form.patchValue({ fingerprint: s.fingerprint });
+    } else if (f) {
+      this.found.set(null);
+      this.error.set(this.i18n.t("cwQrDomainMismatch", s.domain, f.domain));
+    }
+  }
+
   protected async addWorkspace() {
     const f = this.found();
     const typed = this.form.value.fingerprint ?? "";
@@ -550,7 +710,13 @@ export class CollectionExternalAccessComponent implements OnInit {
       );
       const failed = res.data.filter((r) => !r.ok);
       const ok = res.data.length - failed.length;
-      if (ok > 0) {
+      const queued = res.data.filter((r) => r.ok && r.result === "queued");
+      if (queued.length > 0) {
+        this.toast(
+          "success",
+          this.i18n.t("cwExtQueuedToast", String(queued.length)),
+        );
+      } else if (ok > 0) {
         this.toast("success", this.i18n.t("cwExtShared", String(ok)));
       }
       this.error.set(

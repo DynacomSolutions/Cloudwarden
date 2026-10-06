@@ -12,6 +12,7 @@ import { z } from 'zod'
 import { isAdminUser, rateLimit } from '../admin/security'
 import { normalizeEmail } from '../auth/users'
 import { createDb, runBatch, schema } from '../db'
+import { later } from '../email/send'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
 import { PushType, pushUserUpdate } from '../notifications/publish'
@@ -34,10 +35,22 @@ import {
   isActive,
   listPeers,
   normaliseDomainOrThrow,
+  outboundOk,
   type Peer,
   PeerStatus,
   peerByDomain,
 } from './peers'
+import {
+  insertQueued,
+  MAX_SEND_ATTEMPTS,
+  notifyAdminsOfRequest,
+  notifyRequester,
+  peersWithRetries,
+  QueuedStatus,
+  queuedJson,
+  queuedRowsForPeer,
+  reassignQueued,
+} from './queued-shares'
 
 type Ctx = Context<Env>
 
@@ -47,18 +60,22 @@ export type WorkspaceState = 'active' | 'suspended' | 'awaitingInstanceAdmin' | 
 export const workspaceState = (p: Peer): WorkspaceState =>
   p.status === PeerStatus.Suspended
     ? 'suspended'
-    : isActive(p)
+    : outboundOk(p)
       ? 'active'
-      : p.localApproved
-        ? 'awaitingRemote'
-        : 'awaitingInstanceAdmin'
+      : // Trusted automatically for incoming traffic only: sharing waits for an instance admin.
+        isActive(p)
+        ? 'awaitingInstanceAdmin'
+        : p.localApproved
+          ? 'awaitingRemote'
+          : 'awaitingInstanceAdmin'
 
 const workspaceJson = (p: Peer) => ({
   id: p.uuid,
   domain: p.domain,
   fingerprint: p.fingerprint,
   state: workspaceState(p),
-  active: isActive(p),
+  active: outboundOk(p),
+  inboundOnly: isActive(p) && !outboundOk(p),
 })
 
 /**
@@ -66,7 +83,11 @@ const workspaceJson = (p: Peer) => ({
  * created. Everything else is reported only as "awaiting admin" (no state, no fingerprint).
  */
 const visibleTo = (p: Peer, userUuid: string, isAdmin: boolean) =>
-  isAdmin || isActive(p) || (p.requestedBy === userUuid && p.status === PeerStatus.Pending)
+  isAdmin ||
+  outboundOk(p) ||
+  // Trusted for incoming traffic only: shown as waiting for an admin, so shares can be queued.
+  (isActive(p) && p.status !== PeerStatus.Suspended) ||
+  (p.requestedBy === userUuid && p.status === PeerStatus.Pending)
 
 const AWAITING_ADMIN = { workspace: null, awaitingAdmin: true } as const
 
@@ -179,7 +200,23 @@ export async function externalAccessState(c: Ctx, orgUuid: string, collectionUui
       .filter((p) => visibleTo(p, c.var.user.uuid, isAdmin))
       .map(workspaceJson),
     grantees: await granteesOf(c, orgUuid, collectionUuid),
+    // Shares waiting for an instance admin to approve the workspace (or that ended without it).
+    queued: await queuedOf(c, orgUuid, collectionUuid),
   }
+}
+
+async function queuedOf(c: Ctx, orgUuid: string, collectionUuid: string) {
+  const rows = await createDb(c.env.DB)
+    .select()
+    .from(schema.federationQueuedShares)
+    .where(
+      and(
+        eq(schema.federationQueuedShares.organizationUuid, orgUuid),
+        eq(schema.federationQueuedShares.collectionUuid, collectionUuid),
+      ),
+    )
+  const peers = new Map((await listPeers(c.env)).map((p) => [p.uuid, workspaceState(p)] as const))
+  return rows.map((r) => queuedJson(r, peers.get(r.peerUuid) ?? null))
 }
 
 /** Shows a workspace's key fingerprint (fetched by this server) so the user can compare it. */
@@ -260,15 +297,14 @@ export async function addWorkspace(
         actingUserUuid: actor.uuid,
         peerDomain: peer.domain,
       })
+      // Instance admins are told by email (when mail is on); the page also counts open requests.
+      await notifyAdminsOfRequest(c.env, peer, actor.email)
     }
   }
   // Trust is activated only by an instance admin, after the fingerprint check above.
-  if (
-    isAdmin &&
-    peer.status !== PeerStatus.Suspended &&
-    !(peer.localApproved && peer.remoteApproved)
-  ) {
+  if (isAdmin && peer.status !== PeerStatus.Suspended && !outboundOk(peer)) {
     peer = await approvePeerLocally(c.env, peer, body.fingerprint, actor.uuid)
+    if (outboundOk(peer)) later(c, flushQueuedShares(c, peer))
   }
   return { created, workspace: workspaceJson(peer) }
 }
@@ -317,8 +353,8 @@ const upsertGrant = (
 export interface ShareResult {
   email: string
   ok: boolean
-  /** `invited` for a new federated member, `updated` when an existing one got or changed access. */
-  result?: 'invited' | 'updated'
+  /** `invited` for a new federated member, `updated` when an existing one got or changed access, `queued` while the workspace awaits an admin. */
+  result?: 'invited' | 'updated' | 'queued'
   id?: string
   error?: string
 }
@@ -341,71 +377,39 @@ export async function shareCollection(
   const mayInvite = can(actor, 'manageUsers') || org.federationManagersInvite
   await assertFederatable(db, orgUuid)
   const peer = await getPeer(c.env, body.workspaceId)
-  if (!peer || !isActive(peer)) {
+  const access = { readOnly: body.readOnly, hidePasswords: body.hidePasswords, manage: body.manage }
+  const emails = [...new Set(body.emails.map(normalizeEmail))]
+  const isAdmin = isAdminUser(c.env, c.var.user)
+  // A workspace still waiting for approval takes the share into a queue: nothing is sent to the
+  // peer until it is active, then each item is checked again (`flushQueuedShares`).
+  if (
+    peer &&
+    !outboundOk(peer) &&
+    peer.status !== PeerStatus.Suspended &&
+    visibleTo(peer, c.var.user.uuid, isAdmin)
+  ) {
+    return queueShares(c, { orgUuid, collectionUuid, peer, emails, access, mayInvite })
+  }
+  if (!peer || !outboundOk(peer)) {
     throw new ApiError(400, 'This workspace is not active yet. Both sides must approve it first.', {
       workspaceId: ['No active workspace.'],
     })
   }
-  const access = { readOnly: body.readOnly, hidePasswords: body.hidePasswords, manage: body.manage }
-  const emails = [...new Set(body.emails.map(normalizeEmail))]
   const results: ShareResult[] = []
   for (const email of emails) {
     try {
-      if (!/^[^\s@]+@[^\s@]+$/.test(email)) throw new ApiError(400, 'Invalid email address.')
-      const row = await federatedByEmail(c, orgUuid, email)
-      if (row) {
-        if (!row.f || row.f.peerUuid !== peer.uuid) {
-          throw new ApiError(
-            400,
-            row.f
-              ? 'This address is already a member through another workspace.'
-              : 'This address is already a member of the organisation. Use the local member list.',
-          )
-        }
-        await runBatch(db, [
-          ...upsertGrant(c, row.m.uuid, collectionUuid, access),
-          federationEventStatement(db, {
-            type: FederationEvent.CollectionSharedExternally,
-            organizationUuid: orgUuid,
-            organizationUserUuid: row.m.uuid,
-            actingUserUuid: c.var.user.uuid,
-            peerDomain: peer.domain,
-          }),
-          bumpOrgRevision(db, orgUuid, Date.now()),
-        ])
-        if (row.m.userUuid) {
-          await pushUserUpdate(c.env, row.m.userUuid, PushType.SyncVault, {
-            UserId: row.m.userUuid,
-            Date: new Date().toISOString(),
-          })
-        }
-        results.push({ email, ok: true, result: 'updated', id: row.m.uuid })
-        continue
-      }
-      if (!mayInvite) {
-        throw new ApiError(
-          403,
-          'Inviting new external people needs the manage users permission. Ask an owner or admin, or have them allow collection managers to invite.',
-        )
-      }
-      const invite = await createFederatedInvite(c, orgUuid, {
-        viaShare: true,
-        org,
-        email,
-        peer,
-        type: Role.User,
-        accessAll: false,
-        collections: [{ id: collectionUuid, ...access }],
-        groupIds: [],
-      })
-      await federationEventStatement(db, {
-        type: FederationEvent.CollectionSharedExternally,
-        organizationUuid: orgUuid,
-        organizationUserUuid: invite.id,
-        actingUserUuid: c.var.user.uuid,
-        peerDomain: peer.domain,
-      })
-      results.push({ email, ok: true, result: 'invited', id: invite.id })
+      results.push(
+        await grantOne(c, {
+          orgUuid,
+          collectionUuid,
+          org,
+          peer,
+          email,
+          access,
+          mayInvite,
+          actor: { uuid: c.var.user.uuid, email: c.var.user.email },
+        }),
+      )
     } catch (err) {
       results.push({
         email,
@@ -415,6 +419,351 @@ export async function shareCollection(
     }
   }
   return results
+}
+
+interface GrantOneInput {
+  orgUuid: string
+  collectionUuid: string
+  org: Awaited<ReturnType<typeof requireOrg>>
+  peer: Peer
+  email: string
+  access: z.infer<typeof accessSchema>
+  mayInvite: boolean
+  actor: { uuid: string; email: string }
+}
+
+/** One address of an active workspace: invites a new person or changes an existing member's access. */
+async function grantOne(c: Ctx, p: GrantOneInput): Promise<ShareResult> {
+  const db = createDb(c.env.DB)
+  const { orgUuid, collectionUuid, org, peer, email, access, actor } = p
+  if (!/^[^\s@]+@[^\s@]+$/.test(email)) throw new ApiError(400, 'Invalid email address.')
+  const row = await federatedByEmail(c, orgUuid, email)
+  if (row) {
+    if (!row.f || row.f.peerUuid !== peer.uuid) {
+      throw new ApiError(
+        400,
+        row.f
+          ? 'This address is already a member through another workspace.'
+          : 'This address is already a member of the organisation. Use the local member list.',
+      )
+    }
+    await runBatch(db, [
+      ...upsertGrant(c, row.m.uuid, collectionUuid, access),
+      federationEventStatement(db, {
+        type: FederationEvent.CollectionSharedExternally,
+        organizationUuid: orgUuid,
+        organizationUserUuid: row.m.uuid,
+        actingUserUuid: actor.uuid,
+        peerDomain: peer.domain,
+      }),
+      bumpOrgRevision(db, orgUuid, Date.now()),
+    ])
+    if (row.m.userUuid) {
+      await pushUserUpdate(c.env, row.m.userUuid, PushType.SyncVault, {
+        UserId: row.m.userUuid,
+        Date: new Date().toISOString(),
+      })
+    }
+    return { email, ok: true, result: 'updated', id: row.m.uuid }
+  }
+  if (!p.mayInvite) {
+    throw new ApiError(
+      403,
+      'Inviting new external people needs the manage users permission. Ask an owner or admin, or have them allow collection managers to invite.',
+    )
+  }
+  const invite = await createFederatedInvite(c, orgUuid, {
+    viaShare: true,
+    org,
+    email,
+    peer,
+    type: Role.User,
+    accessAll: false,
+    collections: [{ id: collectionUuid, ...access }],
+    groupIds: [],
+    actor,
+  })
+  await federationEventStatement(db, {
+    type: FederationEvent.CollectionSharedExternally,
+    organizationUuid: orgUuid,
+    organizationUserUuid: invite.id,
+    actingUserUuid: actor.uuid,
+    peerDomain: peer.domain,
+  })
+  return { email, ok: true, result: 'invited', id: invite.id }
+}
+
+/** Queues shares behind a workspace that awaits approval. Nothing is sent to the peer. */
+async function queueShares(
+  c: Ctx,
+  p: {
+    orgUuid: string
+    collectionUuid: string
+    peer: Peer
+    emails: string[]
+    access: z.infer<typeof accessSchema>
+    mayInvite: boolean
+  },
+): Promise<ShareResult[]> {
+  const db = createDb(c.env.DB)
+  const q = schema.federationQueuedShares
+  const results: ShareResult[] = []
+  for (const email of p.emails) {
+    try {
+      if (!/^[^\s@]+@[^\s@]+$/.test(email)) throw new ApiError(400, 'Invalid email address.')
+      if (!p.mayInvite) {
+        throw new ApiError(
+          403,
+          'Inviting new external people needs the manage users permission. Ask an owner or admin, or have them allow collection managers to invite.',
+        )
+      }
+      if (await federatedByEmail(c, p.orgUuid, email)) {
+        throw new ApiError(400, 'This address is already a member of the organisation.')
+      }
+      const [existing] = await db
+        .select()
+        .from(q)
+        .where(
+          and(
+            eq(q.peerUuid, p.peer.uuid),
+            eq(q.collectionUuid, p.collectionUuid),
+            eq(q.email, email),
+          ),
+        )
+        .limit(1)
+      const now = Date.now()
+      if (existing && existing.requestedBy !== c.var.user.uuid) {
+        throw new ApiError(400, 'This address is already queued by someone else.')
+      }
+      let id = existing?.uuid ?? crypto.randomUUID()
+      if (
+        existing &&
+        (existing.status === QueuedStatus.Queued || existing.status === QueuedStatus.Retry)
+      ) {
+        await db
+          .update(q)
+          .set({
+            readOnly: p.access.readOnly,
+            hidePasswords: p.access.hidePasswords,
+            manage: p.access.manage,
+            status: QueuedStatus.Queued,
+            note: null,
+            attempts: 0,
+            updatedAt: now,
+          })
+          .where(eq(q.uuid, id))
+      } else {
+        // A finished entry is replaced by a new item; the caps are checked inside the insert.
+        if (existing) await db.delete(q).where(eq(q.uuid, existing.uuid))
+        id = crypto.randomUUID()
+        const ok = await insertQueued(c.env, {
+          uuid: id,
+          peerUuid: p.peer.uuid,
+          peerDomain: p.peer.domain,
+          organizationUuid: p.orgUuid,
+          collectionUuid: p.collectionUuid,
+          email,
+          readOnly: p.access.readOnly,
+          hidePasswords: p.access.hidePasswords,
+          manage: p.access.manage,
+          requestedBy: c.var.user.uuid,
+        })
+        if (!ok) throw new ApiError(429, 'Too many people are queued for this workspace or by you.')
+      }
+      await federationEventStatement(db, {
+        type: FederationEvent.ShareQueued,
+        organizationUuid: p.orgUuid,
+        actingUserUuid: c.var.user.uuid,
+        peerDomain: p.peer.domain,
+      })
+      results.push({ email, ok: true, result: 'queued', id })
+    } catch (err) {
+      results.push({
+        email,
+        ok: false,
+        error: err instanceof ApiError ? err.message : 'The request failed.',
+      })
+    }
+  }
+  return results
+}
+
+/**
+ * A context for work done after the response (or on a schedule): the same environment, but no
+ * client address or device, so audit events do not carry the peer's or admin's IP.
+ */
+const systemContext = (c: Ctx): Ctx =>
+  ({ env: c.env, var: c.var, req: { header: () => undefined } }) as unknown as Ctx
+
+/** Errors that will not pass by waiting: the item is dropped. Everything else may be retried. */
+const isFinal = (err: unknown) =>
+  err instanceof ApiError && err.status >= 400 && err.status < 500 && err.status !== 429
+
+/**
+ * Sends what was queued behind a workspace that an instance admin approved. Every item is checked
+ * again as of now, as the person who last edited it: they must still manage the collection and
+ * still be allowed to invite, and the organisation must still be able to serve federated members.
+ * Items that no longer qualify are kept as `dropped` with the reason. A failure that may pass (the
+ * peer is unreachable, a rate limit) keeps the item as `retry`, tried again on later admin
+ * activity, up to a few times. Meant to run after the response (`later`).
+ */
+export async function flushQueuedShares(c0: Ctx, activated: Peer) {
+  const c = systemContext(c0)
+  const peer = await getPeer(c.env, activated.uuid)
+  if (!peer || !outboundOk(peer)) return
+  const rows = await queuedRowsForPeer(c.env, peer.uuid)
+  if (rows.length === 0) return
+  const db = createDb(c.env.DB)
+  const q = schema.federationQueuedShares
+  const outcome = new Map<string, { sent: number; dropped: number; retry: number }>()
+  for (const r of rows) {
+    const tally = outcome.get(r.requestedBy) ?? { sent: 0, dropped: 0, retry: 0 }
+    outcome.set(r.requestedBy, tally)
+    try {
+      const [requester] = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.uuid, r.requestedBy))
+        .limit(1)
+      if (!requester) throw new ApiError(400, 'The requester no longer exists.')
+      const actor = await requireCollectionManager(
+        db,
+        r.requestedBy,
+        r.organizationUuid,
+        r.collectionUuid,
+      )
+      const org = await requireOrg(db, r.organizationUuid)
+      await assertFederatable(db, r.organizationUuid)
+      await grantOne(c, {
+        orgUuid: r.organizationUuid,
+        collectionUuid: r.collectionUuid,
+        org,
+        peer,
+        email: r.email,
+        access: { readOnly: r.readOnly, hidePasswords: r.hidePasswords, manage: r.manage },
+        mayInvite: can(actor, 'manageUsers') || org.federationManagersInvite,
+        actor: { uuid: requester.uuid, email: requester.email },
+      })
+      await runBatch(db, [
+        db.delete(q).where(eq(q.uuid, r.uuid)),
+        federationEventStatement(db, {
+          type: FederationEvent.QueuedShareSent,
+          organizationUuid: r.organizationUuid,
+          actingUserUuid: r.requestedBy,
+          peerDomain: peer.domain,
+        }),
+      ])
+      tally.sent += 1
+    } catch (err) {
+      const note = err instanceof ApiError ? err.message.slice(0, 300) : 'It could not be sent.'
+      const attempts = r.attempts + 1
+      const keep = !isFinal(err) && attempts < MAX_SEND_ATTEMPTS
+      await runBatch(db, [
+        db
+          .update(q)
+          .set({
+            status: keep ? QueuedStatus.Retry : QueuedStatus.Dropped,
+            attempts,
+            note,
+            updatedAt: Date.now(),
+          })
+          .where(eq(q.uuid, r.uuid)),
+        federationEventStatement(db, {
+          type: keep ? FederationEvent.QueuedShareRetry : FederationEvent.QueuedShareDropped,
+          organizationUuid: r.organizationUuid,
+          actingUserUuid: r.requestedBy,
+          peerDomain: peer.domain,
+        }),
+      ])
+      if (keep) tally.retry += 1
+      else tally.dropped += 1
+    }
+  }
+  for (const [userUuid, t] of outcome) {
+    if (t.sent + t.dropped > 0) {
+      await notifyRequester(c.env, userUuid, peer.domain, {
+        sent: t.sent,
+        dropped: t.dropped,
+        cancelled: null,
+      })
+    }
+  }
+}
+
+/** Tries the items that failed for a passing reason again, for every approved peer. */
+export async function retryQueuedShares(c: Ctx) {
+  for (const id of await peersWithRetries(c.env)) {
+    const peer = await getPeer(c.env, id)
+    if (peer && outboundOk(peer)) await flushQueuedShares(c, peer)
+  }
+}
+
+/** A queued share of this collection, or 404 (the path must match, so ids cannot cross collections). */
+async function queuedRow(c: Ctx, orgUuid: string, collectionUuid: string, id: string) {
+  const [row] = await createDb(c.env.DB)
+    .select()
+    .from(schema.federationQueuedShares)
+    .where(
+      and(
+        eq(schema.federationQueuedShares.uuid, id),
+        eq(schema.federationQueuedShares.organizationUuid, orgUuid),
+        eq(schema.federationQueuedShares.collectionUuid, collectionUuid),
+      ),
+    )
+    .limit(1)
+  if (!row) throw new ApiError(404, 'Queued share not found.')
+  return row
+}
+
+export async function updateQueuedShare(
+  c: Ctx,
+  orgUuid: string,
+  collectionUuid: string,
+  id: string,
+  access: z.infer<typeof accessSchema>,
+) {
+  const db = createDb(c.env.DB)
+  await requireCollectionManager(db, c.var.user.uuid, orgUuid, collectionUuid)
+  await limit(c, `fedshare:${c.var.user.uuid}`, GRANTS_PER_HOUR, 3_600_000)
+  const row = await queuedRow(c, orgUuid, collectionUuid, id)
+  if (row.status !== QueuedStatus.Queued && row.status !== QueuedStatus.Retry) {
+    throw new ApiError(400, 'This share is no longer queued.')
+  }
+  // The editor takes the item over: it is sent as them, after checking their right to invite.
+  if (!(await reassignQueued(c.env, id, c.var.user.uuid))) {
+    throw new ApiError(429, 'You have too many people waiting for an administrator.')
+  }
+  await runBatch(db, [
+    db
+      .update(schema.federationQueuedShares)
+      .set({
+        ...access,
+        status: QueuedStatus.Queued,
+        attempts: 0,
+        note: null,
+        updatedAt: Date.now(),
+      })
+      .where(eq(schema.federationQueuedShares.uuid, id)),
+    federationEventStatement(db, {
+      type: FederationEvent.QueuedShareEdited,
+      organizationUuid: orgUuid,
+      actingUserUuid: c.var.user.uuid,
+      peerDomain: row.peerDomain,
+    }),
+  ])
+}
+
+export async function removeQueuedShare(
+  c: Ctx,
+  orgUuid: string,
+  collectionUuid: string,
+  id: string,
+) {
+  const db = createDb(c.env.DB)
+  await requireCollectionManager(db, c.var.user.uuid, orgUuid, collectionUuid)
+  await limit(c, `fedshare:${c.var.user.uuid}`, GRANTS_PER_HOUR, 3_600_000)
+  await queuedRow(c, orgUuid, collectionUuid, id)
+  await db.delete(schema.federationQueuedShares).where(eq(schema.federationQueuedShares.uuid, id))
 }
 
 /** Loads a federated member that holds a grant on this collection, or 404. */

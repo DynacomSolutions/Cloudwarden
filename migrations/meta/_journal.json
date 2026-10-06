@@ -190,6 +190,27 @@
       "when": 1791219021157,
       "tag": "0026_federation_sharing_controls",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "6",
+      "when": 1791261446144,
+      "tag": "0027_federation_incoming_trust",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "6",
+      "when": 1791261752348,
+      "tag": "0028_federation_queued_shares",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "6",
+      "when": 1791263913140,
+      "tag": "0029_federation_hardening",
+      "breakpoints": true
     }
   ]
 }

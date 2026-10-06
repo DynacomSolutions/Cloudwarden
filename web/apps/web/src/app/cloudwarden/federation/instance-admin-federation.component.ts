@@ -24,13 +24,26 @@ import {
   FederationDescriptor,
   FederationEvent,
   FederationPeer,
+  TrustSettings,
   sameFingerprint,
 } from "./federation-api.service";
+import {
+  ScannedWorkspace,
+  WorkspaceQrScanComponent,
+} from "./workspace-qr-scan.component";
+import { WorkspaceQrShowComponent } from "./workspace-qr-show.component";
+import { normalizeFingerprint, sameDomain } from "./workspace-qr";
 
 @Component({
   selector: "cw-instance-admin-federation",
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SharedModule, HeaderModule, DatePipe],
+  imports: [
+    SharedModule,
+    HeaderModule,
+    DatePipe,
+    WorkspaceQrShowComponent,
+    WorkspaceQrScanComponent,
+  ],
   template: `
     <app-header></app-header>
     <bit-container>
@@ -50,13 +63,83 @@ import {
                 id.fingerprint
               }}</code>
             </p>
+            <cw-workspace-qr-show
+              [domain]="id.domain"
+              [fingerprint]="id.fingerprint"
+            ></cw-workspace-qr-show>
+          </bit-section>
+        }
+        @if (trust(); as t) {
+          <bit-section data-testid="cw-fed-trust">
+            <h2 bitTypography="h4">{{ "cwFedIncomingTitle" | i18n }}</h2>
+            <label class="tw-flex tw-items-start tw-gap-2">
+              <input
+                type="checkbox"
+                [checked]="t.requireIncomingApproval"
+                (change)="setRequire($any($event.target).checked)"
+                data-testid="cw-fed-require-approval"
+              />
+              <span>
+                {{ "cwFedRequireApproval" | i18n }}
+                <span class="tw-block tw-text-xs tw-text-muted">{{
+                  "cwFedRequireApprovalHint" | i18n
+                }}</span>
+              </span>
+            </label>
+            <form
+              [formGroup]="blockForm"
+              [bitSubmit]="addBlock"
+              class="tw-mt-3 tw-flex tw-flex-col tw-gap-2 sm:tw-flex-row sm:tw-items-start"
+            >
+              <bit-form-field class="tw-grow tw-max-w-md">
+                <bit-label>{{ "cwFedBlockRule" | i18n }}</bit-label>
+                <input
+                  bitInput
+                  type="text"
+                  formControlName="rule"
+                  placeholder="*.example.com"
+                  data-testid="cw-fed-block-rule"
+                />
+                <bit-hint>{{ "cwFedBlockRuleHint" | i18n }}</bit-hint>
+              </bit-form-field>
+              <button
+                type="submit"
+                bitButton
+                bitFormButton
+                buttonType="secondary"
+                class="sm:tw-mt-6"
+              >
+                {{ "cwFedBlock" | i18n }}
+              </button>
+            </form>
+            @if (t.blockedDomains.length > 0) {
+              <h3 bitTypography="h5" class="tw-mt-3">
+                {{ "cwFedBlocked" | i18n }}
+              </h3>
+              <ul data-testid="cw-fed-blocked">
+                @for (b of t.blockedDomains; track b.domain) {
+                  <li class="tw-flex tw-items-center tw-gap-2">
+                    <span class="tw-break-all">{{ b.domain }}</span>
+                    <button
+                      type="button"
+                      bitButton
+                      buttonType="secondary"
+                      size="small"
+                      (click)="unblock(b.domain)"
+                    >
+                      {{ "cwFedUnblock" | i18n }}
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
           </bit-section>
         }
         <bit-section>
           <form
             [formGroup]="form"
             [bitSubmit]="add"
-            class="tw-flex tw-items-start tw-gap-2"
+            class="tw-flex tw-flex-col tw-items-stretch tw-gap-2 sm:tw-flex-row sm:tw-items-start"
           >
             <bit-form-field class="tw-grow tw-max-w-md">
               <bit-label>{{ "cwFedPeerDomain" | i18n }}</bit-label>
@@ -77,6 +160,11 @@ import {
               {{ "cwFedAddPeer" | i18n }}
             </button>
           </form>
+          <div class="tw-mt-2 tw-max-w-md">
+            <cw-workspace-qr-scan
+              (scanned)="scannedForAdd($event)"
+            ></cw-workspace-qr-scan>
+          </div>
         </bit-section>
         @if (error()) {
           <bit-callout type="danger">{{ error() }}</bit-callout>
@@ -103,9 +191,39 @@ import {
                       {{ p.lastError }}
                     </div>
                   }
+                  @if (p.inboundOnly) {
+                    <div class="tw-text-xs" data-testid="cw-fed-inbound-only">
+                      {{ "cwFedIncomingOnly" | i18n }}
+                    </div>
+                  } @else if (p.approvedByEmail) {
+                    <div class="tw-text-xs" data-testid="cw-fed-approved-by">
+                      {{ "cwFedApprovedBy" | i18n: p.approvedByEmail }}
+                    </div>
+                  }
                   @if (p.requestedByEmail) {
                     <div class="tw-text-xs" data-testid="cw-fed-requested-by">
                       {{ "cwFedRequestedBy" | i18n: p.requestedByEmail }}
+                    </div>
+                  }
+                  @if ((p.queued ?? []).length > 0) {
+                    <div class="tw-mt-1 tw-text-xs" data-testid="cw-fed-queued">
+                      <div class="tw-font-semibold">
+                        {{ "cwFedQueuedBehind" | i18n }}
+                      </div>
+                      @for (
+                        q of p.queued;
+                        track q.organizationId + q.requestedByEmail
+                      ) {
+                        <div>
+                          {{
+                            "cwFedQueuedLine"
+                              | i18n
+                                : q.organizationName
+                                : q.collections
+                                : q.people
+                          }}
+                        </div>
+                      }
                     </div>
                   }
                   <div class="tw-mt-1 tw-text-xs" data-testid="cw-fed-sharing">
@@ -139,7 +257,7 @@ import {
                 <td bitCell>{{ p.lastSeenDate | date: "short" }}</td>
                 <td bitCell class="tw-text-right">
                   <div class="tw-flex tw-flex-wrap tw-justify-end tw-gap-1">
-                    @if (!p.localApproved) {
+                    @if (!p.localApproved || p.inboundOnly) {
                       <button
                         type="button"
                         bitButton
@@ -212,6 +330,11 @@ import {
                       >
                         {{ "cwFedApprove" | i18n }}
                       </button>
+                      <div class="tw-mt-2">
+                        <cw-workspace-qr-scan
+                          (scanned)="scannedForApprove($event, p)"
+                        ></cw-workspace-qr-scan>
+                      </div>
                     </form>
                   }
                 </td>
@@ -255,10 +378,14 @@ export class InstanceAdminFederationComponent implements OnInit {
   protected readonly identity = signal<FederationDescriptor | null>(null);
   protected readonly peers = signal<FederationPeer[]>([]);
   protected readonly events = signal<FederationEvent[]>([]);
+  protected readonly trust = signal<TrustSettings | null>(null);
   protected readonly error = signal<string | null>(null);
   protected readonly approving = signal<string | null>(null);
   protected readonly form = this.fb.group({
     domain: ["", [Validators.required]],
+  });
+  protected readonly blockForm = this.fb.group({
+    rule: ["", [Validators.required]],
   });
   protected readonly approveForm = this.fb.group({
     fingerprint: ["", [Validators.required]],
@@ -269,6 +396,11 @@ export class InstanceAdminFederationComponent implements OnInit {
   }
 
   protected statusKey(p: FederationPeer): string {
+    if (p.inboundOnly && p.status !== "suspended") {
+      return this.trust()?.requireIncomingApproval
+        ? "cwFedReview"
+        : "cwFedIncomingOnlyBadge";
+    }
     if (p.status === "suspended") {
       return "cwFedSuspended";
     }
@@ -291,11 +423,13 @@ export class InstanceAdminFederationComponent implements OnInit {
 
   private async load() {
     try {
-      const [identity, peers, events] = await Promise.all([
+      const [identity, peers, events, trust] = await Promise.all([
         this.api.identity(),
         this.api.peers(),
         this.api.events(),
+        this.api.trustSettings(),
       ]);
+      this.trust.set(trust);
       this.identity.set(identity);
       this.peers.set(peers.data);
       this.events.set(events.data);
@@ -318,6 +452,27 @@ export class InstanceAdminFederationComponent implements OnInit {
     this.toastService.showToast({ variant, message });
   }
 
+  /** A fingerprint scanned while adding, kept until the peer exists and is shown for approval. */
+  private scannedFingerprint: { domain: string; fingerprint: string } | null =
+    null;
+
+  protected scannedForAdd(s: ScannedWorkspace) {
+    this.form.patchValue({ domain: s.domain });
+    this.scannedFingerprint = s;
+  }
+
+  /** Fills the fingerprint field only; approving still needs the server match and an explicit click. */
+  protected scannedForApprove(s: ScannedWorkspace, p: FederationPeer) {
+    if (!sameDomain(s.domain, p.domain)) {
+      this.toast(
+        "error",
+        this.i18n.t("cwQrDomainMismatch", s.domain, p.domain),
+      );
+      return;
+    }
+    this.approveForm.patchValue({ fingerprint: s.fingerprint });
+  }
+
   protected add = async () => {
     this.form.markAllAsTouched();
     if (this.form.invalid) {
@@ -328,6 +483,15 @@ export class InstanceAdminFederationComponent implements OnInit {
       this.toast("success", this.i18n.t("cwFedPeerAdded", peer.domain));
       this.form.reset();
       this.approving.set(peer.id);
+      const scanned = this.scannedFingerprint;
+      this.scannedFingerprint = null;
+      if (
+        scanned &&
+        sameDomain(scanned.domain, peer.domain) &&
+        normalizeFingerprint(scanned.fingerprint)
+      ) {
+        this.approveForm.patchValue({ fingerprint: scanned.fingerprint });
+      }
     } catch (e) {
       this.toast("error", this.message(e));
     }
@@ -397,7 +561,46 @@ export class InstanceAdminFederationComponent implements OnInit {
     await this.load();
   }
 
+  protected addBlock = async () => {
+    this.blockForm.markAllAsTouched();
+    if (this.blockForm.invalid) {
+      return;
+    }
+    try {
+      await this.api.blockDomain(this.blockForm.value.rule ?? "");
+      this.blockForm.reset();
+    } catch (e) {
+      this.toast("error", this.message(e));
+    }
+    await this.load();
+  };
+
+  protected async setRequire(value: boolean) {
+    try {
+      const r = await this.api.setRequireIncomingApproval(value);
+      if (value && (r.reviewPeers ?? 0) > 0) {
+        this.toast(
+          "success",
+          this.i18n.t("cwFedReviewToast", String(r.reviewPeers)),
+        );
+      }
+    } catch (e) {
+      this.toast("error", this.message(e));
+    }
+    await this.load();
+  }
+
+  protected async unblock(domain: string) {
+    try {
+      await this.api.unblockDomain(domain);
+    } catch (e) {
+      this.toast("error", this.message(e));
+    }
+    await this.load();
+  }
+
   protected async remove(p: FederationPeer) {
+    // "Yes" removes; the dialog's second question asks whether to refuse its pairing requests too.
     const ok = await this.dialogService.openSimpleDialog({
       title: { key: "remove" },
       content: this.i18n.t("cwFedRemoveDesc", p.domain),
@@ -406,8 +609,15 @@ export class InstanceAdminFederationComponent implements OnInit {
     if (!ok) {
       return;
     }
+    const block = await this.dialogService.openSimpleDialog({
+      title: { key: "cwFedBlockTitle" },
+      content: this.i18n.t("cwFedBlockDesc", p.domain),
+      type: "warning",
+      acceptButtonText: { key: "cwFedBlock" },
+      cancelButtonText: { key: "no" },
+    });
     try {
-      await this.api.removePeer(p.id);
+      await this.api.removePeer(p.id, block);
     } catch (e) {
       this.toast("error", this.message(e));
     }

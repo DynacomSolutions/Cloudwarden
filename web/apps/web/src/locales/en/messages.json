@@ -19286,7 +19286,7 @@
     "message": "waiting for the other workspace"
   },
   "cwExtWsAwaitingAdmin": {
-    "message": "Waiting for your instance administrator to approve $DOMAIN$ under Instance admin, Trusted workspaces. You cannot share with it until then.",
+    "message": "Waiting for your instance administrator to approve $DOMAIN$ under Instance admin, Trusted workspaces. You can share now: what you add is kept as \"Waiting for admin approval\" and sent only after approval.",
     "placeholders": {
       "domain": {
         "content": "$1",
@@ -19304,7 +19304,7 @@
     }
   },
   "cwExtWsAwaitingRemote": {
-    "message": "You approved $DOMAIN$. Waiting for its administrator to approve this server; the request is in their Trusted workspaces list.",
+    "message": "You approved $DOMAIN$. Waiting for its administrator to approve this server; the request is in their Trusted workspaces list. What you share meanwhile is sent once it is approved.",
     "placeholders": {
       "domain": {
         "content": "$1",
@@ -19423,5 +19423,206 @@
   },
   "cwExtMayInviteHint": {
     "message": "Off by default: only people with the manage users permission can invite new external people. Managers can always change access for external people already in the organisation."
+  },
+  "cwQrShow": {
+    "message": "Show this workspace's QR"
+  },
+  "cwQrShowHelp": {
+    "message": "Another administrator can scan this code instead of typing the fingerprint. Compare the domain and fingerprint below with what their screen shows."
+  },
+  "cwQrNoIdentity": {
+    "message": "This workspace's identity is not available."
+  },
+  "cwQrRenderFailed": {
+    "message": "The QR code could not be drawn. Use the fingerprint below instead."
+  },
+  "cwQrScan": {
+    "message": "Scan QR"
+  },
+  "cwQrStopScan": {
+    "message": "Stop scanning"
+  },
+  "cwQrImage": {
+    "message": "Choose QR image"
+  },
+  "cwQrPaste": {
+    "message": "Or paste a QR image, or the text of the QR code"
+  },
+  "cwQrNotFound": {
+    "message": "No QR code was found in that image."
+  },
+  "cwQrNoCamera": {
+    "message": "This browser cannot open a camera here. Choose an image or paste the text of the QR code instead."
+  },
+  "cwQrCameraDenied": {
+    "message": "Camera access was not allowed. Choose an image or paste the text of the QR code instead."
+  },
+  "cwQrDomainMismatch": {
+    "message": "The scanned QR is for $SCANNED$, not $EXPECTED$. Nothing was filled in.",
+    "placeholders": {
+      "scanned": {
+        "content": "$1",
+        "example": "vault.example.com"
+      },
+      "expected": {
+        "content": "$2",
+        "example": "vault.example.org"
+      }
+    }
+  },
+  "cwQrErr_empty": {
+    "message": "Nothing to read."
+  },
+  "cwQrErr_tooLong": {
+    "message": "That is too long to be a workspace QR code."
+  },
+  "cwQrErr_scheme": {
+    "message": "That is not a Cloudwarden workspace QR code."
+  },
+  "cwQrErr_version": {
+    "message": "This QR code uses a version that this vault does not understand."
+  },
+  "cwQrErr_domain": {
+    "message": "The workspace domain in the QR code is not valid."
+  },
+  "cwQrErr_fingerprint": {
+    "message": "The fingerprint in the QR code is not valid."
+  },
+  "cwQrErr_malformed": {
+    "message": "The QR code is damaged or not in the expected format."
+  },
+  "cwFedIncomingTitle": {
+    "message": "Incoming workspaces"
+  },
+  "cwFedRequireApproval": {
+    "message": "Require admin approval for incoming workspaces"
+  },
+  "cwFedRequireApprovalHint": {
+    "message": "Off by default. When another instance asks to pair and proves its domain, it is trusted automatically; it can only send invitations that people must accept. Turn this on to approve each incoming workspace here after comparing its fingerprint."
+  },
+  "cwFedBlocked": {
+    "message": "Blocked domains"
+  },
+  "cwFedUnblock": {
+    "message": "Unblock"
+  },
+  "cwFedTrustedAutomatically": {
+    "message": "Trusted automatically (incoming)"
+  },
+  "cwFedApprovedBy": {
+    "message": "Approved by $ADMIN$",
+    "placeholders": {
+      "admin": {
+        "content": "$1",
+        "example": "admin@example.com"
+      }
+    }
+  },
+  "cwFedBlockTitle": {
+    "message": "Block this domain?"
+  },
+  "cwFedBlockDesc": {
+    "message": "Refuse pairing requests from $DOMAIN$ from now on? Without a block it can ask to pair again; its next request will wait for your approval instead of being trusted automatically.",
+    "placeholders": {
+      "domain": {
+        "content": "$1",
+        "example": "vault.example.com"
+      }
+    }
+  },
+  "cwFedBlock": {
+    "message": "Block"
+  },
+  "cwExtQueued": {
+    "message": "Waiting for admin approval"
+  },
+  "cwExtQueuedDeclined": {
+    "message": "Declined by your instance administrator"
+  },
+  "cwExtQueuedExpired": {
+    "message": "Expired"
+  },
+  "cwExtQueuedDropped": {
+    "message": "Not sent"
+  },
+  "cwExtQueuedToast": {
+    "message": "$COUNT$ person(s) queued. They are invited after your instance administrator approves the workspace.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "2"
+      }
+    }
+  },
+  "cwFedQueuedBehind": {
+    "message": "Waiting to be shared once approved"
+  },
+  "cwFedQueuedLine": {
+    "message": "$ORG$: $COLLECTIONS$ collection(s), $PEOPLE$ person(s)",
+    "placeholders": {
+      "org": {
+        "content": "$1",
+        "example": "Acme"
+      },
+      "collections": {
+        "content": "$2",
+        "example": "1"
+      },
+      "people": {
+        "content": "$3",
+        "example": "2"
+      }
+    }
+  },
+  "cwFedIncomingOnly": {
+    "message": "Incoming only: approve to share with this workspace"
+  },
+  "cwFedIncomingOnlyBadge": {
+    "message": "Incoming only"
+  },
+  "cwFedReview": {
+    "message": "Review"
+  },
+  "cwFedReviewToast": {
+    "message": "$COUNT$ workspace(s) trusted automatically need a review. They stay incoming only until you approve them or remove them.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "2"
+      }
+    }
+  },
+  "cwFedBlockRule": {
+    "message": "Block a domain, pattern or instance"
+  },
+  "cwFedBlockRuleHint": {
+    "message": "A domain (vault.example.com), a pattern for a domain and everything under it (*.example.com), instance:<id> or fp:<fingerprint>. Matching workspaces are removed."
+  },
+  "cwFedInvitationUnverified": {
+    "message": "From an unverified workspace ($DOMAIN$). Nobody here has approved it; accept only if you expect this invitation.",
+    "placeholders": {
+      "domain": {
+        "content": "$1",
+        "example": "vault.example.com"
+      }
+    }
+  },
+  "cwExtWsInboundOnly": {
+    "message": "$DOMAIN$ is trusted for incoming traffic only. What you share is kept as \"Waiting for admin approval\" until your instance administrator approves it with its fingerprint.",
+    "placeholders": {
+      "domain": {
+        "content": "$1",
+        "example": "vault.example.com"
+      }
+    }
+  },
+  "cwExtWsInboundOnlyAdmin": {
+    "message": "$DOMAIN$ is trusted for incoming traffic only. Approve it with its fingerprint under Instance admin, Trusted workspaces to share with it.",
+    "placeholders": {
+      "domain": {
+        "content": "$1",
+        "example": "vault.example.com"
+      }
+    }
   }
 }

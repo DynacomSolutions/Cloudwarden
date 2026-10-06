@@ -45,6 +45,7 @@ const base = (
   available: true,
   workspaces: [],
   grantees: [],
+  queued: [],
   ...over,
 });
 
@@ -131,15 +132,94 @@ describe("CollectionExternalAccessComponent", () => {
     expect(q(f, "cw-ext-access")).toBeNull();
   });
 
-  it("tells a non-admin that the instance admin has to approve, and offers no sharing yet", async () => {
+  it("tells a non-admin that the instance admin has to approve, and still takes shares", async () => {
     api.externalAccess.mockResolvedValue(
       base({ workspaces: [ws("awaitingInstanceAdmin")] }),
     );
+    api.share.mockResolvedValue({
+      data: [{ email: "a@example.org", ok: true, result: "queued" }],
+    });
     const f = await render();
     await pick(f, "cw-ext-workspace", "w1");
     expect(q(f, "cw-ext-wait")?.textContent).toContain("cwExtWsAwaitingAdmin");
-    expect(q(f, "cw-ext-share")).toBeNull();
+    expect(q(f, "cw-ext-emails")).not.toBeNull();
+    await type(f, "cw-ext-emails", "a@example.org");
+    (q(f, "cw-ext-share") as HTMLButtonElement).click();
+    await f.whenStable();
+    expect(api.share).toHaveBeenCalledWith(
+      "org1",
+      "col1",
+      "w1",
+      ["a@example.org"],
+      { readOnly: true, hidePasswords: false, manage: false },
+    );
+  });
+
+  it("explains a workspace trusted for incoming traffic only and still takes shares", async () => {
+    api.externalAccess.mockResolvedValue(
+      base({
+        workspaces: [{ ...ws("awaitingInstanceAdmin"), inboundOnly: true }],
+      }),
+    );
+    const f = await render();
+    await pick(f, "cw-ext-workspace", "w1");
+    expect(q(f, "cw-ext-wait")?.textContent).toContain("cwExtWsInboundOnly");
+    expect(q(f, "cw-ext-emails")).not.toBeNull();
+  });
+
+  it("does not offer sharing on a suspended workspace", async () => {
+    api.externalAccess.mockResolvedValue(
+      base({ workspaces: [ws("suspended")] }),
+    );
+    const f = await render();
+    await pick(f, "cw-ext-workspace", "w1");
+    expect(q(f, "cw-ext-wait")).not.toBeNull();
     expect(q(f, "cw-ext-emails")).toBeNull();
+  });
+
+  it("lists queued shares with their status, and edits and removes them", async () => {
+    dialogs.openSimpleDialog.mockResolvedValue(true);
+    const queued = (
+      id: string,
+      status: "queued" | "declined",
+    ): ExternalAccessState["queued"][number] => ({
+      id,
+      email: `${id}@example.org`,
+      peerId: "w1",
+      peerDomain: "peer.example.org",
+      status,
+      note: null,
+      readOnly: true,
+      hidePasswords: false,
+      manage: false,
+    });
+    api.externalAccess.mockResolvedValue(
+      base({
+        workspaces: [ws("awaitingInstanceAdmin")],
+        queued: [queued("q1", "queued"), queued("q2", "declined")],
+      }),
+    );
+    const f = await render();
+    const rows = Array.from(
+      f.nativeElement.querySelectorAll("[data-testid=cw-ext-queued]"),
+    ) as HTMLElement[];
+    expect(rows).toHaveLength(2);
+    expect(rows[0].textContent).toContain("cwExtQueued");
+    expect(rows[1].textContent).toContain("cwExtQueuedDeclined");
+    const select = rows[0].querySelector("select") as HTMLSelectElement;
+    select.value = "editItems";
+    select.dispatchEvent(new Event("change"));
+    await f.whenStable();
+    expect(api.updateQueuedShare).toHaveBeenCalledWith("org1", "col1", "q1", {
+      readOnly: false,
+      hidePasswords: false,
+      manage: false,
+    });
+    (
+      rows[1].querySelector("[data-testid=cw-ext-queued-remove]") as HTMLElement
+    ).click();
+    await f.whenStable();
+    expect(api.removeQueuedShare).toHaveBeenCalledWith("org1", "col1", "q2");
   });
 
   it("shares with several addresses and the chosen permission on an active workspace", async () => {
@@ -164,6 +244,55 @@ describe("CollectionExternalAccessComponent", () => {
         manage: false,
       },
     );
+  });
+
+  it("a scanned QR fills the fields after the server lookup but never adds the workspace", async () => {
+    api.externalAccess.mockResolvedValue(base());
+    api.lookupWorkspace.mockResolvedValue({
+      domain: "peer.example.org",
+      fingerprint: FP,
+      workspace: null,
+    });
+    const f = await render();
+    await pick(f, "cw-ext-workspace", "__new");
+    const c = f.componentInstance as unknown as {
+      scanned(s: { domain: string; fingerprint: string }): Promise<void>;
+    };
+    await c.scanned({
+      domain: "peer.example.org",
+      fingerprint: FP.replace(/:/g, "").toLowerCase(),
+    });
+    f.detectChanges();
+    expect(api.lookupWorkspace).toHaveBeenCalledWith(
+      "org1",
+      "col1",
+      "peer.example.org",
+    );
+    expect((q(f, "cw-ext-fingerprint") as HTMLInputElement).value).toBe(
+      FP.replace(/:/g, "").toLowerCase(),
+    );
+    expect(api.addWorkspace).not.toHaveBeenCalled();
+  });
+
+  it("refuses a scanned QR whose domain is not the one the server reached", async () => {
+    api.externalAccess.mockResolvedValue(base());
+    api.lookupWorkspace.mockResolvedValue({
+      domain: "other.example.org",
+      fingerprint: FP,
+      workspace: null,
+    });
+    const f = await render();
+    await pick(f, "cw-ext-workspace", "__new");
+    const c = f.componentInstance as unknown as {
+      scanned(s: { domain: string; fingerprint: string }): Promise<void>;
+    };
+    await c.scanned({
+      domain: "peer.example.org",
+      fingerprint: FP.replace(/:/g, "").toLowerCase(),
+    });
+    f.detectChanges();
+    expect(q(f, "cw-ext-found-fingerprint")).toBeNull();
+    expect(api.addWorkspace).not.toHaveBeenCalled();
   });
 
   it("requires the typed fingerprint to match the one the server fetched", async () => {

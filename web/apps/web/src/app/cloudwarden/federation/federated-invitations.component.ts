@@ -61,6 +61,14 @@ import {
               <tr bitRow>
                 <td bitCell>
                   {{ i.organizationName }}
+                  @if (i.verified === false) {
+                    <div
+                      class="tw-text-xs tw-text-warning"
+                      data-testid="cw-fed-invite-unverified"
+                    >
+                      {{ "cwFedInvitationUnverified" | i18n: i.peerDomain }}
+                    </div>
+                  }
                   @if (!i.peerActive && i.status === "pending") {
                     <div
                       class="tw-text-xs tw-text-danger"

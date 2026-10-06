@@ -17,16 +17,27 @@ import { getUserId } from "@bitwarden/common/auth/services/account.service";
 import { FeatureFlag } from "@bitwarden/common/enums/feature-flag.enum";
 import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
 import { SyncService } from "@bitwarden/common/platform/sync";
-import { PopoverModule, SideNavService, SvgModule } from "@bitwarden/components";
+import {
+  PopoverModule,
+  SideNavService,
+  SvgModule,
+} from "@bitwarden/components";
 import { SendPolicyService } from "@bitwarden/send-ui";
+import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { I18nPipe } from "@bitwarden/ui-common";
-import { VaultManageNavComponent, VaultNavSectionComponent } from "@bitwarden/vault";
+import {
+  VaultManageNavComponent,
+  VaultNavSectionComponent,
+} from "@bitwarden/vault";
 import { PremiumSubscriptionRoutingService } from "@bitwarden/web-vault/app/billing/individual/services/premium-subscription-routing.service";
 
 import { FederationApiService } from "../cloudwarden/federation/federation-api.service";
 import { InstanceAdminApiService } from "../cloudwarden/instance-admin/instance-admin-api.service";
 import { BillingFreeFamiliesNavItemComponent } from "../billing/shared/billing-free-families-nav-item.component";
-import { CoachmarkComponent, CoachmarkService } from "../vault/components/coachmark";
+import {
+  CoachmarkComponent,
+  CoachmarkService,
+} from "../vault/components/coachmark";
 
 import { WebLayoutModule } from "./web-layout.module";
 
@@ -51,17 +62,37 @@ import { WebLayoutModule } from "./web-layout.module";
 export class UserLayoutComponent implements OnInit {
   protected readonly logo = PasswordManagerLogo;
   // Cloudwarden: instance admin entry, shown only to instance admins (web/NOTICE.md).
-  protected readonly isInstanceAdmin = toSignal(inject(InstanceAdminApiService).isAdmin$, {
-    initialValue: false,
-  });
+  protected readonly isInstanceAdmin = toSignal(
+    inject(InstanceAdminApiService).isAdmin$,
+    {
+      initialValue: false,
+    },
+  );
   // Cloudwarden: federated organisations entry, shown when the server has federation on.
-  protected readonly federationEnabled = toSignal(inject(FederationApiService).enabled$, {
-    initialValue: false,
+  protected readonly federationEnabled = toSignal(
+    inject(FederationApiService).enabled$,
+    {
+      initialValue: false,
+    },
+  );
+  // Cloudwarden: open workspace requests, shown as a count next to the admin's Federation entry.
+  protected readonly federationPending = toSignal(
+    inject(FederationApiService).status$.pipe(
+      map((s) => s?.pendingRequests ?? 0),
+    ),
+    { initialValue: 0 },
+  );
+  private readonly i18nService = inject(I18nService);
+  protected readonly federationNavText = computed(() => {
+    const n = this.federationPending();
+    const text = this.i18nService.t("cwFederation");
+    return n > 0 ? `${text} (${n})` : text;
   });
   protected readonly showEmergencyAccess: Signal<boolean>;
-  protected readonly sendEnabled$: Observable<boolean> = this.sendPolicyService.disableSend$.pipe(
-    map((disableSend) => !disableSend),
-  );
+  protected readonly sendEnabled$: Observable<boolean> =
+    this.sendPolicyService.disableSend$.pipe(
+      map((disableSend) => !disableSend),
+    );
   protected subscriptionRoute$: Observable<string | null>;
 
   protected readonly coachmarkService = inject(CoachmarkService);
@@ -81,7 +112,9 @@ export class UserLayoutComponent implements OnInit {
   protected readonly singleOrgPolicyApplies = toSignal(
     this.accountService.activeAccount$.pipe(
       getUserId,
-      switchMap((userId) => singleOrganizationPolicyApplies$(userId, this.policyService)),
+      switchMap((userId) =>
+        singleOrganizationPolicyApplies$(userId, this.policyService),
+      ),
     ),
     { initialValue: true },
   );
@@ -109,7 +142,9 @@ export class UserLayoutComponent implements OnInit {
     this.showEmergencyAccess = toSignal(
       this.accountService.activeAccount$.pipe(
         getUserId,
-        switchMap((userId) => canAccessEmergencyAccess(userId, this.policyService)),
+        switchMap((userId) =>
+          canAccessEmergencyAccess(userId, this.policyService),
+        ),
       ),
     );
 

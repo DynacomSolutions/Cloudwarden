@@ -49,6 +49,7 @@ import {
   FederationApiService,
   FederationDescriptor,
   formatFingerprint,
+  QueuedShare,
   sameFingerprint,
 } from "./federation-api.service";
 import { sameDomain } from "./workspace-qr";

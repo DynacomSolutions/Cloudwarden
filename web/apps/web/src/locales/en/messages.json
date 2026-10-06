@@ -19558,7 +19558,7 @@
     "message": "Waiting to be shared once approved"
   },
   "cwFedQueuedLine": {
-    "message": "$ORG$: $COLLECTIONS$ collection(s), $PEOPLE$ person(s), requested by $EMAIL$",
+    "message": "$ORG$: $COLLECTIONS$ collection(s), $PEOPLE$ person(s)",
     "placeholders": {
       "org": {
         "content": "$1",
@@ -19571,10 +19571,6 @@
       "people": {
         "content": "$3",
         "example": "2"
-      },
-      "email": {
-        "content": "$4",
-        "example": "user@example.com"
       }
     }
   }

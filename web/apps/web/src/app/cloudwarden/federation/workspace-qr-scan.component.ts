@@ -19,7 +19,11 @@ import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.servic
 import { SharedModule } from "../../shared";
 
 import { decodeQr } from "./qr-decoder";
-import { parseWorkspaceUri, workspaceUriErrorKey } from "./workspace-qr";
+import {
+  WorkspaceUriError,
+  parseWorkspaceUri,
+  workspaceUriErrorKey,
+} from "./workspace-qr";
 
 export interface ScannedWorkspace {
   domain: string;
@@ -75,7 +79,7 @@ export interface ScannedWorkspace {
           bitInput
           type="text"
           autocomplete="off"
-          spellcheck="false"
+          [spellcheck]="false"
           (paste)="onPaste($event)"
           (change)="onText($any($event.target).value)"
           data-testid="cw-qr-text"
@@ -113,7 +117,11 @@ export class WorkspaceQrScanComponent implements OnDestroy {
   handleText(text: string): boolean {
     const r = parseWorkspaceUri(text);
     if (!r.ok) {
-      this.message.set(this.i18n.t(workspaceUriErrorKey(r.error)));
+      this.message.set(
+        this.i18n.t(
+          workspaceUriErrorKey((r as { error: WorkspaceUriError }).error),
+        ),
+      );
       return false;
     }
     this.message.set(null);

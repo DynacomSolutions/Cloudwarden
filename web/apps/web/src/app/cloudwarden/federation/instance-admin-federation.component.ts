@@ -195,7 +195,6 @@ import { normalizeFingerprint, sameDomain } from "./workspace-qr";
                                 : q.organizationName
                                 : q.collections
                                 : q.people
-                                : q.requestedByEmail
                           }}
                         </div>
                       }

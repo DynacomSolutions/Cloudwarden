@@ -39,6 +39,8 @@ export const federationPeers = sqliteTable(
       .default(false),
     /** Instance admin who approved the peer on this side, when an admin did. */
     approvedBy: text('approved_by'),
+    /** Created by an incoming signed pairing request (as opposed to added by an admin or user). */
+    incoming: integer('incoming', { mode: 'boolean' }).notNull().default(false),
     createdAt: integer('created_at').notNull(),
     updatedAt: integer('updated_at').notNull(),
   },
@@ -48,11 +50,22 @@ export const federationPeers = sqliteTable(
   ],
 )
 
-/** Domains an admin blocked: their pairing requests are refused (TASKS #381). */
+/**
+ * Rules an admin set to refuse peers (TASKS #381). `domain` holds the value: a host name, a suffix
+ * pattern such as `*.example.net` (the name and everything under it), `instance:<id>` or
+ * `fp:<64 hex>`. `kind` is `domain`, `instance` or `fingerprint`.
+ */
 export const federationBlockedDomains = sqliteTable('federation_blocked_domains', {
   domain: text('domain').primaryKey(),
+  kind: text('kind').notNull().default('domain'),
   createdAt: integer('created_at').notNull(),
   createdBy: text('created_by'),
+})
+
+/** Domains an admin removed without blocking: their next incoming pairing request waits for approval. */
+export const federationRemovedDomains = sqliteTable('federation_removed_domains', {
+  domain: text('domain').primaryKey(),
+  removedAt: integer('removed_at').notNull(),
 })
 
 /** Signature nonces seen recently, per peer; a repeat is a replay. */
@@ -223,9 +236,11 @@ export const federationQueuedShares = sqliteTable(
     requestedBy: text('requested_by')
       .notNull()
       .references(() => users.uuid, { onDelete: 'cascade' }),
-    /** `queued`, `declined`, `expired` or `dropped`. */
+    /** `queued`, `retry`, `declined`, `expired` or `dropped`. */
     status: text('status').notNull(),
     note: text('note'),
+    /** Failed sends that may succeed later (`retry`); the item is dropped after a few. */
+    attempts: integer('attempts').notNull().default(0),
     createdAt: integer('created_at').notNull(),
     updatedAt: integer('updated_at').notNull(),
   },

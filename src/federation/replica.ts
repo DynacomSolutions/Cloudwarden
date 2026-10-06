@@ -15,7 +15,7 @@ import { PushType, pushUserUpdate } from '../notifications/publish'
 import { FederationEvent, federationEventStatement } from './events'
 import { isShadowUser } from './hosting'
 import { baseUrl } from './identity'
-import { getPeer, isActive, type Peer, peerJsonCall } from './peers'
+import { getPeer, isActive, outboundOk, type Peer, peerJsonCall } from './peers'
 import {
   CAPS,
   isUuid,
@@ -42,67 +42,120 @@ export const incomingInviteSchema = z.object({
   email: z.string().min(3).max(256),
 })
 
+/** Pending invitations one user, and one peer, may have open at a time. */
+export const MAX_PENDING_PER_USER = 10
+export const MAX_PENDING_PER_PEER = 200
+const MAX_ORG_NAME = 100
+
+/** Text from a peer shown to people: control characters removed, whitespace collapsed, capped. */
+export function cleanPeerText(input: string, max = MAX_ORG_NAME): string {
+  // Control and format characters (zero width, bidirectional overrides) and line separators.
+  const t = input.replace(/[\p{Cc}\p{Cf}\u2028\u2029]/gu, ' ')
+  return t.replace(/\s+/g, ' ').trim().slice(0, max)
+}
+
+const cleanEmail = (v: string | null | undefined): string | null => {
+  const e = (v ?? '').trim()
+  return e.length <= 254 && /^[^\s@<>"',;]+@[^\s@<>"',;]+\.[^\s@<>"',;]+$/.test(e) ? e : null
+}
+
+/**
+ * An organisation of the peer invites one of our users. The answer is the same and immediate
+ * whether or not the address has an account (nothing but the rate limit is decided before it);
+ * the lookup, the inserts and the mail run after the response through `defer`.
+ */
 export async function receiveInvitation(
+  env: Bindings,
+  peer: Peer,
+  body: z.infer<typeof incomingInviteSchema>,
+  defer: (work: Promise<unknown>) => void,
+) {
+  const now0 = Date.now()
+  if (!(await rateLimit(env.DB, `fedinv:${peer.uuid}`, INVITES_PER_PEER_HOUR, 3600_000, now0))) {
+    throw new ApiError(429, 'Too many invitations from this server.')
+  }
+  defer(
+    storeInvitation(env, peer, body).catch((err) =>
+      log('warn', 'federation.invitation_failed', { errorKind: errorKind(err) }, env),
+    ),
+  )
+  return { status: 'pending' }
+}
+
+async function storeInvitation(
   env: Bindings,
   peer: Peer,
   body: z.infer<typeof incomingInviteSchema>,
 ) {
   const db = createDb(env.DB)
-  const now0 = Date.now()
-  if (!(await rateLimit(env.DB, `fedinv:${peer.uuid}`, INVITES_PER_PEER_HOUR, 3600_000, now0))) {
-    throw new ApiError(429, 'Too many invitations from this server.')
-  }
-  // The answer is always "pending", so a peer cannot use invitations to learn who has an account.
-  const pending = { status: 'pending' }
+  const inv = schema.federationInvitations
   const [user] = await db
     .select()
     .from(schema.users)
     .where(eq(schema.users.email, normalizeEmail(body.email)))
     .limit(1)
   // Stand-in accounts are never federated onwards: no chains of instances.
-  if (!user || (await isShadowUser(env, user.uuid))) return pending
-  // An organisation id that is local, or already served by another peer, is refused silently.
+  if (!user || (await isShadowUser(env, user.uuid))) return
+  const trusted = outboundOk(peer)
+  // An organisation id that is local, or already claimed by another peer, is refused silently.
+  // Only an admin-approved peer can hold a claim, so an unapproved one cannot pre-claim an id.
   const [local] = await db
     .select({ id: schema.organizations.uuid })
     .from(schema.organizations)
     .where(eq(schema.organizations.uuid, body.organizationId))
     .limit(1)
-  const [elsewhere] = await db
-    .select({ id: schema.federationInvitations.uuid })
-    .from(schema.federationInvitations)
-    .where(
-      and(
-        eq(schema.federationInvitations.organizationUuid, body.organizationId),
-        ne(schema.federationInvitations.peerUuid, peer.uuid),
-      ),
-    )
-    .limit(1)
-  if (local || elsewhere) return pending
+  const others = await db
+    .select({ i: inv, p: schema.federationPeers })
+    .from(inv)
+    .innerJoin(schema.federationPeers, eq(schema.federationPeers.uuid, inv.peerUuid))
+    .where(and(eq(inv.organizationUuid, body.organizationId), ne(inv.peerUuid, peer.uuid)))
+  const claimedByTrusted = others.some((o) => outboundOk(o.p))
+  if (local || (others.length > 0 && (claimedByTrusted || !trusted))) return
   const now = Date.now()
-  await runBatch(db, [
-    db
-      .insert(schema.federationInvitations)
-      .values({
-        uuid: crypto.randomUUID(),
-        peerUuid: peer.uuid,
-        remoteMemberUuid: body.memberId,
-        organizationUuid: body.organizationId,
-        organizationName: body.organizationName,
-        inviterEmail: body.inviterEmail ?? null,
-        userUuid: user.uuid,
-        status: 'pending',
-        createdAt: now,
-        updatedAt: now,
-      })
-      // A repeated invitation never reopens an answered one.
-      .onConflictDoNothing(),
-    federationEventStatement(db, {
-      type: FederationEvent.InvitationReceived,
-      userUuid: user.uuid,
-      organizationUuid: body.organizationId,
-      peerDomain: peer.domain,
-    }),
-  ])
+  const orgName = cleanPeerText(body.organizationName) || 'An organisation'
+  // A trusted peer's claim replaces unanswered ones by unapproved peers.
+  if (trusted) {
+    await db
+      .delete(inv)
+      .where(
+        and(
+          eq(inv.organizationUuid, body.organizationId),
+          ne(inv.peerUuid, peer.uuid),
+          eq(inv.status, 'pending'),
+        ),
+      )
+  }
+  // The caps on what can pile up in front of one person, and from one peer, are part of the
+  // insert statement, so concurrent invitations cannot overshoot them.
+  const added = await env.DB.prepare(
+    `insert or ignore into federation_invitations (uuid, peer_uuid, remote_member_uuid, organization_uuid, organization_name, inviter_email, user_uuid, status, created_at, updated_at)
+     select ?1, ?2, ?3, ?4, ?5, ?6, ?7, 'pending', ?8, ?8
+     where (select count(*) from federation_invitations where user_uuid = ?7 and status = 'pending') < ?9
+       and (select count(*) from federation_invitations where peer_uuid = ?2 and status = 'pending') < ?10`,
+  )
+    .bind(
+      crypto.randomUUID(),
+      peer.uuid,
+      body.memberId,
+      body.organizationId,
+      orgName,
+      cleanEmail(body.inviterEmail),
+      user.uuid,
+      now,
+      MAX_PENDING_PER_USER,
+      MAX_PENDING_PER_PEER,
+    )
+    .run()
+  if ((added.meta?.changes ?? 0) === 0) return
+  await federationEventStatement(db, {
+    type: FederationEvent.InvitationReceived,
+    userUuid: user.uuid,
+    organizationUuid: body.organizationId,
+    peerDomain: peer.domain,
+  })
+  // Workspaces nobody approved cannot send mail through this server: they are shown in the app,
+  // labelled as unverified.
+  if (!trusted) return
   const mailOk = await rateLimit(
     env.DB,
     `fedinvmail:${user.uuid}`,
@@ -114,13 +167,12 @@ export async function receiveInvitation(
     await sendNotice(
       env,
       user.email,
-      genericEmail(`Invitation to join ${body.organizationName}`, [
-        `You have been invited to join the organisation ${body.organizationName}, hosted on ${peer.domain}.`,
+      genericEmail(`Invitation to join ${orgName}`, [
+        `You have been invited to join the organisation ${orgName}, hosted on ${peer.domain}.`,
         'Your account stays on this server; the organisation items appear in your vault after an administrator of the organisation confirms you.',
         `Accept or decline the invitation in the web vault: ${vaultBase(env)}/#/federation`,
       ]),
     )
-  return pending
 }
 
 export async function revokeInvitation(env: Bindings, peer: Peer, memberId: string) {
@@ -152,6 +204,8 @@ export async function listInvitations(env: Bindings, userUuid: string) {
     inviterEmail: i.inviterEmail,
     peerDomain: p.domain,
     peerActive: isActive(p),
+    // False for a workspace that is trusted for incoming traffic only: shown as unverified.
+    verified: outboundOk(p),
     status: i.status,
     creationDate: new Date(i.createdAt).toISOString(),
   }))

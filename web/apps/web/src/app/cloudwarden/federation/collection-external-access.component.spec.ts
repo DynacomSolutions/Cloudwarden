@@ -155,6 +155,18 @@ describe("CollectionExternalAccessComponent", () => {
     );
   });
 
+  it("explains a workspace trusted for incoming traffic only and still takes shares", async () => {
+    api.externalAccess.mockResolvedValue(
+      base({
+        workspaces: [{ ...ws("awaitingInstanceAdmin"), inboundOnly: true }],
+      }),
+    );
+    const f = await render();
+    await pick(f, "cw-ext-workspace", "w1");
+    expect(q(f, "cw-ext-wait")?.textContent).toContain("cwExtWsInboundOnly");
+    expect(q(f, "cw-ext-emails")).not.toBeNull();
+  });
+
   it("does not offer sharing on a suspended workspace", async () => {
     api.externalAccess.mockResolvedValue(
       base({ workspaces: [ws("suspended")] }),

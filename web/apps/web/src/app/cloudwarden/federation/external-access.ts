@@ -87,6 +87,7 @@ export const canQueueFor = (state: WorkspaceState): boolean =>
 export const queuedStatusKey = (status: QueuedShare["status"]): string =>
   ({
     queued: "cwExtQueued",
+    retry: "cwExtQueued",
     declined: "cwExtQueuedDeclined",
     expired: "cwExtQueuedExpired",
     dropped: "cwExtQueuedDropped",

@@ -86,7 +86,8 @@ Redirects are refused, calls time out after 15 seconds and response bodies are s
 
 ### Pairing
 
-Pairing is deliberate on the side that starts it and automatic on the side that receives it.
+Pairing is deliberate on the side that starts it. The side that receives it trusts the caller for
+INCOMING traffic only, until its own admin approves it.
 
 1. An instance admin on A opens Instance admin, Trusted workspaces (or adds the workspace from a
    collection's Access dialog, see "Sharing a collection"), and adds B's domain. A fetches B's
@@ -94,32 +95,52 @@ Pairing is deliberate on the side that starts it and automatic on the side that 
 2. A's admin compares the fingerprint with B's administrator out of band (by phone, or by scanning
    B's QR code, see "QR codes for pairing") and types, pastes or scans it to approve; a mismatch
    is refused, and the server re-checks it against the key it fetched. A then sends a signed
-   `POST /federation/v1/pair` to B. B refuses a blocked domain, fetches A's descriptor from the
-   claimed domain over https to bind the key to the domain, verifies the signature, pins the key
-   and records A. Unless B's admin turned on "Require admin approval for incoming workspaces",
-   B marks A active at once (`acceptedAutomatically`) and answers that it approved, which makes A
-   active too. The audit event is `PeerAutoAccepted` (9121).
-3. With the setting on, B records A as `pending` (A approved) and B's admin compares the
-   fingerprint and approves, as before. A peer that B's admin added on B first also keeps the
-   manual step: only a request from a domain B does not know yet is trusted automatically.
+   `POST /federation/v1/pair` to B. B refuses a blocked domain, instance or fingerprint, fetches
+   A's descriptor from the claimed domain over https to bind the key to the domain, verifies the
+   signature, pins the key and records A (`incoming`).
+3. Unless B's admin turned on "Require admin approval for incoming workspaces", and unless B's admin
+   removed that domain before (see "Removal and blocks"), B marks A active at once
+   (`acceptedAutomatically`, audit event `PeerAutoAccepted` 9121). That is **inbound only**:
+   A's signed requests are accepted, so A's organisations can invite B's users (who must accept),
+   but nothing is sent to A, and A is not a sharing target for anyone on B, until an instance
+   admin on B approves A with the fingerprint (`approved_by` set). With the setting on, or after
+   a removal, A is `pending` and B's admin approves as before.
 
-What the automatic trust gives A: nothing about B's users beyond what each user grants. A can send
-invitations (rate limited per peer, never discovering whether an address has an account) that
-a user must accept on B, and only after that, and after the hosting admin's confirmation, does any
-data move. B relies on the https binding of A's domain (WebPKI and DNS) instead of an out-of-band
-comparison; an attacker who controls a domain can therefore pair as that domain but can only send
-invitations. The Trusted workspaces page shows "Trusted automatically (incoming)" or "Approved by
-<admin>" for each workspace.
+What inbound-only trust gives A: nothing about B's users beyond what each user grants. A can send
+invitations that a user must accept on B, and only after that, and after the hosting admin's
+confirmation, does any data move. B relies on the https binding of A's domain (WebPKI and DNS)
+instead of an out-of-band comparison; an attacker who controls a domain can therefore pair as that
+domain, but can only send invitations, and cannot become a target: outbound sharing, invitations
+from B's organisations and the list of workspaces offered to organisation admins
+(`outboundOk`: active and, when trusted automatically, approved by an admin) all exclude it.
+Collection managers on B see it as "Incoming only: approve to share with this workspace", and
+what they share meanwhile is queued (see "Share first, ask after"). The Trusted workspaces page
+shows "Incoming only" (or "Review" when approval is required) with an Approve button, or
+"Approved by <admin>".
 
-Safeguards on the receiving side: pairing requests are rate limited per address (10 a minute)
-and per instance (30 a minute), the nonce is spent before anything is written, at most 25 workspaces
-are trusted automatically (further requests wait for an admin, subject to the pending cap of 20),
-and the invitation rate limit applies per peer. An admin can suspend or remove any workspace, and
-"Remove" offers to block the domain so it cannot pair again at once; blocked domains (listed on
-the page, and settable through `POST /api/cloudwarden/federation/admin/blocked`) get 403 from
-`/federation/v1/pair` before anything is fetched. The setting lives in `instance_settings`
-under the key `federation`; the block list and the `accepted_automatically` and `approved_by`
-columns arrived with migration 0027.
+Invitations from a workspace nobody approved: the answer to the peer is the same and immediate
+whether or not the address has an account (the lookup, inserts and mail run after the response);
+no email is sent (the invitation appears in the app, labelled "from an unverified workspace");
+the organisation name has control characters removed and is capped at 100 characters, the inviter
+address must look like an address; at most 10 invitations may be pending per user and 200 per
+peer (enforced inside the insert, so concurrent requests cannot overshoot); and such a peer cannot
+claim an organisation id that another peer holds, while an approved peer's invitation replaces an
+unanswered one from an unapproved peer.
+
+Removal and blocks: removing a workspace remembers the domain, so its next incoming request waits
+for an admin instead of being trusted automatically (approving it clears that). "Remove" can also
+block, first and in one batch with the block event. Block rules (`POST .../admin/blocked`, listed
+on the page) are a domain, a suffix pattern `*.example.com` (the name and everything under it;
+there is no public suffix list, so name the registrable domain), `instance:<id>` or
+`fp:<fingerprint>`. They are checked in `/federation/v1/pair`, on every signed route and when an
+admin adds a peer; adding a rule removes the peers it matches.
+
+Caps on the receiving side: pairing requests per address (10 a minute) and per instance (30 a
+minute); at most 25 peers trusted automatically; at most 20 incoming requests waiting for an admin
+(dropped after 7 days); peers an admin added are not counted in either. Both are enforced inside
+the insert. Turning "Require admin approval for incoming workspaces" on lists the workspaces that
+were trusted automatically as "Review": they stay incoming only (nothing changes for people who
+already accepted) until an admin approves or removes them.
 
 Admins can suspend a peer (effective immediately: requests in both directions are refused and
 federated organisations disappear from users' vaults until it is resumed), run a health check
@@ -191,8 +212,15 @@ Cloudwarden addition; nothing of it comes from `bitwarden_license/`.
      approval), every queued item is checked again as of that moment: the requester must still
      manage the collection and still be allowed to invite (manage users, or the organisation lets
      collection managers invite), and the organisation must still be able to serve federated
-     members. Items that pass become ordinary invitations sent as the requester; items that do not
-     are kept as "Not sent" with the reason and an audit event. When the request is declined
+     members. Items that pass become ordinary invitations sent as the requester; items that no
+     longer qualify are kept as "Not sent" with the reason and an audit event. A failure that may
+     pass (the peer is unreachable, a rate limit) keeps the item as retry, tried again when an admin
+     next opens Trusted workspaces, up to 5 times. The send runs after the response, and its audit
+     events carry the requester but no client address. A queued item that a different manager
+     edits becomes theirs (`requested_by`, audit event 9129): it is sent as them, after checking
+     their right to invite. Queue caps are part of the insert. A workspace trusted for incoming
+     traffic only (see "Pairing") queues exactly like one awaiting approval, and shares are sent
+     once an admin approves it. Items older than 7 days expire whichever peer they wait behind. When the request is declined
      (removed) or expires after 7 days, the items are cancelled and shown as "Declined by your
      instance administrator" or "Expired"; finished entries are purged after 30 days or removed by a
      manager. The requester is told by mail (when configured) of approval or decline, and sees
@@ -386,7 +414,7 @@ federated organisations.
 | Threat | Mitigation |
 |---|---|
 | A rogue server pretends to be a peer | Requests must be signed by a key pinned at pairing. The side that starts pairing compares fingerprints out of band (typed or scanned); the receiving side relies on the https binding of the caller's domain (WebPKI and DNS) instead, unless its admin requires approval. Either way the key is bound to the domain through the https descriptor. |
-| An attacker who controls a domain pairs with this instance | Possible by default (automatic incoming trust), and bounded: the peer can only send invitations that users must accept, rate limited per peer, with at most 25 automatic peers and per address and global pairing limits. Admins can suspend, remove, block the domain, or turn on approval for incoming workspaces. |
+| An attacker who controls a domain pairs with this instance | Possible by default (automatic incoming trust), and bounded: the peer is inbound only (never a sharing or invitation target until an admin approves it with the fingerprint) and can only send invitations that users must accept, in the app only, labelled unverified, with sanitised text, rate limited per peer and capped per user and peer; at most 25 automatic peers, 20 waiting requests, and per address and global pairing limits. Admins can suspend, remove, block by domain, suffix, instance or fingerprint, or require approval for incoming workspaces. |
 | Replay or tampering of server-to-server calls | Signature covers method, full URL, body digest and the user and device headers; 300 second window; per-peer nonce store. |
 | A peer acting for users it does not own | A only accepts a user id that is a stand-in account of the calling peer, and runs every request as that account through the normal authorisation. B only accepts events for its own users who hold something from the calling peer. |
 | A peer reading organisation data | Same as a member's client: only EncStrings the member may see. Organisation keys are wrapped in the browser for the member's public key; neither server ever holds them. |

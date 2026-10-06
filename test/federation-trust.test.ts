@@ -140,7 +140,7 @@ describe('incoming pairing', { timeout: 120_000 }, () => {
     await unpairAll()
     expect(
       await adminB.json(`${fed}/admin/settings`, 'PUT', { requireIncomingApproval: true }),
-    ).toEqual({ requireIncomingApproval: true })
+    ).toMatchObject({ requireIncomingApproval: true })
     const { res } = await sharerPairs()
     expect(res.status).toBe(200)
     expect(await res.json()).toMatchObject({ active: false })
@@ -195,7 +195,7 @@ describe('incoming pairing', { timeout: 120_000 }, () => {
     for (let i = 0; i < 25; i++) {
       await db
         .prepare(
-          "INSERT INTO federation_peers (uuid, instance_id, domain, public_key, fingerprint, protocol_version, status, local_approved, remote_approved, accepted_automatically, created_at, updated_at) VALUES (?1, ?1, ?2, 'k', 'f', 1, 'active', 1, 1, 1, 0, 0)",
+          "INSERT INTO federation_peers (uuid, instance_id, domain, public_key, fingerprint, protocol_version, status, local_approved, remote_approved, accepted_automatically, incoming, created_at, updated_at) VALUES (?1, ?1, ?2, 'k', 'f', 1, 'active', 1, 1, 1, 1, 0, 0)",
         )
         .bind(crypto.randomUUID(), `auto${i}.example.net`)
         .run()

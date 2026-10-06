@@ -541,6 +541,11 @@ export class CollectionExternalAccessComponent implements OnInit {
   }
 
   protected waitKey(w: ExternalWorkspace): string | null {
+    if (w.inboundOnly && w.state === "awaitingInstanceAdmin") {
+      return this.state()?.isInstanceAdmin === true
+        ? "cwExtWsInboundOnlyAdmin"
+        : "cwExtWsInboundOnly";
+    }
     return workspaceWaitKey(w.state, this.state()?.isInstanceAdmin === true);
   }
 

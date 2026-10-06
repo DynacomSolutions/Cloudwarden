@@ -321,21 +321,34 @@ describe('hostile hosting peer', () => {
     const p = { ...peer, uuid: peer.uuid, domain: peer.domain }
     const before = await db.prepare('SELECT count(*) AS n FROM federation_invitations').first<any>()
     const base = { memberId: id(), organizationName: 'n' }
+    const work: Promise<unknown>[] = []
+    const defer = (w: Promise<unknown>) => void work.push(w)
     expect(
-      await receiveInvitation(benv, p, {
-        ...base,
-        organizationId: id(),
-        email: 'nobody@example.com',
-      }),
+      await receiveInvitation(
+        benv,
+        p,
+        {
+          ...base,
+          organizationId: id(),
+          email: 'nobody@example.com',
+        },
+        defer,
+      ),
     ).toEqual({ status: 'pending' })
     expect(
-      await receiveInvitation(benv, p, {
-        ...base,
-        memberId: id(),
-        organizationId: LOCAL,
-        email: 'victim@example.com',
-      }),
+      await receiveInvitation(
+        benv,
+        p,
+        {
+          ...base,
+          memberId: id(),
+          organizationId: LOCAL,
+          email: 'victim@example.com',
+        },
+        defer,
+      ),
     ).toEqual({ status: 'pending' })
+    await Promise.all(work)
     const after = await db.prepare('SELECT count(*) AS n FROM federation_invitations').first<any>()
     expect(after.n).toBe(before.n)
   })

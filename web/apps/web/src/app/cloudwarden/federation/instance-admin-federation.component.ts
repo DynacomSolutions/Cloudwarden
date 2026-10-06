@@ -86,6 +86,32 @@ import { normalizeFingerprint, sameDomain } from "./workspace-qr";
                 }}</span>
               </span>
             </label>
+            <form
+              [formGroup]="blockForm"
+              [bitSubmit]="addBlock"
+              class="tw-mt-3 tw-flex tw-flex-col tw-gap-2 sm:tw-flex-row sm:tw-items-start"
+            >
+              <bit-form-field class="tw-grow tw-max-w-md">
+                <bit-label>{{ "cwFedBlockRule" | i18n }}</bit-label>
+                <input
+                  bitInput
+                  type="text"
+                  formControlName="rule"
+                  placeholder="*.example.com"
+                  data-testid="cw-fed-block-rule"
+                />
+                <bit-hint>{{ "cwFedBlockRuleHint" | i18n }}</bit-hint>
+              </bit-form-field>
+              <button
+                type="submit"
+                bitButton
+                bitFormButton
+                buttonType="secondary"
+                class="sm:tw-mt-6"
+              >
+                {{ "cwFedBlock" | i18n }}
+              </button>
+            </form>
             @if (t.blockedDomains.length > 0) {
               <h3 bitTypography="h5" class="tw-mt-3">
                 {{ "cwFedBlocked" | i18n }}
@@ -165,9 +191,9 @@ import { normalizeFingerprint, sameDomain } from "./workspace-qr";
                       {{ p.lastError }}
                     </div>
                   }
-                  @if (p.acceptedAutomatically) {
-                    <div class="tw-text-xs" data-testid="cw-fed-auto">
-                      {{ "cwFedTrustedAutomatically" | i18n }}
+                  @if (p.inboundOnly) {
+                    <div class="tw-text-xs" data-testid="cw-fed-inbound-only">
+                      {{ "cwFedIncomingOnly" | i18n }}
                     </div>
                   } @else if (p.approvedByEmail) {
                     <div class="tw-text-xs" data-testid="cw-fed-approved-by">
@@ -231,7 +257,7 @@ import { normalizeFingerprint, sameDomain } from "./workspace-qr";
                 <td bitCell>{{ p.lastSeenDate | date: "short" }}</td>
                 <td bitCell class="tw-text-right">
                   <div class="tw-flex tw-flex-wrap tw-justify-end tw-gap-1">
-                    @if (!p.localApproved) {
+                    @if (!p.localApproved || p.inboundOnly) {
                       <button
                         type="button"
                         bitButton
@@ -358,6 +384,9 @@ export class InstanceAdminFederationComponent implements OnInit {
   protected readonly form = this.fb.group({
     domain: ["", [Validators.required]],
   });
+  protected readonly blockForm = this.fb.group({
+    rule: ["", [Validators.required]],
+  });
   protected readonly approveForm = this.fb.group({
     fingerprint: ["", [Validators.required]],
   });
@@ -367,6 +396,11 @@ export class InstanceAdminFederationComponent implements OnInit {
   }
 
   protected statusKey(p: FederationPeer): string {
+    if (p.inboundOnly && p.status !== "suspended") {
+      return this.trust()?.requireIncomingApproval
+        ? "cwFedReview"
+        : "cwFedIncomingOnlyBadge";
+    }
     if (p.status === "suspended") {
       return "cwFedSuspended";
     }
@@ -527,9 +561,29 @@ export class InstanceAdminFederationComponent implements OnInit {
     await this.load();
   }
 
+  protected addBlock = async () => {
+    this.blockForm.markAllAsTouched();
+    if (this.blockForm.invalid) {
+      return;
+    }
+    try {
+      await this.api.blockDomain(this.blockForm.value.rule ?? "");
+      this.blockForm.reset();
+    } catch (e) {
+      this.toast("error", this.message(e));
+    }
+    await this.load();
+  };
+
   protected async setRequire(value: boolean) {
     try {
-      await this.api.setRequireIncomingApproval(value);
+      const r = await this.api.setRequireIncomingApproval(value);
+      if (value && (r.reviewPeers ?? 0) > 0) {
+        this.toast(
+          "success",
+          this.i18n.t("cwFedReviewToast", String(r.reviewPeers)),
+        );
+      }
     } catch (e) {
       this.toast("error", this.message(e));
     }

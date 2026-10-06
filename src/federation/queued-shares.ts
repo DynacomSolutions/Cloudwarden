@@ -12,6 +12,7 @@ import type { Peer } from './peers'
 
 export const QueuedStatus = {
   Queued: 'queued',
+  Retry: 'retry',
   Declined: 'declined',
   Expired: 'expired',
   Dropped: 'dropped',
@@ -26,18 +27,87 @@ const q = schema.federationQueuedShares
 
 export type QueuedRow = typeof q.$inferSelect
 
+/** Items that still wait to be sent: queued, or failed for a reason that may pass (`retry`). */
+const OPEN = [QueuedStatus.Queued, QueuedStatus.Retry]
+/** A failed send is tried this many times before the item is dropped. */
+export const MAX_SEND_ATTEMPTS = 5
+
 export async function queuedRowsForPeer(env: Bindings, peerUuid: string): Promise<QueuedRow[]> {
   return createDb(env.DB)
     .select()
     .from(q)
-    .where(and(eq(q.peerUuid, peerUuid), eq(q.status, QueuedStatus.Queued)))
+    .where(and(eq(q.peerUuid, peerUuid), inArray(q.status, OPEN)))
+}
+
+export async function peersWithRetries(env: Bindings): Promise<string[]> {
+  const rows = await createDb(env.DB)
+    .select({ p: q.peerUuid })
+    .from(q)
+    .where(eq(q.status, QueuedStatus.Retry))
+  return [...new Set(rows.map((r) => r.p))]
+}
+
+/**
+ * Inserts a queued item only while both caps hold; the caps are part of the statement, so
+ * concurrent requests cannot overshoot them. Returns false when a cap was reached.
+ */
+export async function insertQueued(
+  env: Bindings,
+  r: {
+    uuid: string
+    peerUuid: string
+    peerDomain: string
+    organizationUuid: string
+    collectionUuid: string
+    email: string
+    readOnly: boolean
+    hidePasswords: boolean
+    manage: boolean
+    requestedBy: string
+  },
+): Promise<boolean> {
+  const now = Date.now()
+  const res = await env.DB.prepare(
+    `insert into federation_queued_shares (uuid, peer_uuid, peer_domain, organization_uuid, collection_uuid, email, read_only, hide_passwords, manage, requested_by, status, attempts, created_at, updated_at)
+     select ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 'queued', 0, ?11, ?11
+     where (select count(*) from federation_queued_shares where peer_uuid = ?2 and status in ('queued', 'retry')) < ?12
+       and (select count(*) from federation_queued_shares where requested_by = ?10 and status in ('queued', 'retry')) < ?13`,
+  )
+    .bind(
+      r.uuid,
+      r.peerUuid,
+      r.peerDomain,
+      r.organizationUuid,
+      r.collectionUuid,
+      r.email,
+      r.readOnly ? 1 : 0,
+      r.hidePasswords ? 1 : 0,
+      r.manage ? 1 : 0,
+      r.requestedBy,
+      now,
+      MAX_QUEUED_PER_PEER,
+      MAX_QUEUED_PER_USER,
+    )
+    .run()
+  return (res.meta?.changes ?? 0) > 0
+}
+
+/** Moves an item to another requester only while that person is under the per-user cap. */
+export async function reassignQueued(env: Bindings, uuid: string, to: string): Promise<boolean> {
+  const res = await env.DB.prepare(
+    `update federation_queued_shares set requested_by = ?1, updated_at = ?2
+     where uuid = ?3 and (requested_by = ?1 or (select count(*) from federation_queued_shares where requested_by = ?1 and status in ('queued', 'retry')) < ?4)`,
+  )
+    .bind(to, Date.now(), uuid, MAX_QUEUED_PER_USER)
+    .run()
+  return (res.meta?.changes ?? 0) > 0
 }
 
 export async function countQueued(
   env: Bindings,
   by: { peerUuid?: string; userUuid?: string },
 ): Promise<number> {
-  const conds = [eq(q.status, QueuedStatus.Queued)]
+  const conds = [inArray(q.status, OPEN)]
   if (by.peerUuid) conds.push(eq(q.peerUuid, by.peerUuid))
   if (by.userUuid) conds.push(eq(q.requestedBy, by.userUuid))
   return (
@@ -156,7 +226,7 @@ export async function queuedSummaryByPeer(env: Bindings) {
     .from(q)
     .innerJoin(schema.organizations, eq(schema.organizations.uuid, q.organizationUuid))
     .innerJoin(schema.users, eq(schema.users.uuid, q.requestedBy))
-    .where(eq(q.status, QueuedStatus.Queued))
+    .where(inArray(q.status, OPEN))
   const by = new Map<
     string,
     Map<

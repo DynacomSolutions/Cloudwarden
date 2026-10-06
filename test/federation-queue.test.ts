@@ -35,6 +35,22 @@ const sql = (q: string, ...args: unknown[]) =>
     .bind(...args)
     .run()
 
+/**
+ * A's admin approves the workspace; B remembers a domain that was removed, so its admin approves
+ * too (the next incoming request would otherwise be trusted automatically).
+ */
+async function approveBoth(id: string) {
+  await adminA.json(`${fed}/admin/peers/${id}/approve`, 'POST', { fingerprint: fingerprintB })
+  const waiting = (await peersOf(adminB)).find((p) => !p.active)
+  if (waiting) {
+    const descA = (await (await net.A.fetch('/.well-known/cloudwarden-federation')).json()) as any
+    await adminB.json(`${fed}/admin/peers/${waiting.id}/approve`, 'POST', {
+      fingerprint: descA.fingerprint,
+    })
+  }
+  await net.flush()
+}
+
 async function unpairAll() {
   for (const p of await peersOf(adminA)) await adminA.call(`${fed}/admin/peers/${p.id}`, 'DELETE')
   for (const p of await peersOf(adminB)) await adminB.call(`${fed}/admin/peers/${p.id}`, 'DELETE')
@@ -216,12 +232,28 @@ describe('shares queued behind a workspace request', { timeout: 120_000 }, () =>
   })
 
   it('sends the queue when the admin approves, checked again, and tells the requester', async () => {
+    // mgr edited alice's item, so it is theirs and would be dropped (no right to invite): the
+    // owner takes it over again, which re-attributes it and is audited.
+    expect(
+      (
+        await owner.call(ext(col1, `/queued/${aliceItem}`), 'PUT', {
+          readOnly: false,
+          hidePasswords: true,
+        })
+      ).status,
+    ).toBe(200)
+    expect(
+      (await adminA.json(`${fed}/admin/events`)).data.filter(
+        (e: any) => e.name === 'QueuedShareEdited',
+      ).length,
+    ).toBeGreaterThanOrEqual(2)
     net.log.length = 0
     const before = net.A.mail.sent.length
     const ap = await adminA.json(`${fed}/admin/peers/${ws}/approve`, 'POST', {
       fingerprint: fingerprintB,
     })
     expect(ap.active).toBe(true)
+    await net.flush()
     // B invited the user; the queue is empty and the person shows as a normal external grantee.
     const st = await state(owner)
     expect(st.queued).toHaveLength(0)
@@ -254,10 +286,7 @@ describe('shares queued behind a workspace request', { timeout: 120_000 }, () =>
     })
     const approveAndRead = async (id: string) => {
       net.log.length = 0
-      const ap = await adminA.json(`${fed}/admin/peers/${id}/approve`, 'POST', {
-        fingerprint: fingerprintB,
-      })
-      expect(ap.active).toBe(true)
+      await approveBoth(id)
       // Nothing was invited.
       expect(net.log.filter((l) => l.includes('/federation/v1/invitations'))).toHaveLength(0)
       const queued = (await state(mgr)).queued
@@ -282,7 +311,7 @@ describe('shares queued behind a workspace request', { timeout: 120_000 }, () =>
     expect((await owner.call(members, 'PUT', access(false))).status).toBe(200)
     // Viewing the state needs manage, so read the rows from the database.
     net.log.length = 0
-    await adminA.json(`${fed}/admin/peers/${w2}/approve`, 'POST', { fingerprint: fingerprintB })
+    await approveBoth(w2)
     expect(net.log.filter((l) => l.includes('/federation/v1/invitations'))).toHaveLength(0)
     const row = (await (net.A.env.DB as D1Database)
       .prepare(

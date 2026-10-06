@@ -30,6 +30,8 @@ export const FederationEvent = {
   QueuedShareSent: 9126,
   QueuedShareDropped: 9127,
   QueuedShareCancelled: 9128,
+  QueuedShareEdited: 9129,
+  QueuedShareRetry: 9130,
 } as const
 
 export const FEDERATION_EVENT_MIN = 9101

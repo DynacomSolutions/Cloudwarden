@@ -19522,7 +19522,7 @@
     "message": "Block this domain?"
   },
   "cwFedBlockDesc": {
-    "message": "Refuse pairing requests from $DOMAIN$ from now on? Without a block it can pair again at once.",
+    "message": "Refuse pairing requests from $DOMAIN$ from now on? Without a block it can ask to pair again; its next request will wait for your approval instead of being trusted automatically.",
     "placeholders": {
       "domain": {
         "content": "$1",
@@ -19571,6 +19571,57 @@
       "people": {
         "content": "$3",
         "example": "2"
+      }
+    }
+  },
+  "cwFedIncomingOnly": {
+    "message": "Incoming only: approve to share with this workspace"
+  },
+  "cwFedIncomingOnlyBadge": {
+    "message": "Incoming only"
+  },
+  "cwFedReview": {
+    "message": "Review"
+  },
+  "cwFedReviewToast": {
+    "message": "$COUNT$ workspace(s) trusted automatically need a review. They stay incoming only until you approve them or remove them.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "2"
+      }
+    }
+  },
+  "cwFedBlockRule": {
+    "message": "Block a domain, pattern or instance"
+  },
+  "cwFedBlockRuleHint": {
+    "message": "A domain (vault.example.com), a pattern for a domain and everything under it (*.example.com), instance:<id> or fp:<fingerprint>. Matching workspaces are removed."
+  },
+  "cwFedInvitationUnverified": {
+    "message": "From an unverified workspace ($DOMAIN$). Nobody here has approved it; accept only if you expect this invitation.",
+    "placeholders": {
+      "domain": {
+        "content": "$1",
+        "example": "vault.example.com"
+      }
+    }
+  },
+  "cwExtWsInboundOnly": {
+    "message": "$DOMAIN$ is trusted for incoming traffic only. What you share is kept as \"Waiting for admin approval\" until your instance administrator approves it with its fingerprint.",
+    "placeholders": {
+      "domain": {
+        "content": "$1",
+        "example": "vault.example.com"
+      }
+    }
+  },
+  "cwExtWsInboundOnlyAdmin": {
+    "message": "$DOMAIN$ is trusted for incoming traffic only. Approve it with its fingerprint under Instance admin, Trusted workspaces to share with it.",
+    "placeholders": {
+      "domain": {
+        "content": "$1",
+        "example": "vault.example.com"
       }
     }
   }

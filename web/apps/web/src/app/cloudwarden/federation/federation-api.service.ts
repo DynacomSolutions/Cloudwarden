@@ -39,6 +39,9 @@ export interface FederationPeer {
   creationDate: string;
   /** True when this instance trusted the workspace without an admin step (an incoming request). */
   acceptedAutomatically?: boolean;
+  /** Trusted for incoming traffic only: nothing is sent to it until an admin approves it. */
+  inboundOnly?: boolean;
+  incoming?: boolean;
   /** Instance admin who approved the workspace here, when an admin did. */
   approvedByEmail?: string | null;
   /** Account that asked for this workspace from a collection dialog (awaiting an instance admin). */
@@ -62,7 +65,7 @@ export interface FederationPeer {
 
 export interface TrustSettings {
   requireIncomingApproval: boolean;
-  blockedDomains: { domain: string; date: string }[];
+  blockedDomains: { domain: string; kind?: string; date: string }[];
 }
 
 export type WorkspaceState =
@@ -74,6 +77,7 @@ export interface ExternalWorkspace {
   fingerprint: string;
   state: WorkspaceState;
   active: boolean;
+  inboundOnly?: boolean;
 }
 
 export interface ExternalGrantee {
@@ -96,7 +100,7 @@ export interface QueuedShare {
   email: string;
   peerId: string;
   peerDomain: string;
-  status: "queued" | "declined" | "expired" | "dropped";
+  status: "queued" | "retry" | "declined" | "expired" | "dropped";
   /** Why a dropped share was not sent. */
   note: string | null;
   readOnly: boolean;
@@ -171,6 +175,8 @@ export interface FederatedInvitation {
   inviterEmail: string | null;
   peerDomain: string;
   peerActive: boolean;
+  /** False for a workspace nobody at this instance approved: shown as unverified. */
+  verified?: boolean;
   status: "pending" | "accepted" | "declined";
   creationDate: string;
 }
@@ -330,7 +336,9 @@ export class FederationApiService {
     );
   }
 
-  setRequireIncomingApproval(value: boolean): Promise<unknown> {
+  setRequireIncomingApproval(
+    value: boolean,
+  ): Promise<{ requireIncomingApproval: boolean; reviewPeers?: number }> {
     return this.apiService.send(
       "PUT",
       `${BASE}/admin/settings`,

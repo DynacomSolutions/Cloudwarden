@@ -5,6 +5,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import { loadIdentity } from '../src/federation/identity'
 import { signRequest } from '../src/federation/signature'
 import { type Net, twoInstances, type User, userOn } from './federation-helpers'
+import { freezeRateLimitWindow } from './helpers'
 import { addMember } from './org-helpers'
 
 const fed = '/api/cloudwarden/federation'
@@ -586,13 +587,31 @@ describe('collection-first federated sharing', { timeout: 120_000 }, () => {
 
   it('rate limits changing and removing access like sharing', async () => {
     const bobMember = (await members()).find((m: { email: string }) => m.email === bob.email).id
-    let put = 0
-    for (let i = 0; i < 61; i++) {
-      put = (await mgr2.call(ext(col1, `/${bobMember}`), 'PUT', { readOnly: true })).status
+    const restore = freezeRateLimitWindow()
+    try {
+      // The limiter is a fixed-window counter in D1; seed it instead of making 60 calls.
+      const seed = (count: number) =>
+        (net.A.env.DB as D1Database)
+          .prepare(
+            `INSERT INTO admin_rate_limits (key, window_start, count) VALUES (?1, ?2, ?3)
+             ON CONFLICT (key, window_start) DO UPDATE SET count = ?3`,
+          )
+          .bind(`fedshare:${mgr2.uuid}`, Math.floor(Date.now() / 3_600_000) * 3_600_000, count)
+          .run()
+      // One call below the limit still succeeds.
+      await seed(59)
+      expect((await mgr2.call(ext(col1, `/${bobMember}`), 'PUT', { readOnly: true })).status).toBe(
+        200,
+      )
+      // At the limit, changing and removing access are both refused.
+      expect((await mgr2.call(ext(col1, `/${bobMember}`), 'PUT', { readOnly: true })).status).toBe(
+        429,
+      )
+      expect((await mgr2.call(ext(col1, `/${bobMember}`), 'DELETE')).status).toBe(429)
+      expect(await members()).toHaveLength(1)
+    } finally {
+      restore()
     }
-    expect(put).toBe(429)
-    expect((await mgr2.call(ext(col1, `/${bobMember}`), 'DELETE')).status).toBe(429)
-    expect(await members()).toHaveLength(1)
   })
 
   it('reports shared people on the trusted workspaces list', async () => {

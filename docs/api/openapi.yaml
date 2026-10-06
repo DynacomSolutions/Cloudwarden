@@ -2327,6 +2327,41 @@ paths:
           $ref: '#/components/responses/NotFound'
       x-source-version: sdk-internal@main
       x-source-file: crates/bitwarden-api-api/src/apis/devices_api.rs
+  /api/devices/identifier/{deviceIdentifier}/token:
+    put:
+      tags:
+      - Devices
+      operationId: setDeviceToken
+      summary: Register the push token of a device
+      description: Sent by the mobile apps after login with the device's push token (null clears it). Also accepted as POST. Recorded from the official Android app 2026.9.1 (test/fixtures/traffic/android-login-sync.json).
+      parameters:
+      - name: deviceIdentifier
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pushToken:
+                  type:
+                  - string
+                  - 'null'
+      responses:
+        '204':
+          description: Success, empty body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: cloudwarden
+      x-source-file: src/routes/devices.ts
   /api/devices/identifier/{deviceIdentifier}/web-push-auth:
     post:
       tags:

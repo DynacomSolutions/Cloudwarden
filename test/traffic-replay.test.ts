@@ -1,6 +1,7 @@
-// Recorded client traffic (TASKS #367, #387): sanitised captures of the official Bitwarden CLI and
-// web vault driving a local server (scripts/capture-traffic.mjs, scripts/capture-web-traffic.mjs,
-// docs/traffic-fixtures.md) are replayed against the
+// Recorded client traffic (TASKS #367, #387, #388): sanitised captures of the official Bitwarden CLI,
+// web vault and Android app driving a local server (scripts/capture-traffic.mjs,
+// scripts/capture-web-traffic.mjs, scripts/capture-android-traffic.mjs, docs/traffic-fixtures.md)
+// are replayed against the
 // Worker. Each fixture starts from a freshly registered account, rebinds tokens and ids from the
 // live responses into later requests, and checks
 //   - the recording itself is free of identifying data,
@@ -17,6 +18,7 @@ import {
   PLACEHOLDER,
   WHOLE_PLACEHOLDER,
 } from '../scripts/traffic-sanitise.mjs'
+import { normalizeKeys } from '../src/validation'
 import { BASE, registerUser } from './helpers'
 import { findOperation, type Json, requestErrors, responseErrors } from './spec'
 
@@ -69,12 +71,24 @@ const typedForm = (form: Record<string, string>) =>
 const label = (ex: Exchange) => `${ex.method} ${ex.path.split('?')[0]} -> ${ex.status}`
 
 describe('traffic fixtures', () => {
-  it('exist for the official CLI and web vault covering login, sync, cipher writes and Sends', () => {
+  it('exist for the official CLI, web vault and Android app covering login, sync, cipher writes and Sends', () => {
     const flows = new Set(fixtures.flatMap(({ fx }) => fx.flows.map((f) => `${fx.client}:${f}`)))
-    for (const client of ['cli', 'web'])
+    for (const client of ['cli', 'web', 'android'])
       for (const f of ['login', 'sync', 'cipher-write', 'send'])
         expect(flows).toContain(`${client}:${f}`)
     expect(flows).toContain('web:register')
+    expect(flows).toContain('android:register')
+  })
+
+  it('Android fixtures carry the headers the mobile app sends', () => {
+    const android = fixtures.filter(({ fx }) => fx.client === 'android')
+    expect(android.length).toBeGreaterThan(0)
+    for (const { file, fx } of android)
+      for (const ex of fx.exchanges) {
+        expect(ex.headers['bitwarden-client-name'], file).toBe('mobile')
+        expect(ex.headers['bitwarden-client-version'], file).toBe(fx.clientVersion)
+        expect(ex.headers['device-type'], file).toBe('0') // Android
+      }
   })
 
   it('sanitiser replaces identifying data and is idempotent', () => {
@@ -107,7 +121,13 @@ describe('traffic fixtures', () => {
             continue
           }
           if (ex.requestBody !== undefined)
-            for (const e of requestErrors(op.operation, 'application/json', ex.requestBody))
+            // The Android app sends some PascalCase keys (`Cipher`, `MasterPasswordAuthentication`);
+            // the Worker lowercases their first letter before validating, so the spec check does too.
+            for (const e of requestErrors(
+              op.operation,
+              'application/json',
+              normalizeKeys(ex.requestBody),
+            ))
               problems.push(`#${i} ${op.key} request ${e}`)
           if (ex.requestForm)
             for (const e of requestErrors(

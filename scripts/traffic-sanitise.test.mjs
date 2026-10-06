@@ -41,6 +41,16 @@ test('treats the registration authentication hash like the login password', () =
   assert.match(out.password, /^__[A-Z_]+__$/)
 })
 
+test('replaces the push token a mobile app registers for its device', () => {
+  const token = 'fakeFcmInstanceId0000:APA91b' + '0'.repeat(58)
+  const out = createSanitiser().value({ pushToken: token })
+  assert.equal(out.pushToken, '__PUSHTOKEN__')
+  assert.deepEqual(
+    findIdentifying({ pushToken: token }).map((f) => f.reason),
+    ['secret in pushToken'],
+  )
+})
+
 test('every recorded traffic fixture is free of identifying data', () => {
   const files = readdirSync(dir).filter((f) => f.endsWith('.json'))
   assert.ok(files.length > 0)

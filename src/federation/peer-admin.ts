@@ -17,6 +17,7 @@ import {
   peerByDomain,
   peerJsonCall,
 } from './peers'
+import { isBlockedDomain } from './trust-settings'
 
 /**
  * Peers waiting for approval that an admin added or that arrived as a signed pairing request;
@@ -103,6 +104,7 @@ export async function addPendingPeer(
   const domain = checkedDomain(env, input)
   if (requestedBy) await assertRequestRoom(env, requestedBy)
   else await assertPendingRoom(env)
+  if (await isBlockedDomain(env, domain)) throw new ApiError(400, 'This domain is blocked.')
   if (await peerByDomain(env, domain)) throw new ApiError(400, 'This peer already exists.')
   const d = await fetchDescriptor(env, domain)
   const db = createDb(env.DB)
@@ -160,7 +162,7 @@ export async function approvePeerLocally(
   if (d.publicKey !== peer.publicKey) {
     throw new ApiError(409, 'The peer now presents a different key. Remove it and add it again.')
   }
-  let next = await setPeer(env, peer, { localApproved: true })
+  let next = await setPeer(env, peer, { localApproved: true, approvedBy: actorUuid })
   await federationEventStatement(createDb(env.DB), {
     type: FederationEvent.PeerApproved,
     actingUserUuid: actorUuid,

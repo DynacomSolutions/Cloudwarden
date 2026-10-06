@@ -35,6 +35,10 @@ export interface FederationPeer {
   lastSeenDate: string | null;
   lastError: string | null;
   creationDate: string;
+  /** True when this instance trusted the workspace without an admin step (an incoming request). */
+  acceptedAutomatically?: boolean;
+  /** Instance admin who approved the workspace here, when an admin did. */
+  approvedByEmail?: string | null;
   /** Account that asked for this workspace from a collection dialog (awaiting an instance admin). */
   requestedByEmail?: string | null;
   /** Organisations sharing with this workspace (counts only, collection names are encrypted). */
@@ -44,6 +48,11 @@ export interface FederationPeer {
     people: number;
     collections: number;
   }[];
+}
+
+export interface TrustSettings {
+  requireIncomingApproval: boolean;
+  blockedDomains: { domain: string; date: string }[];
 }
 
 export type WorkspaceState =
@@ -285,10 +294,51 @@ export class FederationApiService {
     );
   }
 
-  removePeer(id: string): Promise<void> {
+  /** `block` also refuses the workspace's pairing requests until an admin unblocks the domain. */
+  trustSettings(): Promise<TrustSettings> {
+    return this.apiService.send(
+      "GET",
+      `${BASE}/admin/settings`,
+      null,
+      true,
+      true,
+    );
+  }
+
+  setRequireIncomingApproval(value: boolean): Promise<unknown> {
+    return this.apiService.send(
+      "PUT",
+      `${BASE}/admin/settings`,
+      { requireIncomingApproval: value },
+      true,
+      true,
+    );
+  }
+
+  blockDomain(domain: string): Promise<unknown> {
+    return this.apiService.send(
+      "POST",
+      `${BASE}/admin/blocked`,
+      { domain },
+      true,
+      true,
+    );
+  }
+
+  unblockDomain(domain: string): Promise<unknown> {
     return this.apiService.send(
       "DELETE",
-      `${BASE}/admin/peers/${enc(id)}`,
+      `${BASE}/admin/blocked/${enc(domain)}`,
+      null,
+      true,
+      true,
+    );
+  }
+
+  removePeer(id: string, block = false): Promise<void> {
+    return this.apiService.send(
+      "DELETE",
+      `${BASE}/admin/peers/${enc(id)}${block ? "?block=true" : ""}`,
       null,
       true,
       false,

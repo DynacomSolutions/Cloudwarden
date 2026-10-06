@@ -22,6 +22,10 @@ export const FederationEvent = {
   CollectionSharedExternally: 9118,
   CollectionUnsharedExternally: 9119,
   PeerRequested: 9120,
+  PeerAutoAccepted: 9121,
+  PeerBlocked: 9122,
+  PeerUnblocked: 9123,
+  IncomingApprovalChanged: 9124,
 } as const
 
 export const FEDERATION_EVENT_MIN = 9101

@@ -24,6 +24,7 @@ import {
   FederationDescriptor,
   FederationEvent,
   FederationPeer,
+  TrustSettings,
   sameFingerprint,
 } from "./federation-api.service";
 import {
@@ -66,6 +67,46 @@ import { normalizeFingerprint, sameDomain } from "./workspace-qr";
               [domain]="id.domain"
               [fingerprint]="id.fingerprint"
             ></cw-workspace-qr-show>
+          </bit-section>
+        }
+        @if (trust(); as t) {
+          <bit-section data-testid="cw-fed-trust">
+            <h2 bitTypography="h4">{{ "cwFedIncomingTitle" | i18n }}</h2>
+            <label class="tw-flex tw-items-start tw-gap-2">
+              <input
+                type="checkbox"
+                [checked]="t.requireIncomingApproval"
+                (change)="setRequire($any($event.target).checked)"
+                data-testid="cw-fed-require-approval"
+              />
+              <span>
+                {{ "cwFedRequireApproval" | i18n }}
+                <span class="tw-block tw-text-xs tw-text-muted">{{
+                  "cwFedRequireApprovalHint" | i18n
+                }}</span>
+              </span>
+            </label>
+            @if (t.blockedDomains.length > 0) {
+              <h3 bitTypography="h5" class="tw-mt-3">
+                {{ "cwFedBlocked" | i18n }}
+              </h3>
+              <ul data-testid="cw-fed-blocked">
+                @for (b of t.blockedDomains; track b.domain) {
+                  <li class="tw-flex tw-items-center tw-gap-2">
+                    <span class="tw-break-all">{{ b.domain }}</span>
+                    <button
+                      type="button"
+                      bitButton
+                      buttonType="secondary"
+                      size="small"
+                      (click)="unblock(b.domain)"
+                    >
+                      {{ "cwFedUnblock" | i18n }}
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
           </bit-section>
         }
         <bit-section>
@@ -122,6 +163,15 @@ import { normalizeFingerprint, sameDomain } from "./workspace-qr";
                   @if (p.lastError) {
                     <div class="tw-text-danger tw-text-xs">
                       {{ p.lastError }}
+                    </div>
+                  }
+                  @if (p.acceptedAutomatically) {
+                    <div class="tw-text-xs" data-testid="cw-fed-auto">
+                      {{ "cwFedTrustedAutomatically" | i18n }}
+                    </div>
+                  } @else if (p.approvedByEmail) {
+                    <div class="tw-text-xs" data-testid="cw-fed-approved-by">
+                      {{ "cwFedApprovedBy" | i18n: p.approvedByEmail }}
                     </div>
                   }
                   @if (p.requestedByEmail) {
@@ -281,6 +331,7 @@ export class InstanceAdminFederationComponent implements OnInit {
   protected readonly identity = signal<FederationDescriptor | null>(null);
   protected readonly peers = signal<FederationPeer[]>([]);
   protected readonly events = signal<FederationEvent[]>([]);
+  protected readonly trust = signal<TrustSettings | null>(null);
   protected readonly error = signal<string | null>(null);
   protected readonly approving = signal<string | null>(null);
   protected readonly form = this.fb.group({
@@ -317,11 +368,13 @@ export class InstanceAdminFederationComponent implements OnInit {
 
   private async load() {
     try {
-      const [identity, peers, events] = await Promise.all([
+      const [identity, peers, events, trust] = await Promise.all([
         this.api.identity(),
         this.api.peers(),
         this.api.events(),
+        this.api.trustSettings(),
       ]);
+      this.trust.set(trust);
       this.identity.set(identity);
       this.peers.set(peers.data);
       this.events.set(events.data);
@@ -453,7 +506,26 @@ export class InstanceAdminFederationComponent implements OnInit {
     await this.load();
   }
 
+  protected async setRequire(value: boolean) {
+    try {
+      await this.api.setRequireIncomingApproval(value);
+    } catch (e) {
+      this.toast("error", this.message(e));
+    }
+    await this.load();
+  }
+
+  protected async unblock(domain: string) {
+    try {
+      await this.api.unblockDomain(domain);
+    } catch (e) {
+      this.toast("error", this.message(e));
+    }
+    await this.load();
+  }
+
   protected async remove(p: FederationPeer) {
+    // "Yes" removes; the dialog's second question asks whether to refuse its pairing requests too.
     const ok = await this.dialogService.openSimpleDialog({
       title: { key: "remove" },
       content: this.i18n.t("cwFedRemoveDesc", p.domain),
@@ -462,8 +534,15 @@ export class InstanceAdminFederationComponent implements OnInit {
     if (!ok) {
       return;
     }
+    const block = await this.dialogService.openSimpleDialog({
+      title: { key: "cwFedBlockTitle" },
+      content: this.i18n.t("cwFedBlockDesc", p.domain),
+      type: "warning",
+      acceptButtonText: { key: "cwFedBlock" },
+      cancelButtonText: { key: "no" },
+    });
     try {
-      await this.api.removePeer(p.id);
+      await this.api.removePeer(p.id, block);
     } catch (e) {
       this.toast("error", this.message(e));
     }

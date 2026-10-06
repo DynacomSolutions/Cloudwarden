@@ -75,6 +75,7 @@ export async function peerJson(p: Peer) {
     active: isActive(p),
     lastSeenDate: p.lastSeenAt === null ? null : new Date(p.lastSeenAt).toISOString(),
     lastError: p.lastError,
+    acceptedAutomatically: p.acceptedAutomatically,
     creationDate: new Date(p.createdAt).toISOString(),
   }
 }

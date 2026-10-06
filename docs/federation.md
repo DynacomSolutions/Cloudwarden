@@ -86,14 +86,40 @@ Redirects are refused, calls time out after 15 seconds and response bodies are s
 
 ### Pairing
 
+Pairing is deliberate on the side that starts it and automatic on the side that receives it.
+
 1. An instance admin on A opens Instance admin, Trusted workspaces (or adds the workspace from a
    collection's Access dialog, see "Sharing a collection"), and adds B's domain. A fetches B's
    descriptor and shows its fingerprint. The peer is `pending`.
-2. The admins compare fingerprints out of band (for example by phone). A's admin types or pastes
-   B's fingerprint to approve; a mismatch is refused. A then sends a signed `POST /federation/v1/pair`
-   to B. B fetches A's descriptor from the claimed domain to bind the key to it, verifies the
-   signature and records A as a pending peer that approved.
-3. B's admin does the same for A. When both sides have approved the peer becomes `active`.
+2. A's admin compares the fingerprint with B's administrator out of band (by phone, or by scanning
+   B's QR code, see "QR codes for pairing") and types, pastes or scans it to approve; a mismatch
+   is refused, and the server re-checks it against the key it fetched. A then sends a signed
+   `POST /federation/v1/pair` to B. B refuses a blocked domain, fetches A's descriptor from the
+   claimed domain over https to bind the key to the domain, verifies the signature, pins the key
+   and records A. Unless B's admin turned on "Require admin approval for incoming workspaces",
+   B marks A active at once (`acceptedAutomatically`) and answers that it approved, which makes A
+   active too. The audit event is `PeerAutoAccepted` (9121).
+3. With the setting on, B records A as `pending` (A approved) and B's admin compares the
+   fingerprint and approves, as before. A peer that B's admin added on B first also keeps the
+   manual step: only a request from a domain B does not know yet is trusted automatically.
+
+What the automatic trust gives A: nothing about B's users beyond what each user grants. A can send
+invitations (rate limited per peer, never discovering whether an address has an account) that
+a user must accept on B, and only after that, and after the hosting admin's confirmation, does any
+data move. B relies on the https binding of A's domain (WebPKI and DNS) instead of an out-of-band
+comparison; an attacker who controls a domain can therefore pair as that domain but can only send
+invitations. The Trusted workspaces page shows "Trusted automatically (incoming)" or "Approved by
+<admin>" for each workspace.
+
+Safeguards on the receiving side: pairing requests are rate limited per address (10 a minute)
+and per instance (30 a minute), the nonce is spent before anything is written, at most 25 workspaces
+are trusted automatically (further requests wait for an admin, subject to the pending cap of 20),
+and the invitation rate limit applies per peer. An admin can suspend or remove any workspace, and
+"Remove" offers to block the domain so it cannot pair again at once; blocked domains (listed on
+the page, and settable through `POST /api/cloudwarden/federation/admin/blocked`) get 403 from
+`/federation/v1/pair` before anything is fetched. The setting lives in `instance_settings`
+under the key `federation`; the block list and the `accepted_automatically` and `approved_by`
+columns arrived with migration 0027.
 
 Admins can suspend a peer (effective immediately: requests in both directions are refused and
 federated organisations disappear from users' vaults until it is resumed), run a health check
@@ -339,7 +365,8 @@ federated organisations.
 
 | Threat | Mitigation |
 |---|---|
-| A rogue server pretends to be a peer | Requests must be signed by a key pinned at pairing, after both admins compared fingerprints out of band; pairing binds the key to the domain through the https descriptor. |
+| A rogue server pretends to be a peer | Requests must be signed by a key pinned at pairing. The side that starts pairing compares fingerprints out of band (typed or scanned); the receiving side relies on the https binding of the caller's domain (WebPKI and DNS) instead, unless its admin requires approval. Either way the key is bound to the domain through the https descriptor. |
+| An attacker who controls a domain pairs with this instance | Possible by default (automatic incoming trust), and bounded: the peer can only send invitations that users must accept, rate limited per peer, with at most 25 automatic peers and per address and global pairing limits. Admins can suspend, remove, block the domain, or turn on approval for incoming workspaces. |
 | Replay or tampering of server-to-server calls | Signature covers method, full URL, body digest and the user and device headers; 300 second window; per-peer nonce store. |
 | A peer acting for users it does not own | A only accepts a user id that is a stand-in account of the calling peer, and runs every request as that account through the normal authorisation. B only accepts events for its own users who hold something from the calling peer. |
 | A peer reading organisation data | Same as a member's client: only EncStrings the member may see. Organisation keys are wrapped in the browser for the member's public key; neither server ever holds them. |

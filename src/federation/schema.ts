@@ -33,6 +33,12 @@ export const federationPeers = sqliteTable(
     lastError: text('last_error'),
     /** User who asked for this peer from a collection's Access dialog (a non-admin request), if any. */
     requestedBy: text('requested_by'),
+    /** True when this side trusted the peer without an admin step (an incoming pairing request). */
+    acceptedAutomatically: integer('accepted_automatically', { mode: 'boolean' })
+      .notNull()
+      .default(false),
+    /** Instance admin who approved the peer on this side, when an admin did. */
+    approvedBy: text('approved_by'),
     createdAt: integer('created_at').notNull(),
     updatedAt: integer('updated_at').notNull(),
   },
@@ -41,6 +47,13 @@ export const federationPeers = sqliteTable(
     uniqueIndex('federation_peers_domain_unique').on(t.domain),
   ],
 )
+
+/** Domains an admin blocked: their pairing requests are refused (TASKS #381). */
+export const federationBlockedDomains = sqliteTable('federation_blocked_domains', {
+  domain: text('domain').primaryKey(),
+  createdAt: integer('created_at').notNull(),
+  createdBy: text('created_by'),
+})
 
 /** Signature nonces seen recently, per peer; a repeat is a replay. */
 export const federationNonces = sqliteTable(

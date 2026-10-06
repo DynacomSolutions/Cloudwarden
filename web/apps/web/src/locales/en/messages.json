@@ -19490,5 +19490,47 @@
   },
   "cwQrErr_malformed": {
     "message": "The QR code is damaged or not in the expected format."
+  },
+  "cwFedIncomingTitle": {
+    "message": "Incoming workspaces"
+  },
+  "cwFedRequireApproval": {
+    "message": "Require admin approval for incoming workspaces"
+  },
+  "cwFedRequireApprovalHint": {
+    "message": "Off by default. When another instance asks to pair and proves its domain, it is trusted automatically; it can only send invitations that people must accept. Turn this on to approve each incoming workspace here after comparing its fingerprint."
+  },
+  "cwFedBlocked": {
+    "message": "Blocked domains"
+  },
+  "cwFedUnblock": {
+    "message": "Unblock"
+  },
+  "cwFedTrustedAutomatically": {
+    "message": "Trusted automatically (incoming)"
+  },
+  "cwFedApprovedBy": {
+    "message": "Approved by $ADMIN$",
+    "placeholders": {
+      "admin": {
+        "content": "$1",
+        "example": "admin@example.com"
+      }
+    }
+  },
+  "cwFedBlockTitle": {
+    "message": "Block this domain?"
+  },
+  "cwFedBlockDesc": {
+    "message": "Refuse pairing requests from $DOMAIN$ from now on? Without a block it can pair again at once.",
+    "placeholders": {
+      "domain": {
+        "content": "$1",
+        "example": "vault.example.com"
+      }
+    }
+  },
+  "cwFedBlock": {
+    "message": "Block"
   }
 }

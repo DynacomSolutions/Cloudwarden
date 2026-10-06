@@ -247,7 +247,9 @@ describe('collection-first federated sharing', { timeout: 120_000 }, () => {
     expect(last).toBe(429)
   })
 
-  it('approves inline for an instance admin, and the remote side still approves', async () => {
+  it('approves inline for an instance admin, and the remote side still approves when it requires that', async () => {
+    // B asks for an admin's approval of incoming workspaces (the default is to trust them).
+    await adminB.json(`${fed}/admin/settings`, 'PUT', { requireIncomingApproval: true })
     // An instance admin who manages a collection pairs from the dialog in one step.
     const adminOrg = await adminA.json('/api/organizations', 'POST', {
       name: 'Admin org',
@@ -287,6 +289,8 @@ describe('collection-first federated sharing', { timeout: 120_000 }, () => {
       fingerprint: descA.fingerprint,
     })
     expect(ap.active).toBe(true)
+    expect(ap.acceptedAutomatically).toBe(false)
+    await adminB.json(`${fed}/admin/settings`, 'PUT', { requireIncomingApproval: false })
     const state = await owner.json(ext(col1))
     expect(state.workspaces).toEqual([expect.objectContaining({ id: peerOnA, state: 'active' })])
   })

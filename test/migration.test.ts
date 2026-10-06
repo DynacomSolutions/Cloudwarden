@@ -76,3 +76,47 @@ it('carries collection grants and member emails over the organisations migration
     },
   ])
 })
+
+it('marks old incoming pending requests as incoming, and nothing else', async () => {
+  const migrations = env.TEST_MIGRATIONS as unknown as Migration[]
+  const mig = migrations.find((m) => m.name.includes('federation_incoming_backfill'))
+  expect(mig).toBeDefined()
+  const run = (sql: string, ...args: unknown[]) =>
+    env.DB.prepare(sql)
+      .bind(...args)
+      .run()
+  const peer = (
+    id: string,
+    status: string,
+    local: number,
+    remote: number,
+    requestedBy: string | null,
+    approvedBy: string | null,
+  ) =>
+    run(
+      "INSERT INTO federation_peers (uuid, instance_id, domain, public_key, fingerprint, protocol_version, status, local_approved, remote_approved, requested_by, approved_by, incoming, created_at, updated_at) VALUES (?1, ?1, ?2, 'k', 'f', 1, ?3, ?4, ?5, ?6, ?7, 0, 0, 0)",
+      id,
+      `${id}.example.net`,
+      status,
+      local,
+      remote,
+      requestedBy,
+      approvedBy,
+    )
+  await peer('old-incoming', 'pending', 0, 1, null, null)
+  await peer('user-request', 'pending', 0, 1, 'u1', null)
+  await peer('admin-added', 'pending', 0, 0, null, null)
+  await peer('active', 'active', 1, 1, null, null)
+  await peer('approved', 'pending', 0, 1, null, 'admin')
+  for (const q of mig?.queries ?? []) await env.DB.prepare(q).run()
+  const rows = await env.DB.prepare(
+    'select uuid, incoming from federation_peers order by uuid',
+  ).all()
+  expect(Object.fromEntries(rows.results.map((r) => [r.uuid, r.incoming]))).toEqual({
+    active: 0,
+    'admin-added': 0,
+    approved: 0,
+    'old-incoming': 1,
+    'user-request': 0,
+  })
+})

@@ -92,8 +92,10 @@ Requesting (generic, for any client that holds an access token but not the user 
 device signed in with SSO under trusted device encryption):
 
 - `POST /api/auth-requests/admin-request`, authenticated, body as for other auth requests with
-  `type: 2` and the caller's own email. Needs at least one accepted or confirmed membership,
-  enrolled in account recovery, in an organisation with the policy enabled; otherwise 400. One
+  `type: 2` and the caller's own email. Needs at least one confirmed membership, enrolled in
+  account recovery, in an organisation that has the account recovery policy enabled and an
+  enabled SSO configuration whose member decryption is trusted device encryption; otherwise 400
+  (matching upstream Bitwarden). One
   request is created; every such organisation can answer it. Event 1010 per organisation and an
   email to every member who may approve.
 - The anonymous `POST /api/auth-requests` refuses type 2.
@@ -124,7 +126,11 @@ the requesting device), then rewraps the key in the browser.
 
 ## Notes for SSO and trusted device encryption
 
-The admin approval contract above does not depend on SSO. With SSO and trusted devices (`docs/sso.md`) in place:
+The admin approval contract above does depend on SSO: an organisation only receives device
+approvals when it has the account recovery policy enabled and an enabled SSO configuration set to
+trusted device encryption (`docs/sso.md`), and the member must be confirmed and enrolled in account
+recovery. Without that, `POST /api/auth-requests/admin-request` answers 400. With SSO and trusted
+devices in place:
 
 - devices signed in with SSO but without the user key are offered "Request admin approval"
   (`HasAdminApproval` in the trusted device decryption option is true for enrolled members);

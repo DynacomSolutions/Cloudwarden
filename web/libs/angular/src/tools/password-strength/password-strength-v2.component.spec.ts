@@ -55,7 +55,7 @@ describe("PasswordStrengthV2Component", () => {
     jest.spyOn(component.passwordScoreTextWithColor, "emit");
     jest.useFakeTimers();
     component.ngOnChanges({
-      email: new SimpleChange("", "a@b.com", false),
+      email: new SimpleChange("", "user@example.com", false),
     });
     jest.runAllTimers();
     expect(component.passwordScoreTextWithColor.emit).toHaveBeenCalled();
@@ -76,10 +76,28 @@ describe("PasswordStrengthV2Component", () => {
       jest.spyOn(component.passwordScoreTextWithColor, "emit");
       component.passwordScore = score;
       component.ngOnChanges({
-        email: new SimpleChange("", "a@b.com", false),
+        email: new SimpleChange("", "user@example.com", false),
       });
       jest.runAllTimers();
       expect(component.passwordScoreTextWithColor.emit).toHaveBeenCalledWith(expected);
     },
   );
+
+  describe("screen reader announcement", () => {
+    const announcement = () =>
+      (fixture.nativeElement.querySelector("[aria-live]") as HTMLElement).textContent.trim();
+
+    it("is empty when there is no password", () => {
+      component.password = "";
+      fixture.detectChanges();
+      expect(announcement()).toBe("");
+    });
+
+    it("announces the score once a password has been entered", () => {
+      mockPasswordStrengthService.getPasswordStrength.mockReturnValue({ score: 4 } as any);
+      component.password = "testPassword";
+      fixture.detectChanges();
+      expect(announcement()).toContain("passwordStrengthScore");
+    });
+  });
 });

@@ -9,6 +9,11 @@ paths = ['pnpm-lock\.yaml']
 description = "test fixtures"
 paths = ['test/fixtures/.*']
 
+# Deliberately fake tokens and keys that the traffic sanitiser tests feed to the sanitiser (TASKS #367).
+[[allowlists]]
+description = "traffic sanitiser test inputs"
+paths = ['''^scripts/traffic-sanitise\.test\.mjs$''', '''^test/traffic-replay\.test\.ts$''']
+
 # The public Secrets Manager access token test vector from the GPL bitwarden-core crate (TASKS #223).
 [[allowlists]]
 description = "Secrets Manager SDK test vector"

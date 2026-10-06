@@ -22,7 +22,8 @@
     "test:scripts": "node --test scripts/*.test.mjs",
     "prepare": "lefthook install || true",
     "import:server": "node scripts/import-from-server.mjs",
-    "e2e": "node e2e/run.mjs"
+    "e2e": "node e2e/run.mjs",
+    "capture:traffic": "node scripts/capture-traffic.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",

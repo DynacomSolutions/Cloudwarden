@@ -48,6 +48,7 @@ import {
 import { I18nPipe } from "@bitwarden/ui-common";
 import { Vfo1I18nPipe } from "@bitwarden/vault";
 
+import { withDismissBlocked } from "../../../../../cloudwarden/organizations/dismiss-guard";
 import { GroupApiService, GroupDetailsView } from "../../../core";
 import { OrganizationUserView } from "../../../core/views/organization-user.view";
 import {
@@ -348,10 +349,22 @@ export class InviteMembersDialogComponent {
       return;
     }
 
-    await this.handleInviteUsers(organization.id);
+    // Sending the invite can take seconds (the mail goes out first). Dismissing the dialog meanwhile
+    // would drop the result, so the members list would not refresh until a reload.
+    this.submitting = true;
+    try {
+      await withDismissBlocked(this.dialogRef, () => this.handleInviteUsers(organization.id));
+    } finally {
+      this.submitting = false;
+    }
   };
 
+  private submitting = false;
+
   protected cancel() {
+    if (this.submitting) {
+      return;
+    }
     this.close(MemberDialogResult.Canceled);
   }
 

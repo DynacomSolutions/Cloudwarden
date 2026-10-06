@@ -259,6 +259,8 @@ export class IdentifierChecker {
     if (ALLOWED_IPV6.has(match)) return false
     if (match.startsWith('2001:db8:')) return false // Documentation prefix
 
+    if (/^\d{0,2}(?::\d{1,2}){2}$/.test(match)) return false // time of day, e.g. 00:00:00
+
     const colons = (match.match(/::/g) || []).length
     if (colons > 1) return false // Invalid
     if (colons === 0 && match.split(':').length < 3) return false // Need at least 3 groups
@@ -290,6 +292,8 @@ export class IdentifierChecker {
     // UUIDs (but allow all-zeros)
     if (/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(match)) {
       if (PLACEHOLDER_UUIDS.has(match)) return false
+      // Numbered all-zero placeholders used by the traffic fixtures (TASKS #367)
+      if (/^00000000-0000-0000-0000-[0-9a-f]{12}$/i.test(match)) return false
       return true
     }
     return false

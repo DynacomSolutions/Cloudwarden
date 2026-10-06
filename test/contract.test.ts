@@ -1,40 +1,8 @@
 // Contract tests (TASKS #180): exercise a curated set of implemented operations through the Worker
 // and validate each response against the response schema in docs/api/openapi.yaml.
-import { Validator } from '@cfworker/json-schema'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { parse } from 'yaml'
-import raw from '../docs/api/openapi.yaml?raw'
 import { authed, BASE, createSession, form, json } from './helpers'
-
-type Json = any
-const spec = parse(raw) as Json
-
-// Schemas reference each other as `#/components/...`; rewrite to an absolute URI so inline schemas
-// from an operation can be validated on their own.
-const SPEC_URI = 'https://spec.example.com/openapi'
-const absolute = (node: Json): Json => {
-  if (Array.isArray(node)) return node.map(absolute)
-  if (node && typeof node === 'object') {
-    return Object.fromEntries(
-      Object.entries(node).map(([k, v]) => [
-        k,
-        k === '$ref' && typeof v === 'string' && v.startsWith('#/') ? SPEC_URI + v : absolute(v),
-      ]),
-    )
-  }
-  return node
-}
-const specDoc = { $id: SPEC_URI, components: absolute(spec.components) }
-
-const resolve = (node: Json): Json => {
-  if (node?.$ref?.startsWith('#/')) {
-    return node.$ref
-      .slice(2)
-      .split('/')
-      .reduce((acc: Json, key: string) => acc[key], spec)
-  }
-  return node
-}
+import { type Json, resolve, responseErrors, spec } from './spec'
 
 /** Validates `body` against the documented response for `op` and `status`. */
 function validateResponse(op: string, status: number, body: unknown) {
@@ -43,16 +11,8 @@ function validateResponse(op: string, status: number, body: unknown) {
   expect(operation, `${op} is not in the spec`).toBeDefined()
   const response = resolve(operation.responses[String(status)] ?? operation.responses.default)
   expect(response, `${op} documents no ${status} response`).toBeDefined()
-  const schema = response.content?.['application/json']?.schema
-  if (!schema) return
-  const validator = new Validator(absolute(schema), '2020-12', false)
-  validator.addSchema(specDoc)
-  const result = validator.validate(body)
-  const detail = result.errors
-    .slice(0, 5)
-    .map((e) => `${e.instanceLocation}: ${e.error}`)
-    .join('\n')
-  expect(result.valid, `${op} ${status} does not match its schema:\n${detail}`).toBe(true)
+  const detail = responseErrors(operation, status, body).join('\n')
+  expect(detail, `${op} ${status} does not match its schema:\n${detail}`).toBe('')
 }
 
 const enc = (label: string) =>

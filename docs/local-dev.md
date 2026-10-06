@@ -15,6 +15,7 @@ entrypoint below do it). Useful checks:
 |---|---|
 | `pnpm test` | Vitest inside workerd, no server needed |
 | `pnpm e2e` | The official Bitwarden CLI against a local dev server (about 2 minutes) |
+| `pnpm capture:traffic` | Re-records the sanitised client traffic fixtures (about 10 minutes, see [traffic-fixtures.md](traffic-fixtures.md)) |
 | `pnpm lint`, `pnpm typecheck`, `pnpm check:identifiers` | Required before pushing |
 
 ## In a container

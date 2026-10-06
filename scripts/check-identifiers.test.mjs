@@ -241,3 +241,15 @@ test('gitBlobId matches git hash-object', async () => {
   const { gitBlobId } = await import('./check-identifiers.mjs')
   assert.equal(gitBlobId('hello\n'), 'ce013625030ba8dba906f756967f9e9ca394464a')
 })
+
+test('Traffic fixture placeholders (TASKS #367)', async (t) => {
+  await t.test('allows numbered all-zero UUIDs but not real ones', () => {
+    assert.strictEqual(checker.checkHexToken('00000000-0000-0000-0000-000000000007'), false)
+    assert.strictEqual(checker.checkHexToken('8c1b2a4e-1111-4222-8333-444455556666'), true)
+  })
+
+  await t.test('does not mistake a time of day for an IPv6 address', () => {
+    assert.strictEqual(checker.checkIPv6('00:00:00'), false)
+    assert.strictEqual(checker.checkIPv6('fe80:0:0:0:1:2:3:4'), true)
+  })
+})

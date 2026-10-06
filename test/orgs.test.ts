@@ -345,3 +345,31 @@ it('serves self-host billing metadata for the member dialogs to member managers 
   })
   expect((await user.call(path)).status).toBe(403)
 })
+
+// TASKS #385: the web client reloads the members list right after the invite dialog closes. The
+// read must already contain the invited rows (new address and existing account) and must not be
+// cacheable, in the same shape the Members page requests it.
+it('lists freshly invited members at once, uncached, for new and existing accounts', async () => {
+  const mb = mailbox()
+  const owner = await actor('fresh-owner@example.com', mb)
+  await actor('fresh-existing@example.com', mb)
+  const { id } = await createOrg(owner, 'Fresh Co')
+
+  const before = await owner.call(`/api/organizations/${id}/users?includeGroups=true`)
+  expect(before.status).toBe(200)
+  expect(((await before.json()) as { data: unknown[] }).data).toHaveLength(1)
+
+  const inv = await owner.call(`/api/organizations/${id}/users/invite`, 'POST', {
+    emails: ['fresh-new@example.com', 'fresh-existing@example.com'],
+    type: 2,
+  })
+  expect(inv.status).toBe(200)
+
+  const after = await owner.call(`/api/organizations/${id}/users?includeGroups=true`)
+  expect(after.status).toBe(200)
+  expect(after.headers.get('cache-control')).toContain('no-store')
+  const rows = ((await after.json()) as { data: { email: string; status: number }[] }).data
+  const invited = rows.filter((r) => r.status === 0).map((r) => r.email)
+  expect(invited.sort()).toEqual(['fresh-existing@example.com', 'fresh-new@example.com'])
+  expect(rows).toHaveLength(3)
+})

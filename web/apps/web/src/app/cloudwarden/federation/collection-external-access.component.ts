@@ -45,9 +45,16 @@ import {
   ExternalGrantee,
   ExternalWorkspace,
   FederationApiService,
+  FederationDescriptor,
   formatFingerprint,
   sameFingerprint,
 } from "./federation-api.service";
+import { sameDomain } from "./workspace-qr";
+import {
+  ScannedWorkspace,
+  WorkspaceQrScanComponent,
+} from "./workspace-qr-scan.component";
+import { WorkspaceQrShowComponent } from "./workspace-qr-show.component";
 
 /** Value of the workspace select that opens the "add a workspace" form. */
 const NEW_WORKSPACE = "__new";
@@ -55,7 +62,7 @@ const NEW_WORKSPACE = "__new";
 @Component({
   selector: "cw-collection-external-access",
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SharedModule],
+  imports: [SharedModule, WorkspaceQrShowComponent, WorkspaceQrScanComponent],
   template: `
     @if (state(); as s) {
       <bit-section class="tw-mt-6" data-testid="cw-ext-access">
@@ -120,6 +127,11 @@ const NEW_WORKSPACE = "__new";
                     {{ "cwExtLookup" | i18n }}
                   </button>
                 </bit-form-field>
+                <div class="tw-mb-3">
+                  <cw-workspace-qr-scan
+                    (scanned)="scanned($event)"
+                  ></cw-workspace-qr-scan>
+                </div>
                 @if (found(); as f) {
                   <bit-callout type="info" [title]="f.domain">
                     {{ "cwExtFingerprintShown" | i18n }}
@@ -159,6 +171,14 @@ const NEW_WORKSPACE = "__new";
                       ) | i18n
                     }}
                   </button>
+                }
+                @if (own(); as o) {
+                  <div class="tw-mt-4">
+                    <cw-workspace-qr-show
+                      [domain]="o.domain"
+                      [fingerprint]="o.fingerprint"
+                    ></cw-workspace-qr-show>
+                  </div>
                 }
               </div>
             }
@@ -355,6 +375,8 @@ export class CollectionExternalAccessComponent implements OnInit {
     fingerprint: string;
   } | null>(null);
   protected readonly canConfirm = signal(false);
+  /** This instance's own identity, for the "Show this workspace's QR" panel. */
+  protected readonly own = signal<FederationDescriptor | null>(null);
   private readonly choice = signal("");
 
   protected readonly form = this.fb.group({
@@ -374,6 +396,9 @@ export class CollectionExternalAccessComponent implements OnInit {
     this.form.controls.workspaceId.valueChanges.subscribe((v) => {
       this.choice.set(v ?? "");
       this.found.set(null);
+      if (v === NEW_WORKSPACE && this.own() === null) {
+        void this.loadOwn();
+      }
     });
     await this.load();
     try {
@@ -388,6 +413,14 @@ export class CollectionExternalAccessComponent implements OnInit {
       this.canConfirm.set(org?.canManageUsers === true);
     } catch {
       this.canConfirm.set(false);
+    }
+  }
+
+  private async loadOwn() {
+    try {
+      this.own.set((await this.api.ownDescriptor()) ?? null);
+    } catch {
+      this.own.set(null);
     }
   }
 
@@ -480,6 +513,23 @@ export class CollectionExternalAccessComponent implements OnInit {
       this.error.set(this.message(e));
     } finally {
       this.busy.set(false);
+    }
+  }
+
+  /**
+   * A scanned QR fills the domain and runs the same server lookup as typing it. The fingerprint is
+   * put in the field only when the server's own fetch of that domain matches the scanned domain;
+   * adding the workspace is still the user's click and the server checks the fingerprint again.
+   */
+  protected async scanned(s: ScannedWorkspace) {
+    this.form.patchValue({ domain: s.domain, fingerprint: "" });
+    await this.lookup();
+    const f = this.found();
+    if (f && sameDomain(f.domain, s.domain)) {
+      this.form.patchValue({ fingerprint: s.fingerprint });
+    } else if (f) {
+      this.found.set(null);
+      this.error.set(this.i18n.t("cwQrDomainMismatch", s.domain, f.domain));
     }
   }
 

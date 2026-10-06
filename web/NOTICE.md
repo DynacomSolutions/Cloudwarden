@@ -91,6 +91,8 @@ Summary of changes made by Cloudwarden (see `git log -- web/` for the full histo
   Admin Console, Federated members (invite a user of a paired server, confirm with the standard
   fingerprint dialog, remove); and Federated organisations under Settings for the invited user.
   The user and organisation navigation entries appear only when the server has federation on.
+  Pairing QR codes: a workspace QR panel and a Scan QR control (camera, image or pasted text; jsQR,
+  Apache-2.0, added as a direct dependency of the web client; QR drawing reuses the bundled qrious).
 - Device approvals: an Admin Console page at `settings/device-approvals`
   (`apps/web/src/app/cloudwarden/device-approvals/`), written from scratch against Cloudwarden's
   API contract (`docs/account-recovery.md`), shown to members who manage account recovery.

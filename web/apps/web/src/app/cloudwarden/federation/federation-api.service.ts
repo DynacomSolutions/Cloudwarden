@@ -215,6 +215,17 @@ export class FederationApiService {
 
   // ----- instance admin -----
 
+  /** The public descriptor of this instance (same origin), readable by any signed-in user. */
+  async ownDescriptor(): Promise<FederationDescriptor> {
+    const res = await fetch("/.well-known/cloudwarden-federation", {
+      headers: { accept: "application/json" },
+    });
+    if (!res.ok) {
+      throw new Error(`descriptor ${res.status}`);
+    }
+    return (await res.json()) as FederationDescriptor;
+  }
+
   identity(): Promise<FederationDescriptor> {
     return this.apiService.send(
       "GET",

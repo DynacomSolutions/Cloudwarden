@@ -49,3 +49,11 @@ test('licence notice names the source and licence', () => {
   assert.match(text, /GPL-3\.0/)
   assert.match(text, /commit abc/)
 })
+
+test('the camera is allowed for the vault origin only (workspace QR scanning)', () => {
+  const policy = /Permissions-Policy: (.*)/.exec(HEADERS)?.[1] ?? ''
+  assert.match(policy, /(^|,\s*)camera=\(self\)(,|$)/)
+  assert.match(policy, /microphone=\(\)/)
+  assert.match(policy, /geolocation=\(\)/)
+  assert.ok(!/camera=\(\*\)|camera=\*/.test(policy))
+})

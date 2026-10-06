@@ -99,6 +99,31 @@ Admins can suspend a peer (effective immediately: requests in both directions ar
 federated organisations disappear from users' vaults until it is resumed), run a health check
 (signed ping) and remove it (unpair: both sides purge everything tied to the peer).
 
+### QR codes for pairing
+
+Typing a 64 digit fingerprint is the weak step of pairing, so every place that asks for a peer domain and fingerprint also takes a QR code. It is a convenience for the out-of-band comparison and nothing more.
+
+**Format.** One line of text, versioned, short enough for a low-density code (about 100 characters, QR error correction level M):
+
+```
+cloudwarden-workspace:v1?domain=<host>&fp=<fingerprint>
+```
+
+- `domain`: the instance's host name in lower case, the same syntax the server accepts for a peer domain (dotted host name, no scheme, port, path or IP literal).
+- `fp`: the SHA-256 fingerprint of the instance's public key as 64 hexadecimal digits without separators (the same value the Federation pages show grouped in fours).
+- Exactly these two parameters, each once, and nothing else. Readers refuse any other scheme, any version other than `v1`, a malformed or unknown parameter, an invalid domain, or a fingerprint that is not exactly 64 hex digits. A new version means a new `vN` token, so old readers fail closed.
+
+**Showing it.** Instance admin, Trusted workspaces, and the "Add a workspace" step of a collection's Access dialog have a "Show this workspace's QR" panel. It draws the code for this instance (from the public descriptor at `/.well-known/cloudwarden-federation`) with the domain and the grouped fingerprint beneath, so the other administrator can scan it or read it. The code is generated in the browser with the QR generator the web client already ships.
+
+**Scanning.** Wherever a peer domain or fingerprint is entered (adding a workspace, approving one, and the dialog's add step) a "Scan QR" control reads the code from the camera (rear camera preferred, the native `BarcodeDetector` when the browser has one, otherwise the bundled jsQR decoder), from a picked or pasted image, or from pasted URI text for desktops without a camera. The camera needs `Permissions-Policy: camera=(self)`, which the web vault's static headers set; nothing else about the CSP changes (the camera stream is not a fetched resource and the decoder runs on the page's own script origin).
+
+What a scan does:
+
+1. The text is validated strictly as above; anything else is refused with a message.
+2. When approving a known peer, the scanned domain must equal that peer's domain, otherwise the scan is refused and nothing is filled in.
+3. The domain and fingerprint fields are filled. In the dialog the server lookup runs first and the fingerprint is only filled when the domain the server reached equals the scanned one.
+4. Nothing is approved. The server still compares the fingerprint with the key it fetched itself from the peer's domain (mismatch is refused), and the user still presses Approve or Add.
+
 ### Sharing a collection
 
 The web client's collection dialog (Access tab, edit mode) has an "External workspace" section

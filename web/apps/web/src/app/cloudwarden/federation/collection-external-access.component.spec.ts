@@ -166,6 +166,55 @@ describe("CollectionExternalAccessComponent", () => {
     );
   });
 
+  it("a scanned QR fills the fields after the server lookup but never adds the workspace", async () => {
+    api.externalAccess.mockResolvedValue(base());
+    api.lookupWorkspace.mockResolvedValue({
+      domain: "peer.example.org",
+      fingerprint: FP,
+      workspace: null,
+    });
+    const f = await render();
+    await pick(f, "cw-ext-workspace", "__new");
+    const c = f.componentInstance as unknown as {
+      scanned(s: { domain: string; fingerprint: string }): Promise<void>;
+    };
+    await c.scanned({
+      domain: "peer.example.org",
+      fingerprint: FP.replace(/:/g, "").toLowerCase(),
+    });
+    f.detectChanges();
+    expect(api.lookupWorkspace).toHaveBeenCalledWith(
+      "org1",
+      "col1",
+      "peer.example.org",
+    );
+    expect((q(f, "cw-ext-fingerprint") as HTMLInputElement).value).toBe(
+      FP.replace(/:/g, "").toLowerCase(),
+    );
+    expect(api.addWorkspace).not.toHaveBeenCalled();
+  });
+
+  it("refuses a scanned QR whose domain is not the one the server reached", async () => {
+    api.externalAccess.mockResolvedValue(base());
+    api.lookupWorkspace.mockResolvedValue({
+      domain: "other.example.org",
+      fingerprint: FP,
+      workspace: null,
+    });
+    const f = await render();
+    await pick(f, "cw-ext-workspace", "__new");
+    const c = f.componentInstance as unknown as {
+      scanned(s: { domain: string; fingerprint: string }): Promise<void>;
+    };
+    await c.scanned({
+      domain: "peer.example.org",
+      fingerprint: FP.replace(/:/g, "").toLowerCase(),
+    });
+    f.detectChanges();
+    expect(q(f, "cw-ext-found-fingerprint")).toBeNull();
+    expect(api.addWorkspace).not.toHaveBeenCalled();
+  });
+
   it("requires the typed fingerprint to match the one the server fetched", async () => {
     api.externalAccess.mockResolvedValue(base());
     api.lookupWorkspace.mockResolvedValue({

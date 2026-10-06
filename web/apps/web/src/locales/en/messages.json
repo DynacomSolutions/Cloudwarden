@@ -19423,5 +19423,72 @@
   },
   "cwExtMayInviteHint": {
     "message": "Off by default: only people with the manage users permission can invite new external people. Managers can always change access for external people already in the organisation."
+  },
+  "cwQrShow": {
+    "message": "Show this workspace's QR"
+  },
+  "cwQrShowHelp": {
+    "message": "Another administrator can scan this code instead of typing the fingerprint. Compare the domain and fingerprint below with what their screen shows."
+  },
+  "cwQrNoIdentity": {
+    "message": "This workspace's identity is not available."
+  },
+  "cwQrRenderFailed": {
+    "message": "The QR code could not be drawn. Use the fingerprint below instead."
+  },
+  "cwQrScan": {
+    "message": "Scan QR"
+  },
+  "cwQrStopScan": {
+    "message": "Stop scanning"
+  },
+  "cwQrImage": {
+    "message": "Choose QR image"
+  },
+  "cwQrPaste": {
+    "message": "Or paste a QR image, or the text of the QR code"
+  },
+  "cwQrNotFound": {
+    "message": "No QR code was found in that image."
+  },
+  "cwQrNoCamera": {
+    "message": "This browser cannot open a camera here. Choose an image or paste the text of the QR code instead."
+  },
+  "cwQrCameraDenied": {
+    "message": "Camera access was not allowed. Choose an image or paste the text of the QR code instead."
+  },
+  "cwQrDomainMismatch": {
+    "message": "The scanned QR is for $SCANNED$, not $EXPECTED$. Nothing was filled in.",
+    "placeholders": {
+      "scanned": {
+        "content": "$1",
+        "example": "vault.example.com"
+      },
+      "expected": {
+        "content": "$2",
+        "example": "vault.example.org"
+      }
+    }
+  },
+  "cwQrErr_empty": {
+    "message": "Nothing to read."
+  },
+  "cwQrErr_tooLong": {
+    "message": "That is too long to be a workspace QR code."
+  },
+  "cwQrErr_scheme": {
+    "message": "That is not a Cloudwarden workspace QR code."
+  },
+  "cwQrErr_version": {
+    "message": "This QR code uses a version that this vault does not understand."
+  },
+  "cwQrErr_domain": {
+    "message": "The workspace domain in the QR code is not valid."
+  },
+  "cwQrErr_fingerprint": {
+    "message": "The fingerprint in the QR code is not valid."
+  },
+  "cwQrErr_malformed": {
+    "message": "The QR code is damaged or not in the expected format."
   }
 }

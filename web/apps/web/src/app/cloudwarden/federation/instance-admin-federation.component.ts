@@ -26,11 +26,23 @@ import {
   FederationPeer,
   sameFingerprint,
 } from "./federation-api.service";
+import {
+  ScannedWorkspace,
+  WorkspaceQrScanComponent,
+} from "./workspace-qr-scan.component";
+import { WorkspaceQrShowComponent } from "./workspace-qr-show.component";
+import { normalizeFingerprint, sameDomain } from "./workspace-qr";
 
 @Component({
   selector: "cw-instance-admin-federation",
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SharedModule, HeaderModule, DatePipe],
+  imports: [
+    SharedModule,
+    HeaderModule,
+    DatePipe,
+    WorkspaceQrShowComponent,
+    WorkspaceQrScanComponent,
+  ],
   template: `
     <app-header></app-header>
     <bit-container>
@@ -50,13 +62,17 @@ import {
                 id.fingerprint
               }}</code>
             </p>
+            <cw-workspace-qr-show
+              [domain]="id.domain"
+              [fingerprint]="id.fingerprint"
+            ></cw-workspace-qr-show>
           </bit-section>
         }
         <bit-section>
           <form
             [formGroup]="form"
             [bitSubmit]="add"
-            class="tw-flex tw-items-start tw-gap-2"
+            class="tw-flex tw-flex-col tw-items-stretch tw-gap-2 sm:tw-flex-row sm:tw-items-start"
           >
             <bit-form-field class="tw-grow tw-max-w-md">
               <bit-label>{{ "cwFedPeerDomain" | i18n }}</bit-label>
@@ -77,6 +93,11 @@ import {
               {{ "cwFedAddPeer" | i18n }}
             </button>
           </form>
+          <div class="tw-mt-2 tw-max-w-md">
+            <cw-workspace-qr-scan
+              (scanned)="scannedForAdd($event)"
+            ></cw-workspace-qr-scan>
+          </div>
         </bit-section>
         @if (error()) {
           <bit-callout type="danger">{{ error() }}</bit-callout>
@@ -212,6 +233,11 @@ import {
                       >
                         {{ "cwFedApprove" | i18n }}
                       </button>
+                      <div class="tw-mt-2">
+                        <cw-workspace-qr-scan
+                          (scanned)="scannedForApprove($event, p)"
+                        ></cw-workspace-qr-scan>
+                      </div>
                     </form>
                   }
                 </td>
@@ -318,6 +344,27 @@ export class InstanceAdminFederationComponent implements OnInit {
     this.toastService.showToast({ variant, message });
   }
 
+  /** A fingerprint scanned while adding, kept until the peer exists and is shown for approval. */
+  private scannedFingerprint: { domain: string; fingerprint: string } | null =
+    null;
+
+  protected scannedForAdd(s: ScannedWorkspace) {
+    this.form.patchValue({ domain: s.domain });
+    this.scannedFingerprint = s;
+  }
+
+  /** Fills the fingerprint field only; approving still needs the server match and an explicit click. */
+  protected scannedForApprove(s: ScannedWorkspace, p: FederationPeer) {
+    if (!sameDomain(s.domain, p.domain)) {
+      this.toast(
+        "error",
+        this.i18n.t("cwQrDomainMismatch", s.domain, p.domain),
+      );
+      return;
+    }
+    this.approveForm.patchValue({ fingerprint: s.fingerprint });
+  }
+
   protected add = async () => {
     this.form.markAllAsTouched();
     if (this.form.invalid) {
@@ -328,6 +375,15 @@ export class InstanceAdminFederationComponent implements OnInit {
       this.toast("success", this.i18n.t("cwFedPeerAdded", peer.domain));
       this.form.reset();
       this.approving.set(peer.id);
+      const scanned = this.scannedFingerprint;
+      this.scannedFingerprint = null;
+      if (
+        scanned &&
+        sameDomain(scanned.domain, peer.domain) &&
+        normalizeFingerprint(scanned.fingerprint)
+      ) {
+        this.approveForm.patchValue({ fingerprint: scanned.fingerprint });
+      }
     } catch (e) {
       this.toast("error", this.message(e));
     }

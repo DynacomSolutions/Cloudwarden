@@ -197,11 +197,17 @@ describe('collection-first federated sharing', { timeout: 120_000 }, () => {
         })
       ).status,
     ).toBe(403)
-    const share = await owner.call(ext(col1), 'POST', {
+    // Sharing is allowed: it is queued, and nothing is sent to the other side (TASKS #382).
+    const logged = net.log.length
+    const share = await owner.json(ext(col1), 'POST', {
       workspaceId: peerOnA,
       emails: [alice.email],
     })
-    expect(share.status).toBe(400)
+    expect(share.data[0]).toMatchObject({ ok: true, result: 'queued' })
+    expect(net.log.slice(logged)).toEqual([])
+    const queued = (await owner.json(ext(col1))).queued
+    expect(queued).toEqual([expect.objectContaining({ email: alice.email, status: 'queued' })])
+    await owner.call(ext(col1, `/queued/${queued[0].id}`), 'DELETE')
     // Asking again changes nothing and creates no second peer.
     const again = await owner.json(ext(col1, '/workspaces'), 'POST', {
       domain: net.B.domain,

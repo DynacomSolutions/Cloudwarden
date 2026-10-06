@@ -5,7 +5,9 @@ import {
   EXTERNAL_PERMISSIONS,
   accessToPermission,
   granteeStatusKey,
+  canQueueFor,
   parseEmails,
+  queuedStatusKey,
   permissionToAccess,
   workspaceWaitKey,
 } from "./external-access";
@@ -73,6 +75,17 @@ describe("external access helpers", () => {
       "cwExtWsAwaitingRemote",
     );
     expect(workspaceWaitKey("suspended", true)).toBe("cwExtWsSuspended");
+  });
+
+  it("queues shares only for a workspace that still awaits approval", () => {
+    expect(canQueueFor("awaitingInstanceAdmin")).toBe(true);
+    expect(canQueueFor("awaitingRemote")).toBe(true);
+    expect(canQueueFor("active")).toBe(false);
+    expect(canQueueFor("suspended")).toBe(false);
+    expect(queuedStatusKey("queued")).toBe("cwExtQueued");
+    expect(queuedStatusKey("declined")).toBe("cwExtQueuedDeclined");
+    expect(queuedStatusKey("expired")).toBe("cwExtQueuedExpired");
+    expect(queuedStatusKey("dropped")).toBe("cwExtQueuedDropped");
   });
 
   it("names the status of a grantee", () => {

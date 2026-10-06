@@ -1,7 +1,7 @@
 // Peer lifecycle steps shared by the instance admin API and the collection Access dialog
 // (TASKS #302, #371). Trust is only ever activated through `approvePeerLocally`, which callers
 // reach after checking the instance admin role.
-import { eq } from 'drizzle-orm'
+import { and, eq, inArray, lt } from 'drizzle-orm'
 import { createDb, runBatch, schema } from '../db'
 import type { Bindings } from '../env'
 import { ApiError } from '../errors'
@@ -17,6 +17,7 @@ import {
   peerByDomain,
   peerJsonCall,
 } from './peers'
+import { cancelQueuedForPeer } from './queued-shares'
 import { isBlockedDomain } from './trust-settings'
 
 /**
@@ -50,8 +51,19 @@ export async function expireWorkspaceRequests(env: Bindings, now = Date.now()) {
     (p) => isOpenRequest(p) && p.createdAt < now - REQUEST_TTL_MS,
   )
   for (const p of stale) {
+    // What was queued behind the request is cancelled and its requesters are told.
+    await cancelQueuedForPeer(env, p, 'expired', null)
     await db.delete(schema.federationPeers).where(eq(schema.federationPeers.uuid, p.uuid))
   }
+  // Finished queue entries are kept for a month so requesters can see what happened.
+  await db
+    .delete(schema.federationQueuedShares)
+    .where(
+      and(
+        inArray(schema.federationQueuedShares.status, ['declined', 'expired', 'dropped']),
+        lt(schema.federationQueuedShares.updatedAt, now - 30 * 24 * 3_600_000),
+      ),
+    )
 }
 
 async function assertRequestRoom(env: Bindings, userUuid: string) {

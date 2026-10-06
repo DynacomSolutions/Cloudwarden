@@ -20,6 +20,8 @@ export interface FederationStatus {
   domain: string;
   isInstanceAdmin: boolean;
   peers: { id: string; domain: string }[];
+  /** For instance admins: workspaces waiting for a decision (the admin nav badge). */
+  pendingRequests?: number;
 }
 
 export interface FederationPeer {
@@ -41,6 +43,14 @@ export interface FederationPeer {
   approvedByEmail?: string | null;
   /** Account that asked for this workspace from a collection dialog (awaiting an instance admin). */
   requestedByEmail?: string | null;
+  /** What is queued behind this workspace request: organisation, collections, people, who asked. */
+  queued?: {
+    organizationId: string;
+    organizationName: string;
+    requestedByEmail: string;
+    collections: number;
+    people: number;
+  }[];
   /** Organisations sharing with this workspace (counts only, collection names are encrypted). */
   sharing?: {
     organizationId: string;
@@ -80,6 +90,20 @@ export interface ExternalGrantee {
   manage: boolean;
 }
 
+/** A share queued behind a workspace that awaits an instance admin (or that ended without it). */
+export interface QueuedShare {
+  id: string;
+  email: string;
+  peerId: string;
+  peerDomain: string;
+  status: "queued" | "declined" | "expired" | "dropped";
+  /** Why a dropped share was not sent. */
+  note: string | null;
+  readOnly: boolean;
+  hidePasswords: boolean;
+  manage: boolean;
+}
+
 export interface ExternalAccessState {
   isInstanceAdmin: boolean;
   /** May invite new external people (manage users, or the organisation allows collection managers). */
@@ -89,6 +113,7 @@ export interface ExternalAccessState {
   available: boolean;
   workspaces: ExternalWorkspace[];
   grantees: ExternalGrantee[];
+  queued: QueuedShare[];
 }
 
 export interface ExternalAccessFlags {
@@ -105,7 +130,7 @@ export interface InviteSetting {
 export interface ShareResult {
   email: string;
   ok: boolean;
-  result?: "invited" | "updated";
+  result?: "invited" | "updated" | "queued";
   id?: string;
   error?: string;
 }
@@ -467,6 +492,35 @@ export class FederationApiService {
       "PUT",
       `${this.ext(orgId, collectionId)}/${enc(memberId)}`,
       access,
+      true,
+      false,
+    );
+  }
+
+  updateQueuedShare(
+    orgId: string,
+    collectionId: string,
+    id: string,
+    access: ExternalAccessFlags,
+  ): Promise<void> {
+    return this.apiService.send(
+      "PUT",
+      `${this.ext(orgId, collectionId)}/queued/${enc(id)}`,
+      access,
+      true,
+      false,
+    );
+  }
+
+  removeQueuedShare(
+    orgId: string,
+    collectionId: string,
+    id: string,
+  ): Promise<void> {
+    return this.apiService.send(
+      "DELETE",
+      `${this.ext(orgId, collectionId)}/queued/${enc(id)}`,
+      null,
       true,
       false,
     );

@@ -165,8 +165,8 @@ Cloudwarden addition; nothing of it comes from `bitwarden_license/`.
 3. Who can make the workspace trusted:
    - An **instance admin** creates and approves the peer in one step. The signed pairing request goes
      to the remote instance, whose own administrator must still approve it on their Instance admin,
-     Trusted workspaces list (both sides approve; there is no auto-accept). Until then the dialog
-     says "waiting for the other workspace".
+     Trusted workspaces list only when that instance requires approval of incoming workspaces
+     (see "Pairing"); by default the other side trusts it at once.
    - **Anyone else** who manages the collection only creates a pending request
      (`federation_peers.requested_by`, no signed request is sent, nothing is trusted). Such
      requests have their own caps (5 open instance wide, 2 per user, not counted against the 20
@@ -174,9 +174,29 @@ Cloudwarden addition; nothing of it comes from `bitwarden_license/`.
      only active workspaces and their own requests; any other known domain is reported only as
      "waiting for an instance administrator", with no state or fingerprint. The dialog
      says "waiting for your instance administrator". An instance admin approves it on Instance
-     admin, Trusted workspaces (the list shows who asked), typing the fingerprint again. Trust is
-     never activated by a non-admin, because a pairing lets another server act for its users
-     inside this instance.
+     admin, Trusted workspaces (the list shows who asked), typing or scanning the fingerprint
+     again. Trust is never activated by a non-admin, because a pairing lets another server act for
+     its users inside this instance. Instance admins are told of a new request by an email (when
+     mail is configured) and by a count next to Trusted workspaces in the Instance admin
+     navigation (`pendingRequests` of `GET .../status`).
+   - **Share first, ask after.** While the workspace awaits an instance admin the dialog still
+     takes addresses and a permission. "Share" then queues them (`federation_queued_shares`,
+     migration 0028) and sends nothing to the other instance. Queued people show in the Access list
+     as "Waiting for admin approval"; any manager of the collection can change their permission or
+     remove them (`PUT/DELETE .../external-access/queued/{id}`, the path must match the
+     item's organisation and collection). The pairing request on Trusted workspaces lists what is
+     queued behind it: organisation, number of collections, number of people and who asked. Caps:
+     50 queued people per request and 20 per requester, and the usual per-user share limit.
+     When the admin approves (and the other side is active, which is immediate unless it requires
+     approval), every queued item is checked again as of that moment: the requester must still
+     manage the collection and still be allowed to invite (manage users, or the organisation lets
+     collection managers invite), and the organisation must still be able to serve federated
+     members. Items that pass become ordinary invitations sent as the requester; items that do not
+     are kept as "Not sent" with the reason and an audit event. When the request is declined
+     (removed) or expires after 7 days, the items are cancelled and shown as "Declined by your
+     instance administrator" or "Expired"; finished entries are purged after 30 days or removed by a
+     manager. The requester is told by mail (when configured) of approval or decline, and sees
+     the status in the dialog. Audit events 9125 to 9128 (queued, sent, dropped, cancelled).
 4. When the workspace is active, enter one or more email addresses of accounts on it and choose the
    permission (Can view, Can view except passwords, Can edit, Can edit except passwords, Can
    manage; the same mapping as local access). Creating NEW external invitations needs the manage

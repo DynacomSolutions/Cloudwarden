@@ -188,6 +188,8 @@ export interface FederatedInviteInput {
   permissions?: Record<string, boolean | null> | null
   /** Created by the collection sharing flow (a collection manager may later undo it). */
   viaShare?: boolean
+  /** The inviting user when it is not the user of the request (queued shares sent after approval). */
+  actor?: { uuid: string; email: string }
 }
 
 /**
@@ -198,6 +200,7 @@ export async function createFederatedInvite(c: Ctx, orgUuid: string, input: Fede
   const env = c.env
   const db = createDb(env.DB)
   const { org, email, peer, collections, groupIds } = input
+  const actor = input.actor ?? { uuid: c.var.user.uuid, email: c.var.user.email }
   const body = { type: input.type, accessAll: input.accessAll, permissions: input.permissions }
   const [local] = await db
     .select({ uuid: schema.users.uuid })
@@ -262,16 +265,21 @@ export async function createFederatedInvite(c: Ctx, orgUuid: string, input: Fede
     ...groupIds.map((g) =>
       db.insert(schema.groupsUsers).values({ groupUuid: g, organizationUserUuid: memberUuid }),
     ),
-    eventStatement(db, c, {
-      type: EventType.OrganizationUserInvited,
-      organizationUuid: orgUuid,
-      organizationUserUuid: memberUuid,
-    }),
+    eventStatement(
+      db,
+      c,
+      {
+        type: EventType.OrganizationUserInvited,
+        organizationUuid: orgUuid,
+        organizationUserUuid: memberUuid,
+      },
+      actor.uuid,
+    ),
     federationEventStatement(db, {
       type: FederationEvent.MemberInvited,
       organizationUuid: orgUuid,
       organizationUserUuid: memberUuid,
-      actingUserUuid: c.var.user.uuid,
+      actingUserUuid: actor.uuid,
       peerDomain: peer.domain,
     }),
   ])
@@ -281,7 +289,7 @@ export async function createFederatedInvite(c: Ctx, orgUuid: string, input: Fede
         memberId: memberUuid,
         organizationId: orgUuid,
         organizationName: org.name,
-        inviterEmail: c.var.user.email,
+        inviterEmail: actor.email,
         email,
       },
     })

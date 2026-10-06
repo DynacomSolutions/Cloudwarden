@@ -26,6 +26,10 @@ export const FederationEvent = {
   PeerBlocked: 9122,
   PeerUnblocked: 9123,
   IncomingApprovalChanged: 9124,
+  ShareQueued: 9125,
+  QueuedShareSent: 9126,
+  QueuedShareDropped: 9127,
+  QueuedShareCancelled: 9128,
 } as const
 
 export const FEDERATION_EVENT_MIN = 9101

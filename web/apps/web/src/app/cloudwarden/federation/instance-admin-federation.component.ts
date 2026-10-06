@@ -179,6 +179,28 @@ import { normalizeFingerprint, sameDomain } from "./workspace-qr";
                       {{ "cwFedRequestedBy" | i18n: p.requestedByEmail }}
                     </div>
                   }
+                  @if ((p.queued ?? []).length > 0) {
+                    <div class="tw-mt-1 tw-text-xs" data-testid="cw-fed-queued">
+                      <div class="tw-font-semibold">
+                        {{ "cwFedQueuedBehind" | i18n }}
+                      </div>
+                      @for (
+                        q of p.queued;
+                        track q.organizationId + q.requestedByEmail
+                      ) {
+                        <div>
+                          {{
+                            "cwFedQueuedLine"
+                              | i18n
+                                : q.organizationName
+                                : q.collections
+                                : q.people
+                                : q.requestedByEmail
+                          }}
+                        </div>
+                      }
+                    </div>
+                  }
                   <div class="tw-mt-1 tw-text-xs" data-testid="cw-fed-sharing">
                     @if ((p.sharing ?? []).length === 0) {
                       <span class="tw-text-muted">{{

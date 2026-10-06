@@ -4,6 +4,7 @@ import { CollectionPermission } from "../../admin-console/organizations/shared/c
 
 import type {
   ExternalAccessFlags,
+  QueuedShare,
   WorkspaceState,
 } from "./federation-api.service";
 
@@ -77,6 +78,19 @@ export function granteeStatusKey(
   }
   return status === 1 ? "cwExtAccepted" : "cwExtInvited";
 }
+
+/** A workspace that still awaits approval takes shares into a queue; a suspended one does not. */
+export const canQueueFor = (state: WorkspaceState): boolean =>
+  state === "awaitingInstanceAdmin" || state === "awaitingRemote";
+
+/** i18n key of the status of a queued share. */
+export const queuedStatusKey = (status: QueuedShare["status"]): string =>
+  ({
+    queued: "cwExtQueued",
+    declined: "cwExtQueuedDeclined",
+    expired: "cwExtQueuedExpired",
+    dropped: "cwExtQueuedDropped",
+  })[status];
 
 /** i18n key explaining a workspace that cannot be used yet, or null when it can. */
 export function workspaceWaitKey(

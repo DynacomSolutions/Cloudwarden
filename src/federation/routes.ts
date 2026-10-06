@@ -64,6 +64,7 @@ import {
   requirePeer,
   verifyInbound,
 } from './peers'
+import { cancelQueuedForPeer, queuedSummaryByPeer } from './queued-shares'
 import {
   dropServedForPeer,
   eventSchema,
@@ -79,14 +80,17 @@ import {
   addWorkspace,
   collectionsByMember,
   externalAccessState,
+  flushQueuedShares,
   getInviteSetting,
   lookupWorkspace,
   removeExternalAccess,
+  removeQueuedShare,
   setInviteSetting,
   shareCollection,
   shareSchema,
   sharingByPeer,
   updateExternalAccess,
+  updateQueuedShare,
   updateSchema,
   workspaceSchema,
 } from './sharing'
@@ -218,6 +222,8 @@ federation.post('/federation/v1/pair', async (c) => {
       .where(eq(schema.federationPeers.uuid, peer.uuid))
   }
   await claimNonce(c.env, peer.uuid, nonce)
+  // The peer may now be active (its admin approved while ours had already): send what is queued.
+  await flushQueuedShares(c, peer)
   return c.json({
     instanceId: (await descriptor(c.env)).instanceId,
     localApproved: peer.localApproved,
@@ -389,6 +395,8 @@ async function announcePeerUsers(env: Bindings, peer: Peer) {
 
 /** Removes a peer and everything tied to it on this instance. */
 async function dropPeer(env: Bindings, peer: Peer, actor: string | null) {
+  // A request that never became active is declined: what was queued behind it is cancelled.
+  if (!isActive(peer)) await cancelQueuedForPeer(env, peer, 'declined', actor)
   await dropServedForPeer(env, peer)
   await dropHostedForPeer(env, peer)
   const db = createDb(env.DB)
@@ -418,11 +426,17 @@ federation.use(`${UI}/*`, requireAuth)
 
 /** Whether federation is on, and the active peers an org admin can invite from. */
 federation.get(`${UI}/status`, async (c) => {
-  const peers = (await listPeers(c.env)).filter(isActive)
+  const all = await listPeers(c.env)
+  const peers = all.filter(isActive)
+  const isAdmin = isAdminUser(c.env, c.var.user)
   return c.json({
     enabled: true,
     domain: ownDomain(c.env),
-    isInstanceAdmin: isAdminUser(c.env, c.var.user),
+    isInstanceAdmin: isAdmin,
+    // Workspaces waiting for an instance admin's decision (shown as a count in the admin nav).
+    pendingRequests: isAdmin
+      ? all.filter((p) => p.status === PeerStatus.Pending && !p.localApproved).length
+      : 0,
     peers: peers.map((p) => ({ id: p.uuid, domain: p.domain })),
   })
 })
@@ -445,6 +459,7 @@ federation.get(`${ADMIN}/peers`, async (c) => {
   await requireInstanceAdmin(c)
   await expireWorkspaceRequests(c.env)
   const sharing = await sharingByPeer(c)
+  const queued = await queuedSummaryByPeer(c.env)
   const db = createDb(c.env.DB)
   const peers = await listPeers(c.env)
   const data = await Promise.all(
@@ -472,6 +487,7 @@ federation.get(`${ADMIN}/peers`, async (c) => {
         requestedByEmail,
         approvedByEmail,
         sharing: sharing.get(p.uuid) ?? [],
+        queued: queued.get(p.uuid) ?? [],
       }
     }),
   )
@@ -498,7 +514,10 @@ const adminPeer = async (c: Ctx) => {
 federation.post(`${ADMIN}/peers/:id/approve`, async (c) => {
   const peer = await adminPeer(c)
   const { fingerprint } = await parseBody(c, z.object({ fingerprint: z.string().min(1).max(200) }))
-  return c.json(await peerJson(await approvePeerLocally(c.env, peer, fingerprint, c.var.user.uuid)))
+  const approved = await approvePeerLocally(c.env, peer, fingerprint, c.var.user.uuid)
+  // Shares queued behind the request are sent now, each checked again.
+  if (isActive(approved)) await flushQueuedShares(c, approved)
+  return c.json(await peerJson(approved))
 })
 
 federation.post(`${ADMIN}/peers/:id/suspend`, async (c) => {
@@ -695,6 +714,22 @@ federation.post(EXT, async (c) =>
     ),
   }),
 )
+
+federation.put(`${EXT}/queued/:id`, async (c) => {
+  await updateQueuedShare(
+    c,
+    c.req.param('orgId'),
+    c.req.param('colId'),
+    c.req.param('id'),
+    await parseBody(c, updateSchema),
+  )
+  return c.body(null, 200)
+})
+
+federation.delete(`${EXT}/queued/:id`, async (c) => {
+  await removeQueuedShare(c, c.req.param('orgId'), c.req.param('colId'), c.req.param('id'))
+  return c.body(null, 200)
+})
 
 federation.put(`${EXT}/:memberId`, async (c) => {
   await updateExternalAccess(

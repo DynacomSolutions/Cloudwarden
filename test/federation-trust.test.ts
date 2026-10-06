@@ -74,7 +74,9 @@ describe('incoming pairing', { timeout: 120_000 }, () => {
 
   it('gives an automatically trusted peer no reach into users who never accepted an invitation', async () => {
     const [peerA] = await peersOf(adminA)
-    const peer = (await getPeer(net.A.env as never, peerA.id))!
+    const peer = (await getPeer(net.A.env as never, peerA.id)) as NonNullable<
+      Awaited<ReturnType<typeof getPeer>>
+    >
     // Claiming a user of B as a member is refused: there is no stand-in or accepted invitation.
     const claim = await peerFetch(
       net.A.env as never,

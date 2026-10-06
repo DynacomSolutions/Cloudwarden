@@ -396,8 +396,9 @@ async function announcePeerUsers(env: Bindings, peer: Peer) {
 
 /** Removes a peer and everything tied to it on this instance. */
 async function dropPeer(env: Bindings, peer: Peer, actor: string | null) {
-  // A request that never became active is declined: what was queued behind it is cancelled.
-  if (!isActive(peer)) await cancelQueuedForPeer(env, peer, 'declined', actor)
+  // Whatever is still queued behind the peer is cancelled, also for an inbound-only peer that is
+  // active: the rows would otherwise keep pointing at a deleted peer and count against the caps.
+  await cancelQueuedForPeer(env, peer, 'declined', actor)
   await dropServedForPeer(env, peer)
   await dropHostedForPeer(env, peer)
   // Remembered so that the same domain's next incoming request waits for an admin.

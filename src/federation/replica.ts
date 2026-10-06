@@ -113,17 +113,21 @@ async function storeInvitation(
   if (local || (others.length > 0 && (claimedByTrusted || !trusted))) return
   const now = Date.now()
   const orgName = cleanPeerText(body.organizationName) || 'An organisation'
-  // A trusted peer's claim replaces unanswered ones by unapproved peers.
+  // A trusted peer's claim replaces every claim by unapproved peers (any of them would have been
+  // refused above otherwise): their invitations go, accepted ones with the replicas built on them,
+  // so a squatting peer cannot keep a legitimate invitation out. Approved peers are never touched.
   if (trusted) {
+    for (const o of others) {
+      if (o.i.status === 'accepted') {
+        await purgeReplica(env, o.i.userUuid, {
+          peerUuid: o.i.peerUuid,
+          organizationUuid: body.organizationId,
+        })
+      }
+    }
     await db
       .delete(inv)
-      .where(
-        and(
-          eq(inv.organizationUuid, body.organizationId),
-          ne(inv.peerUuid, peer.uuid),
-          eq(inv.status, 'pending'),
-        ),
-      )
+      .where(and(eq(inv.organizationUuid, body.organizationId), ne(inv.peerUuid, peer.uuid)))
   }
   // The caps on what can pile up in front of one person, and from one peer, are part of the
   // insert statement, so concurrent invitations cannot overshoot them.
@@ -558,12 +562,13 @@ export async function syncUserFromPeer(
 export async function purgeReplica(
   env: Bindings,
   userUuid: string,
-  scope: { peerUuid?: string; keep?: string[] } = {},
+  scope: { peerUuid?: string; organizationUuid?: string; keep?: string[] } = {},
 ): Promise<boolean> {
   const db = createDb(env.DB)
   const ro = schema.federationReplicaOrgs
   const conds = [eq(ro.userUuid, userUuid)]
   if (scope.peerUuid) conds.push(eq(ro.peerUuid, scope.peerUuid))
+  if (scope.organizationUuid) conds.push(eq(ro.organizationUuid, scope.organizationUuid))
   if (scope.keep?.length) conds.push(notInArray(ro.organizationUuid, scope.keep))
   const orgs = await db
     .select({ id: ro.organizationUuid })

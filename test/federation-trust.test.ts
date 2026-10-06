@@ -4,6 +4,7 @@
 // accepted an invitation. Two instances in one workerd (test/federation-helpers.ts).
 import { beforeAll, describe, expect, it } from 'vitest'
 import { getPeer, peerFetch } from '../src/federation/peers'
+import { receiveInvitation } from '../src/federation/replica'
 import { type Net, twoInstances, type User, userOn } from './federation-helpers'
 import { freezeRateLimitWindow } from './helpers'
 
@@ -208,5 +209,151 @@ describe('incoming pairing', { timeout: 120_000 }, () => {
       acceptedAutomatically: false,
     })
     await db.prepare("DELETE FROM federation_peers WHERE domain LIKE 'auto%.example.net'").run()
+  })
+})
+
+describe('follow-ups to incoming trust', { timeout: 120_000 }, () => {
+  const run = (sql: string, ...args: unknown[]) =>
+    (net.B.env.DB as D1Database)
+      .prepare(sql)
+      .bind(...args)
+      .run()
+
+  it('cancels what is queued behind an automatically trusted peer when it is dropped', async () => {
+    await unpairAll()
+    const owner = await userOn(net.B, 'queue-owner@example.org')
+    const org = await owner.json('/api/organizations', 'POST', {
+      name: 'Queue',
+      billingEmail: 'billing@example.org',
+      key: '4.ownerOrgKey',
+      keys: { publicKey: 'orgPublic', encryptedPrivateKey: '2.orgPrivate' },
+      collectionName: '2.defaultCollection',
+      planType: 0,
+    })
+    const col = (await owner.json('/api/sync')).collections[0].id
+    const queue = (peerId: string, status: string) =>
+      run(
+        'INSERT INTO federation_queued_shares (uuid, peer_uuid, peer_domain, organization_uuid, collection_uuid, email, requested_by, status, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 0, 0)',
+        crypto.randomUUID(),
+        peerId,
+        net.A.domain,
+        org.id,
+        col,
+        `${status}@example.com`,
+        owner.uuid,
+        status,
+      )
+    const statuses = async () =>
+      Object.fromEntries(
+        (
+          (
+            await (net.B.env.DB as D1Database)
+              .prepare('SELECT email, status FROM federation_queued_shares')
+              .all()
+          ).results as { email: string; status: string }[]
+        ).map((r) => [r.email, r.status]),
+      )
+    // A pairs with B, so B holds an inbound-only (automatic) peer; unpairing from A drops it on B.
+    await run('DELETE FROM federation_removed_domains')
+    await sharerPairs()
+    let [onB] = await peersOf(adminB)
+    expect(onB).toMatchObject({ active: true, acceptedAutomatically: true })
+    await queue(onB.id, 'queued')
+    await queue(onB.id, 'retry')
+    const mails = net.B.mail.sent.length
+    const [onA] = await peersOf(adminA)
+    expect((await adminA.call(`${fed}/admin/peers/${onA.id}`, 'DELETE')).status).toBe(200)
+    await net.flush()
+    expect(await peersOf(adminB)).toHaveLength(0)
+    expect(await statuses()).toEqual({
+      'queued@example.com': 'declined',
+      'retry@example.com': 'declined',
+    })
+    expect(net.B.mail.sent.slice(mails).some((m) => m.to === owner.email)).toBe(true)
+    // Removing it on B's side cancels in the same way.
+    await run('DELETE FROM federation_queued_shares')
+    await unpairAll()
+    await run('DELETE FROM federation_removed_domains')
+    await sharerPairs()
+    ;[onB] = await peersOf(adminB)
+    await queue(onB.id, 'queued')
+    expect((await adminB.call(`${fed}/admin/peers/${onB.id}?block=true`, 'DELETE')).status).toBe(
+      200,
+    )
+    expect(await statuses()).toEqual({ 'queued@example.com': 'declined' })
+    await adminB.call(`${fed}/admin/blocked/${net.A.domain}`, 'DELETE')
+    await unpairAll()
+  })
+
+  it('lets an approved peer claim an organisation id held by an unapproved peer', async () => {
+    await unpairAll()
+    await run('DELETE FROM federation_invitations')
+    await run('DELETE FROM federation_removed_domains')
+    await sharerPairs()
+    const [auto] = await peersOf(adminB)
+    expect(auto.acceptedAutomatically).toBe(true)
+    const org = crypto.randomUUID()
+    const keep = crypto.randomUUID()
+    const approved = crypto.randomUUID()
+    await run(
+      "INSERT INTO federation_peers (uuid, instance_id, domain, public_key, fingerprint, protocol_version, status, local_approved, remote_approved, accepted_automatically, approved_by, created_at, updated_at) VALUES (?1, ?1, 'approved.example.net', 'k', 'f', 1, 'active', 1, 1, 0, ?2, 0, 0)",
+      approved,
+      adminB.uuid,
+    )
+    const replica = (peerId: string, orgId: string) =>
+      run(
+        "INSERT INTO federation_replica_orgs (user_uuid, organization_uuid, peer_uuid, profile_json, collections_json, policies_json, revision_date, synced_at) VALUES (?1, ?2, ?3, '{}', '[]', '[]', 0, 0)",
+        alice.uuid,
+        orgId,
+        peerId,
+      )
+    const invitation = (peerId: string, orgId: string) =>
+      run(
+        "INSERT INTO federation_invitations (uuid, peer_uuid, remote_member_uuid, organization_uuid, organization_name, user_uuid, status, created_at, updated_at) VALUES (?1, ?2, ?1, ?3, 'n', ?4, 'accepted', 0, 0)",
+        crypto.randomUUID(),
+        peerId,
+        orgId,
+        alice.uuid,
+      )
+    // The unapproved peer squats the id (accepted invitation plus replica); the approved peer
+    // already holds another organisation for the same user.
+    await invitation(auto.id, org)
+    await replica(auto.id, org)
+    await invitation(approved, keep)
+    await replica(approved, keep)
+    const peer = (await getPeer(net.B.env as never, approved)) as NonNullable<
+      Awaited<ReturnType<typeof getPeer>>
+    >
+    const work: Promise<unknown>[] = []
+    await receiveInvitation(
+      net.B.env as never,
+      peer,
+      {
+        memberId: crypto.randomUUID(),
+        organizationId: org,
+        organizationName: 'Legit',
+        email: alice.email,
+      },
+      (w) => void work.push(w),
+    )
+    await Promise.all(work)
+    const rows = async (table: string) =>
+      (
+        await (net.B.env.DB as D1Database)
+          .prepare(`SELECT peer_uuid, organization_uuid FROM ${table} ORDER BY organization_uuid`)
+          .all()
+      ).results as { peer_uuid: string; organization_uuid: string }[]
+    const reps = await rows('federation_replica_orgs')
+    expect(reps).toEqual([{ peer_uuid: approved, organization_uuid: keep }])
+    const invs = await rows('federation_invitations')
+    expect(invs.filter((r) => r.organization_uuid === org)).toEqual([
+      { peer_uuid: approved, organization_uuid: org },
+    ])
+    expect(invs.some((r) => r.organization_uuid === keep)).toBe(true)
+    // The claim is pending for the user again, from the approved peer only.
+    const pending = (await alice.json(`${fed}/invitations`)).data as any[]
+    expect(pending.filter((i) => i.status === 'pending')).toHaveLength(1)
+    await run('DELETE FROM federation_peers WHERE uuid = ?1', approved)
+    await unpairAll()
   })
 })

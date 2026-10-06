@@ -1,5 +1,7 @@
 # Cloudwarden
 
+<p align="center"><img src="docs/images/hero.webp" alt="Cloudwarden: Your vault. On the edge. Built for Cloudflare Workers." width="100%"></p>
+
 A Bitwarden-compatible password manager server for Cloudflare Workers, written in TypeScript.
 
 Cloudwarden implements the Bitwarden server API, built from an explicit API contract (OpenAPI), so the official Bitwarden clients can use a self-hosted server. It runs serverless on Cloudflare:
@@ -11,6 +13,31 @@ Cloudwarden implements the Bitwarden server API, built from an explicit API cont
 - An **optional instance admin** (native pages in the web client), off by default
 
 > **Status: pre-1.0, not independently audited.** The server implements the vault, organisation, sharing, Send, two-step login, Secrets Manager and admin APIs, and a Cloudwarden build of the web vault ships with it. It is exercised against the official Bitwarden CLI in CI, but it has had no third-party security review, so treat it as experimental and keep backups. See [docs/compatibility.md](docs/compatibility.md) for what is verified and [TASKS.md](TASKS.md) for the roadmap.
+
+## Architecture
+
+Vault fields are encrypted in the client before they reach Cloudwarden. The Worker handles authentication, API requests and synchronisation; D1 stores relational records and encrypted values, R2 stores attachments and file Sends, and a Durable Object fans out live-sync notifications.
+
+<p align="center"><img src="docs/images/architecture.svg" alt="Cloudwarden architecture: client-side encryption, the Cloudwarden Worker, D1, R2 and NotificationHub live-sync fan-out" width="100%"></p>
+
+## Web vault
+
+The bundled web client connects to a self-hosted Cloudwarden server. Screenshots use fictional `example.com` data; see [capture provenance](docs/images/README.md).
+
+<p align="center"><img src="docs/images/vault-overview.png" alt="Cloudwarden web vault with fictional example.com entries and folders" width="100%"></p>
+
+<details>
+<summary>More web-vault screenshots</summary>
+
+**Vault item details**
+
+<p align="center"><img src="docs/images/vault-item.png" alt="Cloudwarden example.com login entry with its password masked" width="100%"></p>
+
+**Sign-in**
+
+<p align="center"><img src="docs/images/login.png" alt="Cloudwarden sign-in screen with a fictional example.com address" width="100%"></p>
+
+</details>
 
 ## Why D1
 

@@ -1,8 +1,8 @@
 # Recorded client traffic fixtures
 
-TASKS #367 and #387. `test/fixtures/traffic/*.json` hold sanitised request and response pairs
-recorded from the official Bitwarden CLI (`cli-*`) and the official web vault (`web-*`) while they
-drove a local Cloudwarden dev server. `test/traffic-replay.test.ts`
+TASKS #367, #387 and #388. `test/fixtures/traffic/*.json` hold sanitised request and response pairs
+recorded from the official Bitwarden CLI (`cli-*`), the official web vault (`web-*`) and the official
+Android app (`android-*`) while they drove a local Cloudwarden dev server. `test/traffic-replay.test.ts`
 replays them against the Worker inside Vitest. They complement the curated responses in
 `test/contract.test.ts` with what a real client actually sends: header sets, request ordering,
 token refreshes, form bodies and the exact JSON the CLI builds.
@@ -26,10 +26,13 @@ OpenAPI check is the independent one; the shape check guards against regressions
 |---|---|---|
 | Official CLI (`bw`, the version pinned in `package.json`) | recorded | login (prelogin, password grant, token refresh), sync, folder and cipher create, edit, delete, restore, permanent delete, Send create, edit, list, get, anonymous access, password protected access (wrong and right password) and delete |
 | Official web vault (the vendored client, built unmodified into `web-vault/`, driven by headless Chromium) | recorded | `web-register`: account creation (`send-verification-email`, `register/finish`) followed by the automatic login and first sync. `web-login-sync`: prelogin, `knowndevice`, password grant, config, sync, revision-date polling, token refresh, reload. `web-cipher-write`: folder create, rename and delete; login item create, edit, send to bin, restore, bin again, permanent delete. `web-send`: text Send create, edit, anonymous recipient access (`POST /api/sends/access`) and delete |
-| Official mobile apps | gap | They cannot run on the capture host, and fabricated traffic would not be a recording (TASKS #388) |
+| Official Android app (`com.x8bit.bitwarden` from the bitwarden/android GitHub release, run unmodified on an emulator) | recorded | `android-register`: `send-verification-email`, `register/finish`, prelogin, password grant, config, sync, push token registration. `android-login-sync`: `knowndevice`, prelogin, password grant, sync, manual sync. `android-cipher-write`: folder create, rename and delete; login item create (`POST /api/ciphers/create`), edit, send to bin, restore, bin again, permanent delete. `android-send`: text Send create, edit and delete |
+| Official iOS app | gap | Needs the official iOS app on a device or simulator via the Apple builder; fabricated traffic would not be a recording (TASKS #389) |
 
 Not recorded: multipart uploads (attachments, file Sends), API key login, two-step login, SSO and
-organisation flows, and the web vault's other pages (organisations, settings, reports, import).
+organisation flows, the web vault's other pages (organisations, settings, reports, import), and in
+the Android app the new device verification code, biometric or PIN unlock, autofill and the
+attachment, archive and password history screens.
 Only `/api` and `/identity` calls are kept; static assets, icons and the notifications hub are not.
 
 ## Re-capturing
@@ -45,6 +48,40 @@ pnpm check:identifiers
 front of it, registers a fresh account per scenario over HTTP (the CLI cannot register), then drives
 `bw`. Bodies are sanitised in memory before anything is written, and the written files are checked
 again. Review the diff of a re-capture before committing it.
+
+### Android app
+
+```sh
+ANDROID_HOME=/path/to/android/sdk ANDROID_SERIAL=emulator-5554 \
+  ANDROID_APK=/path/to/com.x8bit.bitwarden.apk pnpm capture:android-traffic
+pnpm test -- traffic-replay
+```
+
+Needs an emulator that allows `adb root`, which means a `google_apis` system image (not the Play
+Store one), started headless, for example
+`emulator -avd <name> -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect`. Recorded with
+the standard build of Bitwarden Password Manager 2026.9.1 (version code 21929) from the
+bitwarden/android GitHub release `v2026.9.1-bwpm`; the APK's SHA-256 matched the published
+`com.x8bit.bitwarden.apk-sha256.txt` (`8aa0e5bf...8293`) and `apksigner verify` succeeded.
+
+`scripts/capture-android-traffic.mjs` serves the dev server behind the throwaway TLS proxy, restarts
+adbd as root, installs the proxy's CA as a user certificate (`/data/misc/user/0/cacerts-added/`; the
+app's network security config trusts user CAs, so there is no pinning to defeat and no system CA
+change) and forwards the proxy port into the emulator with `adb reverse`, so the app's self-hosted
+server URL is `https://127.0.0.1:<port>`. `scripts/android-ui.mjs` drives the app with
+`uiautomator dump` (elements are found by text or content description) and `input tap/text`; the
+app state is cleared (`pm clear`) before each scenario. `android-register` creates the account through
+the app's own create account screens; the others start from an account registered over HTTP with new
+device verification off. The script removes the certificate and the port forward afterwards. The
+selectors follow the app version above, so an app upgrade may need them adjusted. The same
+`CAPTURE_ONLY` and `CAPTURE_DEBUG_DIR` variables work (the latter keeps the screen text of a failed
+step).
+
+Android specifics in the replay: every request carries `Bitwarden-Client-Name: mobile`,
+`Bitwarden-Client-Version` and `Device-Type: 0`, checked by a dedicated test.
+`PUT /api/devices/identifier/{id}/token` carries the device's FCM push token, which the sanitiser
+replaces (`pushToken`). The app asks `GET /api/account/billing/vnext/subscription` after login; the
+spec documents the deliberate 404.
 
 ### Web vault
 

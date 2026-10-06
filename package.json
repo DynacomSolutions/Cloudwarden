@@ -24,7 +24,8 @@
     "import:server": "node scripts/import-from-server.mjs",
     "e2e": "node e2e/run.mjs",
     "capture:traffic": "node scripts/capture-traffic.mjs",
-    "capture:web-traffic": "node scripts/capture-web-traffic.mjs"
+    "capture:web-traffic": "node scripts/capture-web-traffic.mjs",
+    "capture:android-traffic": "node scripts/capture-android-traffic.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",

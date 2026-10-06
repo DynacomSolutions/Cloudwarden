@@ -42,6 +42,7 @@ const SENSITIVE_KEYS = new Set([
   'token',
   'code',
   'securitystamp',
+  'pushtoken',
 ])
 
 /** Keeps the shape of a base64-ish string and zeroes every data character. */

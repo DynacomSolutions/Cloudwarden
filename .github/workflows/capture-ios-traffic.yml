@@ -107,7 +107,7 @@ jobs:
     # Runs when the build succeeded or was skipped in favour of an earlier run's app.
     if: ${{ !cancelled() && (needs.build.result == 'success' || needs.build.result == 'skipped') }}
     runs-on: macos-26
-    timeout-minutes: 60
+    timeout-minutes: 90
     permissions:
       contents: read
       actions: read
@@ -152,7 +152,7 @@ jobs:
           xcrun simctl bootstatus "$udid" -b
           echo "udid=$udid" >> "$GITHUB_OUTPUT"
       - name: Capture
-        timeout-minutes: 40
+        timeout-minutes: 70
         env:
           IOS_UDID: ${{ steps.sim.outputs.udid }}
           CAPTURE_ONLY: ${{ inputs.only }}

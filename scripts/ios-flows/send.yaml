@@ -12,3 +12,8 @@ appId: com.8bit.bitwarden
 - tapOn: "Save"
 - waitForAnimationToEnd:
     timeout: 3000
+- extendedWaitUntil:
+    visible: "Example send"
+    timeout: 20000
+- tapOn: "Example send"
+- assertVisible: "NEVER_PRESENT_PROBE_END"

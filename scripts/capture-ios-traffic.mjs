@@ -160,7 +160,9 @@ async function main() {
       return email
     }
 
-    const runFlow = (name, email) => {
+    // Async on purpose: the TLS proxy and recorder live in this process, so its event loop must
+    // stay free while Maestro drives the app (a spawnSync here stalls every TLS handshake).
+    const runFlow = async (name, email) => {
       const out = debugDir ? join(debugDir, name) : undefined
       if (out) mkdirSync(out, { recursive: true })
       const args = ['--device', udid, 'test']
@@ -168,18 +170,21 @@ async function main() {
         args.push('-e', `${k}=${v}`)
       if (out) args.push('--debug-output', out, '--flatten-debug-output')
       args.push(join(flowDir, `${name}.yaml`))
-      const res = spawnSync(maestro, args, {
-        env: {
-          ...process.env,
-          MAESTRO_DRIVER_STARTUP_TIMEOUT: '300000',
-          MAESTRO_CLI_NO_ANALYTICS: '1',
-        },
-        encoding: 'utf8',
-        maxBuffer: 1 << 28,
-        timeout: 900000,
+      const res = await new Promise((ok) => {
+        const child = spawn(maestro, args, {
+          env: {
+            ...process.env,
+            MAESTRO_DRIVER_STARTUP_TIMEOUT: '300000',
+            MAESTRO_CLI_NO_ANALYTICS: '1',
+          },
+          stdio: ['ignore', 'inherit', 'inherit'],
+        })
+        const timer = setTimeout(() => child.kill('SIGKILL'), 900000)
+        child.on('exit', (status) => {
+          clearTimeout(timer)
+          ok({ status })
+        })
       })
-      process.stdout.write(res.stdout ?? '')
-      process.stderr.write(res.stderr ?? '')
       if (res.status !== 0) {
         if (out) {
           simctl('io', udid, 'screenshot', join(out, 'final.png'))
@@ -223,7 +228,7 @@ async function main() {
       recorder.open()
       let raw = []
       try {
-        runFlow(name, email)
+        await runFlow(name, email)
       } finally {
         raw = recorder.take()
       }

@@ -34,7 +34,9 @@ appId: com.8bit.bitwarden
           when:
             visible: "Allow"
           commands:
-            - tapOn: "Allow"
+            - tapOn:
+                text: "Allow"
+                optional: true
       - runFlow:
           when:
             visible: "Not Now"

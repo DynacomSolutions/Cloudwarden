@@ -26,23 +26,21 @@ appId: com.8bit.bitwarden
     visible:
       id: "MasterPasswordEntry"
     timeout: 120000
-# Fields lower on the page sit behind the keyboard once it is up, and a tap there hits the
-# keys instead: scroll the form up first so every field is above the keyboard.
-- swipe:
-    start: 50%, 80%
-    end: 50%, 25%
-- waitForAnimationToEnd
+# A tap on another field is ignored while the keyboard is up, so each field is followed by the
+# Return key, which dismisses it.
 - tapOn:
     id: "MasterPasswordEntry"
 - inputText: ${PASSWORD}
-- tapOn: "Master password hint"
-- inputText: example hint
+- pressKey: Enter
 - tapOn: "Re-type master password.*"
 - inputText: ${PASSWORD}
+- pressKey: Enter
+- tapOn: "Master password hint"
+- inputText: example hint
+- pressKey: Enter
 # Do not send the password to a breach checking service outside the capture.
 - tapOn:
     id: "CheckExposedMasterPasswordToggle"
-- takeScreenshot: filled
 - tapOn:
     id: "CreateAccountButton"
 - runFlow: _reach-vault.yaml

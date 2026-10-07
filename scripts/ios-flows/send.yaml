@@ -8,21 +8,30 @@ appId: com.8bit.bitwarden
 - tapOn:
     id: "SendNameEntry"
 - inputText: Example send
+- pressKey: Enter
 - tapOn:
     id: "SendTextContentEntry"
 - inputText: Example text
-- takeScreenshot: 1-filled
 - tapOn: "Save"
 - waitForAnimationToEnd:
     timeout: 3000
-- takeScreenshot: 2-saved
 # Saving a Send opens the share sheet; tap above it to dismiss.
 - tapOn:
     point: 50%,12%
-- takeScreenshot: 3-dismissed
 - extendedWaitUntil:
     visible: "Example send.*"
     timeout: 20000
 - tapOn: "Example send.*"
-- takeScreenshot: 4-opened
+# The pencil button opens the edit form.
+- tapOn:
+    point: 90%,92%
+- tapOn:
+    id: "SendNameEntry"
+- eraseText: 30
+- inputText: Example send edited
+- pressKey: Enter
+- tapOn: "Save"
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn: "Delete Send"
 - assertVisible: "NEVER_PRESENT_PROBE_END"

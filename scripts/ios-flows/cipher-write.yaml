@@ -34,22 +34,31 @@ appId: com.8bit.bitwarden
 - tapOn:
     id: "ItemNameEntry"
 - inputText: Example login
-- takeScreenshot: 1-name
+- pressKey: Enter
 - tapOn:
     id: "LoginUsernameEntry"
 - inputText: alice
-- takeScreenshot: 2-username
+- pressKey: Enter
 - tapOn:
     id: "LoginPasswordEntry"
 - inputText: p4ssw0rd!
-- takeScreenshot: 3-password
+- pressKey: Enter
 - tapOn: "Save"
 - extendedWaitUntil:
     visible: "Login"
     timeout: 20000
 - tapOn: "Login"
 - tapOn: "Example login.*"
-- takeScreenshot: 4-view
 - tapOn: "Edit"
-- takeScreenshot: 5-edit
+- tapOn:
+    id: "ItemNameEntry"
+- eraseText: 40
+- inputText: Example login edited
+- pressKey: Enter
+- tapOn: "Save"
+- waitForAnimationToEnd:
+    timeout: 3000
+# The more options menu of the item (top right) holds Delete.
+- tapOn:
+    point: 77%,12%
 - assertVisible: "NEVER_PRESENT_PROBE_END"

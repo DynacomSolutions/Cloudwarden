@@ -10,5 +10,5 @@ appId: com.8bit.bitwarden
 - tapOn:
     text: "Save"
 - extendedWaitUntil:
-    visible: ".*127\\.0\\.0\\.1.*"
+    visible: ".*Self-hosted.*"
     timeout: 15000

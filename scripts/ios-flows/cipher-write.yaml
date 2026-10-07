@@ -78,4 +78,31 @@ appId: com.8bit.bitwarden
 - tapOn: "Yes"
 - waitForAnimationToEnd:
     timeout: 3000
+- tapOn:
+    point: 9%,10%
+- tapOn: "Login"
+- tapOn: "Example login edited.*"
+- tapOn:
+    point: 90%,11%
+- tapOn: "Delete"
+- tapOn: "Yes"
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    point: 9%,10%
+- scrollUntilVisible:
+    element: "Trash"
+- tapOn: "Trash"
+- tapOn: "Example login edited.*"
+- tapOn:
+    point: 90%,11%
+- tapOn: "Delete"
+- tapOn: "Yes"
+- waitForAnimationToEnd:
+    timeout: 3000
+# Folder: delete from Settings, Vault, Folders.
+- tapOn: "Settings"
+- tapOn: "Vault"
+- tapOn: "Folders"
+- tapOn: "Example folder renamed"
 - assertVisible: "NEVER_PRESENT_PROBE_END"

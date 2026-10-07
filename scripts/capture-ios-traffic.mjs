@@ -253,8 +253,14 @@ async function main() {
       console.log(`recorded ${name}: ${fixtures.at(-1).exchanges.length} API exchanges`)
     }
 
+    // Exploration flows (scripts/ios-flows/probe-*.yaml) run without recording a fixture.
+    for (const name of (process.env.CAPTURE_ONLY ?? '')
+      .split(',')
+      .filter((n) => n.startsWith('probe-')))
+      await runFlow(name, await freshAccount(name))
+
     const only = process.env.CAPTURE_ONLY
-    const want = (name) => !only || only.split(',').includes(name)
+    const want = (name) => (only ? only.split(',').includes(name) : true)
     if (want('register'))
       await scenario('register', ['register', 'login', 'sync'], { account: false })
     if (want('login-sync')) await scenario('login-sync', ['login', 'sync'])

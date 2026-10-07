@@ -26,6 +26,12 @@ appId: com.8bit.bitwarden
     visible:
       id: "MasterPasswordEntry"
     timeout: 120000
+# Fields lower on the page sit behind the keyboard once it is up, and a tap there hits the
+# keys instead: scroll the form up first so every field is above the keyboard.
+- swipe:
+    start: 50%, 80%
+    end: 50%, 25%
+- waitForAnimationToEnd
 - tapOn:
     id: "MasterPasswordEntry"
 - inputText: ${PASSWORD}
@@ -34,14 +40,9 @@ appId: com.8bit.bitwarden
 - tapOn: "Re-type master password.*"
 - inputText: ${PASSWORD}
 # Do not send the password to a breach checking service outside the capture.
-- scrollUntilVisible:
-    element:
-      id: "CheckExposedMasterPasswordToggle"
 - tapOn:
     id: "CheckExposedMasterPasswordToggle"
-- scrollUntilVisible:
-    element:
-      id: "CreateAccountButton"
+- takeScreenshot: ${SHOTS}/filled
 - tapOn:
     id: "CreateAccountButton"
 - runFlow: _reach-vault.yaml

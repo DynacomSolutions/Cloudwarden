@@ -5,15 +5,24 @@ appId: com.8bit.bitwarden
 - tapOn:
     id: "AddItemFloatingActionButton"
 - tapOn: "Text"
-- tapOn: "Send name.*"
+- tapOn:
+    id: "SendNameEntry"
 - inputText: Example send
-- tapOn: "Text to share.*"
+- tapOn:
+    id: "SendTextContentEntry"
 - inputText: Example text
+- takeScreenshot: ${SHOTS}/1-filled
 - tapOn: "Save"
 - waitForAnimationToEnd:
     timeout: 3000
+- takeScreenshot: ${SHOTS}/2-saved
+# Saving a Send opens the share sheet; tap above it to dismiss.
+- tapOn:
+    point: 50%,12%
+- takeScreenshot: ${SHOTS}/3-dismissed
 - extendedWaitUntil:
-    visible: "Example send"
+    visible: "Example send.*"
     timeout: 20000
-- tapOn: "Example send"
+- tapOn: "Example send.*"
+- takeScreenshot: ${SHOTS}/4-opened
 - assertVisible: "NEVER_PRESENT_PROBE_END"

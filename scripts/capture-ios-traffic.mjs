@@ -166,7 +166,12 @@ async function main() {
       const out = debugDir ? join(debugDir, name) : undefined
       if (out) mkdirSync(out, { recursive: true })
       const args = ['--device', udid, 'test']
-      for (const [k, v] of Object.entries({ EMAIL: email, PASSWORD, SERVER_URL: serverUrl }))
+      for (const [k, v] of Object.entries({
+        EMAIL: email,
+        PASSWORD,
+        SERVER_URL: serverUrl,
+        SHOTS: join(out ?? tmpdir(), 'shots'),
+      }))
         args.push('-e', `${k}=${v}`)
       if (out) args.push('--debug-output', out, '--flatten-debug-output')
       args.push(join(flowDir, `${name}.yaml`))

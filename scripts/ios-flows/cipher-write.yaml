@@ -31,21 +31,25 @@ appId: com.8bit.bitwarden
       visible: "Password autofill"
     commands:
       - tapOn: "OK"
-- tapOn: "Item name.*"
+- tapOn:
+    id: "ItemNameEntry"
 - inputText: Example login
-- tapOn: "Username"
+- takeScreenshot: ${SHOTS}/1-name
+- tapOn:
+    id: "LoginUsernameEntry"
 - inputText: alice
-- tapOn: "Password"
+- takeScreenshot: ${SHOTS}/2-username
+- tapOn:
+    id: "LoginPasswordEntry"
 - inputText: p4ssw0rd!
+- takeScreenshot: ${SHOTS}/3-password
 - tapOn: "Save"
 - extendedWaitUntil:
     visible: "Login"
     timeout: 20000
 - tapOn: "Login"
-- tapOn: "Example login"
+- tapOn: "Example login.*"
+- takeScreenshot: ${SHOTS}/4-view
 - tapOn: "Edit"
-- tapOn: "Item name.*"
-- eraseText: 30
-- inputText: Example login edited
-- tapOn: "Save"
+- takeScreenshot: ${SHOTS}/5-edit
 - assertVisible: "NEVER_PRESENT_PROBE_END"

@@ -98,7 +98,7 @@ async function main() {
       try {
         if ((await fetch(`${direct}/alive`)).ok) break
       } catch {}
-      if (i > 120) throw new Error(`dev server did not start\n${log}`)
+      if (i > 360) throw new Error(`dev server did not start\n${log}`)
       await sleep(500)
     }
 

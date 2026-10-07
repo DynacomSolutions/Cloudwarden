@@ -14,15 +14,14 @@ appId: com.8bit.bitwarden
     visible: "Example folder"
     timeout: 15000
 - tapOn: "Example folder"
+- tapOn: "Name.*"
 - eraseText: 30
 - inputText: Example folder renamed
 - tapOn: "Save"
 - extendedWaitUntil:
     visible: "Example folder renamed"
     timeout: 15000
-- tapOn: "Back"
-- tapOn: "Back"
-- tapOn: "Vault"
+- tapOn: "My vault"
 # Login item: create, edit, trash, restore, trash, delete for good.
 - tapOn:
     id: "AddItemFloatingActionButton"

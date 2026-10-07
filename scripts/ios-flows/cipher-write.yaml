@@ -85,11 +85,8 @@ appId: com.8bit.bitwarden
 - tapOn: "My vault"
 - waitForAnimationToEnd:
     timeout: 2000
-# The vault search finds the restored item without going through the type list.
-- tapOn: "Search"
-- waitForAnimationToEnd:
-    timeout: 2000
-- inputText: Example
+- assertVisible: "NEVER_PRESENT_PROBE_END"
+- tapOn: "Login"
 - tapOn: "Example login edited.*"
 - tapOn:
     point: 90%,11%

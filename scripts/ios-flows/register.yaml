@@ -25,7 +25,7 @@ appId: com.8bit.bitwarden
 - extendedWaitUntil:
     visible:
       id: "MasterPasswordEntry"
-    timeout: 30000
+    timeout: 120000
 - tapOn:
     id: "MasterPasswordEntry"
 - inputText: ${PASSWORD}

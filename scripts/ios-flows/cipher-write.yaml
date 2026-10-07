@@ -85,8 +85,7 @@ appId: com.8bit.bitwarden
 - tapOn: "My vault"
 - waitForAnimationToEnd:
     timeout: 2000
-- assertVisible: "NEVER_PRESENT_PROBE_END"
-- tapOn: "Login"
+# The restored login is listed on the vault root under its folder heading.
 - tapOn: "Example login edited.*"
 - tapOn:
     point: 90%,11%

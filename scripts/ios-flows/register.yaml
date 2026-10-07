@@ -33,27 +33,25 @@ appId: com.8bit.bitwarden
     text: "Choose your master password"
     optional: true
 - scrollUntilVisible:
-    element:
-      id: "ConfirmMasterPasswordEntry"
-- tapOn:
-    id: "ConfirmMasterPasswordEntry"
+    element: "Re-type master password.*"
+- waitForAnimationToEnd
+- tapOn: "Re-type master password.*"
 - inputText: ${PASSWORD}
 - tapOn:
     text: "Choose your master password"
     optional: true
 - scrollUntilVisible:
-    element:
-      id: "MasterPasswordHintLabel"
-- tapOn:
-    id: "MasterPasswordHintLabel"
+    element: "Master password hint"
+- waitForAnimationToEnd
+- tapOn: "Master password hint"
 - inputText: example hint
 - tapOn:
     text: "Choose your master password"
     optional: true
 # Do not send the password to a breach checking service outside the capture.
 - scrollUntilVisible:
-    element:
-      id: "CheckExposedMasterPasswordToggle"
+    element: "Check known data breaches for this password"
+- waitForAnimationToEnd
 - tapOn:
     id: "CheckExposedMasterPasswordToggle"
 - scrollUntilVisible:

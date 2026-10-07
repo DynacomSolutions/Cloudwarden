@@ -26,6 +26,11 @@ appId: com.8bit.bitwarden
 - tapOn:
     id: "AddItemFloatingActionButton"
 - tapOn: "Login"
+- runFlow:
+    when:
+      visible: "Password autofill"
+    commands:
+      - tapOn: "OK"
 - tapOn: "Item name.*"
 - inputText: Example login
 - tapOn: "Username"

@@ -15,7 +15,7 @@
 // those scenarios), CAPTURE_DEBUG_DIR=<dir> (keep Maestro's output, a screenshot and the view
 // hierarchy of each failed scenario).
 import { spawn, spawnSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { setTimeout as sleep } from 'node:timers/promises'
@@ -217,20 +217,35 @@ async function main() {
           })
           writeFileSync(join(out, 'hierarchy.json'), h.stdout ?? '')
         }
-        throw new Error(`maestro flow ${name} failed (exit ${res.status})`)
+        const lost =
+          out &&
+          /XCUITest driver status check.*\[Failed\]|Failed to connect to \/127\.0\.0\.1/.test(
+            readFileSync(join(out, 'maestro.log'), 'utf8').slice(-20000),
+          )
+        const err = new Error(`maestro flow ${name} failed (exit ${res.status})`)
+        err.driverLost = lost
+        throw err
       }
     }
 
     const fixtures = []
     const scenario = async (name, flows, { account = true } = {}) => {
       const email = account ? await freshAccount(name) : `ios-${name}-${Date.now()}@example.com`
-      simctl('terminate', udid, bundleId)
-      recorder.open()
       let raw = []
-      try {
-        await runFlow(name, email)
-      } finally {
-        raw = recorder.take()
+      for (let attempt = 1; ; attempt++) {
+        simctl('terminate', udid, bundleId)
+        recorder.open()
+        try {
+          await runFlow(name, email)
+          raw = recorder.take()
+          break
+        } catch (err) {
+          recorder.take()
+          // The Maestro XCUITest driver sometimes dies on a loaded runner; the flow clears the
+          // app state first, so a retry starts clean and the partial recording is dropped.
+          if (!err.driverLost || attempt >= 3) throw err
+          console.log(`Maestro driver lost during ${name}; retrying (attempt ${attempt + 1})`)
+        }
       }
       fixtures.push(
         toFixture({ client: 'ios', clientVersion: APP_VERSION, scenario: name, flows }, raw),

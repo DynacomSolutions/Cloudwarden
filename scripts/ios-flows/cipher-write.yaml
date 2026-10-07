@@ -58,7 +58,11 @@ appId: com.8bit.bitwarden
 - tapOn: "Save"
 - waitForAnimationToEnd:
     timeout: 3000
-# The more options menu of the item (top right) holds Delete.
+# Item menu (top right of the view screen): Delete sends it to the trash.
 - tapOn:
-    point: 77%,12%
+    point: 90%,11%
+- tapOn: "Delete"
+- tapOn: "Yes"
+- waitForAnimationToEnd:
+    timeout: 3000
 - assertVisible: "NEVER_PRESENT_PROBE_END"

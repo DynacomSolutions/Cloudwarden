@@ -27,9 +27,14 @@ appId: com.8bit.bitwarden
             - tapOn: "Confirm"
       - runFlow:
           when:
-            visible: "Don.t Allow"
+            visible: "OK, got it!"
           commands:
-            - tapOn: "Don.t Allow"
+            - tapOn: "OK, got it!"
+      - runFlow:
+          when:
+            visible: "Allow"
+          commands:
+            - tapOn: "Allow"
       - runFlow:
           when:
             visible: "Not Now"

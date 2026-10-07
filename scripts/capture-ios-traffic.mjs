@@ -169,6 +169,11 @@ async function main() {
       if (out) args.push('--debug-output', out, '--flatten-debug-output')
       args.push(join(flowDir, `${name}.yaml`))
       const res = spawnSync(maestro, args, {
+        env: {
+          ...process.env,
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: '300000',
+          MAESTRO_CLI_NO_ANALYTICS: '1',
+        },
         encoding: 'utf8',
         maxBuffer: 1 << 28,
         timeout: 900000,

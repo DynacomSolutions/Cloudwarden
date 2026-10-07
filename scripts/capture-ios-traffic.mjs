@@ -164,7 +164,7 @@ async function main() {
     // stay free while Maestro drives the app (a spawnSync here stalls every TLS handshake).
     const runFlow = async (name, email) => {
       const out = debugDir ? join(debugDir, name) : undefined
-      if (out) mkdirSync(out, { recursive: true })
+      if (out) mkdirSync(join(out, 'shots'), { recursive: true })
       const args = ['--device', udid, 'test']
       for (const [k, v] of Object.entries({
         EMAIL: email,

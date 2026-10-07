@@ -29,15 +29,30 @@ appId: com.8bit.bitwarden
 - tapOn:
     id: "MasterPasswordEntry"
 - inputText: ${PASSWORD}
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "ConfirmMasterPasswordEntry"
 - tapOn:
     id: "ConfirmMasterPasswordEntry"
 - inputText: ${PASSWORD}
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "MasterPasswordHintLabel"
 - tapOn:
     id: "MasterPasswordHintLabel"
 - inputText: example hint
+- hideKeyboard
 # Do not send the password to a breach checking service outside the capture.
+- scrollUntilVisible:
+    element:
+      id: "CheckExposedMasterPasswordToggle"
 - tapOn:
     id: "CheckExposedMasterPasswordToggle"
+- scrollUntilVisible:
+    element:
+      id: "CreateAccountButton"
 - tapOn:
     id: "CreateAccountButton"
 - runFlow: _reach-vault.yaml

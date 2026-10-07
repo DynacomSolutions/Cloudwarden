@@ -29,21 +29,27 @@ appId: com.8bit.bitwarden
 - tapOn:
     id: "MasterPasswordEntry"
 - inputText: ${PASSWORD}
-- hideKeyboard
+- tapOn:
+    text: "Choose your master password"
+    optional: true
 - scrollUntilVisible:
     element:
       id: "ConfirmMasterPasswordEntry"
 - tapOn:
     id: "ConfirmMasterPasswordEntry"
 - inputText: ${PASSWORD}
-- hideKeyboard
+- tapOn:
+    text: "Choose your master password"
+    optional: true
 - scrollUntilVisible:
     element:
       id: "MasterPasswordHintLabel"
 - tapOn:
     id: "MasterPasswordHintLabel"
 - inputText: example hint
-- hideKeyboard
+- tapOn:
+    text: "Choose your master password"
+    optional: true
 # Do not send the password to a breach checking service outside the capture.
 - scrollUntilVisible:
     element:

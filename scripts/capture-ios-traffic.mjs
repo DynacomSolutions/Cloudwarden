@@ -178,6 +178,28 @@ async function main() {
       if (res.status !== 0) {
         if (out) {
           simctl('io', udid, 'screenshot', join(out, 'final.png'))
+          const appLog = spawnSync(
+            'xcrun',
+            [
+              'simctl',
+              'spawn',
+              udid,
+              'log',
+              'show',
+              '--last',
+              '10m',
+              '--predicate',
+              'process == "Bitwarden"',
+              '--style',
+              'compact',
+            ],
+            { encoding: 'utf8', maxBuffer: 1 << 28, timeout: 120000 },
+          )
+          writeFileSync(join(out, 'app.log'), appLog.stdout ?? '')
+          writeFileSync(
+            join(out, 'net.txt'),
+            spawnSync('lsof', ['-nP', '-iTCP'], { encoding: 'utf8' }).stdout ?? '',
+          )
           const h = spawnSync(maestro, ['--device', udid, 'hierarchy'], {
             encoding: 'utf8',
             maxBuffer: 1 << 26,

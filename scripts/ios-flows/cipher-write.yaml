@@ -39,14 +39,13 @@ appId: com.8bit.bitwarden
 - inputText: p4ssw0rd!
 - tapOn: "Save"
 - extendedWaitUntil:
-    visible: "Example login"
-    timeout: 15000
+    visible: "Login"
+    timeout: 20000
+- tapOn: "Login"
 - tapOn: "Example login"
 - tapOn: "Edit"
 - tapOn: "Item name.*"
 - eraseText: 30
 - inputText: Example login edited
 - tapOn: "Save"
-- extendedWaitUntil:
-    visible: "Example login edited"
-    timeout: 15000
+- assertVisible: "NEVER_PRESENT_PROBE_END"

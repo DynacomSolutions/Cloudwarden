@@ -53,3 +53,15 @@ appId: com.8bit.bitwarden
     visible:
       id: "AddItemFloatingActionButton"
     timeout: 30000
+# The push notification explainer can appear after the vault is already showing.
+- extendedWaitUntil:
+    visible: "OK, got it!"
+    timeout: 10000
+    optional: true
+- runFlow:
+    when:
+      visible: "OK, got it!"
+    commands:
+      - tapOn: "OK, got it!"
+- waitForAnimationToEnd:
+    timeout: 1500

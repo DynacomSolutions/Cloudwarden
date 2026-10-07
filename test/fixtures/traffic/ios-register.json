@@ -537,7 +537,7 @@
         "device-type": "1"
       },
       "requestBody": {
-        "emailVerificationToken": "\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwdXJwb3NlIjoicmVnaXN0ZXIiLCJlbWFpbCI6Imlvcy1yZWdpc3Rlci0xNzkxMzY4MzkwMDczQGV4YW1wbGUuY29tIiwibmFtZSI6IkV4YW1wbGUgVXNlciIsIm5iZiI6MTc5MTM2ODY2MSwiZXhwIjoxNzkxMzcwNDYxfQ.MQ3rWrOSUuwho9r_A01K52dlvb_nmEhhWlZlz0Na8zE\"",
+        "emailVerificationToken": "\"__ACCESS_TOKEN__\"",
         "masterPasswordUnlock": {
           "salt": "user@example.com",
           "masterKeyWrappedUserKey": "2.AAAAAAAAAAAAAAAAAAAAAA==|AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=|AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",

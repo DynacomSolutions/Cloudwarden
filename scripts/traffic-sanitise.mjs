@@ -16,6 +16,9 @@ export const FIXED_HOST = 'vault.example.com'
 const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi
 const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g
 const JWT = /^eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*$/
+/** A JWT anywhere in a string, e.g. wrapped in literal quotes or embedded in a longer value. */
+const JWT_ANYWHERE = /eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*/g
+const JWT_PREFIX = /eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\./
 const DATE = /\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?(?:Z|[+-]\d\d:\d\d)?/g
 const IPV4 = /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/
 const LOCAL_URL = /(?:https?:\/\/)?(?:127\.0\.0\.1|localhost)(?::\d+)?/g
@@ -43,6 +46,7 @@ const SENSITIVE_KEYS = new Set([
   'code',
   'securitystamp',
   'pushtoken',
+  'emailverificationtoken',
 ])
 
 /** Keeps the shape of a base64-ish string and zeroes every data character. */
@@ -81,7 +85,8 @@ export function createSanitiser() {
     const k = key.toLowerCase()
     if (s === '') return s
     if (JWT.test(s)) return secret(s, k === 'refresh_token' ? 'refresh_token' : 'access_token')
-    if (SENSITIVE_KEYS.has(k)) return secret(s, key)
+    if (JWT_PREFIX.test(s)) s = s.replace(JWT_ANYWHERE, (m) => secret(m, 'access_token'))
+    if (SENSITIVE_KEYS.has(k)) return new RegExp(PLACEHOLDER_SRC).test(s) ? s : secret(s, key)
     if (isEnc(s)) return zeroEnc(s)
     if (k !== '' && k !== 'path' && isLongB64(s)) return zero(s)
     return s
@@ -112,7 +117,7 @@ export function findIdentifying(data) {
     if (typeof v === 'string') {
       const bad = (reason) => out.push({ path, reason })
       if (WHOLE_PLACEHOLDER.test(v) || v === FIXED_DATE || v === FIXED_EMAIL) return
-      if (JWT.test(v)) bad('JWT')
+      if (JWT_PREFIX.test(v)) bad('JWT')
       for (const m of v.match(EMAIL) ?? []) if (!m.endsWith('@example.com')) bad(`email ${m}`)
       for (const m of v.match(UUID) ?? [])
         if (!/^0{8}-0{4}-0{4}-0{4}-[0-9a-f]{12}$/i.test(m)) bad('UUID')
@@ -126,7 +131,11 @@ export function findIdentifying(data) {
       }
       if (isEnc(v) && v !== zeroEnc(v)) bad('ciphertext')
       if (key !== '' && key !== 'path' && isLongB64(v) && v !== zero(v)) bad('long base64 value')
-      if (SENSITIVE_KEYS.has(key.toLowerCase()) && v !== '') bad(`secret in ${key}`)
+      if (
+        SENSITIVE_KEYS.has(key.toLowerCase()) &&
+        v.replace(PLACEHOLDER, '').replace(/["'\s]/g, '') !== ''
+      )
+        bad(`secret in ${key}`)
     } else if (Array.isArray(v)) {
       for (const [i, x] of v.entries()) scan(x, `${path}[${i}]`, key)
     } else if (v && typeof v === 'object') {

@@ -51,6 +51,45 @@ test('replaces the push token a mobile app registers for its device', () => {
   )
 })
 
+// Obviously synthetic: header and payload are base64url of fake JSON, the signature is filler.
+const fakeJwt = `${btoa('{"alg":"none"}').replace(/=+$/, '')}.${btoa('{"fake":true}').replace(/=+$/, '')}.c2lnbmF0dXJl`
+
+test('replaces a JWT wrapped in literal quotes or embedded in a longer string', () => {
+  assert.ok(fakeJwt.startsWith('eyJ'))
+  const real = {
+    emailVerificationToken: `"${fakeJwt}"`,
+    note: `prefix ${fakeJwt} suffix`,
+    list: [`"${fakeJwt}"`],
+  }
+  assert.ok(findIdentifying(real).length >= 3)
+  const a = createSanitiser().value(real)
+  assert.equal(a.emailVerificationToken, '"__ACCESS_TOKEN__"')
+  assert.equal(a.note, 'prefix __ACCESS_TOKEN__ suffix')
+  assert.deepEqual(a.list, ['"__ACCESS_TOKEN__"'])
+  assert.deepEqual(findIdentifying(a), [])
+  assert.deepEqual(createSanitiser().value(a), a, 'idempotent')
+  assert.deepEqual(createSanitiser().value(real), a, 'deterministic')
+})
+
+test('treats emailVerificationToken as a secret key in any case', () => {
+  const out = createSanitiser().value({ EmailVerificationToken: 'opaque-value' })
+  assert.equal(out.EmailVerificationToken, '__EMAILVERIFICATIONTOKEN__')
+  assert.deepEqual(
+    findIdentifying({ emailVerificationToken: 'opaque-value' }).map((f) => f.reason),
+    ['secret in emailVerificationToken'],
+  )
+})
+
+test('findIdentifying flags a JWT anywhere in a value', () => {
+  for (const v of [fakeJwt, `"${fakeJwt}"`, `Bearer ${fakeJwt}`, `x=${fakeJwt}&y=1`]) {
+    assert.deepEqual(
+      findIdentifying({ anything: v }).map((f) => f.reason),
+      ['JWT'],
+      v,
+    )
+  }
+})
+
 test('every recorded traffic fixture is free of identifying data', () => {
   const files = readdirSync(dir).filter((f) => f.endsWith('.json'))
   assert.ok(files.length > 0)

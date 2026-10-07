@@ -1,0 +1,122 @@
+appId: com.8bit.bitwarden
+---
+- runFlow: _login.yaml
+# Folder (Settings, Vault, Folders).
+- tapOn: "Settings"
+- tapOn: "Vault"
+- tapOn: "Folders"
+- tapOn:
+    id: "AddItemFloatingActionButton"
+- tapOn: "Name.*"
+- inputText: Example folder
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "Example folder"
+    timeout: 15000
+- tapOn: "Example folder"
+- tapOn: "Name.*"
+- eraseText: 30
+- inputText: Example folder renamed
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "Example folder renamed"
+    timeout: 15000
+- tapOn: "My vault"
+# Login item: create, edit, trash, restore, trash, delete for good.
+- tapOn:
+    id: "AddItemFloatingActionButton"
+- tapOn: "Login"
+- runFlow:
+    when:
+      visible: "Password autofill"
+    commands:
+      - tapOn: "OK"
+- tapOn:
+    id: "ItemNameEntry"
+- inputText: Example login
+- pressKey: Enter
+- tapOn:
+    id: "LoginUsernameEntry"
+- inputText: alice
+- pressKey: Enter
+- tapOn:
+    id: "LoginPasswordEntry"
+- inputText: p4ssw0rd!
+- pressKey: Enter
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "Login"
+    timeout: 20000
+- tapOn: "Login"
+- tapOn: "Example login.*"
+- tapOn: "Edit"
+- tapOn:
+    id: "ItemNameEntry"
+- eraseText: 40
+- inputText: Example login edited
+- pressKey: Enter
+- tapOn: "Save"
+- waitForAnimationToEnd:
+    timeout: 3000
+# Item menu (top right of the view screen): Delete sends it to the trash.
+- tapOn:
+    point: 90%,11%
+- tapOn: "Delete"
+- tapOn: "Yes"
+- waitForAnimationToEnd:
+    timeout: 3000
+# Back to the vault, then Trash: restore, trash again, delete for good.
+- tapOn: "My vault"
+- waitForAnimationToEnd:
+    timeout: 2000
+- tapOn:
+    text: "Close"
+    optional: true
+- scrollUntilVisible:
+    element: "Trash"
+- tapOn: "Trash"
+- tapOn: "Example login edited.*"
+- tapOn:
+    point: 90%,11%
+- tapOn: "Restore"
+- tapOn: "Yes"
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn: "My vault"
+- waitForAnimationToEnd:
+    timeout: 2000
+# The restored login is listed on the vault root under its folder heading.
+- tapOn: "Example login edited.*"
+- tapOn:
+    point: 90%,11%
+- tapOn: "Delete"
+- tapOn: "Yes"
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn: "My vault"
+- waitForAnimationToEnd:
+    timeout: 2000
+- tapOn:
+    text: "Close"
+    optional: true
+- scrollUntilVisible:
+    element: "Trash"
+- tapOn: "Trash"
+- tapOn: "Example login edited.*"
+- tapOn:
+    point: 90%,11%
+- tapOn: "Delete"
+- tapOn: "Yes"
+- waitForAnimationToEnd:
+    timeout: 3000
+# Folder: delete from Settings, Vault, Folders.
+- tapOn: "Settings"
+- tapOn: "Vault"
+- tapOn: "Folders"
+- tapOn: "Example folder renamed"
+- tapOn:
+    point: 90%,11%
+- tapOn: "Delete"
+- tapOn: "Yes"
+- waitForAnimationToEnd:
+    timeout: 3000

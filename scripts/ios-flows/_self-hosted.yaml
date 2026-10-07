@@ -1,0 +1,22 @@
+appId: com.8bit.bitwarden
+---
+# Landing screen: point the app at the local server (region selector, then Self-hosted).
+- tapOn: ".*bitwarden\\.com.*"
+- tapOn:
+    text: "Self-hosted"
+- tapOn:
+    id: "ServerUrlEntry"
+- inputText: ${SERVER_URL}
+# Typing can drop characters on a loaded runner: check the field and retype once if it differs.
+- runFlow:
+    when:
+      notVisible: ${SERVER_URL}
+    commands:
+      - eraseText: 80
+      - inputText: ${SERVER_URL}
+- assertVisible: ${SERVER_URL}
+- tapOn:
+    text: "Save"
+- extendedWaitUntil:
+    visible: ".*Self-hosted.*"
+    timeout: 15000

@@ -1,0 +1,863 @@
+{
+  "client": "ios",
+  "clientVersion": "2026.9.1",
+  "scenario": "register",
+  "flows": ["register", "login", "sync"],
+  "exchanges": [
+    {
+      "method": "GET",
+      "path": "/api/config",
+      "headers": {
+        "bitwarden-client-name": "mobile",
+        "bitwarden-client-version": "2026.9.1",
+        "device-type": "1"
+      },
+      "status": 200,
+      "responseBody": {
+        "object": "config",
+        "version": "2026.9.0",
+        "gitHash": "unknown",
+        "server": {
+          "name": "Cloudwarden",
+          "url": "https://vault.example.com"
+        },
+        "environment": {
+          "cloudRegion": null,
+          "vault": "https://vault.example.com",
+          "api": "https://vault.example.com/api",
+          "identity": "https://vault.example.com/identity",
+          "notifications": "https://vault.example.com/notifications",
+          "sso": "https://vault.example.com/sso"
+        },
+        "featureStates": {
+          "inno-passkey-directory-report": true,
+          "pm-32497-generate-invite-link": true,
+          "pm-34429-invite-link-auto-confirm": true,
+          "pm-39601-invite-link-notification": true
+        },
+        "push": {
+          "pushTechnology": 1,
+          "vapidPublicKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        },
+        "settings": {
+          "disableUserRegistration": false
+        },
+        "cloudwarden": {
+          "email": {
+            "configured": false,
+            "features": [
+              {
+                "id": "first-admin",
+                "label": "First instance admin registration",
+                "state": "manual"
+              },
+              {
+                "id": "instance-invite",
+                "label": "Instance invitations",
+                "state": "link"
+              },
+              {
+                "id": "org-invite",
+                "label": "Organisation member invitations",
+                "state": "refused"
+              },
+              {
+                "id": "org-invite-link",
+                "label": "Organisation invite links",
+                "state": "link"
+              },
+              {
+                "id": "emergency-invite",
+                "label": "Emergency access invitations",
+                "state": "refused"
+              },
+              {
+                "id": "new-device-otp",
+                "label": "New device verification code",
+                "state": "skipped"
+              },
+              {
+                "id": "magic-link",
+                "label": "Magic link login",
+                "state": "refused"
+              },
+              {
+                "id": "email-2fa",
+                "label": "Email two-step login",
+                "state": "refused"
+              },
+              {
+                "id": "send-email-auth",
+                "label": "Email protected Sends",
+                "state": "refused"
+              },
+              {
+                "id": "org-delete-email",
+                "label": "Organisation deletion by email",
+                "state": "refused"
+              },
+              {
+                "id": "account-delete-email",
+                "label": "Account deletion by email",
+                "state": "refused"
+              },
+              {
+                "id": "password-hint",
+                "label": "Password hint by email",
+                "state": "refused"
+              },
+              {
+                "id": "verify-email",
+                "label": "Email verification",
+                "state": "skipped"
+              },
+              {
+                "id": "email-otp",
+                "label": "Verification codes sent by email",
+                "state": "refused"
+              },
+              {
+                "id": "email-change",
+                "label": "Email address change",
+                "state": "manual"
+              },
+              {
+                "id": "notices",
+                "label": "Notices (new device, welcome, changes)",
+                "state": "skipped"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/config",
+      "headers": {
+        "bitwarden-client-name": "mobile",
+        "bitwarden-client-version": "2026.9.1",
+        "device-type": "1"
+      },
+      "status": 200,
+      "responseBody": {
+        "object": "config",
+        "version": "2026.9.0",
+        "gitHash": "unknown",
+        "server": {
+          "name": "Cloudwarden",
+          "url": "https://vault.example.com"
+        },
+        "environment": {
+          "cloudRegion": null,
+          "vault": "https://vault.example.com",
+          "api": "https://vault.example.com/api",
+          "identity": "https://vault.example.com/identity",
+          "notifications": "https://vault.example.com/notifications",
+          "sso": "https://vault.example.com/sso"
+        },
+        "featureStates": {
+          "inno-passkey-directory-report": true,
+          "pm-32497-generate-invite-link": true,
+          "pm-34429-invite-link-auto-confirm": true,
+          "pm-39601-invite-link-notification": true
+        },
+        "push": {
+          "pushTechnology": 1,
+          "vapidPublicKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        },
+        "settings": {
+          "disableUserRegistration": false
+        },
+        "cloudwarden": {
+          "email": {
+            "configured": false,
+            "features": [
+              {
+                "id": "first-admin",
+                "label": "First instance admin registration",
+                "state": "manual"
+              },
+              {
+                "id": "instance-invite",
+                "label": "Instance invitations",
+                "state": "link"
+              },
+              {
+                "id": "org-invite",
+                "label": "Organisation member invitations",
+                "state": "refused"
+              },
+              {
+                "id": "org-invite-link",
+                "label": "Organisation invite links",
+                "state": "link"
+              },
+              {
+                "id": "emergency-invite",
+                "label": "Emergency access invitations",
+                "state": "refused"
+              },
+              {
+                "id": "new-device-otp",
+                "label": "New device verification code",
+                "state": "skipped"
+              },
+              {
+                "id": "magic-link",
+                "label": "Magic link login",
+                "state": "refused"
+              },
+              {
+                "id": "email-2fa",
+                "label": "Email two-step login",
+                "state": "refused"
+              },
+              {
+                "id": "send-email-auth",
+                "label": "Email protected Sends",
+                "state": "refused"
+              },
+              {
+                "id": "org-delete-email",
+                "label": "Organisation deletion by email",
+                "state": "refused"
+              },
+              {
+                "id": "account-delete-email",
+                "label": "Account deletion by email",
+                "state": "refused"
+              },
+              {
+                "id": "password-hint",
+                "label": "Password hint by email",
+                "state": "refused"
+              },
+              {
+                "id": "verify-email",
+                "label": "Email verification",
+                "state": "skipped"
+              },
+              {
+                "id": "email-otp",
+                "label": "Verification codes sent by email",
+                "state": "refused"
+              },
+              {
+                "id": "email-change",
+                "label": "Email address change",
+                "state": "manual"
+              },
+              {
+                "id": "notices",
+                "label": "Notices (new device, welcome, changes)",
+                "state": "skipped"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/config",
+      "headers": {
+        "bitwarden-client-name": "mobile",
+        "bitwarden-client-version": "2026.9.1",
+        "device-type": "1"
+      },
+      "status": 200,
+      "responseBody": {
+        "object": "config",
+        "version": "2026.9.0",
+        "gitHash": "unknown",
+        "server": {
+          "name": "Cloudwarden",
+          "url": "https://vault.example.com"
+        },
+        "environment": {
+          "cloudRegion": null,
+          "vault": "https://vault.example.com",
+          "api": "https://vault.example.com/api",
+          "identity": "https://vault.example.com/identity",
+          "notifications": "https://vault.example.com/notifications",
+          "sso": "https://vault.example.com/sso"
+        },
+        "featureStates": {
+          "inno-passkey-directory-report": true,
+          "pm-32497-generate-invite-link": true,
+          "pm-34429-invite-link-auto-confirm": true,
+          "pm-39601-invite-link-notification": true
+        },
+        "push": {
+          "pushTechnology": 1,
+          "vapidPublicKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        },
+        "settings": {
+          "disableUserRegistration": false
+        },
+        "cloudwarden": {
+          "email": {
+            "configured": false,
+            "features": [
+              {
+                "id": "first-admin",
+                "label": "First instance admin registration",
+                "state": "manual"
+              },
+              {
+                "id": "instance-invite",
+                "label": "Instance invitations",
+                "state": "link"
+              },
+              {
+                "id": "org-invite",
+                "label": "Organisation member invitations",
+                "state": "refused"
+              },
+              {
+                "id": "org-invite-link",
+                "label": "Organisation invite links",
+                "state": "link"
+              },
+              {
+                "id": "emergency-invite",
+                "label": "Emergency access invitations",
+                "state": "refused"
+              },
+              {
+                "id": "new-device-otp",
+                "label": "New device verification code",
+                "state": "skipped"
+              },
+              {
+                "id": "magic-link",
+                "label": "Magic link login",
+                "state": "refused"
+              },
+              {
+                "id": "email-2fa",
+                "label": "Email two-step login",
+                "state": "refused"
+              },
+              {
+                "id": "send-email-auth",
+                "label": "Email protected Sends",
+                "state": "refused"
+              },
+              {
+                "id": "org-delete-email",
+                "label": "Organisation deletion by email",
+                "state": "refused"
+              },
+              {
+                "id": "account-delete-email",
+                "label": "Account deletion by email",
+                "state": "refused"
+              },
+              {
+                "id": "password-hint",
+                "label": "Password hint by email",
+                "state": "refused"
+              },
+              {
+                "id": "verify-email",
+                "label": "Email verification",
+                "state": "skipped"
+              },
+              {
+                "id": "email-otp",
+                "label": "Verification codes sent by email",
+                "state": "refused"
+              },
+              {
+                "id": "email-change",
+                "label": "Email address change",
+                "state": "manual"
+              },
+              {
+                "id": "notices",
+                "label": "Notices (new device, welcome, changes)",
+                "state": "skipped"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/config",
+      "headers": {
+        "bitwarden-client-name": "mobile",
+        "bitwarden-client-version": "2026.9.1",
+        "device-type": "1"
+      },
+      "status": 200,
+      "responseBody": {
+        "object": "config",
+        "version": "2026.9.0",
+        "gitHash": "unknown",
+        "server": {
+          "name": "Cloudwarden",
+          "url": "https://vault.example.com"
+        },
+        "environment": {
+          "cloudRegion": null,
+          "vault": "https://vault.example.com",
+          "api": "https://vault.example.com/api",
+          "identity": "https://vault.example.com/identity",
+          "notifications": "https://vault.example.com/notifications",
+          "sso": "https://vault.example.com/sso"
+        },
+        "featureStates": {
+          "inno-passkey-directory-report": true,
+          "pm-32497-generate-invite-link": true,
+          "pm-34429-invite-link-auto-confirm": true,
+          "pm-39601-invite-link-notification": true
+        },
+        "push": {
+          "pushTechnology": 1,
+          "vapidPublicKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        },
+        "settings": {
+          "disableUserRegistration": false
+        },
+        "cloudwarden": {
+          "email": {
+            "configured": false,
+            "features": [
+              {
+                "id": "first-admin",
+                "label": "First instance admin registration",
+                "state": "manual"
+              },
+              {
+                "id": "instance-invite",
+                "label": "Instance invitations",
+                "state": "link"
+              },
+              {
+                "id": "org-invite",
+                "label": "Organisation member invitations",
+                "state": "refused"
+              },
+              {
+                "id": "org-invite-link",
+                "label": "Organisation invite links",
+                "state": "link"
+              },
+              {
+                "id": "emergency-invite",
+                "label": "Emergency access invitations",
+                "state": "refused"
+              },
+              {
+                "id": "new-device-otp",
+                "label": "New device verification code",
+                "state": "skipped"
+              },
+              {
+                "id": "magic-link",
+                "label": "Magic link login",
+                "state": "refused"
+              },
+              {
+                "id": "email-2fa",
+                "label": "Email two-step login",
+                "state": "refused"
+              },
+              {
+                "id": "send-email-auth",
+                "label": "Email protected Sends",
+                "state": "refused"
+              },
+              {
+                "id": "org-delete-email",
+                "label": "Organisation deletion by email",
+                "state": "refused"
+              },
+              {
+                "id": "account-delete-email",
+                "label": "Account deletion by email",
+                "state": "refused"
+              },
+              {
+                "id": "password-hint",
+                "label": "Password hint by email",
+                "state": "refused"
+              },
+              {
+                "id": "verify-email",
+                "label": "Email verification",
+                "state": "skipped"
+              },
+              {
+                "id": "email-otp",
+                "label": "Verification codes sent by email",
+                "state": "refused"
+              },
+              {
+                "id": "email-change",
+                "label": "Email address change",
+                "state": "manual"
+              },
+              {
+                "id": "notices",
+                "label": "Notices (new device, welcome, changes)",
+                "state": "skipped"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/identity/accounts/register/send-verification-email",
+      "headers": {
+        "bitwarden-client-name": "mobile",
+        "bitwarden-client-version": "2026.9.1",
+        "device-type": "1"
+      },
+      "requestBody": {
+        "email": "user@example.com",
+        "name": "Example User",
+        "receiveMarketingEmails": false
+      },
+      "status": 200,
+      "responseBody": "__ACCESS_TOKEN__"
+    },
+    {
+      "method": "POST",
+      "path": "/identity/accounts/register/finish",
+      "headers": {
+        "bitwarden-client-name": "mobile",
+        "bitwarden-client-version": "2026.9.1",
+        "device-type": "1"
+      },
+      "requestBody": {
+        "emailVerificationToken": "\"__ACCESS_TOKEN__\"",
+        "masterPasswordUnlock": {
+          "salt": "user@example.com",
+          "masterKeyWrappedUserKey": "2.AAAAAAAAAAAAAAAAAAAAAA==|AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=|AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+          "kdf": {
+            "iterations": 600000,
+            "kdfType": 0
+          }
+        },
+        "masterPasswordHint": "example hint",
+        "userAsymmetricKeys": {
+          "publicKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "encryptedPrivateKey": "2.AAAAAAAAAAAAAAAAAAAAAA==|AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=|AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+        },
+        "email": "user@example.com",
+        "masterPasswordAuthentication": {
+          "salt": "user@example.com",
+          "kdf": {
+            "iterations": 600000,
+            "kdfType": 0
+          },
+          "masterPasswordAuthenticationHash": "__MASTERPASSWORDAUTHENTICATIONHASH__"
+        }
+      },
+      "status": 200,
+      "responseBody": {
+        "object": "register",
+        "captchaBypassToken": ""
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/identity/accounts/prelogin",
+      "headers": {
+        "bitwarden-client-name": "mobile",
+        "bitwarden-client-version": "2026.9.1",
+        "device-type": "1"
+      },
+      "requestBody": {
+        "email": "user@example.com"
+      },
+      "status": 200,
+      "responseBody": {
+        "kdf": 0,
+        "kdfIterations": 600000,
+        "kdfMemory": null,
+        "kdfParallelism": null
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/identity/connect/token",
+      "headers": {
+        "bitwarden-client-name": "mobile",
+        "bitwarden-client-version": "2026.9.1",
+        "device-type": "1"
+      },
+      "requestForm": {
+        "scope": "api offline_access",
+        "client_id": "mobile",
+        "deeplinkScheme": "bitwarden",
+        "deviceIdentifier": "00000000-0000-0000-0000-000000000001",
+        "deviceName": "iPhone18,1",
+        "deviceType": "1",
+        "grant_type": "password",
+        "username": "user@example.com",
+        "password": "__MASTERPASSWORDAUTHENTICATIONHASH__"
+      },
+      "status": 200,
+      "responseBody": {
+        "access_token": "__ACCESS_TOKEN_2__",
+        "expires_in": 3600,
+        "token_type": "Bearer",
+        "refresh_token": "__REFRESH_TOKEN__",
+        "scope": "api offline_access",
+        "Key": "2.AAAAAAAAAAAAAAAAAAAAAA==|AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=|AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+        "PrivateKey": "2.AAAAAAAAAAAAAAAAAAAAAA==|AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=|AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+        "AccountKeys": {
+          "publicKeyEncryptionKeyPair": {
+            "wrappedPrivateKey": "2.AAAAAAAAAAAAAAAAAAAAAA==|AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=|AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+            "publicKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "signedPublicKey": null
+          },
+          "signatureKeyPair": null,
+          "securityState": null
+        },
+        "Kdf": 0,
+        "KdfIterations": 600000,
+        "KdfMemory": null,
+        "KdfParallelism": null,
+        "ResetMasterPassword": false,
+        "ForcePasswordReset": false,
+        "MasterPasswordPolicy": {
+          "Object": "masterPasswordPolicy"
+        },
+        "UserDecryptionOptions": {
+          "HasMasterPassword": true,
+          "MasterPasswordUnlock": {
+            "kdf": {
+              "kdfType": 0,
+              "iterations": 600000,
+              "memory": null,
+              "parallelism": null
+            },
+            "masterKeyEncryptedUserKey": "2.AAAAAAAAAAAAAAAAAAAAAA==|AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=|AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+            "salt": "user@example.com"
+          },
+          "Object": "userDecryptionOptions"
+        },
+        "UnofficialServer": true,
+        "Object": "token"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/config",
+      "headers": {
+        "bitwarden-client-name": "mobile",
+        "bitwarden-client-version": "2026.9.1",
+        "device-type": "1",
+        "authorization": "Bearer __ACCESS_TOKEN_2__"
+      },
+      "status": 200,
+      "responseBody": {
+        "object": "config",
+        "version": "2026.9.0",
+        "gitHash": "unknown",
+        "server": {
+          "name": "Cloudwarden",
+          "url": "https://vault.example.com"
+        },
+        "environment": {
+          "cloudRegion": null,
+          "vault": "https://vault.example.com",
+          "api": "https://vault.example.com/api",
+          "identity": "https://vault.example.com/identity",
+          "notifications": "https://vault.example.com/notifications",
+          "sso": "https://vault.example.com/sso"
+        },
+        "featureStates": {
+          "inno-passkey-directory-report": true,
+          "pm-32497-generate-invite-link": true,
+          "pm-34429-invite-link-auto-confirm": true,
+          "pm-39601-invite-link-notification": true
+        },
+        "push": {
+          "pushTechnology": 1,
+          "vapidPublicKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        },
+        "settings": {
+          "disableUserRegistration": false
+        },
+        "cloudwarden": {
+          "email": {
+            "configured": false,
+            "features": [
+              {
+                "id": "first-admin",
+                "label": "First instance admin registration",
+                "state": "manual"
+              },
+              {
+                "id": "instance-invite",
+                "label": "Instance invitations",
+                "state": "link"
+              },
+              {
+                "id": "org-invite",
+                "label": "Organisation member invitations",
+                "state": "refused"
+              },
+              {
+                "id": "org-invite-link",
+                "label": "Organisation invite links",
+                "state": "link"
+              },
+              {
+                "id": "emergency-invite",
+                "label": "Emergency access invitations",
+                "state": "refused"
+              },
+              {
+                "id": "new-device-otp",
+                "label": "New device verification code",
+                "state": "skipped"
+              },
+              {
+                "id": "magic-link",
+                "label": "Magic link login",
+                "state": "refused"
+              },
+              {
+                "id": "email-2fa",
+                "label": "Email two-step login",
+                "state": "refused"
+              },
+              {
+                "id": "send-email-auth",
+                "label": "Email protected Sends",
+                "state": "refused"
+              },
+              {
+                "id": "org-delete-email",
+                "label": "Organisation deletion by email",
+                "state": "refused"
+              },
+              {
+                "id": "account-delete-email",
+                "label": "Account deletion by email",
+                "state": "refused"
+              },
+              {
+                "id": "password-hint",
+                "label": "Password hint by email",
+                "state": "refused"
+              },
+              {
+                "id": "verify-email",
+                "label": "Email verification",
+                "state": "skipped"
+              },
+              {
+                "id": "email-otp",
+                "label": "Verification codes sent by email",
+                "state": "refused"
+              },
+              {
+                "id": "email-change",
+                "label": "Email address change",
+                "state": "manual"
+              },
+              {
+                "id": "notices",
+                "label": "Notices (new device, welcome, changes)",
+                "state": "skipped"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/sync",
+      "headers": {
+        "bitwarden-client-name": "mobile",
+        "bitwarden-client-version": "2026.9.1",
+        "device-type": "1",
+        "authorization": "Bearer __ACCESS_TOKEN_2__"
+      },
+      "status": 200,
+      "responseBody": {
+        "profile": {
+          "id": "00000000-0000-0000-0000-000000000002",
+          "name": "",
+          "email": "user@example.com",
+          "emailVerified": true,
+          "premium": true,
+          "premiumFromOrganization": false,
+          "masterPasswordHint": "example hint",
+          "culture": "en-US",
+          "twoFactorEnabled": false,
+          "key": "2.AAAAAAAAAAAAAAAAAAAAAA==|AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=|AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+          "privateKey": "2.AAAAAAAAAAAAAAAAAAAAAA==|AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=|AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+          "accountKeys": {
+            "publicKeyEncryptionKeyPair": {
+              "wrappedPrivateKey": "2.AAAAAAAAAAAAAAAAAAAAAA==|AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=|AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+              "publicKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+              "signedPublicKey": null
+            },
+            "signatureKeyPair": null,
+            "securityState": null
+          },
+          "securityStamp": "__SECURITYSTAMP__",
+          "forcePasswordReset": false,
+          "usesKeyConnector": false,
+          "verifyDevices": true,
+          "avatarColor": null,
+          "creationDate": "2099-01-01T00:00:00.000Z",
+          "organizations": [],
+          "providers": [],
+          "providerOrganizations": [],
+          "object": "profile"
+        },
+        "folders": [],
+        "collections": [],
+        "ciphers": [],
+        "policies": [],
+        "sends": [],
+        "domains": {
+          "equivalentDomains": [],
+          "globalEquivalentDomains": [
+            {
+              "type": 0,
+              "domains": ["youtube.com", "google.com", "gmail.com"],
+              "excluded": false
+            },
+            {
+              "type": 1,
+              "domains": ["apple.com", "icloud.com"],
+              "excluded": false
+            }
+          ],
+          "object": "domains"
+        },
+        "userDecryption": {
+          "masterPasswordUnlock": {
+            "kdf": {
+              "kdfType": 0,
+              "iterations": 600000,
+              "memory": null,
+              "parallelism": null
+            },
+            "masterKeyEncryptedUserKey": "2.AAAAAAAAAAAAAAAAAAAAAA==|AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=|AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+            "salt": "user@example.com"
+          },
+          "webAuthnPrfOptions": [],
+          "userKeyId": null
+        },
+        "object": "sync"
+      }
+    }
+  ]
+}

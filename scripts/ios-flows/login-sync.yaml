@@ -1,0 +1,9 @@
+appId: com.8bit.bitwarden
+---
+- runFlow: _login.yaml
+# A manual sync: pull to refresh the vault list.
+- swipe:
+    start: 50%, 30%
+    end: 50%, 70%
+- waitForAnimationToEnd:
+    timeout: 3000

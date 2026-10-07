@@ -1,0 +1,67 @@
+appId: com.8bit.bitwarden
+---
+# Walks through the post-login prompts until the vault shows. Each prompt is optional.
+- repeat:
+    while:
+      notVisible:
+        id: "AddItemFloatingActionButton"
+    times: 12
+    commands:
+      - runFlow:
+          when:
+            visible: "Set up later"
+          commands:
+            - tapOn: "Set up later"
+            - tapOn: "Confirm"
+      - runFlow:
+          when:
+            visible: "Turn on later"
+          commands:
+            - tapOn: "Turn on later"
+            - tapOn: "Confirm"
+      - runFlow:
+          when:
+            visible: "Import logins later"
+          commands:
+            - tapOn: "Import logins later"
+            - tapOn: "Confirm"
+      - runFlow:
+          when:
+            visible: "OK, got it!"
+          commands:
+            - tapOn: "OK, got it!"
+      - runFlow:
+          when:
+            visible: "Allow"
+          commands:
+            - tapOn:
+                text: "Allow"
+                optional: true
+      - runFlow:
+          when:
+            visible: "Not Now"
+          commands:
+            - tapOn: "Not Now"
+      - runFlow:
+          when:
+            visible: "Skip"
+          commands:
+            - tapOn: "Skip"
+      - waitForAnimationToEnd:
+          timeout: 2000
+# The push notification explainer can appear after the vault is already showing.
+- extendedWaitUntil:
+    visible: "OK, got it!"
+    timeout: 10000
+    optional: true
+- runFlow:
+    when:
+      visible: "OK, got it!"
+    commands:
+      - tapOn: "OK, got it!"
+- waitForAnimationToEnd:
+    timeout: 1500
+- extendedWaitUntil:
+    visible:
+      id: "AddItemFloatingActionButton"
+    timeout: 30000

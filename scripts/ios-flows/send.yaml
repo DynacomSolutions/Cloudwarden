@@ -1,0 +1,42 @@
+appId: com.8bit.bitwarden
+---
+- runFlow: _login.yaml
+- tapOn: "Send"
+- tapOn:
+    id: "AddItemFloatingActionButton"
+- tapOn: "Text"
+- tapOn:
+    id: "SendNameEntry"
+- inputText: Example send
+- pressKey: Enter
+- tapOn:
+    id: "SendTextContentEntry"
+- inputText: Example text
+- tapOn: "Save"
+- waitForAnimationToEnd:
+    timeout: 3000
+# Saving a Send opens the share sheet; tap above it to dismiss.
+- tapOn:
+    point: 50%,12%
+- extendedWaitUntil:
+    visible: "Example send.*"
+    timeout: 20000
+- tapOn: "Example send.*"
+# The pencil button opens the edit form.
+- tapOn:
+    point: 90%,92%
+- tapOn:
+    id: "SendNameEntry"
+- eraseText: 30
+- inputText: Example send edited
+- pressKey: Enter
+- tapOn: "Save"
+- waitForAnimationToEnd:
+    timeout: 3000
+# Saving opens the share sheet again.
+- tapOn:
+    point: 50%,12%
+- tapOn: "Delete Send"
+- tapOn: "Delete"
+- waitForAnimationToEnd:
+    timeout: 3000

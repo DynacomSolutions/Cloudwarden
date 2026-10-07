@@ -71,25 +71,31 @@ const typedForm = (form: Record<string, string>) =>
 const label = (ex: Exchange) => `${ex.method} ${ex.path.split('?')[0]} -> ${ex.status}`
 
 describe('traffic fixtures', () => {
-  it('exist for the official CLI, web vault and Android app covering login, sync, cipher writes and Sends', () => {
+  it('exist for the official CLI, web vault, Android app and iOS app covering login, sync, cipher writes and Sends', () => {
     const flows = new Set(fixtures.flatMap(({ fx }) => fx.flows.map((f) => `${fx.client}:${f}`)))
-    for (const client of ['cli', 'web', 'android'])
+    for (const client of ['cli', 'web', 'android', 'ios'])
       for (const f of ['login', 'sync', 'cipher-write', 'send'])
         expect(flows).toContain(`${client}:${f}`)
     expect(flows).toContain('web:register')
     expect(flows).toContain('android:register')
+    expect(flows).toContain('ios:register')
   })
 
-  it('Android fixtures carry the headers the mobile app sends', () => {
-    const android = fixtures.filter(({ fx }) => fx.client === 'android')
-    expect(android.length).toBeGreaterThan(0)
-    for (const { file, fx } of android)
-      for (const ex of fx.exchanges) {
-        expect(ex.headers['bitwarden-client-name'], file).toBe('mobile')
-        expect(ex.headers['bitwarden-client-version'], file).toBe(fx.clientVersion)
-        expect(ex.headers['device-type'], file).toBe('0') // Android
-      }
-  })
+  // The mobile apps identify as `mobile`; Device-Type is 0 for Android and 1 for iOS.
+  for (const [client, deviceType] of [
+    ['android', '0'],
+    ['ios', '1'],
+  ] as const)
+    it(`${client} fixtures carry the headers the mobile app sends`, () => {
+      const own = fixtures.filter(({ fx }) => fx.client === client)
+      expect(own.length).toBeGreaterThan(0)
+      for (const { file, fx } of own)
+        for (const ex of fx.exchanges) {
+          expect(ex.headers['bitwarden-client-name'], file).toBe('mobile')
+          expect(ex.headers['bitwarden-client-version'], file).toBe(fx.clientVersion)
+          expect(ex.headers['device-type'], file).toBe(deviceType)
+        }
+    })
 
   it('sanitiser replaces identifying data and is idempotent', () => {
     const dirty = {

@@ -54,3 +54,6 @@ archive\.ubuntu\.com
 
 # Public APIs proxied by the breach and passkey reports (TASKS #231)
 ^haveibeenpwned\.com$
+
+# iOS capture (TASKS #389): file names that look like domains (.app and .sh are top-level domains)
+^(Bitwarden\.app|bootstrap\.sh)$

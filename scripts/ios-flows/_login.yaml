@@ -1,3 +1,5 @@
+appId: com.8bit.bitwarden
+---
 - launchApp:
     clearState: true
     stopApp: true

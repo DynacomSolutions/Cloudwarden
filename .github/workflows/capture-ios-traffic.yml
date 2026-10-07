@@ -14,6 +14,14 @@ on:
         description: Release tag of bitwarden/ios to build
         default: v2026.9.1-bwpm
         type: string
+      app_version:
+        description: Marketing version stamped into the build (the release's version name)
+        default: '2026.9.1'
+        type: string
+      app_build:
+        description: Build number stamped into the build (the release's version number)
+        default: '3533'
+        type: string
       reuse_build_run:
         description: Run id of an earlier run whose app artifact to reuse instead of building
         default: ''
@@ -67,6 +75,11 @@ jobs:
           ./Scripts/bootstrap.sh
       - name: Build for the iOS Simulator
         timeout-minutes: 50
+        # The tag's project files still say 2026.4.0 (build 1); the release pipeline stamps the real
+        # version at build time. Do the same, so the app reports the released version.
+        env:
+          APP_VERSION: ${{ inputs.app_version || '2026.9.1' }}
+          APP_BUILD: ${{ inputs.app_build || '3533' }}
         run: |
           xcrun xcodebuild build \
             -workspace Bitwarden.xcworkspace \
@@ -77,6 +90,7 @@ jobs:
             -skipPackagePluginValidation \
             -skipMacroValidation \
             ARCHS=arm64 ONLY_ACTIVE_ARCH=NO \
+            MARKETING_VERSION="${APP_VERSION}" CURRENT_PROJECT_VERSION="${APP_BUILD}" \
             -quiet
       - name: Package the app
         run: |

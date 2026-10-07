@@ -1,3 +1,5 @@
+appId: com.8bit.bitwarden
+---
 # Landing screen: point the app at the local server (region selector, then Self-hosted).
 - tapOn: ".*bitwarden\\.com.*"
 - tapOn:

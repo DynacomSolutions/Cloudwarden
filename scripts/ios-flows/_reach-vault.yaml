@@ -1,3 +1,5 @@
+appId: com.8bit.bitwarden
+---
 # Walks through the post-login prompts until the vault shows. Each prompt is optional.
 - repeat:
     while:

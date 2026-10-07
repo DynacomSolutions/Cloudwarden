@@ -42,7 +42,7 @@ appId: com.8bit.bitwarden
 # Do not send the password to a breach checking service outside the capture.
 - tapOn:
     id: "CheckExposedMasterPasswordToggle"
-- takeScreenshot: ${SHOTS}/filled
+- takeScreenshot: filled
 - tapOn:
     id: "CreateAccountButton"
 - runFlow: _reach-vault.yaml

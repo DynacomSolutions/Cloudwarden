@@ -11,18 +11,18 @@ appId: com.8bit.bitwarden
 - tapOn:
     id: "SendTextContentEntry"
 - inputText: Example text
-- takeScreenshot: ${SHOTS}/1-filled
+- takeScreenshot: 1-filled
 - tapOn: "Save"
 - waitForAnimationToEnd:
     timeout: 3000
-- takeScreenshot: ${SHOTS}/2-saved
+- takeScreenshot: 2-saved
 # Saving a Send opens the share sheet; tap above it to dismiss.
 - tapOn:
     point: 50%,12%
-- takeScreenshot: ${SHOTS}/3-dismissed
+- takeScreenshot: 3-dismissed
 - extendedWaitUntil:
     visible: "Example send.*"
     timeout: 20000
 - tapOn: "Example send.*"
-- takeScreenshot: ${SHOTS}/4-opened
+- takeScreenshot: 4-opened
 - assertVisible: "NEVER_PRESENT_PROBE_END"

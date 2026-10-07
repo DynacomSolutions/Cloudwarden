@@ -34,22 +34,22 @@ appId: com.8bit.bitwarden
 - tapOn:
     id: "ItemNameEntry"
 - inputText: Example login
-- takeScreenshot: ${SHOTS}/1-name
+- takeScreenshot: 1-name
 - tapOn:
     id: "LoginUsernameEntry"
 - inputText: alice
-- takeScreenshot: ${SHOTS}/2-username
+- takeScreenshot: 2-username
 - tapOn:
     id: "LoginPasswordEntry"
 - inputText: p4ssw0rd!
-- takeScreenshot: ${SHOTS}/3-password
+- takeScreenshot: 3-password
 - tapOn: "Save"
 - extendedWaitUntil:
     visible: "Login"
     timeout: 20000
 - tapOn: "Login"
 - tapOn: "Example login.*"
-- takeScreenshot: ${SHOTS}/4-view
+- takeScreenshot: 4-view
 - tapOn: "Edit"
-- takeScreenshot: ${SHOTS}/5-edit
+- takeScreenshot: 5-edit
 - assertVisible: "NEVER_PRESENT_PROBE_END"

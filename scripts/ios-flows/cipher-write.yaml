@@ -114,4 +114,9 @@ appId: com.8bit.bitwarden
 - tapOn: "Vault"
 - tapOn: "Folders"
 - tapOn: "Example folder renamed"
-- assertVisible: "NEVER_PRESENT_PROBE_END"
+- tapOn:
+    point: 90%,11%
+- tapOn: "Delete"
+- tapOn: "Yes"
+- waitForAnimationToEnd:
+    timeout: 3000

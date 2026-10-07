@@ -85,6 +85,12 @@ async function main() {
   })
   const recorder = await startRecorder(recPort, port)
   const proxy = await startProxy(tls, tlsPort, recPort)
+  // Diagnostics for a client that does not trust the CA: TLS failures never reach the recorder.
+  proxy.on('tlsClientError', (e) => console.error(`proxy TLS client error: ${e.message}`))
+  proxy.on('secureConnection', () => console.error('proxy: TLS connection accepted'))
+  proxy.on('request', (req) =>
+    console.error(`proxy request: ${req.method} ${req.url.split('?')[0]}`),
+  )
   let bundleId = ''
 
   try {
@@ -98,6 +104,12 @@ async function main() {
 
     // Simulator set-up: trust the throwaway CA, install the app.
     const trust = simctl('keychain', udid, 'add-root-cert', tls.ca)
+    console.log(
+      spawnSync('openssl', ['x509', '-in', tls.ca, '-noout', '-text'], { encoding: 'utf8' })
+        .stdout.split('\n')
+        .filter((l) => /Version|CA:|Signature Algorithm|Not /.test(l))
+        .join('\n'),
+    )
     if (trust.status !== 0) throw new Error(`add-root-cert failed: ${trust.stderr}`)
     if (process.env.IOS_APP) {
       const res = simctl('install', udid, process.env.IOS_APP)

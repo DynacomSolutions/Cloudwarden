@@ -37,4 +37,6 @@ appId: com.8bit.bitwarden
 - tapOn:
     point: 50%,12%
 - tapOn: "Delete Send"
-- assertVisible: "NEVER_PRESENT_PROBE_END"
+- tapOn: "Delete"
+- waitForAnimationToEnd:
+    timeout: 3000

@@ -65,4 +65,17 @@ appId: com.8bit.bitwarden
 - tapOn: "Yes"
 - waitForAnimationToEnd:
     timeout: 3000
+# Back to the vault, then Trash: restore, trash again, delete for good.
+- tapOn:
+    point: 9%,10%
+- scrollUntilVisible:
+    element: "Trash"
+- tapOn: "Trash"
+- tapOn: "Example login edited.*"
+- tapOn:
+    point: 90%,11%
+- tapOn: "Restore"
+- tapOn: "Yes"
+- waitForAnimationToEnd:
+    timeout: 3000
 - assertVisible: "NEVER_PRESENT_PROBE_END"

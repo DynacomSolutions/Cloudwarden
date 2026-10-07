@@ -66,8 +66,9 @@ appId: com.8bit.bitwarden
 - waitForAnimationToEnd:
     timeout: 3000
 # Back to the vault, then Trash: restore, trash again, delete for good.
-- tapOn:
-    point: 9%,10%
+- tapOn: "My vault"
+- waitForAnimationToEnd:
+    timeout: 2000
 - scrollUntilVisible:
     element: "Trash"
 - tapOn: "Trash"
@@ -78,8 +79,9 @@ appId: com.8bit.bitwarden
 - tapOn: "Yes"
 - waitForAnimationToEnd:
     timeout: 3000
-- tapOn:
-    point: 9%,10%
+- tapOn: "My vault"
+- waitForAnimationToEnd:
+    timeout: 2000
 - tapOn: "Login"
 - tapOn: "Example login edited.*"
 - tapOn:
@@ -88,8 +90,9 @@ appId: com.8bit.bitwarden
 - tapOn: "Yes"
 - waitForAnimationToEnd:
     timeout: 3000
-- tapOn:
-    point: 9%,10%
+- tapOn: "My vault"
+- waitForAnimationToEnd:
+    timeout: 2000
 - scrollUntilVisible:
     element: "Trash"
 - tapOn: "Trash"

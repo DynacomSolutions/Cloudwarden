@@ -7,6 +7,14 @@ appId: com.8bit.bitwarden
 - tapOn:
     id: "ServerUrlEntry"
 - inputText: ${SERVER_URL}
+# Typing can drop characters on a loaded runner: check the field and retype once if it differs.
+- runFlow:
+    when:
+      notVisible: ${SERVER_URL}
+    commands:
+      - eraseText: 80
+      - inputText: ${SERVER_URL}
+- assertVisible: ${SERVER_URL}
 - tapOn:
     text: "Save"
 - extendedWaitUntil:

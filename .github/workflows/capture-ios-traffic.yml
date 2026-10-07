@@ -4,10 +4,6 @@
 name: Capture iOS traffic
 
 on:
-  # TEMPORARY: lets the workflow run from this branch before it exists on main; removed before merge.
-  push:
-    branches:
-      - test/389-ios-traffic
   workflow_dispatch:
     inputs:
       app_tag:
@@ -44,7 +40,7 @@ env:
 jobs:
   build:
     name: Build the official app
-    if: ${{ github.event_name != 'push' && inputs.reuse_build_run == '' }} # TEMPORARY push condition
+    if: ${{ inputs.reuse_build_run == '' }}
     runs-on: macos-26
     timeout-minutes: 75
     permissions:
@@ -130,7 +126,7 @@ jobs:
         with:
           name: bitwarden-ios-app
           path: app
-          run-id: ${{ inputs.reuse_build_run || (github.event_name == 'push' && '37552183139') || github.run_id }} # TEMPORARY
+          run-id: ${{ inputs.reuse_build_run || github.run_id }}
           github-token: ${{ github.token }}
       - name: Unpack the app
         run: |

@@ -164,13 +164,12 @@ async function main() {
     // stay free while Maestro drives the app (a spawnSync here stalls every TLS handshake).
     const runFlow = async (name, email) => {
       const out = debugDir ? join(debugDir, name) : undefined
-      if (out) mkdirSync(join(out, 'shots'), { recursive: true })
+      if (out) mkdirSync(out, { recursive: true })
       const args = ['--device', udid, 'test']
       for (const [k, v] of Object.entries({
         EMAIL: email,
         PASSWORD,
         SERVER_URL: serverUrl,
-        SHOTS: join(out ?? tmpdir(), 'shots'),
       }))
         args.push('-e', `${k}=${v}`)
       if (out) args.push('--debug-output', out, '--flatten-debug-output')
@@ -257,12 +256,6 @@ async function main() {
       )
       console.log(`recorded ${name}: ${fixtures.at(-1).exchanges.length} API exchanges`)
     }
-
-    // Exploration flows (scripts/ios-flows/probe-*.yaml) run without recording a fixture.
-    for (const name of (process.env.CAPTURE_ONLY ?? '')
-      .split(',')
-      .filter((n) => n.startsWith('probe-')))
-      await runFlow(name, await freshAccount(name))
 
     const only = process.env.CAPTURE_ONLY
     const want = (name) => (only ? only.split(',').includes(name) : true)

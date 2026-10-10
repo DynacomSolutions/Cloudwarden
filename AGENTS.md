@@ -4,7 +4,7 @@ Instructions for AI coding agents working in this repository. Human contributors
 
 ## Before you start
 
-1. Read `TASKS.md`. Add your task there (new stable number) before starting work, and keep its status and evidence current.
+1. Read `TASKS.md` (epic tables: `## <N>. <Epic>`, columns ID, Task, Status, Owner, Branch, Depends, ETA, Notes). Add your task there (new stable number) before starting work, and keep its status and evidence current.
 2. Read `docs/architecture.md` and the ADRs in `docs/adr/`.
 
 ## Non-negotiable rules

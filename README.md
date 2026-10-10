@@ -62,6 +62,7 @@ Then point a Bitwarden client's self-hosted server URL at the local address `pnp
 |---|---|---|---|
 | `DOMAIN` | var | `https://vault.example.com` | Public base URL |
 | `SIGNUPS_ALLOWED` | var | `false` | Allow open registration |
+| `SIGNUPS_DOMAINS_WHITELIST` | var | empty | Comma-separated domains or addresses allowed to register publicly while `SIGNUPS_ALLOWED` is false. Public sign-up only: organisation invite links admit their own allowed domains without it |
 | `ADMIN_ENABLED` | var | `false` | Enable the admin API behind the web client's Instance admin |
 | `JWT_SECRET` | secret | none | Token signing key |
 | `ADMIN_EMAILS` | secret | none | Comma-separated instance owner addresses (further admins are granted in Instance admin) |

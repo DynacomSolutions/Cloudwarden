@@ -53,8 +53,8 @@ const codeSchema = z
   .object({ organizationId: z.string().min(1), code: z.string().min(1) })
   .transform(({ code, ...rest }) => ({ ...rest, linkCode: code }))
 
-/** The link of the organisation when `code` matches it; one error for every mismatch. */
-async function linkByCode(db: Db, organizationId: string, code: string) {
+/** The link of the organisation when `code` matches it, else undefined. */
+export async function findLink(db: Db, organizationId: string, code: string) {
   const [link] = await db
     .select()
     .from(schema.orgInviteLinks)
@@ -65,11 +65,17 @@ async function linkByCode(db: Db, organizationId: string, code: string) {
       ),
     )
     .limit(1)
+  return link
+}
+
+/** The link of the organisation when `code` matches it; one error for every mismatch. */
+async function linkByCode(db: Db, organizationId: string, code: string) {
+  const link = await findLink(db, organizationId, code)
   if (!link) throw new ApiError(404, 'Invite link not found.')
   return link
 }
 
-const domains = (link: LinkRow) => JSON.parse(link.allowedDomains) as string[]
+export const domains = (link: LinkRow) => JSON.parse(link.allowedDomains) as string[]
 
 orgSettings.post('/api/organizations/invite-link/status', publicLimit, async (c) => {
   const body = await parseBody(c, codeSchema)

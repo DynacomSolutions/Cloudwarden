@@ -56,8 +56,12 @@ route, with or without open signups, when mail is off.
 * An invited address cannot register through the ordinary page without the code, unless open signups
   (`SIGNUPS_ALLOWED=true`) or the domain whitelist already admit that address: then anyone can register it, as
   a mail-off server cannot tell who owns an address.
-* Open signups (`SIGNUPS_ALLOWED=true`) work as before. The domain whitelist works as before too, but cannot
-  prove address ownership on a mail-off server: use invite links instead.
+* Open signups (`SIGNUPS_ALLOWED=true`) work as before. The domain whitelist (`SIGNUPS_DOMAINS_WHITELIST`)
+  governs public sign-up only and works as before, but cannot prove address ownership on a mail-off server:
+  use invite links instead.
+* Organisation invite links admit their own allowed domains to register, with or without mail and whatever
+  `SIGNUPS_ALLOWED` or the whitelist say. Nobody has to add a domain to `SIGNUPS_DOMAINS_WHITELIST` for a link
+  to work. The link only admits its own organisation's domains; it opens no other route.
 * Organisation admins: use the organisation invite link (Members, Invite link), which already shows a link to
   copy. Inviting a member by email is refused with that pointer.
 * A mail-off server cannot prove address ownership anywhere. Domain-restricted organisation invite links and

@@ -358,6 +358,67 @@ describe('instance invitations without mail', () => {
     expect(listed.status).toBe(200)
   })
 
+  describe('organisation invite link', () => {
+    const SEND = '/identity/accounts/register/send-verification-email'
+    const closed: Record<string, unknown> = {
+      SIGNUPS_ALLOWED: 'false',
+      SIGNUPS_DOMAINS_WHITELIST: '',
+    }
+    const setup = async (domain: string) => {
+      const owner = await actor(uniq('lo'))
+      const { id } = await createOrg(owner, 'Linked')
+      const link = await owner.json(`/api/organizations/${id}/invite-link`, 'POST', {
+        allowedDomains: [domain],
+        invite: 'opaque',
+        supportsConfirmation: false,
+      })
+      return { id, code: link.code as string }
+    }
+    const send = (email: string, id: string, code: string, over = closed) =>
+      post(over, SEND, {
+        email,
+        openOrgInvite: { organizationId: id, code, sealedOpenOrgInviteData: 'sealed' },
+      })
+
+    it('registers and joins with mail off, no whitelist', async () => {
+      const { id, code } = await setup('linked.example.com')
+      const email = `new${++n}@linked.example.com`
+      const res = await send(email, id, code)
+      expect(res.status).toBe(200)
+      const token = ((await res.json()) as string) ?? ''
+      expect((await finish(closed, email, token)).status).toBe(200)
+      const s = (await (await login(email)).json()) as any
+      const accept = await post(
+        closed,
+        '/api/organizations/users/invite-link/accept',
+        { organizationId: id, code },
+        s.access_token,
+      )
+      expect(accept.status).toBe(200)
+    })
+
+    it('rejects a wrong domain, a bad code and a missing link', async () => {
+      const { id, code } = await setup('linked.example.com')
+      expect((await send(`x${++n}@other.example.com`, id, code)).status).toBe(400)
+      expect((await send(`x${++n}@linked.example.com`, id, 'nope')).status).toBe(400)
+      expect((await post(closed, SEND, { email: `x${++n}@linked.example.com` })).status).toBe(400)
+    })
+
+    it('never admits an admin address without mail', async () => {
+      const { id, code } = await setup('linked.example.com')
+      const admin = `adm${++n}@linked.example.com`
+      const res = await send(admin, id, code, { ...closed, ADMIN_EMAILS: admin })
+      expect(res.status).toBe(400)
+    })
+
+    it('leaves the whitelist working for public sign-up', async () => {
+      const res = await post({ ...closed, SIGNUPS_DOMAINS_WHITELIST: 'example.com' }, SEND, {
+        email: uniq('wl'),
+      })
+      expect(res.status).toBe(200)
+    })
+  })
+
   it('with mail the invitation is emailed and carries no code', async () => {
     const a = await admin()
     const { mb, over: mailed } = mailOver()

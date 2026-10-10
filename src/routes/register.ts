@@ -22,6 +22,7 @@ import type { Bindings, Env } from '../env'
 import { ApiError } from '../errors'
 import { rateLimit, tooManyRequests } from '../ratelimit'
 import { type KdfParams, kdfProblem, parseBody } from '../validation'
+import { domains, findLink } from './org-settings'
 
 export const register = new Hono<Env>()
 
@@ -33,12 +34,22 @@ export async function signupAllowed(env: Bindings, db: Db, email: string): Promi
   return (await signupBasis(env, db, email)) !== null
 }
 
-/** Why `email` may register: open signups, the domain whitelist, or an invitation. */
+/**
+ * Why `email` may register: an organisation invite link that allows its domain (independent
+ * of the env whitelist), open signups, the domain whitelist, or an invitation.
+ */
 export async function signupBasis(
   env: Bindings,
   db: Db,
   email: string,
-): Promise<'open' | 'whitelist' | 'invite' | null> {
+  via?: { organizationId: string; code: string } | null,
+): Promise<'inviteLink' | 'open' | 'whitelist' | 'invite' | null> {
+  if (via) {
+    const { organizationId, code } = via
+    const link = await findLink(db, organizationId, code)
+    const at = normalizeEmail(email)
+    if (link && domains(link).includes(at.slice(at.lastIndexOf('@') + 1))) return 'inviteLink'
+  }
   if (env.SIGNUPS_ALLOWED === 'true') return 'open'
   const list = (env.SIGNUPS_DOMAINS_WHITELIST ?? '')
     .split(',')
@@ -210,6 +221,8 @@ const sendSchema = z.object({
   email: z.string().email(),
   name: z.string().max(50).nullish(),
   receiveMarketingEmails: z.boolean().nullish(),
+  // Sent by the web vault when registering from an organisation invite link.
+  openOrgInvite: z.object({ organizationId: z.string().min(1), code: z.string().min(1) }).nullish(),
 })
 
 // With a mail transport the link is emailed (204). Without one, verification is disabled
@@ -220,11 +233,11 @@ register.post(
   async (c) => {
     const body = await parseBody(c, sendSchema)
     const email = normalizeEmail(body.email)
-    const basis = await signupBasis(c.env, createDb(c.env.DB), email)
+    const basis = await signupBasis(c.env, createDb(c.env.DB), email, body.openOrgInvite)
     if (basis === null) throw notAllowed(c.env)
     // Without a mail transport the token is handed straight back, which proves nothing. Admin
     // addresses need the setup secret and invitations need their invite code (both go through
-    // `registration/redeem`); open signups and the domain whitelist keep working.
+    // `registration/redeem`); open signups, the domain whitelist and org invite links keep working.
     if (!mailConfigured(c.env) && (isAdminEmail(c.env.ADMIN_EMAILS, email) || basis === 'invite')) {
       throw notAllowed(c.env)
     }

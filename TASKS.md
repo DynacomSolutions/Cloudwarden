@@ -74,6 +74,7 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 | 66 | Emergency access | done | | | | | Invite, accept, confirm, initiate, approve, reject, view, takeover and password; wait time is evaluated from timestamps, no scheduler |
 | 67 | Event logs | done | | | | | Server events on write paths, `/events/collect`, organisation, cipher and member listings with continuation tokens |
 | 392 | Only instance administrators (`ADMIN_EMAILS`) can create organisations; every user-driven creation path is gated, existing organisations unaffected | done | claude | `org-creation-admins` |  |  | PR #74 merged (0fe58f6); only ADMIN_EMAILS users may create organisations (403 otherwise); `test/parity-orgs.test.ts`, e2e 49/49; web vault still shows the New organisation button to non-admins (no server signal) |
+| 393 | Organisation creation follows in-app instance roles (owner via `ADMIN_EMAILS`, or database `admin`), verified address required; web vault hides every New organisation entry for users without it | in_progress | claude | `org-create-db-role` | 392 | 2026-10-10 20:30 ICT | Supersedes the env-only gate of #392 |
 
 ## 5. Phase 4: Sends and attachments
 

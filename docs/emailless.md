@@ -65,6 +65,8 @@ route, with or without open signups, when mail is off.
   does not force joining the organisation. On a mail-off server the token dies with the link (a refreshed or
   deleted link refuses the registration), and an address with a pending instance invitation still needs its
   invite code.
+* A link may list explicit email addresses as well as domains. An address entry limits the link to that address:
+  on a mail-off server it is still the typed address, not a proven one, but it no longer opens a whole domain.
 * Risk, as it stands: any user can create an organisation and publish a link for any domains, and on a
   mail-off server anyone holding that link can register any address in those domains, unproven. No setting
   restricts who may create organisations or links yet.

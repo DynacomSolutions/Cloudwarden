@@ -486,6 +486,18 @@ describe('instance invitations without mail', () => {
       expect((await send(`New${++n}@Linked.Example.COM`, id, code)).status).toBe(200)
     })
 
+    it('admits listed addresses and domains, refuses others, rejects bad entries', async () => {
+      const { id, code, owner } = await setup('corp.example.com')
+      const put = (allowedDomains: string[]) =>
+        owner.call(`/api/organizations/${id}/invite-link`, 'PUT', { allowedDomains })
+      expect((await put(['corp.example.com', 'Bob@Other.Example.com'])).status).toBe(200)
+      expect((await send('bob@other.example.com', id, code)).status).toBe(200)
+      expect((await send('carol@other.example.com', id, code)).status).toBe(400)
+      expect((await send(`any${++n}@corp.example.com`, id, code)).status).toBe(200)
+      expect((await put(['not an entry'])).status).toBe(400)
+      expect((await put(['a@@b'])).status).toBe(400)
+    })
+
     it('leaves the whitelist working for public sign-up', async () => {
       const res = await post({ ...closed, SIGNUPS_DOMAINS_WHITELIST: 'example.com' }, SEND, {
         email: uniq('wl'),

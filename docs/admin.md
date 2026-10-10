@@ -55,7 +55,8 @@ Invitation events never contain the address.
 
 `SIGNUPS_DOMAINS_WHITELIST` governs public sign-up only. Organisation invite links admit their allowed
 domains on their own and need no whitelist entry. Any user can create an organisation and publish a link for any
-domains; without mail, anyone holding the link can register any address in those domains, unproven. No restriction
+domains; without mail, anyone holding the link can register any address in those domains, unproven. An address entry limits a link to that
+address only. No restriction
 on who may create organisations or links exists yet.
 
 Registration and admin addresses: invitations and `SIGNUPS_DOMAINS_WHITELIST` only say who may

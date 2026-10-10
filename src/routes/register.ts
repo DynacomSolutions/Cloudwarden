@@ -22,7 +22,7 @@ import type { Bindings, Env } from '../env'
 import { ApiError } from '../errors'
 import { rateLimit, tooManyRequests } from '../ratelimit'
 import { type KdfParams, kdfProblem, parseBody } from '../validation'
-import { domains, findLink } from './org-settings'
+import { findLink, linkAllows } from './org-settings'
 
 export const register = new Hono<Env>()
 
@@ -38,8 +38,7 @@ export async function signupAllowed(env: Bindings, db: Db, email: string): Promi
 async function linkAdmits(db: Db, ref: { organizationId: string; code: string }, email: string) {
   const { organizationId, code } = ref
   const link = await findLink(db, organizationId, code)
-  const at = normalizeEmail(email)
-  return link !== undefined && domains(link).includes(at.slice(at.lastIndexOf('@') + 1))
+  return link !== undefined && linkAllows(link, normalizeEmail(email))
 }
 
 /**

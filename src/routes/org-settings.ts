@@ -75,7 +75,16 @@ async function linkByCode(db: Db, organizationId: string, code: string) {
   return link
 }
 
-export const domains = (link: LinkRow) => JSON.parse(link.allowedDomains) as string[]
+const domains = (link: LinkRow) => JSON.parse(link.allowedDomains) as string[]
+
+/** Whether the link admits `email`: an entry with '@' is an exact address, any other a domain. */
+export function linkAllows(link: LinkRow, email: string) {
+  const addr = email.trim().toLowerCase()
+  const domain = addr.slice(addr.lastIndexOf('@') + 1)
+  return (
+    addr.includes('@') && domains(link).some((e) => (e.includes('@') ? e === addr : e === domain))
+  )
+}
 
 orgSettings.post('/api/organizations/invite-link/status', publicLimit, async (c) => {
   const body = await parseBody(c, codeSchema)
@@ -122,10 +131,9 @@ orgSettings.post('/api/organizations/invite-link/validate-email-domain', publicL
       .transform(({ code, ...rest }) => ({ ...rest, linkCode: code })),
   )
   const link = await linkByCode(createDb(c.env.DB), body.organizationId, body.linkCode)
-  const domain = body.email.trim().toLowerCase().split('@').pop() ?? ''
   return c.json({
     object: 'organizationInviteLinkValidateEmailDomain',
-    isAllowed: body.email.includes('@') && domains(link).includes(domain),
+    isAllowed: linkAllows(link, body.email),
   })
 })
 
@@ -274,7 +282,12 @@ const domainList = z
       .string()
       .trim()
       .toLowerCase()
-      .regex(/^[a-z0-9-]+(\.[a-z0-9-]+)+$/, 'Invalid domain.'),
+      .refine(
+        (v) =>
+          /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(v) ||
+          (v.includes('@') && z.string().email().safeParse(v).success),
+        'Invalid domain or email address.',
+      ),
   )
   .min(1)
   .max(100)
@@ -416,8 +429,7 @@ async function checkJoin(
   if (!emailVerifiedFor(c.env, user)) {
     throw new ApiError(400, 'You must verify your email address before joining an organization.')
   }
-  const domain = user.email.toLowerCase().split('@').pop() ?? ''
-  if (!domains(link).includes(domain)) {
+  if (!linkAllows(link, user.email)) {
     throw new ApiError(
       400,
       `You're not allowed to join the ${org.name} vault with your email domain.`,

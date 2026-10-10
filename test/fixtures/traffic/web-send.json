@@ -657,7 +657,8 @@
       "responseBody": {
         "isAdmin": false,
         "email": "user@example.com",
-        "role": "user"
+        "role": "user",
+        "canCreateOrganizations": false
       }
     },
     {

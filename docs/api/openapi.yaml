@@ -24412,10 +24412,14 @@ components:
           type: string
         role:
           $ref: '#/components/schemas/AdminInstanceRole'
+        canCreateOrganizations:
+          type: boolean
+          description: True for an owner or admin with a verified address; read from the database on every call.
       required:
       - isAdmin
       - email
       - role
+      - canCreateOrganizations
     AdminInstanceRole:
       type: string
       description: 'Instance role. `owner` is an address in the server''s `ADMIN_EMAILS` setting and cannot be changed through the API; `admin` is granted in the database by an owner or admin; `user` is the default.'

@@ -13,7 +13,7 @@ const b64u = (buf) => Buffer.from(buf).toString('base64url')
  * `direct` is the plain http address of the dev server; `base` is its public (TLS proxy) origin,
  * which appears in redirects and is rewritten to `direct` here.
  */
-export async function runSso({ direct, base, pass }) {
+export async function runSso({ direct, base, pass, ownerEmail, registrationToken }) {
   const local = (url) => url.replace(base, direct)
   const api = (path, token, body, method = 'POST') =>
     fetch(`${direct}${path}`, {
@@ -27,12 +27,11 @@ export async function runSso({ direct, base, pass }) {
 
   // Owner account and organisation.
   const stamp = Date.now()
-  const ownerEmail = `sso-owner-${stamp}@example.com`
   const owner = await buildAccount(ownerEmail, 'owner password 1 for sso')
   const reg = await fetch(`${direct}/identity/accounts/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(owner.body),
+    body: JSON.stringify({ ...owner.body, emailVerificationToken: registrationToken }),
   })
   assert.equal(reg.status, 200, await reg.text())
   const login = await fetch(`${direct}/identity/connect/token`, {

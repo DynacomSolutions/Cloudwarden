@@ -131,6 +131,15 @@ async function requireManager(c: Ctx, orgUuid: string) {
   return m
 }
 
+// The SDK reads the organisation private key (encrypted with the organisation key) to build an
+// invite link; owners, admins and custom members only. Not in NOT_FEDERATED, like `/keys`.
+organizations.get('/api/organizations/:id/private-key', async (c) => {
+  const id = c.req.param('id')
+  await requireManager(c, id)
+  const org = await requireOrg(createDb(c.env.DB), id)
+  return c.json({ object: 'organizationPrivateKey', privateKey: org.privateKey })
+})
+
 organizations.get('/api/organizations/:id', async (c) => {
   const id = c.req.param('id')
   await requireManager(c, id)

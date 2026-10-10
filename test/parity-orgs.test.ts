@@ -237,6 +237,39 @@ describe('invite links', () => {
   })
 })
 
+describe('organisation private key (SDK invite link creation)', () => {
+  it('serves managers only and replays the SDK create sequence', async () => {
+    const owner = await actor('pk-owner@example.com')
+    const user = await actor('pk-user@example.com')
+    const outsider = await actor('pk-outsider@example.com')
+    const { id } = await createOrg(owner, 'Keyed')
+    await addMember(owner, id, user)
+    const keyPath = `/api/organizations/${id}/private-key`
+
+    expect(await owner.json(keyPath)).toEqual({
+      object: 'organizationPrivateKey',
+      privateKey: '2.orgPrivate',
+    })
+    // Same error as `/keys` for outsiders; plain members lack the permission.
+    const keys = await outsider.call(`/api/organizations/${id}/keys`)
+    const denied = await outsider.call(keyPath)
+    expect(denied.status).toBe(keys.status)
+    expect(await denied.json()).toEqual(await keys.json())
+    expect((await user.call(keyPath)).status).toBe(403)
+
+    // SDK sequence: private key, public key, create; a second save is a PUT.
+    expect((await owner.json(`/api/organizations/${id}/public-key`)).publicKey).toBe('orgPublic')
+    const base = `/api/organizations/${id}/invite-link`
+    const created = await owner.call(base, 'POST', {
+      allowedDomains: ['example.com'],
+      invite: 'i1',
+    })
+    expect(created.status).toBe(200)
+    const saved = await owner.json(base, 'PUT', { allowedDomains: ['example.org'] })
+    expect(saved.allowedDomains).toEqual(['example.org'])
+  })
+})
+
 describe('organisation creation without payment', () => {
   it('creates an organisation owned by the caller', async () => {
     const owner = await actor('nopay@example.com')

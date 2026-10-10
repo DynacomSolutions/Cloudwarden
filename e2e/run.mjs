@@ -12,7 +12,7 @@ import { loginAndUnlock } from '../scripts/import-from-server.mjs'
 import { migrateLocal } from '../scripts/local-migrate.mjs'
 import { ensureBwdc } from './bwdc.mjs'
 import { ensureBws } from './bws.mjs'
-import { buildAccount, decType2, encType2, encType4 } from './crypto.mjs'
+import { buildAccount, decType2, encType2, encType4, registerToken } from './crypto.mjs'
 import { deriveAccessTokenKey } from './sm-client.mjs'
 import { runSso } from './sso.mjs'
 import { makeCert } from './tls-proxy.mjs'
@@ -21,6 +21,9 @@ const root = resolve(import.meta.dirname, '..')
 const bin = (name) => join(root, 'node_modules', '.bin', name)
 const PASSWORD = 'correct horse battery staple 1'
 const EMAIL = `e2e-${Date.now()}@example.com`
+// Only instance admins (ADMIN_EMAILS) create organisations, so the two accounts that do are listed.
+const SSO_OWNER_EMAIL = `sso-owner-${Date.now()}@example.com`
+const JWT_SECRET = 'e2e-only-secret-e2e-only-secret-0123456789'
 
 function freePort() {
   return new Promise((ok, fail) => {
@@ -57,7 +60,8 @@ async function main() {
     ...process.env,
     SIGNUPS_ALLOWED: 'true',
     LOCAL_DEV_SECRETS: 'true',
-    JWT_SECRET: 'e2e-only-secret-e2e-only-secret-0123456789',
+    JWT_SECRET,
+    ADMIN_EMAILS: `${EMAIL},${SSO_OWNER_EMAIL}`,
     DEPLOY_DOMAIN: `127.0.0.1:${tlsPort}`,
     NODE_EXTRA_CA_CERTS: tls.ca,
     // The SSO step's mock provider is plain http on 127.0.0.1 (TASKS #288).
@@ -139,7 +143,10 @@ async function main() {
     const reg = await fetch(`${direct}/identity/accounts/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(acct.body),
+      body: JSON.stringify({
+        ...acct.body,
+        emailVerificationToken: registerToken(JWT_SECRET, EMAIL),
+      }),
     })
     assert.equal(reg.status, 200, await reg.text())
     pass('register via HTTP')
@@ -869,7 +876,13 @@ async function main() {
     pass('bwdc: overwrite sync removes a user deleted from the directory and keeps the owner')
     void ldap.close()
 
-    await runSso({ direct, base, pass })
+    await runSso({
+      direct,
+      base,
+      pass,
+      ownerEmail: SSO_OWNER_EMAIL,
+      registrationToken: registerToken(JWT_SECRET, SSO_OWNER_EMAIL),
+    })
 
     console.log(`\n${step} steps passed`)
   } catch (err) {

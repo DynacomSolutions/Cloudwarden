@@ -117,3 +117,17 @@ export async function encType4(data, publicKeyB64) {
   )
   return `4.${b64(await subtle.encrypt({ name: 'RSA-OAEP' }, key, data))}`
 }
+
+/**
+ * A registration token for `email`, signed the way the server signs the one it emails. The e2e
+ * server has a mail binding whose mailbox cannot be read, and instance admin addresses
+ * (ADMIN_EMAILS) may only register with proof of the address.
+ */
+export function registerToken(secret, email) {
+  const b64u = (v) => Buffer.from(v).toString('base64url')
+  const now = Math.floor(Date.now() / 1000)
+  const body = `${b64u(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))}.${b64u(
+    JSON.stringify({ purpose: 'register', email, name: '', nbf: now, exp: now + 1800 }),
+  )}`
+  return `${body}.${createHmac('sha256', `register:${secret}`).update(body).digest('base64url')}`
+}

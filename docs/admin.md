@@ -11,7 +11,7 @@ removed (TASKS #226): `/admin` and `/admin/*` now return the standard 404 JSON.
 | Name | Kind | Purpose |
 |---|---|---|
 | `ADMIN_ENABLED` | var | `true` to enable the admin API. Anything else makes the API answer 403 and `/api/cloudwarden/me` report `isAdmin: false` |
-| `ADMIN_EMAILS` | secret | Comma-separated owner addresses (case-insensitive). The bootstrap set of instance admins, shown as **Owner**; only changeable on the server side |
+| `ADMIN_EMAILS` | secret | Comma-separated owner addresses (case-insensitive). The bootstrap set of instance admins, shown as **Owner**; only changeable on the server side. Only these addresses can create organisations (`POST /api/organizations`, 403 for everyone else); existing organisations and memberships are unaffected, and the admin API does not need `ADMIN_ENABLED` for this rule |
 | `EMAIL` | `send_email` binding | Cloudflare Email Service, needed for invitations, verification and two-factor email |
 | `MAIL_FROM` | var | Sender address, on an onboarded sending domain |
 | `DOMAIN` | var | Public base URL, used for emailed links |

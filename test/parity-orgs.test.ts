@@ -293,6 +293,27 @@ describe('organisation creation without payment', () => {
   })
 })
 
+describe('organisation creation is limited to instance admins (TASKS #392)', () => {
+  const body = { name: 'Nope', billingEmail: 'billing@example.com', key: '4.k', planType: 0 }
+  it.each(['/api/organizations', '/api/organizations/create-without-payment'])(
+    'refuses a non-admin on %s and lets an admin create',
+    async (path) => {
+      const user = await actor(`oc-user-${path.length}@example.com`, undefined, {
+        ADMIN_EMAILS: 'someone-else@example.com',
+      })
+      const res = await user.call(path, 'POST', body)
+      expect(res.status).toBe(403)
+      expect(await res.json()).toMatchObject({
+        message: 'Only instance administrators can create organisations.',
+      })
+      expect((await user.json('/api/accounts/profile')).organizations).toHaveLength(0)
+
+      const admin = await actor(`oc-admin-${path.length}@example.com`)
+      expect((await admin.call(path, 'POST', body)).status).toBe(200)
+    },
+  )
+})
+
 describe('accept-init', () => {
   it('lets an invited owner initialise an organisation without keys', async () => {
     const creator = await actor('ai-creator@example.com')

@@ -1,7 +1,7 @@
 // Contract tests (TASKS #180): exercise a curated set of implemented operations through the Worker
 // and validate each response against the response schema in docs/api/openapi.yaml.
 import { beforeAll, describe, expect, it } from 'vitest'
-import { authed, BASE, createSession, form, json } from './helpers'
+import { authed, BASE, createSession, form, json, withEnv } from './helpers'
 import { type Json, resolve, responseErrors, spec } from './spec'
 
 /** Validates `body` against the documented response for `op` and `status`. */
@@ -541,12 +541,16 @@ describe('API contract (docs/api/openapi.yaml)', () => {
     state.token = session.access_token
 
     const org = (await (
-      await call('/api/organizations', 'POST', {
-        name: 'Contract Org',
-        billingEmail: 'billing@example.com',
-        key: '4.orgKey',
-        keys: { publicKey: 'pub', encryptedPrivateKey: '2.priv' },
-        planType: 0,
+      await withEnv({ ADMIN_EMAILS: state.email }, '/api/organizations', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${state.token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Contract Org',
+          billingEmail: 'billing@example.com',
+          key: '4.orgKey',
+          keys: { publicKey: 'pub', encryptedPrivateKey: '2.priv' },
+          planType: 0,
+        }),
       })
     ).json()) as Json
     sm.orgId = org.id

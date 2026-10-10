@@ -34,6 +34,10 @@ export interface Actor {
   json(path: string, method?: string, body?: unknown): Promise<any>
 }
 
+/** Only instance admins create organisations (TASKS #392), so these two routes list the caller as one. */
+export const isOrgCreate = (path: string, method: string) =>
+  method === 'POST' && /^\/api\/organizations(\/create-without-payment)?$/.test(path)
+
 export async function actor(
   email: string,
   mb: Mailbox = mail,
@@ -51,7 +55,13 @@ export async function actor(
         },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       }),
-      { ...env, EMAIL: mb.EMAIL, MAIL_FROM: mb.MAIL_FROM, ...over },
+      {
+        ...env,
+        EMAIL: mb.EMAIL,
+        MAIL_FROM: mb.MAIL_FROM,
+        ...(isOrgCreate(path, method) ? { ADMIN_EMAILS: email } : {}),
+        ...over,
+      },
     )
   const me = (await (await call('/api/accounts/profile')).json()) as { id: string }
   return {

@@ -73,7 +73,7 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 | 65 | Groups | done | | | | | Group collection grants and access-all groups apply in sync and cipher checks |
 | 66 | Emergency access | done | | | | | Invite, accept, confirm, initiate, approve, reject, view, takeover and password; wait time is evaluated from timestamps, no scheduler |
 | 67 | Event logs | done | | | | | Server events on write paths, `/events/collect`, organisation, cipher and member listings with continuation tokens |
-| 392 | Only instance administrators (`ADMIN_EMAILS`) can create organisations; every user-driven creation path is gated, existing organisations unaffected | in_progress | claude | `org-creation-admins` | | 2026-10-10 17:30 ICT | Invite links can register accounts for any domain an org admin picks, so organisation creation is restricted |
+| 392 | Only instance administrators (`ADMIN_EMAILS`) can create organisations; every user-driven creation path is gated, existing organisations unaffected | in_review | claude | `org-creation-admins` | | 2026-10-10 18:00 ICT | PR: https://github.com/DynacomSolutions/Cloudwarden/pull/74. `test/parity-orgs.test.ts`. Invite links can register accounts for any domain an org admin picks, so organisation creation is restricted |
 
 ## 5. Phase 4: Sends and attachments
 

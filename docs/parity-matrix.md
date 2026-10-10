@@ -31,10 +31,10 @@ Directory Connector, SCIM, event integrations; G this audit.
 | | Rows |
 |---|---|
 | Distinct method and path pairs | 625 |
-| Implemented (including self-host answers) | 526 |
+| Implemented (including self-host answers) | 527 |
 | Owned by workstreams A to F, not yet implemented | 0 |
 | Remaining for G | 0 |
-| Not called by any client (SDK-generated only) | 92 |
+| Not called by any client (SDK-generated only) | 91 |
 | Not applicable (not served by the official self-hosted server either) | 7 |
 
 ## Matrix
@@ -409,7 +409,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | PUT | `/api/organizations/{orgId}/policies/{type}` | sdk, web | implemented |  |  |
 | GET | `/api/organizations/{orgId}/policies/master-password` | sdk, web | implemented |  |  |
 | GET | `/api/organizations/{orgId}/policies/token` | sdk, web | implemented |  |  |
-| GET | `/api/organizations/{id}/private-key` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
+| GET | `/api/organizations/{id}/private-key` | sdk | implemented |  |  |
 | GET | `/api/organizations/{orgId}/projects` | bws, web | implemented |  |  |
 | POST | `/api/organizations/{orgId}/projects` | bws, web | implemented |  |  |
 | GET | `/api/organizations/(id)/public-key` | ios, sdk | implemented | C | Organisation public key for confirmed members (TASKS #343) |

@@ -34,6 +34,14 @@ export async function signupAllowed(env: Bindings, db: Db, email: string): Promi
   return (await signupBasis(env, db, email)) !== null
 }
 
+/** Whether the organisation's current link matches `ref` and allows the address's domain. */
+async function linkAdmits(db: Db, ref: { organizationId: string; code: string }, email: string) {
+  const { organizationId, code } = ref
+  const link = await findLink(db, organizationId, code)
+  const at = normalizeEmail(email)
+  return link !== undefined && domains(link).includes(at.slice(at.lastIndexOf('@') + 1))
+}
+
 /**
  * Why `email` may register: an organisation invite link that allows its domain (independent
  * of the env whitelist), open signups, the domain whitelist, or an invitation.
@@ -44,12 +52,7 @@ export async function signupBasis(
   email: string,
   via?: { organizationId: string; code: string } | null,
 ): Promise<'inviteLink' | 'open' | 'whitelist' | 'invite' | null> {
-  if (via) {
-    const { organizationId, code } = via
-    const link = await findLink(db, organizationId, code)
-    const at = normalizeEmail(email)
-    if (link && domains(link).includes(at.slice(at.lastIndexOf('@') + 1))) return 'inviteLink'
-  }
+  if (via && (await linkAdmits(db, via, email))) return 'inviteLink'
   if (env.SIGNUPS_ALLOWED === 'true') return 'open'
   const list = (env.SIGNUPS_DOMAINS_WHITELIST ?? '')
     .split(',')
@@ -60,12 +63,16 @@ export async function signupBasis(
   if (list.some((entry) => (entry.includes('@') ? entry === addr : entry === domain))) {
     return 'whitelist'
   }
+  return (await hasInvitation(db, addr)) ? 'invite' : null
+}
+
+async function hasInvitation(db: Db, email: string) {
   const [invite] = await db
     .select({ uuid: schema.invitations.uuid })
     .from(schema.invitations)
-    .where(sql`lower(${schema.invitations.email}) = ${addr}`)
+    .where(sql`lower(${schema.invitations.email}) = ${normalizeEmail(email)}`)
     .limit(1)
-  return invite !== undefined ? 'invite' : null
+  return invite !== undefined
 }
 
 const NO_MAIL_HINT =
@@ -83,6 +90,8 @@ interface RegisterClaims {
   name: string
   /** Issued by the setup code redemption (no mail): the holder may create the first admin. */
   setup?: boolean
+  /** The org invite link that admitted this address; re-checked at finish when mail is off. */
+  link?: { organizationId: string; code: string }
   exp: number
   nbf: number
 }
@@ -123,6 +132,7 @@ async function createAccount(c: import('hono').Context<Env>) {
   // for admin addresses, which must never be claimable by whoever registers them first.
   let verified = false
   let setupClaim = false
+  let linkClaim: RegisterClaims['link']
   if (body.emailVerificationToken) {
     const claims = await verifyJwt<RegisterClaims>(body.emailVerificationToken, [
       registerSecret(c.env),
@@ -130,8 +140,13 @@ async function createAccount(c: import('hono').Context<Env>) {
     if (claims?.purpose === 'register' && claims.email === email) {
       verified = true
       setupClaim = claims.setup === true
+      linkClaim = claims.link
       name = body.name ?? claims.name
     }
+  }
+  // Without mail the token proves nothing, so a link-bound token dies with its link.
+  if (linkClaim && !mailConfigured(c.env) && !(await linkAdmits(db, linkClaim, email))) {
+    throw notAllowed(c.env)
   }
   const adminAddress = isAdminEmail(c.env.ADMIN_EMAILS, email)
   const open = c.env.SIGNUPS_ALLOWED === 'true' && !adminAddress
@@ -233,7 +248,8 @@ register.post(
   async (c) => {
     const body = await parseBody(c, sendSchema)
     const email = normalizeEmail(body.email)
-    const basis = await signupBasis(c.env, createDb(c.env.DB), email, body.openOrgInvite)
+    const db = createDb(c.env.DB)
+    const basis = await signupBasis(c.env, db, email, body.openOrgInvite)
     if (basis === null) throw notAllowed(c.env)
     // Without a mail transport the token is handed straight back, which proves nothing. Admin
     // addresses need the setup secret and invitations need their invite code (both go through
@@ -241,11 +257,16 @@ register.post(
     if (!mailConfigured(c.env) && (isAdminEmail(c.env.ADMIN_EMAILS, email) || basis === 'invite')) {
       throw notAllowed(c.env)
     }
+    // An invited address keeps needing its invite code without mail, so a link cannot bypass it.
+    if (!mailConfigured(c.env) && basis === 'inviteLink' && (await hasInvitation(db, email))) {
+      throw notAllowed(c.env)
+    }
     const now = Math.floor(Date.now() / 1000)
     const claims: RegisterClaims = {
       purpose: 'register',
       email,
       name: body.name ?? '',
+      ...(basis === 'inviteLink' && body.openOrgInvite ? { link: body.openOrgInvite } : {}),
       nbf: now,
       exp: now + REGISTER_TOKEN_TTL_SECONDS,
     }

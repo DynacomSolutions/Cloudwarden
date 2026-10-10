@@ -61,7 +61,13 @@ route, with or without open signups, when mail is off.
   use invite links instead.
 * Organisation invite links admit their own allowed domains to register, with or without mail and whatever
   `SIGNUPS_ALLOWED` or the whitelist say. Nobody has to add a domain to `SIGNUPS_DOMAINS_WHITELIST` for a link
-  to work. The link only admits its own organisation's domains; it opens no other route.
+  to work. The link admits only its own organisation's domains, but the token it yields creates a full instance account and
+  does not force joining the organisation. On a mail-off server the token dies with the link (a refreshed or
+  deleted link refuses the registration), and an address with a pending instance invitation still needs its
+  invite code.
+* Risk, as it stands: any user can create an organisation and publish a link for any domains, and on a
+  mail-off server anyone holding that link can register any address in those domains, unproven. No setting
+  restricts who may create organisations or links yet.
 * Organisation admins: use the organisation invite link (Members, Invite link), which already shows a link to
   copy. Inviting a member by email is refused with that pointer.
 * A mail-off server cannot prove address ownership anywhere. Domain-restricted organisation invite links and

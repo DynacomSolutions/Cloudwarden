@@ -184,6 +184,7 @@ describe('admin API hardening', () => {
       isAdmin: false,
       email: a.email,
       role: 'owner',
+      canCreateOrganizations: false,
     })
   })
 
@@ -255,11 +256,13 @@ describe('GET /api/cloudwarden/me', () => {
       isAdmin: true,
       email: a.email,
       role: 'owner',
+      canCreateOrganizations: true,
     })
     expect(await (await u.call('/api/cloudwarden/me')).json()).toEqual({
       isAdmin: false,
       email: u.email,
       role: 'user',
+      canCreateOrganizations: false,
     })
     const res = await a.call('/api/cloudwarden/me')
     expect(res.headers.get('cache-control')).toBe('no-store')

@@ -1,6 +1,6 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
-import { Component, OnInit } from "@angular/core";
+import { Component, inject, OnInit } from "@angular/core";
 import { firstValueFrom } from "rxjs";
 
 import { OrganizationService } from "@bitwarden/common/admin-console/abstractions/organization/organization.service.abstraction";
@@ -9,6 +9,7 @@ import { AccountService } from "@bitwarden/common/auth/abstractions/account.serv
 import { getUserId } from "@bitwarden/common/auth/services/account.service";
 import { SearchModule } from "@bitwarden/components";
 
+import { InstanceAdminApiService } from "../../cloudwarden/instance-admin/instance-admin-api.service";
 import { HeaderModule } from "../../layouts/header/header.module";
 import { SharedModule } from "../../shared/shared.module";
 
@@ -21,10 +22,13 @@ import { SharedModule } from "../../shared/shared.module";
 })
 export class SMLandingComponent implements OnInit {
   tryItNowUrl: string;
+  canCreateOrganizations = true;
   learnMoreUrl: string = "https://bitwarden.com/help/secrets-manager-overview/";
   imageSrc: string = "../images/sm.webp";
   showSecretsManagerInformation: boolean = true;
   showGiveMembersAccessInstructions: boolean = false;
+
+  private readonly instanceAdminApi = inject(InstanceAdminApiService);
 
   constructor(
     private organizationService: OrganizationService,
@@ -41,6 +45,10 @@ export class SMLandingComponent implements OnInit {
       this.handleEnabledOrganizations(enabledOrganizations);
     } else {
       // Person is not part of any orgs they need to be in an organization in order to use SM
+      // Cloudwarden: only owners and admins create organisations; others ask one of them.
+      this.canCreateOrganizations = await firstValueFrom(
+        this.instanceAdminApi.canCreateOrganizations$,
+      );
       this.tryItNowUrl = "/create-organization";
     }
   }

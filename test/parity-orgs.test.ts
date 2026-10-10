@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers'
 import { describe, expect, it } from 'vitest'
 import { json, waitFor } from './helpers'
 import {
@@ -312,6 +313,63 @@ describe('organisation creation is limited to instance admins (TASKS #392)', () 
       expect((await admin.call(path, 'POST', body)).status).toBe(200)
     },
   )
+})
+
+describe('organisation creation follows the instance role in D1 (TASKS #393)', () => {
+  const body = { name: 'Roles', billingEmail: 'billing@example.com', key: '4.k', planType: 0 }
+  // The shared helper lists the caller in ADMIN_EMAILS for create calls; an empty list turns that off.
+  const noOwners = { ADMIN_EMAILS: '' }
+  const setRole = (uuid: string, role: string) =>
+    env.DB.prepare('UPDATE users SET instance_role = ?1 WHERE uuid = ?2').bind(role, uuid).run()
+  const flag = async (a: Awaited<ReturnType<typeof actor>>, over = noOwners) => {
+    const { default: app } = await import('../src/index')
+    const res = await app.fetch(
+      new Request('https://vault.example.com/api/cloudwarden/me', {
+        headers: { Authorization: `Bearer ${a.token}` },
+      }),
+      { ...env, ...over },
+    )
+    return ((await res.json()) as { canCreateOrganizations: boolean }).canCreateOrganizations
+  }
+
+  it('lets a D1 admin create, refuses a plain user, and a revoked admin at once', async () => {
+    const a = await actor('oc-d1-admin@example.com', undefined, noOwners)
+    expect((await a.call('/api/organizations', 'POST', body)).status).toBe(403)
+    expect(await flag(a)).toBe(false)
+
+    await setRole(a.uuid, 'admin')
+    expect(await flag(a)).toBe(true)
+    expect((await a.call('/api/organizations', 'POST', body)).status).toBe(200)
+
+    await setRole(a.uuid, 'user') // same access token, no cache
+    expect(await flag(a)).toBe(false)
+    expect((await a.call('/api/organizations', 'POST', body)).status).toBe(403)
+  })
+
+  it('lets an ADMIN_EMAILS owner create and reports it', async () => {
+    const o = await actor('oc-owner@example.com', undefined, {
+      ADMIN_EMAILS: 'oc-owner@example.com',
+    })
+    expect(await flag(o, { ADMIN_EMAILS: 'oc-owner@example.com' })).toBe(true)
+    expect((await o.call('/api/organizations', 'POST', body)).status).toBe(200)
+  })
+
+  it('refuses an admin whose address is not verified', async () => {
+    const a = await actor('oc-unverified@example.com', undefined, noOwners)
+    await setRole(a.uuid, 'admin')
+    await env.DB.prepare('UPDATE users SET verified_at = NULL WHERE uuid = ?1').bind(a.uuid).run()
+    expect(await flag(a)).toBe(false)
+    expect((await a.call('/api/organizations', 'POST', body)).status).toBe(403)
+  })
+
+  it('does not depend on ADMIN_ENABLED', async () => {
+    const a = await actor('oc-enabled@example.com', undefined, {
+      ...noOwners,
+      ADMIN_ENABLED: 'false',
+    })
+    await setRole(a.uuid, 'admin')
+    expect((await a.call('/api/organizations', 'POST', body)).status).toBe(200)
+  })
 })
 
 describe('accept-init', () => {

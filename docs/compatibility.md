@@ -54,6 +54,15 @@ Cloudwarden returns:
 | `push` | `{ pushTechnology: 0 }` |
 | `settings` | `{ disableUserRegistration: <SIGNUPS_ALLOWED is not "true"> }` |
 
+## Cloudwarden-only fields
+
+`GET /api/cloudwarden/me` (not part of the Bitwarden API, called only by the Cloudwarden web vault)
+returns `isAdmin`, `email`, `role` and `canCreateOrganizations`. The last is true for an instance
+owner or admin with a verified address and decides whether the web vault shows the New organisation
+entries. It is read from the database on every call, so a role change applies at once. The official
+mobile, desktop and browser clients never call this route, and no standard response (profile, sync)
+carries an extra field.
+
 ## Version strategy
 
 The `version` string is not Cloudwarden's release number. Clients compare it with minimum-server-version

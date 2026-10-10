@@ -11,7 +11,7 @@ removed (TASKS #226): `/admin` and `/admin/*` now return the standard 404 JSON.
 | Name | Kind | Purpose |
 |---|---|---|
 | `ADMIN_ENABLED` | var | `true` to enable the admin API. Anything else makes the API answer 403 and `/api/cloudwarden/me` report `isAdmin: false` |
-| `ADMIN_EMAILS` | secret | Comma-separated owner addresses (case-insensitive). The bootstrap set of instance admins, shown as **Owner**; only changeable on the server side. Only these addresses can create organisations (`POST /api/organizations`, 403 for everyone else); existing organisations and memberships are unaffected, and the admin API does not need `ADMIN_ENABLED` for this rule |
+| `ADMIN_EMAILS` | secret | Comma-separated owner addresses (case-insensitive). The bootstrap set of instance admins, shown as **Owner**; only changeable on the server side. Owners, like admins granted in Instance admin, can create organisations (see below) |
 | `EMAIL` | `send_email` binding | Cloudflare Email Service, needed for invitations, verification and two-factor email |
 | `MAIL_FROM` | var | Sender address, on an onboarded sending domain |
 | `DOMAIN` | var | Public base URL, used for emailed links |
@@ -54,10 +54,12 @@ organisation also removes its R2 attachment and Send blobs. Every write inserts 
 Invitation events never contain the address.
 
 `SIGNUPS_DOMAINS_WHITELIST` governs public sign-up only. Organisation invite links admit their allowed
-domains on their own and need no whitelist entry. Any user can create an organisation and publish a link for any
+domains on their own and need no whitelist entry. Only an owner (`ADMIN_EMAILS`) or a granted admin (Instance admin) with a verified address can create an
+organisation (`POST /api/organizations`, 403 for everyone else); the role is read from the database on every
+call, so revoking it applies at once, and `ADMIN_ENABLED` does not matter for this rule. The web vault hides the
+New organisation entries from everyone else. Such a creator can publish a link for any
 domains; without mail, anyone holding the link can register any address in those domains, unproven. An address entry limits a link to that
-address only. No restriction
-on who may create organisations or links exists yet.
+address only. Link creation is limited to those who may create organisations.
 
 Registration and admin addresses: invitations and `SIGNUPS_DOMAINS_WHITELIST` only say who may
 register, so those registrations need the emailed verification token (proof of mailbox control).

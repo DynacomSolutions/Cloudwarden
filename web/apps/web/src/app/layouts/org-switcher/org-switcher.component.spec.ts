@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { By } from "@angular/platform-browser";
 import { ActivatedRoute, convertToParamMap, RouterModule } from "@angular/router";
 import { mock } from "jest-mock-extended";
-import { of } from "rxjs";
+import { defer, of } from "rxjs";
 
 import { OrganizationService } from "@bitwarden/common/admin-console/abstractions/organization/organization.service.abstraction";
 import type { Organization } from "@bitwarden/common/admin-console/models/domain/organization";
@@ -20,6 +20,8 @@ import {
   SideNavVersion,
 } from "@bitwarden/components";
 import { GlobalStateProvider } from "@bitwarden/state";
+
+import { InstanceAdminApiService } from "../../cloudwarden/instance-admin/instance-admin-api.service";
 
 import { OrgSwitcherComponent } from "./org-switcher.component";
 
@@ -41,6 +43,7 @@ describe("OrgSwitcherComponent", () => {
   let fixture: ComponentFixture<OrgSwitcherComponent>;
 
   let vfo1Enabled = false;
+  let canCreateOrganizations = true;
 
   const userId = "user-id" as UserId;
   const organization = { id: "org-1", name: "Test Org", enabled: true } as Organization;
@@ -51,6 +54,7 @@ describe("OrgSwitcherComponent", () => {
 
   beforeEach(async () => {
     vfo1Enabled = false;
+    canCreateOrganizations = true;
 
     i18nService.t.mockImplementation((key: string) => key);
     organizationService.organizations$.mockReturnValue(of([organization]));
@@ -69,6 +73,10 @@ describe("OrgSwitcherComponent", () => {
           useValue: { paramMap: of(convertToParamMap({ organizationId: organization.id })) },
         },
         { provide: ConfigService, useValue: configService },
+        {
+          provide: InstanceAdminApiService,
+          useValue: { canCreateOrganizations$: defer(() => of(canCreateOrganizations)) },
+        },
         { provide: GlobalStateProvider, useValue: new FakeGlobalStateProvider() },
       ],
     }).compileComponents();
@@ -123,6 +131,15 @@ describe("OrgSwitcherComponent", () => {
 
   it("hides the New organization item when hideNewButton is set", () => {
     render(true);
+
+    expect(newOrganizationItem()).toBeUndefined();
+  });
+
+  // Cloudwarden: only instance owners and admins create organisations.
+  it("hides the New organization item from users who cannot create organisations", () => {
+    canCreateOrganizations = false;
+
+    render();
 
     expect(newOrganizationItem()).toBeUndefined();
   });

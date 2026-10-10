@@ -116,7 +116,7 @@ describe('organisation API key', () => {
     const other = await actor('pub-rot@example.com')
     const { id } = await createOrg(other, 'Rotation Org')
     const key = await orgApiKey(other, id)
-    const wrong = await orgToken(id, `${key.slice(0, -1)}x`)
+    const wrong = await orgToken(id, `${key.slice(0, -1)}${key.endsWith('x') ? 'y' : 'x'}`)
     expect(wrong.status).toBe(400)
     expect(wrong.body.error).toBe('invalid_client')
     const t = await orgToken(id, key)

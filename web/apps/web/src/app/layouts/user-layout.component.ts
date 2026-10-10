@@ -68,6 +68,11 @@ export class UserLayoutComponent implements OnInit {
       initialValue: false,
     },
   );
+  // Cloudwarden: "Add plan" creates an organisation, so only owners and admins see it.
+  protected readonly canCreateOrganizations = toSignal(
+    inject(InstanceAdminApiService).canCreateOrganizations$,
+    { initialValue: false },
+  );
   // Cloudwarden: federated organisations entry, shown when the server has federation on.
   protected readonly federationEnabled = toSignal(
     inject(FederationApiService).enabled$,

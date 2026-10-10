@@ -57,6 +57,17 @@ export function isAdminUser(
 }
 
 /**
+ * Whether `user` may create organisations: they hold an instance role (owner address or stored
+ * `admin`) and the address is verified, so registering someone's address cannot claim it.
+ * ADMIN_ENABLED is deliberately ignored: it switches the Instance admin console, not who may
+ * create organisations. The role is read from the user row on every request, never from the token.
+ */
+export const canCreateOrganizations = (
+  env: { ADMIN_EMAILS?: string },
+  user: { email: string; verifiedAt: number | null; instanceRole?: string | null },
+): boolean => user.verifiedAt !== null && holdsInstanceRole(env, user)
+
+/**
  * Fixed-window counter in D1. Returns true when the call is within `limit`.
  * Old windows are pruned opportunistically.
  */

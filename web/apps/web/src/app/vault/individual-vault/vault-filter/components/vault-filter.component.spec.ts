@@ -1,7 +1,7 @@
 import { NO_ERRORS_SCHEMA } from "@angular/core";
 import { TestBed } from "@angular/core/testing";
 import { mock, MockProxy } from "jest-mock-extended";
-import { BehaviorSubject, firstValueFrom, of } from "rxjs";
+import { BehaviorSubject, defer, firstValueFrom, of } from "rxjs";
 
 import { PolicyService } from "@bitwarden/common/admin-console/abstractions/policy/policy.service.abstraction";
 import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
@@ -29,6 +29,8 @@ import {
 } from "@bitwarden/vault";
 import { OrganizationWarningsService } from "@bitwarden/web-vault/app/billing/organizations/warnings/services";
 
+import { InstanceAdminApiService } from "../../../../cloudwarden/instance-admin/instance-admin-api.service";
+
 import { VaultFilterComponent } from "./vault-filter.component";
 
 const USER_ID = "user-1" as UserId;
@@ -54,6 +56,7 @@ describe("VaultFilterComponent", () => {
   let restrictedSubject: BehaviorSubject<RestrictedCipherType[]>;
   let policyService: MockProxy<PolicyService>;
   let vfo1Enabled: jest.Mock<boolean, []>;
+  let canCreateOrganizations = true;
 
   beforeEach(async () => {
     vaultFilterService = mock<VaultFilterService>();
@@ -84,6 +87,7 @@ describe("VaultFilterComponent", () => {
     policyService.policiesByType$.mockReturnValue(of([]));
 
     vfo1Enabled = jest.fn<boolean, []>().mockReturnValue(false);
+    canCreateOrganizations = true;
 
     const i18nService = mock<I18nService>();
     i18nService.t.mockImplementation((key: string) => key);
@@ -116,6 +120,10 @@ describe("VaultFilterComponent", () => {
         { provide: PremiumUpgradePromptService, useValue: mock<PremiumUpgradePromptService>() },
         { provide: OrganizationWarningsService, useValue: mock<OrganizationWarningsService>() },
         { provide: Vfo1TerminologyService, useValue: { enabled: vfo1Enabled } },
+        {
+          provide: InstanceAdminApiService,
+          useValue: { canCreateOrganizations$: defer(() => of(canCreateOrganizations)) },
+        },
       ],
     }).compileComponents();
 
@@ -301,6 +309,15 @@ describe("VaultFilterComponent", () => {
         const section = await component.addOrganizationFilter();
 
         expect(section.add?.text).toBe("newVault");
+      });
+
+      // Cloudwarden: only instance owners and admins create organisations.
+      it("omits the add action when the user cannot create organisations", async () => {
+        canCreateOrganizations = false;
+
+        const section = await component.addOrganizationFilter();
+
+        expect(section.add).toBeUndefined();
       });
 
       it("omits the add action when the SingleOrg policy applies", async () => {

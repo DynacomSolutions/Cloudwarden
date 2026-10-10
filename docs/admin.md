@@ -53,6 +53,12 @@ organisation also removes its R2 attachment and Send blobs. Every write inserts 
 (types 9001 to 9013, outside the codes the official clients use) recording the acting admin.
 Invitation events never contain the address.
 
+`SIGNUPS_DOMAINS_WHITELIST` governs public sign-up only. Organisation invite links admit their allowed
+domains on their own and need no whitelist entry. Any user can create an organisation and publish a link for any
+domains; without mail, anyone holding the link can register any address in those domains, unproven. An address entry limits a link to that
+address only. No restriction
+on who may create organisations or links exists yet.
+
 Registration and admin addresses: invitations and `SIGNUPS_DOMAINS_WHITELIST` only say who may
 register, so those registrations need the emailed verification token (proof of mailbox control).
 Open signups may skip it, except for addresses in `ADMIN_EMAILS`, which always need the token (and

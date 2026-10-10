@@ -77,7 +77,8 @@ export default defineConfig({
       // MAIL_DISABLED=true for an account without Email Sending (for example the Workers Free
       // plan): the binding is left out and the server runs email-less (docs/emailless.md).
       ...(env.MAIL_DISABLED === 'true' ? {} : { EMAIL: bindings.sendEmail() }),
-      // Comma-separated domains or addresses allowed to register while SIGNUPS_ALLOWED is false.
+      // Comma-separated domains or addresses allowed to register publicly while SIGNUPS_ALLOWED is
+      // false. Public sign-up only: organisation invite links admit their own allowed domains.
       SIGNUPS_DOMAINS_WHITELIST: bindings.text(''),
       DB: bindings.d1({
         name: 'cloudwarden',

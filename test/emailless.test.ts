@@ -358,6 +358,154 @@ describe('instance invitations without mail', () => {
     expect(listed.status).toBe(200)
   })
 
+  describe('organisation invite link', () => {
+    const SEND = '/identity/accounts/register/send-verification-email'
+    const closed: Record<string, unknown> = {
+      SIGNUPS_ALLOWED: 'false',
+      SIGNUPS_DOMAINS_WHITELIST: '',
+    }
+    const setup = async (domain: string) => {
+      const owner = await actor(uniq('lo'))
+      const { id } = await createOrg(owner, 'Linked')
+      const link = await owner.json(`/api/organizations/${id}/invite-link`, 'POST', {
+        allowedDomains: [domain],
+        invite: 'opaque',
+        supportsConfirmation: false,
+      })
+      return { id, code: link.code as string, owner }
+    }
+    const send = (email: string, id: string, code: string, over = closed) =>
+      post(over, SEND, {
+        email,
+        openOrgInvite: { organizationId: id, code, sealedOpenOrgInviteData: 'sealed' },
+      })
+
+    it('registers and joins with mail off, no whitelist', async () => {
+      const { id, code } = await setup('linked.example.com')
+      const email = `new${++n}@linked.example.com`
+      const res = await send(email, id, code)
+      expect(res.status).toBe(200)
+      const token = ((await res.json()) as string) ?? ''
+      expect((await finish(closed, email, token)).status).toBe(200)
+      const s = (await (await login(email)).json()) as any
+      const accept = await post(
+        closed,
+        '/api/organizations/users/invite-link/accept',
+        { organizationId: id, code },
+        s.access_token,
+      )
+      expect(accept.status).toBe(200)
+    })
+
+    it('rejects a wrong domain, a bad code and a missing link', async () => {
+      const { id, code } = await setup('linked.example.com')
+      expect((await send(`x${++n}@other.example.com`, id, code)).status).toBe(400)
+      expect((await send(`x${++n}@linked.example.com`, id, 'nope')).status).toBe(400)
+      expect((await post(closed, SEND, { email: `x${++n}@linked.example.com` })).status).toBe(400)
+    })
+
+    it('never admits an admin address without mail', async () => {
+      const { id, code } = await setup('linked.example.com')
+      const admin = `adm${++n}@linked.example.com`
+      const res = await send(admin, id, code, { ...closed, ADMIN_EMAILS: admin })
+      expect(res.status).toBe(400)
+    })
+
+    it('keeps an instance invitation behind its code, even with a link', async () => {
+      const { id, code } = await setup('linked.example.com')
+      const adminEmail = uniq('ia')
+      const s = await createSession(adminEmail)
+      const over = { ...closed, ADMIN_ENABLED: 'true', ADMIN_EMAILS: adminEmail }
+      const guest = `inv${++n}@linked.example.com`
+      expect(
+        (await post(over, '/api/cloudwarden/admin/invitations', { email: guest }, s.access_token))
+          .status,
+      ).toBe(201)
+      expect((await send(guest, id, code, over)).status).toBe(400)
+      const row = await env.DB.prepare('SELECT * FROM invitations WHERE email = ?1')
+        .bind(guest)
+        .first()
+      expect(row).not.toBeNull()
+    })
+
+    it('refuses a token whose link was refreshed or deleted before finish (mail off)', async () => {
+      const a = await setup('linked.example.com')
+      const e1 = `t${++n}@linked.example.com`
+      const e2 = `t${++n}@linked.example.com`
+      const t1 = ((await (await send(e1, a.id, a.code)).json()) as string) ?? ''
+      const t2 = ((await (await send(e2, a.id, a.code)).json()) as string) ?? ''
+      const base = `/api/organizations/${a.id}/invite-link`
+      expect((await a.owner.call(`${base}/refresh`, 'POST', { invite: 'new' })).status).toBe(200)
+      expect((await finish(closed, e1, t1)).status).toBe(400)
+      const b = await setup('linked.example.com')
+      const e3 = `t${++n}@linked.example.com`
+      const t3 = ((await (await send(e3, b.id, b.code)).json()) as string) ?? ''
+      expect((await b.owner.call(`/api/organizations/${b.id}/invite-link`, 'DELETE')).status).toBe(
+        200,
+      )
+      expect((await finish(closed, e3, t3)).status).toBe(400)
+      expect(t2).toBeTruthy()
+    })
+
+    it('refuses a refreshed code, a deleted link and a deleted org on send', async () => {
+      const a = await setup('linked.example.com')
+      await a.owner.call(`/api/organizations/${a.id}/invite-link/refresh`, 'POST', { invite: 'n' })
+      expect((await send(`r${++n}@linked.example.com`, a.id, a.code)).status).toBe(400)
+      const b = await setup('linked.example.com')
+      await b.owner.call(`/api/organizations/${b.id}`, 'DELETE', {
+        masterPasswordHash: 'client-derived-hash',
+      })
+      expect((await send(`r${++n}@linked.example.com`, b.id, b.code)).status).toBe(400)
+    })
+
+    it('refuses a code of another organisation and an unknown pair', async () => {
+      const a = await setup('linked.example.com')
+      const b = await setup('linked.example.com')
+      expect((await send(`m${++n}@linked.example.com`, b.id, a.code)).status).toBe(400)
+      expect(
+        (await send(`m${++n}@linked.example.com`, crypto.randomUUID(), crypto.randomUUID())).status,
+      ).toBe(400)
+    })
+
+    it('mails the link when mail is on, admin addresses included', async () => {
+      const { id, code } = await setup('linked.example.com')
+      const { mb, over } = mailOver()
+      const e = `ml${++n}@linked.example.com`
+      expect((await send(e, id, code, { ...closed, ...over })).status).toBe(204)
+      expect(mb.sent.at(-1)?.to).toBe(e)
+      const adm = `ad${++n}@linked.example.com`
+      expect((await send(adm, id, code, { ...closed, ...over, ADMIN_EMAILS: adm })).status).toBe(
+        204,
+      )
+    })
+
+    it('keeps open signups working with a wrong code, and ignores email case', async () => {
+      const { id, code } = await setup('linked.example.com')
+      const open = await send(`o${++n}@x.example.org`, id, 'wrong', { SIGNUPS_ALLOWED: 'true' })
+      expect(open.status).toBe(200)
+      expect((await send(`New${++n}@Linked.Example.COM`, id, code)).status).toBe(200)
+    })
+
+    it('admits listed addresses and domains, refuses others, rejects bad entries', async () => {
+      const { id, code, owner } = await setup('corp.example.com')
+      const put = (allowedDomains: string[]) =>
+        owner.call(`/api/organizations/${id}/invite-link`, 'PUT', { allowedDomains })
+      expect((await put(['corp.example.com', 'Bob@Other.Example.com'])).status).toBe(200)
+      expect((await send('bob@other.example.com', id, code)).status).toBe(200)
+      expect((await send('carol@other.example.com', id, code)).status).toBe(400)
+      expect((await send(`any${++n}@corp.example.com`, id, code)).status).toBe(200)
+      expect((await put(['not an entry'])).status).toBe(400)
+      expect((await put(['a@@b'])).status).toBe(400)
+    })
+
+    it('leaves the whitelist working for public sign-up', async () => {
+      const res = await post({ ...closed, SIGNUPS_DOMAINS_WHITELIST: 'example.com' }, SEND, {
+        email: uniq('wl'),
+      })
+      expect(res.status).toBe(200)
+    })
+  })
+
   it('with mail the invitation is emailed and carries no code', async () => {
     const a = await admin()
     const { mb, over: mailed } = mailOver()

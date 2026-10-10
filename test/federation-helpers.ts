@@ -1,7 +1,7 @@
 // Two Cloudwarden instances in one workerd (TASKS #308): the same app with separate D1 databases
 // and domains, wired together by an in-process transport that also answers DNS over HTTPS.
 import { env } from 'cloudflare:workers'
-import { mailbox } from './org-helpers'
+import { isOrgCreate, mailbox } from './org-helpers'
 
 export const A_DOMAIN = 'vault.example.com'
 export const B_DOMAIN = 'peer.example.org'
@@ -147,15 +147,23 @@ export async function userOn(
   })
   if (tok.status !== 200) throw new Error(`login ${email} on ${inst.name}: ${tok.status}`)
   const { access_token: token } = (await tok.json()) as { access_token: string }
-  const call = (path: string, method = 'GET', body?: unknown) =>
-    inst.fetch(path, {
-      method,
-      headers: {
-        authorization: `Bearer ${token}`,
-        ...(body === undefined ? {} : { 'content-type': 'application/json' }),
-      },
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-    })
+  const call = async (path: string, method = 'GET', body?: unknown) => {
+    // Only instance admins create organisations (TASKS #392): list the caller for that call only.
+    const listed = inst.env.ADMIN_EMAILS
+    if (isOrgCreate(path, method)) inst.env.ADMIN_EMAILS = email
+    try {
+      return await inst.fetch(path, {
+        method,
+        headers: {
+          authorization: `Bearer ${token}`,
+          ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+        },
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      })
+    } finally {
+      inst.env.ADMIN_EMAILS = listed
+    }
+  }
   const me = (await (await call('/api/accounts/profile')).json()) as { id: string }
   return {
     email,

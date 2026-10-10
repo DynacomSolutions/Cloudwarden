@@ -64,7 +64,7 @@ Then point a Bitwarden client's self-hosted server URL at the local address `pnp
 | `SIGNUPS_ALLOWED` | var | `false` | Allow open registration |
 | `ADMIN_ENABLED` | var | `false` | Enable the admin API behind the web client's Instance admin |
 | `JWT_SECRET` | secret | none | Token signing key |
-| `ADMIN_EMAILS` | secret | none | Comma-separated instance owner addresses (further admins are granted in Instance admin) |
+| `ADMIN_EMAILS` | secret | none | Comma-separated instance owner addresses (further admins are granted in Instance admin). Only these addresses can create organisations |
 
 ## Documentation
 

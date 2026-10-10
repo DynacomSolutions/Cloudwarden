@@ -413,7 +413,7 @@ it('refuses to recover an instance admin (granted role) and leaves the role alon
 it('refuses to recover an owner address even without a stored role', async () => {
   const mb = (await import('./org-helpers')).mail
   const ownerActor = await actor('ar-inst-owner-o@example.com', mb, {
-    ADMIN_EMAILS: 'ar-inst-owner-m@example.com',
+    ADMIN_EMAILS: 'ar-inst-owner-o@example.com,ar-inst-owner-m@example.com', // the org creator must be an admin too
   })
   const member = await actor('ar-inst-owner-m@example.com')
   const { id: orgId } = await createOrg(ownerActor)

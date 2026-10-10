@@ -2,6 +2,7 @@ import { and, eq } from 'drizzle-orm'
 import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { z } from 'zod'
+import { isAdminEmail, normaliseEmail } from '../admin/security'
 import { verifyMasterPassword } from '../auth/passwords'
 import { createDb, runBatch, schema } from '../db'
 import { later } from '../email/send'
@@ -63,8 +64,14 @@ organizations.get('/api/organizations/:id/public-key', async (c) => {
   return c.json({ object: 'organizationPublicKey', publicKey: org.publicKey })
 })
 
-/** Creates an organisation with the caller as its confirmed owner. */
+/**
+ * Creates an organisation with the caller as its confirmed owner. Only instance admins
+ * (ADMIN_EMAILS) may: invite links can register accounts, so org creation is not open to everyone.
+ */
 export const createOrganization = async (c: Ctx) => {
+  if (!isAdminEmail(c.env.ADMIN_EMAILS, normaliseEmail(c.var.user.email))) {
+    throw new ApiError(403, 'Only instance administrators can create organisations.')
+  }
   const body = await parseBody(c, createSchema)
   const db = createDb(c.env.DB)
   const user = c.var.user

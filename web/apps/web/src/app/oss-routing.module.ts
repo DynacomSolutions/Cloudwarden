@@ -66,6 +66,7 @@ import { FamiliesForEnterpriseSetupComponent } from "./admin-console/organizatio
 import { addPlanRedirectGuard } from "./admin-console/settings/add-plan-redirect.guard";
 import { CreateOrganizationComponent } from "./admin-console/settings/create-organization.component";
 import { AuthWebRoute, AuthWebRouteSegment } from "./auth/constants/auth-web-route.constant";
+import { canCreateOrganizationsGuard } from "./cloudwarden/organizations/can-create-organizations.guard";
 import { deepLinkGuard } from "./auth/guards/deep-link/deep-link.guard";
 import { AcceptOrgDirectInviteComponent } from "./auth/organization-invite/accept-org-direct-invite.component";
 import { AcceptOrgOpenInviteComponent } from "./auth/organization-invite/accept-org-open-invite.component";
@@ -759,7 +760,8 @@ const routes: Routes = [
       {
         path: "create-organization",
         component: CreateOrganizationComponent,
-        canActivate: [addPlanRedirectGuard],
+        // Cloudwarden: only instance owners and admins create organisations (web/NOTICE.md).
+        canActivate: [canCreateOrganizationsGuard, addPlanRedirectGuard],
         data: { titleId: "newOrganization" } satisfies RouteDataProperties,
       },
       {
@@ -793,6 +795,7 @@ const routes: Routes = [
           {
             path: "add-plan",
             component: CreateOrganizationComponent,
+            canActivate: [canCreateOrganizationsGuard],
             data: { titleId: "addPlan" } satisfies RouteDataProperties,
           },
           {

@@ -1,6 +1,6 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
-import { Component, OnInit } from "@angular/core";
+import { Component, inject, OnInit } from "@angular/core";
 import { FormControl, FormGroup, Validators } from "@angular/forms";
 import { Router } from "@angular/router";
 import { firstValueFrom } from "rxjs";
@@ -12,6 +12,7 @@ import { getUserId } from "@bitwarden/common/auth/services/account.service";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { SearchModule, ToastService } from "@bitwarden/components";
 
+import { InstanceAdminApiService } from "../../cloudwarden/instance-admin/instance-admin-api.service";
 import { HeaderModule } from "../../layouts/header/header.module";
 import { OssModule } from "../../oss.module";
 import { SharedModule } from "../../shared/shared.module";
@@ -35,6 +36,8 @@ export class RequestSMAccessComponent implements OnInit {
     selectedOrganization: new FormControl<Organization>(null, [Validators.required]),
   });
   organizations: Organization[] = [];
+
+  private readonly instanceAdminApi = inject(InstanceAdminApiService);
 
   constructor(
     private router: Router,
@@ -77,6 +80,8 @@ export class RequestSMAccessComponent implements OnInit {
   };
 
   async navigateToCreateOrganizationPage() {
-    await this.router.navigate(["/create-organization"]);
+    // Cloudwarden: only owners and admins create organisations; others have nowhere to go here.
+    const allowed = await firstValueFrom(this.instanceAdminApi.canCreateOrganizations$);
+    await this.router.navigate([allowed ? "/create-organization" : "/"]);
   }
 }

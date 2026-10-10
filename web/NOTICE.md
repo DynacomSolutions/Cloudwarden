@@ -73,6 +73,11 @@ Summary of changes made by Cloudwarden (see `git log -- web/` for the full histo
   (`libs/components/src/cloudwarden/theme.css`).
 - Organisations: self-hosted instances show a simple create form (name, billing email, Free
   plan) instead of the licence upload.
+- Create organisation: the server lets only instance owners and admins create organisations
+  (`canCreateOrganizations` in `GET /api/cloudwarden/me`). The New organisation entries (org
+  switcher, vault filter, Settings "Add plan", Secrets Manager landing pages) are hidden for
+  everyone else, and the `create-organization` and `settings/add-plan` routes redirect to the vault
+  (`cloudwarden/organizations/can-create-organizations.guard.ts`).
 - Instance admin: an admin area (`apps/web/src/app/cloudwarden/`) that talks to Cloudwarden's
   admin API.
 - Secrets Manager: projects, secrets, machine accounts, access tokens and access policies at

@@ -57,3 +57,6 @@ archive\.ubuntu\.com
 
 # iOS capture (TASKS #389): file names that look like domains (.app and .sh are top-level domains)
 ^(Bitwarden\.app|bootstrap\.sh)$
+
+# Timestamps in the vault filter spec read as IPv6 (TASKS #393)
+^:00:$

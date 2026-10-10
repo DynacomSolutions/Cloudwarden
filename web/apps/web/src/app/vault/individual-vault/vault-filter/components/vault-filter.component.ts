@@ -45,6 +45,8 @@ import {
 } from "@bitwarden/vault";
 import { OrganizationWarningsService } from "@bitwarden/web-vault/app/billing/organizations/warnings/services";
 
+import { InstanceAdminApiService } from "../../../../cloudwarden/instance-admin/instance-admin-api.service";
+
 import { OrganizationOptionsComponent } from "./organization-options.component";
 
 // FIXME(https://bitwarden.atlassian.net/browse/CL-764): Migrate to OnPush
@@ -131,6 +133,9 @@ export class VaultFilterComponent implements OnInit, OnDestroy {
   }
 
   protected activeUserId$ = this.accountService.activeAccount$.pipe(getUserId);
+
+  // Cloudwarden: only instance owners and admins create organisations (web/NOTICE.md).
+  private readonly instanceAdminApi = inject(InstanceAdminApiService);
 
   constructor(
     protected vaultFilterService: VaultFilterService,
@@ -259,7 +264,8 @@ export class VaultFilterComponent implements OnInit, OnDestroy {
       ),
     );
 
-    const addAction = !singleOrgPolicy
+    const canCreateOrganizations = await firstValueFrom(this.instanceAdminApi.canCreateOrganizations$);
+    const addAction = !singleOrgPolicy && canCreateOrganizations
       ? {
           text: this.vfo1TerminologyService.enabled() ? "newVault" : "newOrganization",
           route: "/create-organization",

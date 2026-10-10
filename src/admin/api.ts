@@ -18,6 +18,7 @@ import {
   webPushView,
 } from './push-settings'
 import {
+  canCreateOrganizations,
   GRANTABLE_ROLES,
   instanceRoleOf,
   isAdminUser,
@@ -87,6 +88,7 @@ export function createAdminApi(deps: AdminApiDeps = {}) {
       isAdmin: isAdminUser(c.env, authed.user),
       email: authed.user.email,
       role: instanceRoleOf(c.env, authed.user),
+      canCreateOrganizations: canCreateOrganizations(c.env, authed.user),
     })
   })
 

@@ -22,6 +22,8 @@ import {
 } from "@bitwarden/components";
 import { I18nPipe } from "@bitwarden/ui-common";
 import { orgIconTile } from "@bitwarden/vault";
+
+import { InstanceAdminApiService } from "../../cloudwarden/instance-admin/instance-admin-api.service";
 // FIXME(https://bitwarden.atlassian.net/browse/CL-764): Migrate to OnPush
 // eslint-disable-next-line @angular-eslint/prefer-on-push-component-change-detection
 @Component({
@@ -40,6 +42,12 @@ export class OrgSwitcherComponent {
   /** Under VFO1, "Add plan" in Settings replaces the "New organization" entry. */
   protected readonly vfo1Enabled = toSignal(
     inject(ConfigService).getFeatureFlag$(FeatureFlag.VFO1Foundation),
+    { initialValue: false },
+  );
+
+  /** Cloudwarden: only instance owners and admins create organisations (web/NOTICE.md). */
+  protected readonly canCreateOrganizations = toSignal(
+    inject(InstanceAdminApiService).canCreateOrganizations$,
     { initialValue: false },
   );
 

@@ -191,6 +191,22 @@ export class InstanceAdminApiService {
       shareReplay({ bufferSize: 1, refCount: true }),
     );
 
+  /**
+   * True when the server lets the signed in user create organisations (an instance owner or admin
+   * with a verified address). Read from the server on every subscription, so a changed role shows
+   * after the next page load or navigation. The server enforces it either way; errors count as "no".
+   */
+  readonly canCreateOrganizations$: Observable<boolean> = this.accountService.activeAccount$.pipe(
+    switchMap((account) =>
+      account == null
+        ? of(false)
+        : from(this.apiService.send("GET", "/cloudwarden/me", null, true, true)).pipe(
+            map((r: { canCreateOrganizations?: boolean }) => r?.canCreateOrganizations === true),
+            catchError(() => of(false)),
+          ),
+    ),
+  );
+
   overview(): Promise<AdminOverview> {
     return this.apiService.send("GET", `${ADMIN}/overview`, null, true, true);
   }

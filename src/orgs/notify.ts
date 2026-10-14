@@ -3,9 +3,8 @@ import type { Context, MiddlewareHandler } from 'hono'
 import { createDb, type Db, schema } from '../db'
 import type { Env } from '../env'
 import { PushType, pushUserUpdate } from '../notifications/publish'
-import { relayRefreshUser } from '../notifications/relay'
-import { loadUserAccess } from './access'
-import { itemAccess, linkedCollections } from './ciphers'
+import { relayRefreshUser, relaySend } from '../notifications/relay'
+import { linkedCollections } from './ciphers'
 import { Status } from './constants'
 
 type Ctx = Context<Env>
@@ -39,18 +38,50 @@ export async function activeMemberIds(db: Db, orgUuid: string): Promise<string[]
   return rows.flatMap((r) => (r.id ? [r.id] : []))
 }
 
-/** Members who can see a cipher right now. */
+/**
+ * Members who can see a cipher right now: five queries however many members there are.
+ * Matches `itemAccess(loadUserAccess(member), ...)`, which only counts Confirmed rows, so an
+ * Accepted member is returned only through the MAX_PRECISE shortcut, never by the exact path.
+ */
 export async function cipherRecipients(db: Db, cipher: CipherRef): Promise<string[]> {
-  if (!cipher.organizationUuid) return []
-  const members = await activeMemberIds(db, cipher.organizationUuid)
+  const orgUuid = cipher.organizationUuid
+  if (!orgUuid) return []
+  const members = await activeMemberIds(db, orgUuid)
   if (members.length > MAX_PRECISE) return members
+  const uo = schema.usersOrganizations
+  // shortcut: inArray binds one variable per linked collection, fine below D1's 100 limit.
   const linked = await linkedCollections(db, cipher.uuid)
-  const out: string[] = []
-  for (const userUuid of members) {
-    const ua = await loadUserAccess(db, userUuid)
-    if (itemAccess(ua, cipher.organizationUuid, linked)) out.push(userUuid)
-  }
-  return out
+  const [confirmed, direct, viaGroups, groupsAll] = await Promise.all([
+    db
+      .select({ id: uo.uuid, userUuid: uo.userUuid, accessAll: uo.accessAll })
+      .from(uo)
+      .where(and(eq(uo.organizationUuid, orgUuid), eq(uo.status, Status.Confirmed))),
+    linked.length === 0
+      ? []
+      : db
+          .select({ id: schema.usersCollections.organizationUserUuid })
+          .from(schema.usersCollections)
+          .where(inArray(schema.usersCollections.collectionUuid, linked)),
+    linked.length === 0
+      ? []
+      : db
+          .select({ id: schema.groupsUsers.organizationUserUuid })
+          .from(schema.collectionsGroups)
+          .innerJoin(
+            schema.groupsUsers,
+            eq(schema.groupsUsers.groupUuid, schema.collectionsGroups.groupUuid),
+          )
+          .where(inArray(schema.collectionsGroups.collectionUuid, linked)),
+    db
+      .select({ id: schema.groupsUsers.organizationUserUuid })
+      .from(schema.groups)
+      .innerJoin(schema.groupsUsers, eq(schema.groupsUsers.groupUuid, schema.groups.uuid))
+      .where(and(eq(schema.groups.organizationUuid, orgUuid), eq(schema.groups.accessAll, true))),
+  ])
+  const granted = new Set([...direct, ...viaGroups, ...groupsAll].map((r) => r.id))
+  return confirmed.flatMap((m) =>
+    m.userUuid && (m.accessAll || granted.has(m.id)) ? [m.userUuid] : [],
+  )
 }
 
 function actorDevice(c: Ctx): string | null {
@@ -72,23 +103,34 @@ export function notifyOrgCipher(
     (async () => {
       const db = createDb(c.env.DB)
       const collections = await linkedCollections(db, cipher.uuid)
-      await Promise.all(
-        recipients.map((userUuid) =>
+      const payload = {
+        Id: cipher.uuid,
+        OrganizationId: cipher.organizationUuid,
+        CollectionIds: collections,
+        RevisionDate: iso(revision),
+      }
+      await Promise.all([
+        // Sockets and web push keep the per-user `UserId`; the mobile relay is sent once below.
+        ...recipients.map((userUuid) =>
           pushUserUpdate(
             c.env,
             userUuid,
             type,
-            {
-              Id: cipher.uuid,
-              UserId: userUuid,
-              OrganizationId: cipher.organizationUuid,
-              CollectionIds: collections,
-              RevisionDate: iso(revision),
-            },
+            { ...payload, UserId: userUuid },
             userUuid === actor ? device : null,
+            { relay: false },
           ),
         ),
-      )
+        // One organisation-targeted relay call (as the official server does) instead of one per user.
+        recipients.length > 0 && cipher.organizationUuid
+          ? relaySend(c.env, {
+              type,
+              payload: { ...payload, UserId: null },
+              organizationId: cipher.organizationUuid,
+              excludeIdentifier: device,
+            })
+          : undefined,
+      ])
     })(),
   )
 }

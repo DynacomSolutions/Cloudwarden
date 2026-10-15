@@ -1,4 +1,4 @@
-# Dev container for `devdeploy` (docs/local-dev.md). It runs the Worker in the local workerd
+# Dev container (docs/local-dev.md). It runs the Worker in the local workerd
 # simulator with throwaway state; it is a development convenience, not the production deploy path.
 FROM node:22-slim
 

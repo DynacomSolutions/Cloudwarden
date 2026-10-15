@@ -8,7 +8,7 @@
  * a host: the public URL and extra settings arrive through environment variables at run time.
  *
  * Environment (all optional):
- *   PORT or DEVDEPLOY_PORT  listen port, default 8080
+ *   PORT                    listen port, default 8080
  *   JWT_SECRET              token signing key; generated once and kept in the state dir when unset
  *   DEPLOY_DOMAIN           host Cloudwarden reports as its own (becomes DOMAIN)
  *   DEV_ALLOWED_HOSTS       Host headers Vite accepts: `*` (default here), or a comma separated list
@@ -23,7 +23,7 @@ import { migrateLocal } from './local-migrate.mjs'
 
 const root = resolve(import.meta.dirname, '..')
 const state = join(root, '.cloudflare', 'state')
-const port = process.env.PORT || process.env.DEVDEPLOY_PORT || '8080'
+const port = process.env.PORT || '8080'
 
 mkdirSync(state, { recursive: true })
 

@@ -2,7 +2,6 @@ import { and, eq, inArray, ne, sql } from 'drizzle-orm'
 import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { z } from 'zod'
-import { holdsInstanceRole } from '../admin/security'
 import { hashMasterPassword } from '../auth/passwords'
 import { signPurposeToken, verifyPurposeToken } from '../auth/purpose-token'
 import { stampRotationStatements } from '../auth/session'
@@ -24,6 +23,7 @@ import { ApiError } from '../errors'
 import { dropMemberStateStatements } from '../orgs/ciphers'
 import { PolicyType, Role } from '../orgs/constants'
 import { listUserPolicies, policyJson } from '../orgs/policies'
+import { isRecoveryExcluded } from '../orgs/recovery'
 import { authOnce, batch } from '../orgs/util'
 import { parseBody } from '../validation'
 import { attachmentJson, cipherResponses, requireAttachment } from '../vault/attachments'
@@ -504,7 +504,7 @@ emergencyAccess.get('/api/emergency-access/:id/:cipherId/attachment/:attachmentI
 
 emergencyAccess.post('/api/emergency-access/:id/takeover', async (c) => {
   const { row, grantor } = await approvedFor(c, EmergencyType.Takeover)
-  if (holdsInstanceRole(c.env, grantor)) {
+  if (isRecoveryExcluded(c.env, grantor)) {
     throw new ApiError(400, 'Emergency access is not available.')
   }
   return c.json({
@@ -524,7 +524,7 @@ emergencyAccess.post('/api/emergency-access/:id/password', async (c) => {
   )
   const { db, grantor } = await approvedFor(c, EmergencyType.Takeover)
   // Instance admins and owners cannot be taken over: the contact would inherit admin rights.
-  if (holdsInstanceRole(c.env, grantor)) {
+  if (isRecoveryExcluded(c.env, grantor)) {
     throw new ApiError(400, 'Emergency access is not available.')
   }
   await batch(db, [

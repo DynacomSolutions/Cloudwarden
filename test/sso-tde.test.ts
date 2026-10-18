@@ -198,6 +198,23 @@ describe('trusted device encryption', () => {
       { deviceIdentifier: 'newer-device' },
     )
     expect(off.body.UserDecryptionOptions.TrustedDeviceOption.HasAdminApproval).toBe(false)
+
+    // Instance admins are hidden from approvers, so they are not offered admin approval either.
+    await env.DB.prepare(
+      'UPDATE policies SET enabled = 1 WHERE organization_uuid = ?1 AND atype = 8',
+    )
+      .bind(o.id)
+      .run()
+    await env.DB.prepare("UPDATE users SET instance_role = 'admin' WHERE uuid = ?1")
+      .bind(admin.uuid)
+      .run()
+    const inst = await oidcLogin(
+      idp,
+      identifier,
+      { sub, email: admin.email },
+      { deviceIdentifier: 'newest-device' },
+    )
+    expect(inst.body.UserDecryptionOptions.TrustedDeviceOption.HasAdminApproval).toBe(false)
   })
 
   it('re-wraps trusted device keys after a rotation with update-trust, and lost-trust clears them', async () => {

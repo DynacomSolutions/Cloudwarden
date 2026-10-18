@@ -85,6 +85,12 @@ export function assertRecoverable(target: Member): asserts target is Member & {
   }
 }
 
+/** Accounts no recovery or takeover may reach: federated stand-ins and instance admins and owners. */
+export const isRecoveryExcluded = (
+  env: { ADMIN_EMAILS?: string },
+  u: Pick<UserRow, 'passwordHash' | 'email' | 'instanceRole'>,
+) => isStandInUser(u) || holdsInstanceRole(env, u)
+
 /**
  * Targets an organisation must never recover (account takeover guards): federated members and
  * their stand-in accounts (their credentials live on the home instance), and accounts that also
@@ -100,7 +106,7 @@ export async function unrecoverableMembers(
   const blocked = new Set<string>()
   if (rows.length === 0) return blocked
   for (const { m, u } of rows) {
-    if (isStandInUser(u) || holdsInstanceRole(env, u)) blocked.add(m.uuid)
+    if (isRecoveryExcluded(env, u)) blocked.add(m.uuid)
   }
   const federated = await db
     .select({ id: schema.federationMembers.organizationUserUuid })

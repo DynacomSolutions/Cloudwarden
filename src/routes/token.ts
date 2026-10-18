@@ -186,7 +186,7 @@ async function passwordGrant(c: Ctx, form: Form) {
   if (authRequest && !(await consumeAuthRequest(db, authRequest.uuid))) return BAD_LOGIN(c)
 
   assertNotStandIn(user)
-  const refreshToken = await registerDevice(db, user.uuid, device)
+  const refreshToken = await registerDevice(db, user, device)
   if (state.isNew && state.hasOthers && !form.newDeviceOtp) announceNewDevice(c, user, device)
   const body = await tokenResponse(c.env, user, {
     deviceIdentifier: device.identifier,
@@ -256,7 +256,7 @@ async function webauthnGrant(c: Ctx, form: Form) {
   if (!(await spendAssertion(db, verified))) return bad()
 
   assertNotStandIn(user)
-  const refreshToken = await registerDevice(db, user.uuid, device)
+  const refreshToken = await registerDevice(db, user, device)
   return c.json(
     await tokenResponse(c.env, user, {
       deviceIdentifier: device.identifier,
@@ -300,7 +300,7 @@ async function authorizationCodeGrant(c: Ctx, form: Form) {
   if (!(await consumeCode(db, code.codeHash))) return bad()
 
   assertNotStandIn(user)
-  const refreshToken = await registerDevice(db, user.uuid, device)
+  const refreshToken = await registerDevice(db, user, device)
   const body = await tokenResponse(c.env, user, {
     deviceIdentifier: device.identifier,
     scope: ['api', 'offline_access'],
@@ -343,12 +343,21 @@ async function refreshGrant(c: Ctx, form: Form) {
     .where(eq(schema.users.uuid, device.userUuid))
     .limit(1)
   if (!user?.enabled) return invalid()
+  // A token issued under an older stamp was minted across a revocation. Null (issued before the
+  // column existed) is accepted and bound to the current stamp below, so live sessions survive.
+  if (device.refreshStamp !== null && !safeEqualStrings(device.refreshStamp, user.securityStamp)) {
+    return invalid()
+  }
 
   // Rotate the refresh token. The WHERE clause makes a replayed token lose the race.
   const next = randomB64u(32)
   const result = await db
     .update(schema.devices)
-    .set({ refreshToken: await sha256B64u(next), updatedAt: Date.now() })
+    .set({
+      refreshToken: await sha256B64u(next),
+      refreshStamp: user.securityStamp,
+      updatedAt: Date.now(),
+    })
     .where(
       and(
         eq(schema.devices.uuid, device.uuid),
@@ -393,7 +402,7 @@ async function clientCredentialsGrant(c: Ctx, form: Form) {
 
   const device = deviceFrom(form) ?? { identifier: crypto.randomUUID(), name: 'API key', type: 14 }
   assertNotStandIn(user)
-  await registerDevice(db, user.uuid, device)
+  await registerDevice(db, user, device)
   // API key sessions get no refresh token: clients re-authenticate with the key.
   return c.json(
     await tokenResponse(c.env, user, {

@@ -25,7 +25,7 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 | 3 | Worker skeleton: Hono app, route stubs, error format, security headers | done | agent | | | | Stub routes respond; unimplemented routes return 501 |
 | 4 | Initial D1 schema and migration (Drizzle) | done | agent | | | | Migration applies in tests |
 | 5 | Identifier guard (`scripts/check-identifiers.mjs`) with tests | done | agent | | | | `pnpm test:scripts` green; repo scan clean |
-| 6 | Git hooks (lefthook): Biome, identifiers, gitleaks, author email, commitlint, pre-push typecheck and tests | done | agent | | | | Hooks install on `pnpm install` |
+| 6 | Git hooks (lefthook): Biome, identifiers, gitleaks, author email, commitlint, pre-push typecheck and change-related tests (locally only the tests related to the change run; CI runs the full suite) | done | agent | | | | Hooks install on `pnpm install` |
 | 7 | CI: lint, typecheck, test, identifiers, commitlint, secret scan, actionlint, zizmor | done | agent | | | | Workflows pass on `main` |
 | 13 | CI runs on GitHub-hosted runners (`ubuntu-latest`); gitleaks replaces trufflehog; drop GitHub Advanced Security workflows (CodeQL, dependency review, Scorecard) and CODEOWNERS (owner decision: security is gitleaks, own CI and local hooks only). Reworked from the self-hosted `k3s-runners` set on 2026-10-05 for public visibility (see #204) | done | coordinator | | | | Every workflow job uses `runs-on: ubuntu-latest`; `.github/actionlint.yaml` (custom runner labels) removed |
 | 8 | Repo settings: Dependabot alerts (no update PRs), `main` ruleset (PR required, `CI Status` required, no force push, linear history) | done | coordinator | | | | Settings visible via API; see evidence log |

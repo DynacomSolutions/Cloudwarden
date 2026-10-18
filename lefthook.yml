@@ -31,7 +31,7 @@ pre-push:
       run: pnpm typecheck
     test:
       glob: ["**/*.{ts,tsx,js,mjs,cjs,json,sql,toml}", "pnpm-lock.yaml"]
-      run: pnpm exec vitest run --maxWorkers=2 --testTimeout=240000 --hookTimeout=240000
+      run: pnpm exec vitest run --changed origin/main --passWithNoTests --maxWorkers=2 --testTimeout=240000 --hookTimeout=240000
     test-scripts:
       glob: ["**/*.{ts,tsx,js,mjs,cjs,json,sql,toml}", "pnpm-lock.yaml"]
       run: pnpm test:scripts

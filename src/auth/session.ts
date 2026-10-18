@@ -176,8 +176,10 @@ export async function tokenResponse(
 }
 
 /**
- * Statements that rotate the security stamp and revoke every refresh token of a user.
- * Include them in the same `runBatch` as the credential change they accompany.
+ * Statements that revoke every session of a user: they rotate the security stamp, blank the
+ * refresh tokens and remembered two-step devices, and delete the login-with-device requests
+ * (an approved one would otherwise mint a fresh session). Include them in the same `runBatch`
+ * as the credential change they accompany.
  */
 export function stampRotationStatements(db: Db, userUuid: string) {
   return [
@@ -187,8 +189,9 @@ export function stampRotationStatements(db: Db, userUuid: string) {
       .where(eq(schema.users.uuid, userUuid)),
     db
       .update(schema.devices)
-      .set({ refreshToken: '' })
+      .set({ refreshToken: '', twofactorRemember: null })
       .where(eq(schema.devices.userUuid, userUuid)),
+    db.delete(schema.authRequests).where(eq(schema.authRequests.userUuid, userUuid)),
   ]
 }
 

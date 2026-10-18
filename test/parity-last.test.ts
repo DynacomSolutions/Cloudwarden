@@ -756,9 +756,24 @@ describe('POST /api/accounts/key-connector/enroll', () => {
     )
       .bind(crypto.randomUUID(), uuid)
       .run()
+    await env.DB.batch([
+      env.DB.prepare(
+        "UPDATE devices SET twofactor_remember = 'remembered' WHERE user_uuid = ?1",
+      ).bind(uuid),
+      env.DB.prepare(
+        "INSERT INTO auth_requests (uuid, user_uuid, type, request_device_identifier, request_device_type, public_key, access_code_hash, approved, key, created_at) VALUES ('kc-ar', ?1, 0, 'x', 9, 'pub', 'h', 1, 'k', 1)",
+      ).bind(uuid),
+    ])
     const before = await stamp(u.email)
     const first = await enroll(u.token)
     expect(first.status).toBe(200)
+    // Approved login requests and remembered two-step devices do not survive the key change.
+    const left = await env.DB.prepare(
+      'SELECT (SELECT COUNT(*) FROM auth_requests WHERE user_uuid = ?1) a, (SELECT COUNT(*) FROM devices WHERE user_uuid = ?1 AND twofactor_remember IS NOT NULL) r',
+    )
+      .bind(uuid)
+      .first()
+    expect(left).toEqual({ a: 0, r: 0 })
     const row = await env.DB.prepare(
       'SELECT akey, uses_key_connector k FROM users WHERE email = ?1',
     )

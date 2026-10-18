@@ -272,8 +272,6 @@ async function recover(
           eventStatement(db, c, { type: EventType.OrganizationUserAdminResetTwoFactor, ...base }),
         ]
       : []),
-    // Requests made with the old credentials, answered or not, must not outlive the recovery.
-    db.delete(schema.authRequests).where(eq(schema.authRequests.userUuid, user.uuid)),
     // Every session of the recovered account ends: its old credentials no longer apply.
     ...stampRotationStatements(db, user.uuid),
   ])

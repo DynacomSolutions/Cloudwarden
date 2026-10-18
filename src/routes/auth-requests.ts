@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, isNotNull, isNull, lt, ne, notInArray, or } from 'drizzle-orm'
+import { and, desc, eq, gt, isNotNull, isNull, lt, ne, notInArray, or, sql } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { z } from 'zod'
 import { rateLimit as d1Window } from '../admin/security'
@@ -37,6 +37,9 @@ const NOT_FOUND = () => new ApiError(404, 'Auth request not found.')
 export const authRequestTtl = (type: number) =>
   type === AuthRequestType.AdminApproval ? ADMIN_AUTH_REQUEST_TTL_MS : AUTH_REQUEST_TTL_MS
 export const isExpired = (r: AuthRequestRow) => Date.now() - r.createdAt >= authRequestTtl(r.type)
+
+/** Most live pending requests kept per user; a newer one evicts the oldest (TASKS #418). */
+export const MAX_PENDING_REQUESTS = 10
 
 /** Deletes expired requests of every type. */
 export const purgeExpired = (db: ReturnType<typeof createDb>, now: number) =>
@@ -108,6 +111,13 @@ const createSchema = z.object({
   accessCode: z.string().min(1),
 })
 
+const pendingOf = (userUuid: string) =>
+  and(
+    eq(schema.authRequests.userUuid, userUuid),
+    isNull(schema.authRequests.approved),
+    ne(schema.authRequests.type, AuthRequestType.AdminApproval),
+  )
+
 const createRequest = async (c: import('hono').Context<Env>) => {
   const body = await parseBody(c, createSchema)
   const type = body.type ?? 0
@@ -146,7 +156,24 @@ const createRequest = async (c: import('hono').Context<Env>) => {
   const real = user?.enabled ? user : null
   row.userUuid = real?.uuid ?? null
   await purgeExpired(db, now)
-  await db.insert(schema.authRequests).values(row)
+  const insert = db.insert(schema.authRequests).values(row)
+  if (real) {
+    // Evict down to cap-1 unanswered requests, then add this one, in one batch. Victims are
+    // ranked: the creator's own source IP first, then oldest first, so a flooder mostly
+    // evicts its own requests and cannot cheaply erase another device's live request.
+    const a = schema.authRequests
+    const ranked = sql`select ${a.uuid} as uuid,
+      row_number() over (order by (${a.requestIp} = ${row.requestIp}) desc, ${a.createdAt}, rowid) as rn,
+      count(*) over () as total from ${a} where ${pendingOf(real.uuid)}`
+    await batch(db, [
+      db
+        .delete(a)
+        .where(
+          sql`${a.uuid} in (select uuid from (${ranked}) where rn <= total - ${MAX_PENDING_REQUESTS - 1})`,
+        ),
+      insert,
+    ])
+  } else await insert
   if (!real || !withinBudget) return c.json(requestJson(row))
   c.executionCtx.waitUntil(
     pushUserUpdate(

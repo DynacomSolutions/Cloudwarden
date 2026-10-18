@@ -8,6 +8,7 @@ import { requireAuth } from '../auth/middleware'
 import { consumeOtp, issueOtp, MAX_ATTEMPTS } from '../auth/otp'
 import { hashMasterPassword, verifyMasterPassword } from '../auth/passwords'
 import { accountKeysJson, stampRotationStatements } from '../auth/session'
+import { sealUserSecret, viewUserSecret } from '../auth/user-secrets'
 import { findUserByEmail, normalizeEmail } from '../auth/users'
 import { createDb, type Db, runBatch, schema } from '../db'
 import {
@@ -21,6 +22,7 @@ import { emailVerifiedFor, mailConfigured } from '../emailless'
 import type { Env, User } from '../env'
 import { ApiError } from '../errors'
 import { federatedProfileOrgs } from '../federation/replica'
+import { MAX_CIPHER_NOTES, MAX_ENC_NAME } from '../limits'
 import { pushLogOut } from '../notifications/publish'
 import { relayDeleteDevice } from '../notifications/relay'
 import { EventType } from '../orgs/constants'
@@ -31,7 +33,7 @@ import { profileOrganizations } from '../orgs/views'
 import { type KdfParams, kdfProblem, parseBody } from '../validation'
 import { userAttachmentKeys } from '../vault/attachments'
 import { deleteBlobs } from '../vault/blobs'
-import { packPayload } from '../vault/ciphers'
+import { fieldsSchema, opaque, packPayload } from '../vault/ciphers'
 import { userSendKeys } from '../vault/sends'
 
 export const accounts = new Hono<Env>()
@@ -373,13 +375,20 @@ const apiKeyHandler = (rotate: boolean) => async (c: Ctx) => {
   const { masterPasswordHash } = await parseBody(c, passwordOnly)
   const user = c.var.user
   await requirePassword(user, masterPasswordHash)
-  let apiKey = user.apiKey
-  if (rotate || !apiKey) {
-    apiKey = randomB64u(24).replace(/[-_]/g, 'x')
+  const generate = () => randomB64u(24).replace(/[-_]/g, 'x')
+  let apiKey: string
+  if (rotate) {
+    // Rotation is the one deliberate overwrite.
+    apiKey = generate()
     await createDb(c.env.DB)
       .update(schema.users)
-      .set({ apiKey, updatedAt: Date.now() })
+      .set({
+        apiKey: await sealUserSecret(c.env, user.uuid, 'api-key', apiKey),
+        updatedAt: Date.now(),
+      })
       .where(eq(schema.users.uuid, user.uuid))
+  } else {
+    apiKey = await viewUserSecret(c.env, user.uuid, 'api-key', user.apiKey, generate)
   }
   return c.json({ apiKey, revisionDate: new Date().toISOString(), object: 'apiKey' })
 }
@@ -512,23 +521,34 @@ const rotateSchema = z.object({
   masterPasswordHash: z.string().min(1),
   key: z.string().min(1),
   privateKey: z.string().min(1),
-  folders: z.array(z.object({ id: z.string(), name: z.string() })).default([]),
+  folders: z.array(z.object({ id: z.string(), name: z.string().max(MAX_ENC_NAME) })).default([]),
   ciphers: z
     .array(
       z
         .object({
           id: z.string(),
-          name: z.string(),
-          notes: z.string().nullish(),
-          key: z.string().nullish(),
-          fields: z.unknown().optional(),
-          passwordHistory: z.unknown().optional(),
+          name: z.string().max(MAX_ENC_NAME),
+          notes: z.string().max(MAX_CIPHER_NOTES).nullish(),
+          key: z.string().max(MAX_ENC_NAME).nullish(),
+          fields: fieldsSchema.optional(),
+          passwordHistory: opaque.optional(),
+          login: opaque.optional(),
+          card: opaque.optional(),
+          identity: opaque.optional(),
+          secureNote: opaque.optional(),
+          sshKey: opaque.optional(),
         })
         .passthrough(),
     )
     .default([]),
   sends: z
-    .array(z.object({ id: z.string(), key: z.string(), name: z.string().nullish() }))
+    .array(
+      z.object({
+        id: z.string(),
+        key: z.string().max(MAX_ENC_NAME),
+        name: z.string().max(MAX_ENC_NAME).nullish(),
+      }),
+    )
     .default([]),
 })
 

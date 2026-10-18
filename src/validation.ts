@@ -16,11 +16,35 @@ export function normalizeKeys(value: unknown, depth = 2): unknown {
   return value
 }
 
+/**
+ * Refuses a body over `max` bytes before it is read: by Content-Length, and for bodies without
+ * one by counting a copy of the stream, which stops at the cap. Hono keeps the body for later reads.
+ */
+export async function assertBodyWithin(c: Context<Env>, max: number) {
+  const tooBig = () => new ApiError(400, 'You cannot import this much data at once.')
+  const declared = c.req.header('Content-Length')
+  if (declared != null && Number(declared) > max) throw tooBig()
+  if (declared != null || !c.req.raw.body) return
+  const reader = c.req.raw.clone().body?.getReader()
+  let seen = 0
+  while (reader) {
+    const { done, value } = await reader.read()
+    if (done) break
+    seen += value.byteLength
+    if (seen > max) {
+      await reader.cancel()
+      throw tooBig()
+    }
+  }
+}
+
 /** Parses and validates a JSON body. Throws ApiError 400 with field errors. */
 export async function parseBody<S extends z.ZodType>(
   c: Context<Env>,
   schema: S,
+  maxBytes?: number,
 ): Promise<z.infer<S>> {
+  if (maxBytes != null) await assertBodyWithin(c, maxBytes)
   const raw = await c.req.json().catch(() => null)
   const parsed = schema.safeParse(normalizeKeys(raw))
   if (!parsed.success) {

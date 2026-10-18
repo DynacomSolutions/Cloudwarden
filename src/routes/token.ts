@@ -17,6 +17,7 @@ import {
   tokenResponse,
 } from '../auth/session'
 import { enforceTwoFactor, issueRememberToken } from '../auth/twofactor'
+import { openUserSecret, resealIfNeeded } from '../auth/user-secrets'
 import { findUserByEmail, normalizeEmail } from '../auth/users'
 import { WebAuthnError } from '../auth/webauthn'
 import { createDb, schema } from '../db'
@@ -392,8 +393,12 @@ async function clientCredentialsGrant(c: Ctx, form: Form) {
     .from(schema.users)
     .where(eq(schema.users.uuid, clientId.slice(5)))
     .limit(1)
-  const matches = safeEqualStrings(user?.apiKey ?? '\0', form.client_secret)
-  if (!user?.apiKey || !matches || !user.enabled) return bad()
+  const opened = user?.apiKey
+    ? await openUserSecret(c.env, user.uuid, 'api-key', user.apiKey)
+    : null
+  const matches = safeEqualStrings(opened?.value ?? '\0', form.client_secret)
+  if (!user || !opened || !matches || !user.enabled) return bad()
+  await resealIfNeeded(c.env, user.uuid, 'api-key', user.apiKey as string, opened)
 
   // Require SSO also covers personal API keys; only owners and admins are exempt (TASKS #283).
   const ssoIdentifier = await requiredSsoIdentifier(db, user.uuid)

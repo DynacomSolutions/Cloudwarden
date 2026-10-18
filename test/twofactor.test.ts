@@ -294,7 +294,7 @@ describe('remember token', () => {
 })
 
 describe('recovery code', () => {
-  it('returns a stable code, disables every provider and rotates the code', async () => {
+  it('stores the code encrypted, returns it unchanged, disables every provider and rotates the code', async () => {
     clock.now = () => FIXED
     const email = 'tf-recover@example.com'
     const s = await createSession(email)
@@ -304,6 +304,11 @@ describe('recovery code', () => {
     expect(got.body.code).toMatch(/^[A-Z2-7]{32}$/)
     const again = await call(s, '/api/two-factor/get-recover', { masterPasswordHash: PW })
     expect(again.body.code).toBe(got.body.code)
+    const stored = await env.DB.prepare('select totp_recover r from users where email = ?')
+      .bind(email)
+      .first<{ r: string }>()
+    expect(stored?.r).toMatch(/^v1\./)
+    expect(stored?.r).not.toContain(got.body.code)
 
     const wrongCode = await json('/api/two-factor/recover', {
       email,
@@ -778,6 +783,26 @@ describe('security hardening', () => {
     env.DB.prepare(q)
       .bind(...b)
       .run()
+
+  it('accepts a legacy plain code and encrypts it on view', async () => {
+    clock.now = () => FIXED
+    const email = 'tf-legacy@example.com'
+    const s = await createSession(email)
+    await enableTotp(s)
+    await sqlOne('update users set totp_recover = ? where email = ?', 'B'.repeat(32), email)
+    const got = await call(s, '/api/two-factor/get-recover', { masterPasswordHash: PW })
+    expect(got.body.code).toBe('B'.repeat(32))
+    const row = await env.DB.prepare('select totp_recover r from users where email = ?')
+      .bind(email)
+      .first<{ r: string }>()
+    expect(row?.r).toMatch(/^v1\./)
+    const ok = await json('/api/two-factor/recover', {
+      email,
+      masterPasswordHash: PW,
+      recoveryCode: 'B'.repeat(32),
+    })
+    expect(ok.status).toBe(200)
+  })
 
   it('recover refuses a null stored code and malformed input', async () => {
     clock.now = () => FIXED

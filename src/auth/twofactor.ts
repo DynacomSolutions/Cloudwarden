@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, lt, sql } from 'drizzle-orm'
+import { and, eq, inArray, lt, sql } from 'drizzle-orm'
 import type { Context } from 'hono'
 import type { Db } from '../db'
 import { createDb, runBatch, schema } from '../db'
@@ -14,6 +14,7 @@ import { type DuoConfig, duoAuthUrl, duoVerifyCode } from './duo'
 import { signingSecret, signJwt, verificationSecrets, verifyJwt } from './jwt'
 import { verifyMasterPassword } from './passwords'
 import { base32Encode, generateTotpKey, verifyTotp } from './totp'
+import { openUserSecret, sealUserSecret } from './user-secrets'
 import {
   checkChallenge,
   createChallenge,
@@ -149,14 +150,6 @@ export function enableProviderStatements(
         target: [schema.twofactor.userUuid, schema.twofactor.atype],
         set: { enabled, data: JSON.stringify(data), lastUsed },
       }),
-    ...(enabled
-      ? [
-          db
-            .update(schema.users)
-            .set({ totpRecover: generateRecoveryCode(), updatedAt: Date.now() })
-            .where(and(eq(schema.users.uuid, user.uuid), isNull(schema.users.totpRecover))),
-        ]
-      : []),
   ]
 }
 
@@ -650,11 +643,18 @@ export function normaliseRecoveryCode(input: string): string | null {
  * Spends the recovery code: removes every provider and remember token and rotates the code,
  * all guarded on the old code so it works once. Returns false if the code is not valid.
  */
-export async function useRecoveryCode(db: Db, user: User, input: string): Promise<boolean> {
+export async function useRecoveryCode(
+  env: Bindings,
+  db: Db,
+  user: User,
+  input: string,
+): Promise<boolean> {
   const supplied = normaliseRecoveryCode(input)
   const stored = user.totpRecover
-  if (!supplied || !stored || !safeEqualStrings(stored, supplied)) return false
-  const next = generateRecoveryCode()
+  if (!supplied || !stored) return false
+  const opened = await openUserSecret(env, user.uuid, 'recovery-code', stored)
+  if (!opened || !safeEqualStrings(opened.value, supplied)) return false
+  const next = await sealUserSecret(env, user.uuid, 'recovery-code', generateRecoveryCode())
   const rotated = sql`exists (select 1 from users where uuid = ${user.uuid} and totp_recover = ${next})`
   await runBatch(db, [
     db
@@ -773,7 +773,7 @@ export const enforceTwoFactor: TwoFactorHook = async (c, user, form) => {
 
   // The recovery code is accepted as provider 8: it spends the code, then login continues.
   if (provider === TwoFactorType.RecoveryCode) {
-    if (await useRecoveryCode(db, user, token)) {
+    if (await useRecoveryCode(c.env, db, user, token)) {
       await resetBudget(c.env.DB, budgetKey)
       later(c, sendNotice(c.env, user.email, recoveryCodeUsedEmail()))
       return null

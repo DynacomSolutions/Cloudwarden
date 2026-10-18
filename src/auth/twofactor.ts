@@ -642,6 +642,8 @@ export function normaliseRecoveryCode(input: string): string | null {
 /**
  * Spends the recovery code: removes every provider and remember token and rotates the code,
  * all guarded on the old code so it works once. Returns false if the code is not valid.
+ * A view can re-seal the stored value between the read and the write; the guard then matches
+ * nothing, so the current value is read once more and tried again (TASKS #416).
  */
 export async function useRecoveryCode(
   env: Bindings,
@@ -650,29 +652,34 @@ export async function useRecoveryCode(
   input: string,
 ): Promise<boolean> {
   const supplied = normaliseRecoveryCode(input)
-  const stored = user.totpRecover
-  if (!supplied || !stored) return false
-  const opened = await openUserSecret(env, user.uuid, 'recovery-code', stored)
-  if (!opened || !safeEqualStrings(opened.value, supplied)) return false
-  const next = await sealUserSecret(env, user.uuid, 'recovery-code', generateRecoveryCode())
-  const rotated = sql`exists (select 1 from users where uuid = ${user.uuid} and totp_recover = ${next})`
-  await runBatch(db, [
-    db
-      .update(schema.users)
-      .set({ totpRecover: next, updatedAt: Date.now() })
-      .where(and(eq(schema.users.uuid, user.uuid), eq(schema.users.totpRecover, stored))),
-    db.delete(schema.twofactor).where(and(eq(schema.twofactor.userUuid, user.uuid), rotated)),
-    db
-      .update(schema.devices)
-      .set({ twofactorRemember: null })
-      .where(and(eq(schema.devices.userUuid, user.uuid), rotated)),
-  ])
-  const [after] = await db
-    .select({ code: schema.users.totpRecover })
-    .from(schema.users)
-    .where(eq(schema.users.uuid, user.uuid))
-    .limit(1)
-  return after?.code === next
+  let stored = user.totpRecover
+  if (!supplied) return false
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (!stored) return false
+    const opened = await openUserSecret(env, user.uuid, 'recovery-code', stored)
+    if (!safeEqualStrings(opened.value, supplied)) return false
+    const next = await sealUserSecret(env, user.uuid, 'recovery-code', generateRecoveryCode())
+    const rotated = sql`exists (select 1 from users where uuid = ${user.uuid} and totp_recover = ${next})`
+    await runBatch(db, [
+      db
+        .update(schema.users)
+        .set({ totpRecover: next, updatedAt: Date.now() })
+        .where(and(eq(schema.users.uuid, user.uuid), eq(schema.users.totpRecover, stored))),
+      db.delete(schema.twofactor).where(and(eq(schema.twofactor.userUuid, user.uuid), rotated)),
+      db
+        .update(schema.devices)
+        .set({ twofactorRemember: null })
+        .where(and(eq(schema.devices.userUuid, user.uuid), rotated)),
+    ])
+    const [after] = await db
+      .select({ code: schema.users.totpRecover })
+      .from(schema.users)
+      .where(eq(schema.users.uuid, user.uuid))
+      .limit(1)
+    if (after?.code === next) return true
+    stored = after?.code ?? null
+  }
+  return false
 }
 
 // ---------------------------------------------------------------------------

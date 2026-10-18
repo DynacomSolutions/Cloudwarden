@@ -31,7 +31,14 @@ pre-push:
       run: pnpm typecheck
     test:
       glob: ["**/*.{ts,tsx,js,mjs,cjs,json,sql,toml}", "pnpm-lock.yaml"]
-      run: pnpm exec vitest run --maxWorkers=2 --testTimeout=240000 --hookTimeout=240000
+      run: |
+        # Only the test files changed in the push; CI runs the full suite.
+        files=$(git diff --name-only --diff-filter=d origin/main...HEAD -- 'test/**/*.test.ts' 'test/*.test.ts')
+        if [ -z "$files" ]; then
+          echo "no changed test files, skipping (CI runs the full suite)"
+          exit 0
+        fi
+        pnpm exec vitest run --maxWorkers=2 --testTimeout=240000 --hookTimeout=240000 $files
     test-scripts:
       glob: ["**/*.{ts,tsx,js,mjs,cjs,json,sql,toml}", "pnpm-lock.yaml"]
       run: pnpm test:scripts

@@ -1,4 +1,5 @@
 import { SELF } from 'cloudflare:test'
+import { env } from 'cloudflare:workers'
 import { vi } from 'vitest'
 
 export const BASE = 'https://vault.example.com'
@@ -134,6 +135,11 @@ export async function waitFor<T>(
 export async function liveSessionArtefacts(email: string, accessToken: string) {
   const refresh = ((await (await login(email, 'client-derived-hash')).json()) as Session)
     .refresh_token
+  await env.DB.prepare(
+    'UPDATE devices SET twofactor_remember = ?2 WHERE user_uuid = (SELECT uuid FROM users WHERE email = ?1)',
+  )
+    .bind(email, 'remembered')
+    .run()
   const created = (await (
     await json('/api/auth-requests/', {
       email,
@@ -170,6 +176,12 @@ export async function liveSessionArtefacts(email: string, accessToken: string) {
         deviceIdentifier: 'revoked-device',
       })
       if (d.status !== 400) throw new Error(`approved request still redeemable: ${d.status}`)
+      const left = await env.DB.prepare(
+        'SELECT COUNT(*) n FROM devices WHERE twofactor_remember IS NOT NULL AND user_uuid = (SELECT uuid FROM users WHERE email = ?1)',
+      )
+        .bind(email)
+        .first<{ n: number }>()
+      if (left?.n !== 0) throw new Error('twofactor_remember not cleared')
     },
   }
 }

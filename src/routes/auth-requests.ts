@@ -15,6 +15,7 @@ import { can } from '../orgs/access'
 import { EventType, PolicyType, Status } from '../orgs/constants'
 import { eventStatement } from '../orgs/events'
 import { defer } from '../orgs/notify'
+import { isRecoveryExcluded } from '../orgs/recovery'
 import { batch } from '../orgs/util'
 import { rateLimit, tooManyRequests } from '../ratelimit'
 import { MemberDecryptionType, parseConfigData } from '../sso/config'
@@ -323,6 +324,11 @@ authRequests.post('/api/auth-requests/admin-request', requireAuth, async (c) => 
   if (normalizeEmail(body.email) !== user.email) throw new ApiError(400, 'Invalid email.')
   // Federation stand-ins have no vault key here; their home instance answers for them.
   if (isStandInUser(user)) throw new ApiError(400, 'Federated accounts cannot request approval.')
+  // Approvers never see requests of instance admins and owners (account takeover guard), so
+  // refuse up front rather than email them about a request they cannot answer.
+  if (isRecoveryExcluded(c.env, user)) {
+    throw new ApiError(400, 'Admin approval is not available for this account.')
+  }
   // Each request emails the administrators, so cap how often one account can raise them.
   if (!(await d1Window(c.env.DB, `admin-request:${user.uuid}`, 5, 3600_000, Date.now()))) {
     return tooManyRequests(c)

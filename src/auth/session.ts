@@ -150,6 +150,7 @@ export async function tokenResponse(
   }
   const mp = hasMasterPassword(user)
   const extraOptions = await decryptionOptions(createDb(env.DB), user, {
+    env,
     deviceIdentifier: opts.deviceIdentifier,
     ...(opts.ssoOrgUuid ? { ssoOrgUuid: opts.ssoOrgUuid } : {}),
   })

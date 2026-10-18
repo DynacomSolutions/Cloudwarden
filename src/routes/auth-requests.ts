@@ -17,7 +17,7 @@ import { eventStatement } from '../orgs/events'
 import { defer } from '../orgs/notify'
 import { isRecoveryExcluded } from '../orgs/recovery'
 import { batch } from '../orgs/util'
-import { rateLimit, spendBudget, tooManyRequests } from '../ratelimit'
+import { clientKey, rateLimit, spendBudget, tooManyRequests } from '../ratelimit'
 import { MemberDecryptionType, parseConfigData } from '../sso/config'
 import { parseBody } from '../validation'
 
@@ -134,7 +134,8 @@ const createRequest = async (c: import('hono').Context<Env>) => {
     type,
     requestDeviceIdentifier: body.deviceIdentifier,
     requestDeviceType: Number.isFinite(deviceType) ? deviceType : 14,
-    requestIp: c.req.header('CF-Connecting-IP') ?? null,
+    // The /64 prefix for IPv6, so the eviction ranking below cannot be dodged by rotating addresses.
+    requestIp: clientKey(c) ?? null,
     publicKey: body.publicKey,
     accessCodeHash: await sha256B64u(body.accessCode),
     approved: null,

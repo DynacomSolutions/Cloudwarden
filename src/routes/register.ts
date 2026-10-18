@@ -20,7 +20,7 @@ import {
 } from '../emailless'
 import type { Bindings, Env } from '../env'
 import { ApiError } from '../errors'
-import { rateLimit, tooManyRequests } from '../ratelimit'
+import { clientKey, rateLimit, tooManyRequests } from '../ratelimit'
 import { type KdfParams, kdfProblem, parseBody } from '../validation'
 import { findLink, linkAllows } from './org-settings'
 
@@ -339,7 +339,7 @@ register.post(
     // Failures are counted per address and client, so someone who only knows an address cannot use
     // up the allowance of the person holding the right code. A blocked client is refused before
     // anything is checked.
-    const failKey = `redeem:${email}:${c.req.header('CF-Connecting-IP') ?? 'unknown'}`
+    const failKey = `redeem:${email}:${clientKey(c) ?? 'unknown'}`
     if (await redeemBlocked(c.env.DB, failKey)) return tooManyRequests(c)
     let setup = false
     try {

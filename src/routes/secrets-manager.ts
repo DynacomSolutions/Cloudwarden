@@ -848,7 +848,7 @@ secretsManager.get('/api/service-accounts/:id/access-tokens', async (c) => {
 
 /**
  * A token hands out everything the machine account can reach, so a non-admin may mint one only
- * when they can already read every project and secret granted to it (TASKS #220 review).
+ * when they hold at least the read or write access it has on every project and secret (TASKS #220, #409).
  */
 async function assertCanReachEverything(db: Db, ctx: SmContext, saUuid: string) {
   if (ctx.admin) return
@@ -859,16 +859,17 @@ async function assertCanReachEverything(db: Db, ctx: SmContext, saUuid: string) 
   const secretIds = policies.flatMap((p) => (p.grantedSecretUuid ? [p.grantedSecretUuid] : []))
   const projectsOf = await projectsOfSecrets(db, secretIds)
   for (const p of policies) {
-    const ok = p.grantedProjectUuid
-      ? projectAccess(ctx, p.grantedProjectUuid).read
+    const have = p.grantedProjectUuid
+      ? projectAccess(ctx, p.grantedProjectUuid)
       : p.grantedSecretUuid
         ? secretAccess(
             ctx,
             p.grantedSecretUuid,
             (projectsOf.get(p.grantedSecretUuid) ?? []).map((x) => x.id),
-          ).read
-        : true
-    if (!ok) throw forbidden()
+          )
+        : null
+    // The token may never write where its creator cannot.
+    if (have && !(have.read && (!p.write || have.write))) throw forbidden()
   }
 }
 

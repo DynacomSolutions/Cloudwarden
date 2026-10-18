@@ -647,6 +647,33 @@ describe('security review fixes', () => {
     expect((await mint()).status).toBe(200)
   })
 
+  it('never lets a token write where its creator can only read', async () => {
+    const m = await newMachine('writer')
+    const p = await owner.json(`/api/organizations/${orgId}/projects`, 'POST', { name: enc('w') })
+    await owner.json(`/api/service-accounts/${m.saId}/granted-policies`, 'PUT', {
+      projectGrantedPolicyRequests: [{ grantedId: p.id, read: true, write: true }],
+    })
+    await owner.json(`/api/service-accounts/${m.saId}/access-policies/people`, 'PUT', {
+      userAccessPolicyRequests: [{ granteeId: memberOrgUserId, read: true, write: true }],
+      groupAccessPolicyRequests: [],
+    })
+    const mint = () =>
+      member.call(`/api/service-accounts/${m.saId}/access-tokens`, 'POST', {
+        name: enc('t'),
+        encryptedPayload: enc('p'),
+        key: enc('k'),
+      })
+    const grantMember = (write: boolean) =>
+      owner.json(`/api/projects/${p.id}/access-policies/people`, 'PUT', {
+        userAccessPolicyRequests: [{ granteeId: memberOrgUserId, read: true, write }],
+        groupAccessPolicyRequests: [],
+      })
+    await grantMember(false)
+    expect((await mint()).status).toBe(403)
+    await grantMember(true)
+    expect((await mint()).status).toBe(200)
+  })
+
   it('treats only confirmed members as grantees', async () => {
     const pending = await actor('sm-pending@example.com')
     await owner.call(`/api/organizations/${orgId}/users/invite`, 'POST', {

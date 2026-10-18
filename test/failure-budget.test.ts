@@ -91,3 +91,30 @@ it('caps push-creating auth requests per target, with an identical response', as
   ).first<{ n: number }>()
   expect(count?.n).toBe(5)
 })
+
+it('does not block an approved login-with-device when the password budget is exhausted', async () => {
+  const email = 'budget-dev@example.com'
+  const s = await createSession(email)
+  for (let i = 0; i < 10; i++) await login(email, 'bad', { deviceIdentifier: 'attacker' })
+  expect((await login(email, 'bad')).status).toBe(429)
+  const created = (await (
+    await json('/api/auth-requests/', {
+      email,
+      deviceIdentifier: 'new-device',
+      publicKey: 'pub',
+      type: 0,
+      accessCode: 'code-1',
+    })
+  ).json()) as { id: string }
+  await authed(`/api/auth-requests/${created.id}`, s.access_token, 'PUT', {
+    key: 'k',
+    masterPasswordHash: 'h',
+    deviceIdentifier: 'device-1',
+    requestApproved: true,
+  })
+  const res = await login(email, 'code-1', {
+    authRequest: created.id,
+    deviceIdentifier: 'new-device',
+  })
+  expect(res.status).toBe(200)
+})

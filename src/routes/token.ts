@@ -151,7 +151,9 @@ async function passwordGrant(c: Ctx, form: Form) {
 
   // Durable per-account failure budget; the same for unknown accounts, so it leaks nothing.
   const budgetKey = `pwfail:${normalizeEmail(form.username)}`
-  if (!(await spendBudget(c.env.DB, budgetKey))) return tooManyRequests(c)
+  // Skipped for login with device: that code is single-use and needs approval, so it must not be
+  // lockable by someone else's bad password guesses.
+  if (!form.authRequest && !(await spendBudget(c.env.DB, budgetKey))) return tooManyRequests(c)
 
   const user = await findUserByEmail(db, form.username)
   // Login with device: the "password" is the request's access code, approved on another device.

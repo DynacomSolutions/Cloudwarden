@@ -319,22 +319,33 @@ ETA: 2026-10-19 12:00 ICT
 
 ## 22. Security hardening: Low
 
-ETA: 2026-10-25 18:00 ICT
+ETA: 2026-10-20 18:00 ICT
 
 | ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
 |---|---|---|---|---|---|---|---|
-| 402 | Durable per-account failure budgets for the password grant, plus `d1Fallback` values for the authentication rate-limit scopes | todo | | | | | Audit 2026-10-18 CW-06 |
-| 403 | Durable per-user TOTP failure budget, independent of the rate-limit binding | todo | | | | | Audit 2026-10-18 CW-07 |
-| 404 | Per-target budget for anonymous login-with-device requests | todo | | | | | Audit 2026-10-18 CW-08 |
-| 405 | Hash the API key and two-step recovery code at rest; redact the pending email-change token and exclude auth-request state from backups; invalidate auth requests on restore | todo | | | | | Audit 2026-10-18 CW-09 |
+| 402 | Durable per-account failure budgets for the password grant, plus `d1Fallback` values for the authentication rate-limit scopes | in_progress | agent | sec-402-404-failure-budgets | | 2026-10-19 12:00 ICT | Audit 2026-10-18 CW-06 |
+| 403 | Durable per-user TOTP failure budget, independent of the rate-limit binding | in_progress | agent | sec-402-404-failure-budgets | | 2026-10-19 12:00 ICT | Audit 2026-10-18 CW-07 |
+| 404 | Per-target budget for anonymous login-with-device requests | in_progress | agent | sec-402-404-failure-budgets | | 2026-10-19 12:00 ICT | Audit 2026-10-18 CW-08 |
+| 405 | Hash the API key and two-step recovery code at rest; redact the pending email-change token and exclude auth-request state from backups; invalidate auth requests on restore | in_progress | agent | sec-405-secrets-at-rest | | 2026-10-19 12:00 ICT | Audit 2026-10-18 CW-09 |
 | 406 | Rebuild the web vault on patched Angular (21.2.20 or later) and add a production-only dependency audit to CI | todo | | | | | Audit 2026-10-18 CW-10 |
-| 407 | Make "require approval for incoming workspaces" the federation default | todo | | | | | Audit 2026-10-18 CW-11 |
-| 408 | Size caps on cipher, folder, Send and import payloads | todo | | | | | Audit 2026-10-18 CW-12 |
+| 407 | Make "require approval for incoming workspaces" the federation default | in_progress | agent | sec-407-408-defaults-and-caps | | 2026-10-19 12:00 ICT | Audit 2026-10-18 CW-11 |
+| 408 | Size caps on cipher, folder, Send and import payloads | in_progress | agent | sec-407-408-defaults-and-caps | | 2026-10-19 12:00 ICT | Audit 2026-10-18 CW-12 |
 | 409 | Decide and document the Secrets Manager machine-token delegation boundary (write access versus read reachability) | todo | | | | | Audit 2026-10-18 CW-13 |
-| 410 | Remove the purpose-token raw-key verification fallback after its migration window | todo | | | | | Audit 2026-10-18 CW-14 |
-| 411 | Serve OpenID discovery documents at the root `.well-known` paths | todo | | | | | Audit 2026-10-18 CW-15 |
-| 412 | Re-check the security stamp in the refresh-token grant so a redemption racing a revocation cannot mint a lasting session | todo | | | | | Review follow-up to PR #87 |
-| 413 | Instance admins on a new device can request admin approval but the request is hidden from approvers; refuse it up front with a clear error, add a device-approval test for instance roles, and route emergency takeover through the shared recovery predicate | todo | | | | | Review follow-up to PR #86 |
+| 412 | Re-check the security stamp in the refresh-token grant so a redemption racing a revocation cannot mint a lasting session | in_progress | agent | sec-412-413-review-followups | | 2026-10-19 12:00 ICT | Review follow-up to PR #87 |
+| 413 | Instance admins on a new device can request admin approval but the request is hidden from approvers; refuse it up front with a clear error, add a device-approval test for instance roles, and route emergency takeover through the shared recovery predicate | in_progress | agent | sec-412-413-review-followups | | 2026-10-19 12:00 ICT | Review follow-up to PR #86 |
+
+## 23. Security hardening: Info
+
+ETA: 2026-10-20 18:00 ICT
+
+| ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
+|---|---|---|---|---|---|---|---|
+| 410 | Remove the purpose-token raw-key verification fallback after its migration window | todo | | | | | Audit 2026-10-18 CW-14. Info severity. |
+| 411 | Serve OpenID discovery documents at the root `.well-known` paths | todo | | | | | Audit 2026-10-18 CW-15. Info severity. |
+| 414 | Make prelogin return indistinguishable KDF settings for unknown accounts, and drop mail-configuration detail from error text | todo | | | | | Audit 2026-10-18 CW-16 |
+| 415 | Offer a short-lived single-use ticket for the notification hub instead of the access token in the query string, keeping the token path for compatibility | todo | | | | | Audit 2026-10-18 CW-17 |
+| 416 | Shorten signed attachment download link lifetime and issue links on demand rather than on every sync | todo | | | | | Audit 2026-10-18 CW-18 |
+| 417 | Omit the stored Send password hash from owner responses where clients do not need it | todo | | | | | Audit 2026-10-18 CW-19 |
 
 ## Evidence log
 

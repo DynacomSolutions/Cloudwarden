@@ -411,7 +411,7 @@ accounts.post('/api/accounts/email-token', requireAuth, async (c) => {
   // Without mail the new address cannot be proven, so it must not be one that grants admin rights.
   if (!mailOn && isAdminEmail(c.env.ADMIN_EMAILS, newEmail)) throw adminAddressWithoutMail()
   // With mail the code lives hashed in the shared OTP columns (single use, capped attempts).
-  const code = mailOn ? await issueOtp(db, user.uuid, 'email-change') : null
+  const code = mailOn ? await issueOtp(db, user.uuid, 'email-change', newEmail) : null
   if (mailOn && !code) throw new ApiError(429, 'Too many requests. Try again later.')
   await db
     .update(schema.users)
@@ -457,7 +457,7 @@ accounts.post('/api/accounts/email', requireAuth, async (c) => {
     user.emailNewToken === null &&
     (user.emailNewExpiresAt ?? 0) > Date.now()
   if (!pending) throw new ApiError(400, 'Invalid token.')
-  if (mailOn && !(await consumeOtp(db, user.uuid, 'email-change', body.token ?? ''))) {
+  if (mailOn && !(await consumeOtp(db, user.uuid, 'email-change', body.token ?? '', newEmail))) {
     // A spent attempt budget voids the pending change; a fresh request is needed.
     const [cur] = await db
       .select({ n: schema.users.otpAttempts })

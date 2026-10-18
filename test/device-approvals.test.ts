@@ -403,3 +403,21 @@ it('emails only confirmed approvers', async () => {
   await mailTo(owner.email, before)
   expect(mail.sent.slice(before).some((m) => m.to === pending.email)).toBe(false)
 })
+
+it('refuses admin approval requests of an instance admin and hides earlier ones', async () => {
+  const { owner, member, orgId } = await enrolled('da-instance')
+  const earlier = (await (await adminRequest(member)).json()) as { id: string }
+  await env.DB.prepare("update users set instance_role = 'admin' where uuid = ?")
+    .bind(member.uuid)
+    .run()
+
+  // Approvers cannot see it, so it is not listed.
+  const list = await owner.json(`/api/organizations/${orgId}/auth-requests`)
+  expect(list.data.find((r: { id: string }) => r.id === earlier.id)).toBeUndefined()
+
+  // Creating a new one is refused and nobody is emailed.
+  const before = mail.sent.length
+  expect((await adminRequest(member, 'tde-device-2')).status).toBe(400)
+  await new Promise((r) => setTimeout(r, 200))
+  expect(mail.sent.slice(before).some((m) => m.to === owner.email)).toBe(false)
+})

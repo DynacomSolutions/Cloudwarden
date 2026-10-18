@@ -119,6 +119,37 @@ it('refresh grant rotates the refresh token and rejects replays', async () => {
   expect(garbage.status).toBe(400)
 })
 
+it('refresh grant refuses a token issued before a stamp rotation, even one written after the revocation', async () => {
+  const s = await createSession('stamped@example.com')
+  // A redemption that raced the revocation batch: the token is live (not blanked) but was issued
+  // under the old stamp.
+  await env.DB.prepare('update users set security_stamp = ? where email = ?')
+    .bind(crypto.randomUUID(), 'stamped@example.com')
+    .run()
+  const res = await form('/identity/connect/token', {
+    grant_type: 'refresh_token',
+    refresh_token: s.refresh_token,
+  })
+  expect(res.status).toBe(400)
+  expect(((await res.json()) as any).error).toBe('invalid_grant')
+})
+
+it('refresh grant keeps tokens issued before the stamp binding valid and binds them on use', async () => {
+  const s = await createSession('legacy-stamp@example.com')
+  await env.DB.prepare('update devices set refresh_stamp = null').run()
+  const res = await form('/identity/connect/token', {
+    grant_type: 'refresh_token',
+    refresh_token: s.refresh_token,
+  })
+  expect(res.status).toBe(200)
+  const row = await env.DB.prepare(
+    'select d.refresh_stamp s, u.security_stamp u from devices d join users u on u.uuid = d.user_uuid where u.email = ?',
+  )
+    .bind('legacy-stamp@example.com')
+    .first<{ s: string; u: string }>()
+  expect(row?.s).toBe(row?.u)
+})
+
 it('refresh grant rejects expired refresh tokens', async () => {
   const s = await createSession('stale@example.com')
   await env.DB.prepare('update devices set updated_at = ?')
@@ -138,9 +169,11 @@ it('client_credentials logs in with the user API key', async () => {
       masterPasswordHash: 'client-derived-hash',
     })
   ).json()) as any
-  const row = await env.DB.prepare('select uuid from users where email = ?')
+  const row = await env.DB.prepare('select uuid, api_key k from users where email = ?')
     .bind('apikey@example.com')
-    .first<{ uuid: string }>()
+    .first<{ uuid: string; k: string }>()
+  expect(row?.k).toMatch(/^v1\./)
+  expect(row?.k).not.toContain(key.apiKey)
   const res = await form('/identity/connect/token', {
     grant_type: 'client_credentials',
     client_id: `user.${row?.uuid}`,
@@ -165,4 +198,27 @@ it('client_credentials logs in with the user API key', async () => {
   })
   expect(bad.status).toBe(400)
   expect(((await bad.json()) as any).error).toBe('invalid_client')
+})
+
+it('client_credentials accepts a legacy plain API key and encrypts it', async () => {
+  await createSession('apikey-legacy@example.com')
+  const row = await env.DB.prepare('select uuid from users where email = ?')
+    .bind('apikey-legacy@example.com')
+    .first<{ uuid: string }>()
+  const plain = `legacy${crypto.randomUUID().replaceAll('-', '')}`
+  await env.DB.prepare('update users set api_key = ? where uuid = ?').bind(plain, row?.uuid).run()
+  const res = await form('/identity/connect/token', {
+    grant_type: 'client_credentials',
+    client_id: `user.${row?.uuid}`,
+    client_secret: plain,
+    scope: 'api',
+    deviceIdentifier: 'cli-2',
+    deviceType: '25',
+    deviceName: 'cli',
+  })
+  expect(res.status).toBe(200)
+  const after = await env.DB.prepare('select api_key k from users where uuid = ?')
+    .bind(row?.uuid)
+    .first<{ k: string }>()
+  expect(after?.k).toMatch(/^v1\./)
 })

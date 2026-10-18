@@ -987,6 +987,7 @@ ssoAccounts.post('/api/accounts/key-connector/enroll', requireAuth, async (c) =>
   )
   if (kcRows.length === 0) throw new ApiError(400, 'None of your organizations use Key Connector.')
   const device = c.var.auth.deviceIdentifier
+  const stamp = crypto.randomUUID()
   await batch(db, [
     db
       .update(schema.users)
@@ -995,7 +996,7 @@ ssoAccounts.post('/api/accounts/key-connector/enroll', requireAuth, async (c) =>
         usesKeyConnector: true,
         // The wrapping key changed: other sessions end. This device keeps its refresh token and
         // gets a new access token on its next refresh.
-        securityStamp: crypto.randomUUID(),
+        securityStamp: stamp,
         updatedAt: Date.now(),
       })
       .where(
@@ -1012,6 +1013,16 @@ ssoAccounts.post('/api/accounts/key-connector/enroll', requireAuth, async (c) =>
         and(
           eq(schema.devices.userUuid, user.uuid),
           device ? ne(schema.devices.identifier, device) : undefined,
+        ),
+      ),
+    // Keep this device's refresh token valid under the new stamp (TASKS #412).
+    db
+      .update(schema.devices)
+      .set({ refreshStamp: stamp })
+      .where(
+        and(
+          eq(schema.devices.userUuid, user.uuid),
+          device ? eq(schema.devices.identifier, device) : undefined,
         ),
       ),
     // Every device forgets its second-factor remember token; login requests are void.

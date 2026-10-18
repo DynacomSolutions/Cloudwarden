@@ -237,6 +237,17 @@ it('withholds takeover details of an instance admin and an owner address', async
   )
 })
 
+it('refuses takeover of a federated stand-in grantor', async () => {
+  const { grantor, grantee, id } = await approvedTakeover('ea-standin')
+  await env.DB.prepare("UPDATE users SET password_hash = '!federated.x' WHERE uuid = ?1")
+    .bind(grantor.uuid)
+    .run()
+  expect((await grantee.call(`/api/emergency-access/${id}/takeover`, 'POST')).status).toBe(400)
+  expect(
+    (await grantee.call(`/api/emergency-access/${id}/password`, 'POST', takeoverBody)).status,
+  ).toBe(400)
+})
+
 it('refuses takeover of an owner address', async () => {
   const { grantor, grantee, id } = await approvedTakeover('ea-own', {
     ADMIN_EMAILS: 'ea-own-grantor@example.com',

@@ -31,7 +31,10 @@ const doc = (c: import('hono').Context<Env>) => {
     scopes_supported: ['api', 'offline_access'],
   })
 }
+const keys = async (c: import('hono').Context<Env>) => c.json(await jwks(c.env))
+// Root paths too (served by the Worker ahead of the static app), for relying parties that
+// expect the issuer root.
 discovery.get('/identity/.well-known/openid-configuration', doc)
-discovery.get('/identity/.well-known/openid-configuration/jwks', async (c) =>
-  c.json(await jwks(c.env)),
-)
+discovery.get('/.well-known/openid-configuration', doc)
+discovery.get('/identity/.well-known/openid-configuration/jwks', keys)
+discovery.get('/.well-known/jwks.json', keys)

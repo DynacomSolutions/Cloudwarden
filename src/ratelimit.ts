@@ -46,3 +46,24 @@ export async function overLimit(c: Context<Env>, scope: string, subject: string)
 
 export const tooManyRequests = (c: Context<Env>) =>
   c.json(errorBody('Too many requests. Try again later.'), 429, { 'Retry-After': '60' })
+
+export const FAILURE_BUDGET = 10
+export const FAILURE_WINDOW_MS = 15 * 60_000
+
+/**
+ * Durable failure budget in D1, independent of the location-local limiter binding. Spends one
+ * attempt atomically before the check and returns true while the attempt is within `limit`, so
+ * parallel attempts cannot overshoot. Call `resetBudget` on success. The lockout lasts to the end
+ * of the fixed window. Key by a normalised identifier whether or not the account exists.
+ */
+export const spendBudget = (
+  db: D1Database,
+  key: string,
+  limit = FAILURE_BUDGET,
+  windowMs = FAILURE_WINDOW_MS,
+): Promise<boolean> => d1Window(db, key, limit, windowMs, Date.now())
+
+/** Clears a failure budget after a success. */
+export async function resetBudget(db: D1Database, key: string): Promise<void> {
+  await db.prepare('DELETE FROM admin_rate_limits WHERE key = ?1').bind(key).run()
+}

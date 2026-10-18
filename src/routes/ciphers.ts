@@ -287,7 +287,7 @@ ciphers.put('/api/ciphers/restore', async (c) => {
 })
 
 // Purge removes every personal cipher and folder after re-verifying the master password.
-ciphers.post('/api/ciphers/purge', rateLimit('purge'), async (c) => {
+ciphers.post('/api/ciphers/purge', rateLimit('purge', 10), async (c) => {
   const { masterPasswordHash } = await parseBody(
     c,
     z.object({ masterPasswordHash: z.string().min(1) }),

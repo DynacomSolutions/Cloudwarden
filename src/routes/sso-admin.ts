@@ -97,7 +97,7 @@ async function ssoDomainsFor(c: Ctx, email: string) {
     )
 }
 
-publicSso.post('/api/organizations/domain/sso/verified', rateLimit('sso-domain'), async (c) => {
+publicSso.post('/api/organizations/domain/sso/verified', rateLimit('sso-domain', 30), async (c) => {
   const { email } = await parseBody(c, emailBody)
   const rows = await ssoDomainsFor(c, email)
   return c.json({
@@ -112,7 +112,7 @@ publicSso.post('/api/organizations/domain/sso/verified', rateLimit('sso-domain')
   })
 })
 
-publicSso.post('/api/organizations/domain/sso/details', rateLimit('sso-domain'), async (c) => {
+publicSso.post('/api/organizations/domain/sso/details', rateLimit('sso-domain', 30), async (c) => {
   const { email } = await parseBody(c, emailBody)
   const [row] = await ssoDomainsFor(c, email)
   if (!row) throw new ApiError(404, 'Claimed domain not found.')
@@ -399,7 +399,7 @@ ssoAdmin.post('/api/organizations/:orgId/sso', async (c) => {
 })
 
 /** Checks a configuration against the identity provider without saving it (admin test button). */
-ssoAdmin.post('/api/organizations/:orgId/sso/test', rateLimit('sso-test'), async (c) => {
+ssoAdmin.post('/api/organizations/:orgId/sso/test', rateLimit('sso-test', 10), async (c) => {
   await requirePermission(createDb(c.env.DB), c.var.user.uuid, orgParam(c), 'manageSso')
   const body = await parseBody(c, z.object({ data: ssoConfigSchema }))
   let data = body.data
@@ -543,7 +543,7 @@ ssoAdmin.post('/api/organizations/:orgId/domain', async (c) => {
 
 ssoAdmin.post(
   '/api/organizations/:orgId/domain/:id/verify',
-  rateLimit('domain-verify'),
+  rateLimit('domain-verify', 10),
   async (c) => {
     const db = createDb(c.env.DB)
     await requirePermission(db, c.var.user.uuid, orgParam(c), 'manageSso')

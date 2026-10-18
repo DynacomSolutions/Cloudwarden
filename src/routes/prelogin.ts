@@ -25,8 +25,8 @@ const handler = async (c: import('hono').Context<Env>) => {
   })
 }
 
-prelogin.post('/api/accounts/prelogin', rateLimit('prelogin'), handler)
-prelogin.post('/identity/accounts/prelogin', rateLimit('prelogin'), handler)
+prelogin.post('/api/accounts/prelogin', rateLimit('prelogin', 30), handler)
+prelogin.post('/identity/accounts/prelogin', rateLimit('prelogin', 30), handler)
 
 // Current clients (2026.x) call this instead: nested KDF settings plus the salt used for the master
 // key, which is the normalised email. Unknown emails get defaults and the same deterministic salt.
@@ -52,5 +52,5 @@ const passwordHandler = async (c: import('hono').Context<Env>) => {
   })
 }
 
-prelogin.post('/identity/accounts/prelogin/password', rateLimit('prelogin'), passwordHandler)
-prelogin.post('/api/accounts/prelogin/password', rateLimit('prelogin'), passwordHandler)
+prelogin.post('/identity/accounts/prelogin/password', rateLimit('prelogin', 30), passwordHandler)
+prelogin.post('/api/accounts/prelogin/password', rateLimit('prelogin', 30), passwordHandler)

@@ -85,7 +85,7 @@ const fail = (c: Ctx, err: unknown) => {
 
 // ----- 1. Prevalidation -----
 
-sso.get('/identity/sso/prevalidate', rateLimit('sso'), async (c) => {
+sso.get('/identity/sso/prevalidate', rateLimit('sso', 30), async (c) => {
   const db = createDb(c.env.DB)
   const identifier = c.req.query('domainHint') ?? ''
   const org = await orgByIdentifier(db, identifier)
@@ -103,7 +103,7 @@ sso.get('/identity/sso/prevalidate', rateLimit('sso'), async (c) => {
 
 // ----- 2. Authorize -----
 
-sso.get('/identity/connect/authorize', rateLimit('sso'), async (c) => {
+sso.get('/identity/connect/authorize', rateLimit('sso', 30), async (c) => {
   const q = c.req.query()
   const clientId = q.client_id ?? ''
   const redirectUri = q.redirect_uri ?? ''
@@ -261,14 +261,14 @@ const oidcCallback = async (c: Ctx) => {
     return fail(c, err)
   }
 }
-sso.get('/sso/oidc-signin', rateLimit('sso'), oidcCallback)
-sso.post('/sso/oidc-signin', rateLimit('sso'), oidcCallback)
+sso.get('/sso/oidc-signin', rateLimit('sso', 30), oidcCallback)
+sso.post('/sso/oidc-signin', rateLimit('sso', 30), oidcCallback)
 
 sso.get('/sso/oidc-signedout', (c) =>
   page(c, 'Signed out', 'You have been signed out. You can close this window.', 200),
 )
 
-sso.post('/sso/saml2/:orgId/Acs', rateLimit('sso'), async (c) => {
+sso.post('/sso/saml2/:orgId/Acs', rateLimit('sso', 30), async (c) => {
   try {
     const form = await c.req.parseBody()
     const samlResponse = typeof form.SAMLResponse === 'string' ? form.SAMLResponse : ''
@@ -350,7 +350,7 @@ const badReturn = (c: Ctx) =>
   page(c, 'Single sign-on failed', 'The return address is not a sign-in request for this server.')
 
 /** `GET /sso/Login?returnUrl=`: continues the authorize request named by `returnUrl`. */
-sso.get('/identity/sso/Login', rateLimit('sso'), (c) => {
+sso.get('/identity/sso/Login', rateLimit('sso', 30), (c) => {
   const q = authorizeQuery(c, c.req.query('returnUrl'))
   if (!q) return badReturn(c)
   const domainHint = q.get('domain_hint')
@@ -372,7 +372,7 @@ sso.get('/identity/sso/Login', rateLimit('sso'), (c) => {
  * official controller takes override the ones inside `returnUrl`; the authorize endpoint then
  * validates everything (client, redirect address, PKCE, state, prevalidation token).
  */
-sso.get('/identity/sso/ExternalChallenge', rateLimit('sso'), (c) => {
+sso.get('/identity/sso/ExternalChallenge', rateLimit('sso', 30), (c) => {
   const q = authorizeQuery(c, c.req.query('returnUrl'))
   if (!q) return badReturn(c)
   const next = new URLSearchParams(q)
@@ -389,7 +389,7 @@ sso.get('/identity/sso/ExternalChallenge', rateLimit('sso'), (c) => {
 })
 
 /** `GET /sso/ExternalCallback`: where an OpenID Connect provider returns to. */
-sso.get('/identity/sso/ExternalCallback', rateLimit('sso'), oidcCallback)
+sso.get('/identity/sso/ExternalCallback', rateLimit('sso', 30), oidcCallback)
 
 /**
  * `GET /api/sso-cookie-vendor` (TASKS #345). It exists for deployments where a reverse proxy
@@ -399,7 +399,7 @@ sso.get('/identity/sso/ExternalCallback', rateLimit('sso'), oidcCallback)
  * `SSO_COOKIE_VENDOR_COOKIE_NAME` (sharded `name-N` cookies count). Without that setting there is
  * no proxy to vend for, so the endpoint answers 404 like any unknown path.
  */
-sso.get('/api/sso-cookie-vendor', rateLimit('sso'), (c) => {
+sso.get('/api/sso-cookie-vendor', rateLimit('sso', 30), (c) => {
   const name = c.env.SSO_COOKIE_VENDOR_COOKIE_NAME?.trim()
   if (!name) throw new ApiError(404, 'Not found')
   const present = (c.req.header('Cookie') ?? '').split(';').some((part) => {

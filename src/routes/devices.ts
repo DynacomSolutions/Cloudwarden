@@ -61,7 +61,7 @@ devices.get('/api/devices', requireAuth, async (c) => {
 })
 
 // Unauthenticated: the client asks before login whether this device is already known.
-devices.get('/api/devices/knowndevice', rateLimit('knowndevice'), async (c) => {
+devices.get('/api/devices/knowndevice', rateLimit('knowndevice', 30), async (c) => {
   const encoded = c.req.header('X-Request-Email')
   const identifier = c.req.header('X-Device-Identifier')
   const bytes = encoded ? fromB64u(encoded) : null

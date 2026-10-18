@@ -16,7 +16,7 @@ import { EventType, PolicyType, Status } from '../orgs/constants'
 import { eventStatement } from '../orgs/events'
 import { defer } from '../orgs/notify'
 import { batch } from '../orgs/util'
-import { rateLimit, tooManyRequests } from '../ratelimit'
+import { rateLimit, spendBudget, tooManyRequests } from '../ratelimit'
 import { MemberDecryptionType, parseConfigData } from '../sso/config'
 import { parseBody } from '../validation'
 
@@ -138,7 +138,10 @@ const createRequest = async (c: import('hono').Context<Env>) => {
   const user = await findUserByEmail(db, body.email)
   // Unknown or disabled accounts get a decoy row (no owner, no push) so the response, the
   // poll endpoint and the anonymous hub behave identically and emails cannot be probed.
-  const real = user?.enabled ? user : null
+  // Per-target budget (five per 15 minutes) spent for every address, so refusal is invisible: an
+  // over-budget real account gets the decoy too, with no push.
+  const withinBudget = await spendBudget(c.env.DB, `authreq:${normalizeEmail(body.email)}`, 5)
+  const real = user?.enabled && withinBudget ? user : null
   row.userUuid = real?.uuid ?? null
   await purgeExpired(db, now)
   await db.insert(schema.authRequests).values(row)
@@ -155,8 +158,8 @@ const createRequest = async (c: import('hono').Context<Env>) => {
   return c.json(requestJson(row))
 }
 // Clients post to `/auth-requests/` with a trailing slash.
-authRequests.post('/api/auth-requests', rateLimit('auth-request'), createRequest)
-authRequests.post('/api/auth-requests/', rateLimit('auth-request'), createRequest)
+authRequests.post('/api/auth-requests', rateLimit('auth-request', 20), createRequest)
+authRequests.post('/api/auth-requests/', rateLimit('auth-request', 20), createRequest)
 
 const listPending = async (c: import('hono').Context<Env>) => {
   const rows = await createDb(c.env.DB)
@@ -197,7 +200,7 @@ async function deliverOnce(db: ReturnType<typeof createDb>, row: AuthRequestRow)
 }
 
 // Polled by the waiting device (no auth): the access code proves it created the request.
-authRequests.get('/api/auth-requests/:id/response', rateLimit('auth-request'), async (c) => {
+authRequests.get('/api/auth-requests/:id/response', rateLimit('auth-request', 20), async (c) => {
   const db = createDb(c.env.DB)
   const [row] = await db
     .select()

@@ -1,6 +1,6 @@
 import { env } from 'cloudflare:workers'
 import { expect, it } from 'vitest'
-import { login } from './helpers'
+import { liveSessionArtefacts, login } from './helpers'
 import { actor, linkParams, loginCipher, mailbox } from './org-helpers'
 
 async function trust(
@@ -124,6 +124,7 @@ it('runs takeover and lets the grantor sign in with the new password only', asyn
   })
   expect((await grantee.json(`/api/emergency-access/${id}/policies`)).data).toEqual([])
 
+  const old = await liveSessionArtefacts(grantor.email, grantor.token)
   const set = await grantee.call(`/api/emergency-access/${id}/password`, 'POST', {
     newMasterPasswordHash: 'recovered-hash',
     key: '2.newUserKey',
@@ -135,6 +136,7 @@ it('runs takeover and lets the grantor sign in with the new password only', asyn
   expect(((await ok.json()) as any).Key).toBe('2.newUserKey')
   // The grantor's old token no longer works.
   expect((await grantor.call('/api/accounts/profile')).status).toBe(401)
+  await old.expectRevoked()
 })
 
 it('guards invitations: self, duplicates, wrong token, and either side can delete', async () => {

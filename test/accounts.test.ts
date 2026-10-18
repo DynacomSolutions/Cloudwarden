@@ -1,7 +1,7 @@
 import { SELF } from 'cloudflare:test'
 import { env } from 'cloudflare:workers'
 import { expect, it } from 'vitest'
-import { authed, BASE, createSession, form, json, login } from './helpers'
+import { authed, BASE, createSession, form, json, liveSessionArtefacts, login } from './helpers'
 import { mailbox } from './org-helpers'
 
 const PW = 'client-derived-hash'
@@ -58,6 +58,7 @@ it('verifies the password', async () => {
 
 it('password change invalidates access and refresh tokens', async () => {
   const s = await createSession('pw@example.com')
+  const old = await liveSessionArtefacts('pw@example.com', s.access_token)
   const res = await authed('/api/accounts/password', s.access_token, 'POST', {
     masterPasswordHash: PW,
     newMasterPasswordHash: 'new-hash',
@@ -71,6 +72,7 @@ it('password change invalidates access and refresh tokens', async () => {
     refresh_token: s.refresh_token,
   })
   expect(refresh.status).toBe(400)
+  await old.expectRevoked()
   expect((await login('pw@example.com', PW)).status).toBe(400)
   const again = await login('pw@example.com', 'new-hash')
   expect(again.status).toBe(200)

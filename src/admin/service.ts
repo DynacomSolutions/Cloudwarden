@@ -1,5 +1,6 @@
 // Logic shared by the HTML admin (app.ts) and the JSON admin API (api.ts) (TASKS #150).
 
+import { stampRotationStatements } from '../auth/session'
 import { isReservedBlobKey } from '../blob-keys'
 import { createDb } from '../db'
 import { createEmailTransport, type EmailTransport, inviteEmail } from '../email'
@@ -301,14 +302,20 @@ export async function setUserRole(
   return true
 }
 
-/** Rotates the security stamp so every session and token of the user stops working. */
+/** The shared session-revocation statements (drizzle) as prepared D1 statements. */
+function revokeSessionStatements(db: D1Database, id: string) {
+  return stampRotationStatements(createDb(db), id).map((s) => {
+    const { sql, params } = s.toSQL()
+    return db.prepare(sql).bind(...params)
+  })
+}
+
+/** Revokes every session and token of the user: stamp, refresh tokens and login requests. */
 export async function deauthorizeUser(env: Bindings, id: string, audit: Audit): Promise<boolean> {
   const db = env.DB
   if (!(await guardTarget(env, id))) return false
   await db.batch([
-    db
-      .prepare('UPDATE users SET security_stamp = ?1, updated_at = ?2 WHERE uuid = ?3')
-      .bind(crypto.randomUUID(), nowOf(audit), id),
+    ...revokeSessionStatements(db, id),
     auditStatement(db, audit, AdminEventType.UserDeauthorized, { userUuid: id }),
   ])
   return true
@@ -320,12 +327,8 @@ export async function removeTwoFactor(env: Bindings, id: string, audit: Audit): 
   if (!(await guardTarget(env, id))) return false
   await db.batch([
     db.prepare('DELETE FROM twofactor WHERE user_uuid = ?1').bind(id),
-    db.prepare('UPDATE devices SET twofactor_remember = NULL WHERE user_uuid = ?1').bind(id),
-    db
-      .prepare(
-        'UPDATE users SET totp_recover = NULL, security_stamp = ?2, updated_at = ?3 WHERE uuid = ?1',
-      )
-      .bind(id, crypto.randomUUID(), nowOf(audit)),
+    db.prepare('UPDATE users SET totp_recover = NULL WHERE uuid = ?1').bind(id),
+    ...revokeSessionStatements(db, id),
     auditStatement(db, audit, AdminEventType.UserTwoFactorRemoved, { userUuid: id }),
   ])
   return true

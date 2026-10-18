@@ -126,3 +126,50 @@ export async function waitFor<T>(
     await new Promise((r) => setTimeout(r, interval))
   }
 }
+
+/**
+ * Session-revocation fixtures: a refresh token and an approved login-with-device request
+ * that exist before the revocation under test. `expectRevoked` then proves both are dead.
+ */
+export async function liveSessionArtefacts(email: string, accessToken: string) {
+  const refresh = ((await (await login(email, 'client-derived-hash')).json()) as Session)
+    .refresh_token
+  const created = (await (
+    await json('/api/auth-requests/', {
+      email,
+      deviceIdentifier: 'revoked-device',
+      publicKey: 'pub',
+      type: 0,
+      accessCode: 'revoke-code',
+    })
+  ).json()) as { id: string }
+  const put = await authed(`/api/auth-requests/${created.id}`, accessToken, 'PUT', {
+    key: 'k',
+    masterPasswordHash: 'h',
+    deviceIdentifier: 'device-1',
+    requestApproved: true,
+  })
+  if (put.status !== 200) throw new Error(`approve failed: ${put.status}`)
+  return {
+    refresh,
+    expectRevoked: async () => {
+      const r = await form('/identity/connect/token', {
+        grant_type: 'refresh_token',
+        refresh_token: refresh,
+      })
+      if (r.status !== 400) throw new Error(`refresh token still usable: ${r.status}`)
+      const d = await form('/identity/connect/token', {
+        grant_type: 'password',
+        username: email,
+        password: 'revoke-code',
+        authRequest: created.id,
+        scope: 'api offline_access',
+        client_id: 'web',
+        deviceType: '9',
+        deviceName: 'new',
+        deviceIdentifier: 'revoked-device',
+      })
+      if (d.status !== 400) throw new Error(`approved request still redeemable: ${d.status}`)
+    },
+  }
+}

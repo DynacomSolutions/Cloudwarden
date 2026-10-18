@@ -6,6 +6,7 @@ import { requireAuth } from '../auth/middleware'
 import { createDb, runBatch, schema } from '../db'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
+import { MAX_ENC_NAME } from '../limits'
 import { PushType } from '../notifications/publish'
 import { notifyFolder } from '../notifications/vault-events'
 import { parseBody } from '../validation'
@@ -18,7 +19,7 @@ folders.use('/api/folders/*', requireAuth)
 
 type Ctx = Context<Env>
 
-const bodySchema = z.object({ name: z.string().min(1) })
+const bodySchema = z.object({ name: z.string().min(1).max(MAX_ENC_NAME) })
 
 async function requireFolderRow(c: Ctx, id: string) {
   const [f] = await createDb(c.env.DB)

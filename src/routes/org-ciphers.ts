@@ -6,6 +6,7 @@ import { verifyMasterPassword } from '../auth/passwords'
 import { createDb, type Db, schema } from '../db'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
+import { MAX_ENC_NAME, MAX_IMPORT_BODY } from '../limits'
 import { PushType } from '../notifications/publish'
 import { notifyCiphers } from '../notifications/vault-events'
 import {
@@ -200,7 +201,9 @@ orgCiphers.post('/api/ciphers/import', async (c, next) => {
 const importOrgSchema = z.object({
   ciphers: z.array(cipherSchema).default([]),
   collections: z
-    .array(z.object({ name: z.string().min(1), externalId: z.string().nullish() }))
+    .array(
+      z.object({ name: z.string().min(1).max(MAX_ENC_NAME), externalId: z.string().nullish() }),
+    )
     .default([]),
   collectionRelationships: z
     .array(z.object({ key: z.number().int(), value: z.number().int() }))
@@ -208,7 +211,7 @@ const importOrgSchema = z.object({
 })
 orgCiphers.post('/api/ciphers/import-organization', async (c) => {
   const orgUuid = c.req.query('organizationId') ?? ''
-  const body = await parseBody(c, importOrgSchema)
+  const body = await parseBody(c, importOrgSchema, MAX_IMPORT_BODY)
   const db = createDb(c.env.DB)
   await requirePermission(db, c.var.user.uuid, orgUuid, 'accessImportExport')
   if (body.ciphers.length > 7000)

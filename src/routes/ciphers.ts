@@ -7,6 +7,7 @@ import { verifyMasterPassword } from '../auth/passwords'
 import { changes, createDb, runBatch, schema } from '../db'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
+import { MAX_ENC_NAME, MAX_IMPORT_BODY } from '../limits'
 import { PushType } from '../notifications/publish'
 import { notifyCipher, notifyCiphers, notifyUser } from '../notifications/vault-events'
 import { assertNotClaimed } from '../orgs/domains'
@@ -92,7 +93,7 @@ ciphers.post('/api/ciphers/create', async (c) => {
 
 // Import: folders, ciphers and a list of (cipher index, folder index) pairs, in one batch.
 const importSchema = z.object({
-  folders: z.array(z.object({ name: z.string().min(1) })).default([]),
+  folders: z.array(z.object({ name: z.string().min(1).max(MAX_ENC_NAME) })).default([]),
   ciphers: z.array(cipherSchema).default([]),
   folderRelationships: z
     .array(z.object({ key: z.number().int(), value: z.number().int() }))
@@ -105,7 +106,7 @@ const MAX_IMPORT_STATEMENTS = 900
 const MAX_IMPORT_FOLDERS = 800
 const MAX_IMPORT_CIPHERS = 7000
 ciphers.post('/api/ciphers/import', async (c) => {
-  const body = await parseBody(c, importSchema)
+  const body = await parseBody(c, importSchema, MAX_IMPORT_BODY)
   if (body.folders.length > MAX_IMPORT_FOLDERS || body.ciphers.length > MAX_IMPORT_CIPHERS) {
     throw new ApiError(400, 'You cannot import this much data at once.')
   }

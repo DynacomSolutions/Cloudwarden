@@ -20,7 +20,11 @@ export function normalizeKeys(value: unknown, depth = 2): unknown {
 export async function parseBody<S extends z.ZodType>(
   c: Context<Env>,
   schema: S,
+  maxChars?: number,
 ): Promise<z.infer<S>> {
+  if (maxChars != null && (await c.req.text()).length > maxChars) {
+    throw new ApiError(400, 'You cannot import this much data at once.')
+  }
   const raw = await c.req.json().catch(() => null)
   const parsed = schema.safeParse(normalizeKeys(raw))
   if (!parsed.success) {

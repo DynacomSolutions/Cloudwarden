@@ -321,25 +321,29 @@ ETA: 2026-10-20 18:00 ICT
 
 | ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
 |---|---|---|---|---|---|---|---|
-| 402 | Durable per-account failure budgets for the password grant, plus `d1Fallback` values for the authentication rate-limit scopes | in_progress | agent | sec-402-404-failure-budgets | | 2026-10-19 12:00 ICT | Audit 2026-10-18 CW-06 |
-| 403 | Durable per-user TOTP failure budget, independent of the rate-limit binding | in_progress | agent | sec-402-404-failure-budgets | | 2026-10-19 12:00 ICT | Audit 2026-10-18 CW-07 |
-| 404 | Per-target budget for anonymous login-with-device requests | in_progress | agent | sec-402-404-failure-budgets | | 2026-10-19 12:00 ICT | Audit 2026-10-18 CW-08 |
-| 405 | Hash the API key and two-step recovery code at rest; redact the pending email-change token and exclude auth-request state from backups; invalidate auth requests on restore | in_progress | agent | sec-405-secrets-at-rest | | 2026-10-19 12:00 ICT | Audit 2026-10-18 CW-09 |
-| 406 | Rebuild the web vault on patched Angular (21.2.20 or later) and add a production-only dependency audit to CI | in_progress | agent | sec-406-angular-audit |  | 2026-10-19 18:00 ICT | Audit 2026-10-18 CW-10 |
-| 407 | Make "require approval for incoming workspaces" the federation default | in_progress | agent | sec-407-408-defaults-and-caps | | 2026-10-19 12:00 ICT | Audit 2026-10-18 CW-11 |
-| 408 | Size caps on cipher, folder, Send and import payloads | in_progress | agent | sec-407-408-defaults-and-caps | | 2026-10-19 12:00 ICT | Audit 2026-10-18 CW-12 |
-| 409 | Decide and document the Secrets Manager machine-token delegation boundary (write access versus read reachability) | in_progress | agent | sec-409-machine-token-scope |  | 2026-10-19 18:00 ICT | Audit 2026-10-18 CW-13 |
-| 412 | Re-check the security stamp in the refresh-token grant so a redemption racing a revocation cannot mint a lasting session | in_progress | agent | sec-412-413-review-followups | | 2026-10-19 12:00 ICT | Review follow-up to PR #87 |
-| 413 | Instance admins on a new device can request admin approval but the request is hidden from approvers; refuse it up front with a clear error, add a device-approval test for instance roles, and route emergency takeover through the shared recovery predicate | in_progress | agent | sec-412-413-review-followups | | 2026-10-19 12:00 ICT | Review follow-up to PR #86 |
+| 402 | Durable per-account failure budgets for the password grant, plus `d1Fallback` values for the authentication rate-limit scopes | done | agent | |  | | Done 18 October 2026 in PR #99. |
+| 403 | Durable per-user TOTP failure budget, independent of the rate-limit binding | done | agent | |  | | Done 18 October 2026 in PR #99. |
+| 404 | Per-target budget for anonymous login-with-device requests | done | agent | |  | | Done 18 October 2026 in PR #99. |
+| 405 | Encrypt the API key and the two-step recovery code at rest with the server key; redact the pending email-change token and exclude auth-request state from backups; invalidate auth requests on restore | done | agent | |  | | Done 18 October 2026 in PR #98. |
+| 406 | Rebuild the web vault on patched Angular (21.2.20 or later) and add a production-only dependency audit to CI | done | agent | |  | | Done 18 October 2026 in PR #102. |
+| 407 | Make "require approval for incoming workspaces" the federation default | done | agent | |  | | Done 18 October 2026 in PR #100. |
+| 408 | Size caps on cipher, folder, Send and import payloads | done | agent | |  | | Done 18 October 2026 in PR #100. |
+| 409 | Decide and document the Secrets Manager machine-token delegation boundary (write access versus read reachability) | done | agent | |  | | Done 18 October 2026 in PR #97 and #103. |
+| 412 | Re-check the security stamp in the refresh-token grant so a redemption racing a revocation cannot mint a lasting session | done | agent | |  | | Done 18 October 2026 in PR #101. |
+| 413 | Instance admins on a new device can request admin approval but the request is hidden from approvers; refuse it up front with a clear error, add a device-approval test for instance roles, and route emergency takeover through the shared recovery predicate | done | agent | |  | | Done 18 October 2026 in PR #101. |
+| 414 | Refresh-token grant's update should also match the expected prior `refresh_stamp`, so a refresh racing a Key Connector enrolment cannot bind the old stamp. | todo | agent | | | | Review follow-up, 18 October 2026 |
+| 415 | A stored API key that cannot be decrypted should fail API-key login as an ordinary bad-credential response, not a server error, before the secret is checked. | todo | agent | | | | Review follow-up, 18 October 2026 |
+| 416 | A recovery-code login racing a recovery-code view can fail once; retry the conditional write against the re-sealed value. | todo | agent | | | | Review follow-up, 18 October 2026 |
+| 417 | Organisation import and the federation forwarder should use the bounded body reader, with permission checked before the body is read. | todo | agent | | | | Review follow-up, 18 October 2026 |
+| 418 | Bound how many pending login-with-device requests one target can accumulate, beyond the push budget. | todo | agent | | | | Review follow-up, 18 October 2026 |
+| 419 | Make `test/vault-events.test.ts` "announces moves, imports and purges" reliable under host load (it times out waiting for events), and confirm the failure-budget test clock pin reaches the Worker under test. | todo | agent | | | | Review follow-up, 18 October 2026 |
 
 ## 23. Security hardening: Info
 
-ETA: 2026-10-20 18:00 ICT
-
 | ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
 |---|---|---|---|---|---|---|---|
-| 410 | Remove the purpose-token raw-key verification fallback after its migration window | in_progress | agent | sec-410-411-info |  | 2026-10-19 18:00 ICT | Audit 2026-10-18 CW-14. Info severity. |
-| 411 | Serve OpenID discovery documents at the root `.well-known` paths | in_progress | agent | sec-410-411-info |  | 2026-10-19 18:00 ICT | Audit 2026-10-18 CW-15. Info severity. |
+| 410 | Remove the purpose-token raw-key verification fallback after its migration window | done | agent | |  | | Done 18 October 2026 in PR #96. |
+| 411 | Serve OpenID discovery documents at the root `.well-known` paths | done | agent | |  | | Done 18 October 2026 in PR #96. |
 
 ## Evidence log
 

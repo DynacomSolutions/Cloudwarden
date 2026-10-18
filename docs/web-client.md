@@ -77,6 +77,20 @@ larger machine and cache the result instead: publish `web-vault/` as an artifact
 hash of `web/` (for example `git rev-parse HEAD:web`), and have the deploy job download it when
 the key matches and build only on a miss.
 
+## Dependency audit
+
+CI runs `pnpm audit --prod --audit-level=high` for the Worker and `node scripts/audit-web.mjs`
+for `web/` (`npm audit --omit=dev`). The latter fails on any high or critical advisory not listed
+in `ACCEPTED` in that script; the accepted ones are build or dev-server tooling that upstream
+lists under `dependencies` and that is not part of the static bundle.
+
+The `@angular/*` family (except `@angular/cdk` and the CLI/build packages) is pinned to 21.2.25 in
+`web/package.json`, ahead of the upstream tag, for the published XSS-class advisories fixed in
+21.2.19 and 21.2.20. Keep the packages on one version, and keep that pin or a newer one when
+upgrading upstream (TASKS #406). Upgrading with `npm install --package-lock-only` fails on the
+`@angular/platform-browser-dynamic` peer; delete the `@angular/*` lock entries first and install
+that package once with `-D`, then remove it from `package.json` again.
+
 ## Upgrading upstream
 
 `web/` is a curated import, not a full subtree, so upgrades are done by diffing upstream tags:

@@ -9,7 +9,9 @@ import { authenticateAccessToken } from '../auth/middleware'
 import { createDb, type Db, runBatch, schema } from '../db'
 import type { Env, User } from '../env'
 import { ApiError } from '../errors'
+import { MAX_IMPORT_BODY } from '../limits'
 import { errorKind, log } from '../log'
+import { assertBodyWithin } from '../validation'
 import { requireFolder } from '../vault/ciphers'
 import { FederationEvent, federationEventStatement } from './events'
 import { NOT_FEDERATED, NOT_FEDERATED_MESSAGE } from './hosting'
@@ -46,15 +48,14 @@ const CREATE = new Set(['/api/ciphers', '/api/ciphers/create', '/api/ciphers/adm
 
 async function readBody(c: Ctx): Promise<Uint8Array> {
   if (c.req.method === 'GET' || c.req.method === 'HEAD') return new Uint8Array()
-  const declared = Number(c.req.header('content-length') ?? '0')
-  if (declared > MAX_FORWARD_BYTES) {
-    throw new ApiError(413, 'Federated items accept uploads up to 25 MB.')
-  }
-  const buf = new Uint8Array(await c.req.raw.clone().arrayBuffer())
-  if (buf.byteLength > MAX_FORWARD_BYTES) {
-    throw new ApiError(413, 'Federated items accept uploads up to 25 MB.')
-  }
-  return buf
+  // The org import keeps its local cap when the target is a federated organisation.
+  const imports = new URL(c.req.url).pathname === '/api/ciphers/import-organization'
+  await assertBodyWithin(c, imports ? MAX_IMPORT_BODY : MAX_FORWARD_BYTES, () =>
+    imports
+      ? new ApiError(400, 'You cannot import this much data at once.')
+      : new ApiError(413, 'Federated items accept uploads up to 25 MB.'),
+  )
+  return new Uint8Array(await c.req.raw.clone().arrayBuffer())
 }
 
 const parseJson = (b: Uint8Array): Record<string, unknown> | null => {

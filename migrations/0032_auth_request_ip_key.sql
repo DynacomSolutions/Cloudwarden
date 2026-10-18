@@ -1,0 +1,1 @@
+ALTER TABLE `auth_requests` ADD `request_ip_key` text;

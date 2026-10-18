@@ -118,6 +118,8 @@ export const authRequests = sqliteTable(
     requestDeviceIdentifier: text('request_device_identifier').notNull(),
     requestDeviceType: integer('request_device_type').notNull(),
     requestIp: text('request_ip'),
+    // Limit key of the source address (IPv6 /64 prefix); never shown. Null on older rows.
+    requestIpKey: text('request_ip_key'),
     publicKey: text('public_key').notNull(),
     accessCodeHash: text('access_code_hash').notNull(),
     // Null while pending, then the approving device's decision.

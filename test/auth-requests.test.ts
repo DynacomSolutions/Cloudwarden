@@ -195,6 +195,16 @@ it('treats addresses in one IPv6 /64 as one source when evicting', async () => {
   const ids = await pendingIds(s.access_token)
   expect(ids).toHaveLength(10)
   expect(ids).toContain(victim)
+  // The approving device sees the exact address, not the prefix.
+  const res = await createFrom('2001:db8:1:1::abc', email, 99)
+  expect(((await res.json()) as { requestIpAddress: string }).requestIpAddress).toBe(
+    '2001:db8:1:1::abc',
+  )
+  const list = (await (await authed('/api/auth-requests/pending', s.access_token)).json()) as {
+    data: { requestIpAddress: string }[]
+  }
+  expect(list.data.some((r) => r.requestIpAddress === '2001:db8:1:1::abc')).toBe(true)
+  expect(JSON.stringify(list)).not.toContain('/64')
 })
 
 it('never evicts answered or admin approval requests', async () => {

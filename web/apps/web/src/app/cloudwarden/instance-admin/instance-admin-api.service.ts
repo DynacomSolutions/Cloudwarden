@@ -156,7 +156,7 @@ export interface WebPushState {
 
 export interface SsoRateLimit {
   ssoRateLimitPerMinute: number;
-  /** False while the built-in default applies. */
+  /** False while the platform default applies. */
   custom: boolean;
 }
 
@@ -374,6 +374,10 @@ export class InstanceAdminApiService {
       true,
       true,
     );
+  }
+
+  resetSsoRateLimit(): Promise<SsoRateLimit> {
+    return this.apiService.send("DELETE", `${ADMIN}/sso-rate-limit`, null, true, true);
   }
 
   testPushSettings(): Promise<{ ok: boolean; error: string | null }> {

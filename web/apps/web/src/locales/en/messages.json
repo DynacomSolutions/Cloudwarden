@@ -18519,7 +18519,13 @@
     "message": "SSO requests per minute"
   },
   "cwSsoRateLimitHint": {
-    "message": "A whole number from 5 to 1000. The default is 20."
+    "message": "A whole number from 5 to 1000. Default: the platform limit (20 per minute on Cloudflare)."
+  },
+  "cwSsoRateLimitReset": {
+    "message": "Reset to default"
+  },
+  "cwSsoRateLimitResetDone": {
+    "message": "SSO rate limit reset to the default"
   },
   "cwSsoRateLimitSaved": {
     "message": "SSO rate limit saved"

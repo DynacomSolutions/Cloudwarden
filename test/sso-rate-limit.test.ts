@@ -1,7 +1,7 @@
 import { env } from 'cloudflare:workers'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { AdminEventType } from '../src/admin/service'
-import { invalidateSsoRateLimit } from '../src/admin/sso-rate-limit'
+import { invalidateSsoRateLimit, ssoRateLimitView } from '../src/admin/sso-rate-limit'
 import { createSession, freezeRateLimitWindow, withEnv } from './helpers'
 
 const P = '/api/cloudwarden/admin/sso-rate-limit'
@@ -11,7 +11,11 @@ let n = 0
 async function person(admin: boolean) {
   const email = `ssorl${++n}@example.com`
   const s = await createSession(email)
-  const over = { ADMIN_ENABLED: 'true', ADMIN_EMAILS: admin ? email : 'nobody@example.com' }
+  const over = {
+    ADMIN_ENABLED: 'true',
+    ADMIN_EMAILS: admin ? email : 'nobody@example.com',
+    LOGIN_LIMITER: { limit: async () => ({ success: true }) },
+  }
   return (path: string, method = 'GET', body?: unknown) =>
     withEnv(over, path, {
       method,
@@ -43,6 +47,29 @@ describe('sso rate limit setting API', () => {
       .bind(AdminEventType.SsoRateLimitUpdated)
       .first<{ c: number }>()
     expect(row?.c).toBeGreaterThan(0)
+  })
+
+  it('reports the effective default: 20 with the binding, 30 without', async () => {
+    const call = await person(true)
+    expect(
+      (await ssoRateLimitView({ ...env, LOGIN_LIMITER: undefined } as any)).ssoRateLimitPerMinute,
+    ).toBe(30)
+    expect(
+      (await ssoRateLimitView({ ...env, LOGIN_LIMITER: {} } as any)).ssoRateLimitPerMinute,
+    ).toBe(20)
+  })
+
+  it('DELETE returns to unset and the binding decides again', async () => {
+    const call = await person(true)
+    await call(P, 'PUT', { ssoRateLimitPerMinute: 50 })
+    const del = await call(P, 'DELETE')
+    expect(del.status).toBe(200)
+    expect(await del.json()).toEqual({ ssoRateLimitPerMinute: 20, custom: false })
+    expect(await (await call(P)).json()).toEqual({ ssoRateLimitPerMinute: 20, custom: false })
+    const limiter = { limit: async () => ({ success: false }) }
+    expect((await hit('198.51.100.90', { LOGIN_LIMITER: limiter })).status).toBe(429)
+    const user = await person(false)
+    expect((await user(P, 'DELETE')).status).toBe(403)
   })
 
   it('rejects out of range and non integer values with a field error', async () => {
@@ -106,6 +133,24 @@ describe('sso rate limit enforcement', () => {
     for (let i = 0; i < 5; i++) codes.push((await hit(ip, { LOGIN_LIMITER: limiter })).status)
     expect(codes).toEqual([400, 400, 400, 429, 429])
     expect(keys[0]).toBe(`sso:${ip}`)
+  })
+
+  it('does not return 500 when reading the setting fails', async () => {
+    const failing = new Proxy(env.DB, {
+      get(t, prop) {
+        if (prop === 'prepare') {
+          return (q: string) => {
+            if (q.includes('FROM instance_settings')) throw new Error('d1 down')
+            return t.prepare(q)
+          }
+        }
+        const v = Reflect.get(t, prop, t)
+        return typeof v === 'function' ? v.bind(t) : v
+      },
+    })
+    const limiter = { limit: async () => ({ success: true }) }
+    const res = await hit('198.51.100.91', { DB: failing, LOGIN_LIMITER: limiter })
+    expect(res.status).toBe(400)
   })
 
   it('leaves other scopes on the binding', async () => {

@@ -6425,7 +6425,8 @@ paths:
       tags:
       - x-cloudwarden
       operationId: adminGetSsoRateLimit
-      summary: SSO login rate limit per client address per minute (20 until an admin sets it)
+      summary: SSO login rate limit per client address per minute
+      description: "Until an admin sets it, the platform default applies: 20 with the rate limit binding, 30 without."
       responses:
         '200':
           description: Success.
@@ -6467,6 +6468,25 @@ paths:
                 $ref: '#/components/schemas/AdminSsoRateLimit'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    delete:
+      tags:
+      - x-cloudwarden
+      operationId: adminDeleteSsoRateLimit
+      summary: Reset the SSO login rate limit to the platform default
+      description: 'Removes the stored value so SSO routes use the rate limit binding again. Recorded in the admin audit log (event 9014).'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminSsoRateLimit'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -24785,7 +24805,7 @@ components:
           type: integer
         custom:
           type: boolean
-          description: False while the built-in default of 20 applies.
+          description: False while the platform default applies.
       required:
       - ssoRateLimitPerMinute
       - custom

@@ -1,6 +1,6 @@
 // Cloudwarden: Instance admin > SSO rate limit (web/NOTICE.md, docs/admin.md).
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from "@angular/core";
-import { FormBuilder } from "@angular/forms";
+import { FormBuilder, Validators } from "@angular/forms";
 
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { ToastService } from "@bitwarden/components";
@@ -8,7 +8,7 @@ import { ToastService } from "@bitwarden/components";
 import { HeaderModule } from "../../layouts/header/header.module";
 import { SharedModule } from "../../shared";
 
-import { InstanceAdminApiService } from "./instance-admin-api.service";
+import { InstanceAdminApiService, SsoRateLimit } from "./instance-admin-api.service";
 
 export const SSO_RATE_LIMIT_MIN = 5;
 export const SSO_RATE_LIMIT_MAX = 1000;
@@ -38,9 +38,28 @@ export const SSO_RATE_LIMIT_MAX = 1000;
           />
           <bit-hint>{{ "cwSsoRateLimitHint" | i18n }}</bit-hint>
         </bit-form-field>
-        <button type="submit" bitButton bitFormButton buttonType="primary" data-testid="cw-sso-save">
-          {{ "save" | i18n }}
-        </button>
+        <div class="tw-flex tw-gap-2">
+          <button
+            type="submit"
+            bitButton
+            bitFormButton
+            buttonType="primary"
+            [disabled]="form.invalid"
+            data-testid="cw-sso-save"
+          >
+            {{ "save" | i18n }}
+          </button>
+          <button
+            type="button"
+            bitButton
+            buttonType="secondary"
+            [disabled]="!custom()"
+            (click)="reset()"
+            data-testid="cw-sso-reset"
+          >
+            {{ "cwSsoRateLimitReset" | i18n }}
+          </button>
+        </div>
       </form>
     </bit-container>
   `,
@@ -53,19 +72,39 @@ export class InstanceAdminSsoRateLimitComponent implements OnInit {
   protected readonly min = SSO_RATE_LIMIT_MIN;
   protected readonly max = SSO_RATE_LIMIT_MAX;
   protected readonly error = signal<string | null>(null);
-  protected readonly form = inject(FormBuilder).group({ limit: [20 as number | null] });
+  protected readonly custom = signal(false);
+  protected readonly form = inject(FormBuilder).group({
+    limit: [
+      20 as number | null,
+      [
+        Validators.required,
+        Validators.min(SSO_RATE_LIMIT_MIN),
+        Validators.max(SSO_RATE_LIMIT_MAX),
+        Validators.pattern(/^\d+$/),
+      ],
+    ],
+  });
 
   async ngOnInit() {
     try {
-      this.form.setValue({ limit: (await this.api.ssoRateLimit()).ssoRateLimitPerMinute });
+      this.apply(await this.api.ssoRateLimit());
     } catch (e) {
       this.error.set((e as Error)?.message ?? String(e));
     }
   }
 
+  private apply(s: SsoRateLimit) {
+    this.custom.set(s.custom);
+    this.form.setValue({ limit: s.ssoRateLimitPerMinute });
+  }
+
+  reset = async () => {
+    this.apply(await this.api.resetSsoRateLimit());
+    this.toast.showToast({ variant: "success", message: this.i18n.t("cwSsoRateLimitResetDone") });
+  };
+
   save = async () => {
-    const saved = await this.api.saveSsoRateLimit(Number(this.form.value.limit));
-    this.form.setValue({ limit: saved.ssoRateLimitPerMinute });
+    this.apply(await this.api.saveSsoRateLimit(Number(this.form.value.limit)));
     this.toast.showToast({ variant: "success", message: this.i18n.t("cwSsoRateLimitSaved") });
   };
 }

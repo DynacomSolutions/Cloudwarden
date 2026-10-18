@@ -46,7 +46,7 @@ The operations are documented under the `x-cloudwarden` tag in `docs/api/openapi
 | `GET /invitations`, `POST /invitations` `{email}`, `DELETE /invitations/:email` | Invitations; create returns `emailStatus` of `sent`, `not-configured` or `failed` |
 | `GET /organizations`, `DELETE /organizations/:id` | Organisations and deletion (members are kept) |
 | `GET /diagnostics` | Storage figures and configuration |
-| `GET` and `PUT /sso-rate-limit` | The SSO login rate limit per minute (see below) |
+| `GET`, `PUT` and `DELETE /sso-rate-limit` | The SSO login rate limit per minute (see below) |
 | `GET /health?range=24h\|7d` | Worker limit failures and CPU time from Cloudflare analytics (see Health) |
 
 Invitations are stored in the `invitations` table and gate registration. Deleting a user or
@@ -56,9 +56,9 @@ Invitation events never contain the address.
 
 SSO rate limit (TASKS #424): every SSO route is limited per client address (an IPv4 address or an IPv6
 /64). One SSO login spends about 4 to 6 requests, so an office behind one address hits the built-in
-limit of 20 per minute after a few simultaneous logins. An instance admin can set
+limit (20 per minute on Cloudflare) after a few simultaneous logins. An instance admin can set
 `ssoRateLimitPerMinute` (a whole number from 5 to 1000) with `PUT /api/cloudwarden/admin/sso-rate-limit`
-or under Instance admin > SSO rate limit. While it is set, the SSO routes ignore the `LOGIN_LIMITER`
+or under Instance admin > SSO rate limit; `DELETE` (the "Reset to default" button) removes it again, and `GET` reports the effective default (20 when `LOGIN_LIMITER` is bound, 30 for the D1 fallback when it is not). While it is set, the SSO routes ignore the `LOGIN_LIMITER`
 binding (whose limit cannot change at run time) and count in D1 instead, atomically, 60 seconds per
 address; it is audited as event 9014 (`SsoRateLimitUpdated`). Other rate limits are unchanged. Changes
 reach every Worker instance within about 10 seconds.

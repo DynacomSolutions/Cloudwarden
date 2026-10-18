@@ -158,16 +158,19 @@ const createRequest = async (c: import('hono').Context<Env>) => {
   await purgeExpired(db, now)
   const insert = db.insert(schema.authRequests).values(row)
   if (real) {
-    // Keep only the newest cap-1 unanswered requests, then add this one, in one batch.
+    // Evict down to cap-1 unanswered requests, then add this one, in one batch. Victims are
+    // ranked: the creator's own source IP first, then oldest first, so a flooder mostly
+    // evicts its own requests and cannot cheaply erase another device's live request.
     const a = schema.authRequests
-    const keep = db
-      .select({ uuid: a.uuid })
-      .from(a)
-      .where(pendingOf(real.uuid))
-      .orderBy(desc(a.createdAt), sql`rowid desc`)
-      .limit(MAX_PENDING_REQUESTS - 1)
+    const ranked = sql`select ${a.uuid} as uuid,
+      row_number() over (order by (${a.requestIp} = ${row.requestIp}) desc, ${a.createdAt}, rowid) as rn,
+      count(*) over () as total from ${a} where ${pendingOf(real.uuid)}`
     await batch(db, [
-      db.delete(a).where(and(pendingOf(real.uuid), notInArray(a.uuid, keep))),
+      db
+        .delete(a)
+        .where(
+          sql`${a.uuid} in (select uuid from (${ranked}) where rn <= total - ${MAX_PENDING_REQUESTS - 1})`,
+        ),
       insert,
     ])
   } else await insert

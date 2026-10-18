@@ -1,4 +1,5 @@
 import { SELF } from 'cloudflare:test'
+import { env } from 'cloudflare:workers'
 import { expect, it } from 'vitest'
 import { decode } from '../src/notifications/msgpack'
 import { unframe } from '../src/notifications/signalr'
@@ -158,6 +159,66 @@ it('caps live pending requests per user, evicting the oldest', async () => {
   })
   expect(put.status).toBe(200)
   expect((await authed(`/api/auth-requests/${ids[0]}`, s.access_token)).status).toBe(404)
+})
+
+const createFrom = (ip: string, email: string, n: number) =>
+  json(
+    '/api/auth-requests/',
+    { email, deviceIdentifier: `d-${n}`, publicKey: 'pub', type: 0, accessCode: `c-${n}` },
+    { headers: { 'CF-Connecting-IP': ip } },
+  )
+
+const pendingIds = async (token: string) =>
+  (
+    (await (await authed('/api/auth-requests/pending', token)).json()) as {
+      data: { id: string }[]
+    }
+  ).data.map((r) => r.id)
+
+it('evicts the flooder own oldest request first, sparing other sources', async () => {
+  const email = 'ar-ip@example.com'
+  const s = await createSession(email)
+  const victim = ((await (await createFrom('192.0.2.1', email, 0)).json()) as { id: string }).id
+  for (let i = 1; i <= 12; i++) expect((await createFrom('192.0.2.2', email, i)).status).toBe(200)
+  const ids = await pendingIds(s.access_token)
+  expect(ids).toHaveLength(10)
+  expect(ids).toContain(victim)
+})
+
+it('never evicts answered or admin approval requests', async () => {
+  const email = 'ar-keep@example.com'
+  const s = await createSession(email)
+  const ids: string[] = []
+  for (let i = 0; i < 2; i++) {
+    ids.push(((await (await createFrom('192.0.2.3', email, i)).json()) as { id: string }).id)
+  }
+  for (const [i, requestApproved] of [true, false].entries()) {
+    const put = await authed(`/api/auth-requests/${ids[i]}`, s.access_token, 'PUT', {
+      key: 'k',
+      masterPasswordHash: 'h',
+      deviceIdentifier: 'device-1',
+      requestApproved,
+    })
+    expect(put.status).toBe(200)
+  }
+  const user = await env.DB.prepare('select uuid from users where email = ?')
+    .bind(email)
+    .first<{ uuid: string }>()
+  await env.DB.prepare(
+    `insert into auth_requests (uuid, user_uuid, type, request_device_identifier, request_device_type,
+      public_key, access_code_hash, created_at) values ('00000000-0000-0000-0000-0000000000a2', ?, 2, 'adm', 14, 'p', 'h', ?)`,
+  )
+    .bind(user?.uuid, Date.now())
+    .run()
+  for (let i = 2; i < 14; i++) expect((await createFrom('192.0.2.4', email, i)).status).toBe(200)
+  const rows = await env.DB.prepare('select uuid from auth_requests where user_uuid = ?')
+    .bind(user?.uuid)
+    .all<{ uuid: string }>()
+  const have = rows.results.map((r) => r.uuid)
+  expect(have).toContain(ids[0])
+  expect(have).toContain(ids[1])
+  expect(have).toContain('00000000-0000-0000-0000-0000000000a2')
+  expect(await pendingIds(s.access_token)).toHaveLength(10)
 })
 
 it('hides whether an email exists', async () => {

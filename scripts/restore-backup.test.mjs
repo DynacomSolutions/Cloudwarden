@@ -47,7 +47,8 @@ test('builds ordered statements and verifies checksums', () => {
   })
   const stmts = buildStatements(dir)
   assert.equal(stmts[0], 'PRAGMA defer_foreign_keys = on;')
-  assert.equal(stmts.length, 4)
+  assert.equal(stmts.length, 5)
+  assert.equal(stmts.at(-1), 'DELETE FROM "auth_requests";')
 })
 
 test('detects a tampered file', () => {

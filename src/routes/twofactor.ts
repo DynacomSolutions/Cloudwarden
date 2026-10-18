@@ -37,6 +37,7 @@ import {
   type YubiKeyData,
   yubicoConfig,
 } from '../auth/twofactor'
+import { viewUserSecret } from '../auth/user-secrets'
 import { findUserByEmail, normalizeEmail } from '../auth/users'
 import {
   COSE_ES256,
@@ -189,14 +190,13 @@ twofactor.delete('/api/two-factor/authenticator', requireAuth, async (c) => {
 
 twofactor.post('/api/two-factor/get-recover', requireAuth, async (c) => {
   const user = await authorise(c, await parseBody(c, proofOnly))
-  let code = user.totpRecover
-  if (!code) {
-    code = generateRecoveryCode()
-    await createDb(c.env.DB)
-      .update(schema.users)
-      .set({ totpRecover: code, updatedAt: Date.now() })
-      .where(eq(schema.users.uuid, user.uuid))
-  }
+  const code = await viewUserSecret(
+    c.env,
+    user.uuid,
+    'recovery-code',
+    user.totpRecover,
+    generateRecoveryCode,
+  )
   return c.json({ code, object: 'twoFactorRecover' })
 })
 
@@ -212,7 +212,8 @@ const recover = async (c: Ctx) => {
   const user = await findUserByEmail(db, body.email)
   if (user && (await overLimit(c, 'two-factor-recover', user.uuid))) return tooManyRequests(c)
   const passwordOk = await verifyMasterPassword(user, body.masterPasswordHash)
-  const spent = passwordOk && user ? await useRecoveryCode(db, user, body.recoveryCode) : false
+  const spent =
+    passwordOk && user ? await useRecoveryCode(c.env, db, user, body.recoveryCode) : false
   if (!user || !spent || !user.enabled) {
     throw new ApiError(400, 'Recovery code is incorrect. Try again.')
   }

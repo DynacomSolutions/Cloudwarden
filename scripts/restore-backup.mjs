@@ -67,6 +67,8 @@ export function buildStatements(dir) {
     }
     if (rows !== t.rows) throw new Error(`row count mismatch for ${t.name}`)
   }
+  // Pending and approved login-with-device requests must not survive a restore (older backups held them).
+  statements.push('DELETE FROM "auth_requests";')
   return statements
 }
 

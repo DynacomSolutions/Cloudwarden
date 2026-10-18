@@ -1,3 +1,5 @@
+import { sealLegacyUserSecrets } from './auth/user-secrets'
+import type { Bindings } from './env'
 import { errorKind, log } from './log'
 
 /**
@@ -22,10 +24,14 @@ export const PART_BYTES = 5 * 1024 * 1024
  */
 export const REDACTED_COLUMNS: Record<string, Record<string, null | string>> = {
   devices: { refresh_token: '', twofactor_remember: null, push_token: null },
+  users: { email_new_token: null },
 }
 
-/** Short-lived auth state that is useless after a restore and sensitive to keep. */
-export const EXCLUDED_TABLES = new Set(['admin_rate_limits'])
+/**
+ * Short-lived auth state that is useless after a restore and sensitive to keep. Login-with-device
+ * requests hold key material and approvals, so they are never exported.
+ */
+export const EXCLUDED_TABLES = new Set(['admin_rate_limits', 'auth_requests'])
 
 export interface ManifestPart {
   key: string
@@ -119,12 +125,15 @@ export async function exportDatabase(
   now: Date,
   pageSize = PAGE_SIZE,
   partBytes = PART_BYTES,
+  /** When given, legacy plain API keys and recovery codes are encrypted first so no backup holds one. */
+  env?: Bindings,
 ): Promise<{ prefix: string; manifest: Manifest }> {
   const prefix = runPrefix(now)
   const encoder = new TextEncoder()
   const written: string[] = []
   // A rerun with the same timestamp must never leave an old manifest next to new parts.
   await bucket.delete(`${prefix}manifest.json`)
+  if (env) await sealLegacyUserSecrets(env)
 
   try {
     const tables: ManifestTable[] = []
@@ -207,12 +216,16 @@ export async function pruneBackups(
   return deleted
 }
 
-export async function runBackup(
-  env: { DB: D1Database; ATTACHMENTS: R2Bucket },
-  now: Date,
-): Promise<BackupResult> {
+export async function runBackup(env: Bindings, now: Date): Promise<BackupResult> {
   try {
-    const { prefix, manifest } = await exportDatabase(env.DB, env.ATTACHMENTS, now)
+    const { prefix, manifest } = await exportDatabase(
+      env.DB,
+      env.ATTACHMENTS,
+      now,
+      PAGE_SIZE,
+      PART_BYTES,
+      env,
+    )
     const deleted = await pruneBackups(env.ATTACHMENTS, now)
     const rows = manifest.tables.reduce((n, t) => n + t.rows, 0)
     log('info', 'backup.done', { prefix, tables: manifest.tables.length, rows, deleted })

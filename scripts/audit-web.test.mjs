@@ -11,11 +11,13 @@ const adv = (severity, id) => ({
 
 test('blocking reports unaccepted high and critical advisories only', () => {
   const report = {
+    auditReportVersion: 2,
     vulnerabilities: {
       a: { via: [adv('high', 'GHSA-new'), adv('moderate', 'GHSA-mod'), 'b'] },
       b: { via: [adv('critical', 'GHSA-crit'), adv('high', [...ACCEPTED][0])] },
     },
   }
   assert.deepEqual([...blocking(report).keys()].sort(), ['GHSA-crit', 'GHSA-new'])
-  assert.equal(blocking({}).size, 0)
+  assert.equal(blocking({ auditReportVersion: 2 }).size, 0)
+  assert.throws(() => blocking({}), /unexpected/)
 })

@@ -10,6 +10,7 @@ import { createEmailTransport, sendCodeEmail } from '../email'
 import type { Bindings, Env } from '../env'
 import { ApiError } from '../errors'
 import { errorKind, log } from '../log'
+import { clientKey } from '../ratelimit'
 import { baseUrl, signBlobToken, signingKeyFor, verificationKeysFor } from './blobs'
 import {
   allowedEmails,
@@ -73,7 +74,7 @@ function newCode(): string {
   return String((buf[0] as number) % space).padStart(OTP_DIGITS, '0')
 }
 
-const clientIp = (c: Context<Env>) => c.req.header('CF-Connecting-IP') ?? 'unknown'
+const clientIp = (c: Context<Env>) => clientKey(c) ?? 'unknown'
 
 /** True when every named limit still has room; all of them are counted even after one is full. */
 async function within(

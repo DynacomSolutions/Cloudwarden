@@ -17,7 +17,7 @@ import { eventStatement } from '../orgs/events'
 import { defer } from '../orgs/notify'
 import { isRecoveryExcluded } from '../orgs/recovery'
 import { batch } from '../orgs/util'
-import { rateLimit, spendBudget, tooManyRequests } from '../ratelimit'
+import { clientKey, rateLimit, spendBudget, tooManyRequests } from '../ratelimit'
 import { MemberDecryptionType, parseConfigData } from '../sso/config'
 import { parseBody } from '../validation'
 
@@ -135,6 +135,8 @@ const createRequest = async (c: import('hono').Context<Env>) => {
     requestDeviceIdentifier: body.deviceIdentifier,
     requestDeviceType: Number.isFinite(deviceType) ? deviceType : 14,
     requestIp: c.req.header('CF-Connecting-IP') ?? null,
+    // The /64 prefix for IPv6, so the eviction ranking below cannot be dodged by rotating addresses.
+    requestIpKey: clientKey(c) ?? null,
     publicKey: body.publicKey,
     accessCodeHash: await sha256B64u(body.accessCode),
     approved: null,
@@ -163,7 +165,7 @@ const createRequest = async (c: import('hono').Context<Env>) => {
     // evicts its own requests and cannot cheaply erase another device's live request.
     const a = schema.authRequests
     const ranked = sql`select ${a.uuid} as uuid,
-      row_number() over (order by (${a.requestIp} = ${row.requestIp}) desc, ${a.createdAt}, rowid) as rn,
+      row_number() over (order by (${a.requestIpKey} = ${row.requestIpKey}) desc, ${a.createdAt}, rowid) as rn,
       count(*) over () as total from ${a} where ${pendingOf(real.uuid)}`
     await batch(db, [
       db
@@ -381,6 +383,7 @@ authRequests.post('/api/auth-requests/admin-request', requireAuth, async (c) => 
     requestDeviceIdentifier: body.deviceIdentifier,
     requestDeviceType: Number.isFinite(deviceType) ? deviceType : 14,
     requestIp: c.req.header('CF-Connecting-IP') ?? null,
+    requestIpKey: null,
     publicKey: body.publicKey,
     accessCodeHash: await sha256B64u(body.accessCode),
     approved: null,

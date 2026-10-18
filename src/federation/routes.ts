@@ -15,6 +15,7 @@ import { ApiError } from '../errors'
 import { PushType, pushUserUpdate } from '../notifications/publish'
 import { requireMember } from '../orgs/access'
 import { canListMembers } from '../orgs/members'
+import { clientKey } from '../ratelimit'
 import { assertBodyWithin, parseBody } from '../validation'
 import { FederationEvent, federationEventStatement, listFederationEvents } from './events'
 import {
@@ -145,7 +146,7 @@ federation.get(WELL_KNOWN_PATH, async (c) => {
 
 federation.post('/federation/v1/pair', async (c) => {
   requireFederation(c.env)
-  const ip = c.req.header('CF-Connecting-IP') ?? 'unknown'
+  const ip = clientKey(c) ?? 'unknown'
   if (!(await rateLimit(c.env.DB, `fedpair:${ip}`, PAIR_RATE_LIMIT, 60_000, Date.now()))) {
     throw new ApiError(429, 'Too many pairing requests.')
   }
@@ -340,7 +341,7 @@ federation.all('/federation/v1/members/:userId/proxy/*', async (c) => {
 
 federation.get('/federation/attachments/:peerId/:cipherId/:attachmentId', async (c) => {
   requireFederation(c.env)
-  const ip = c.req.header('CF-Connecting-IP') ?? 'unknown'
+  const ip = clientKey(c) ?? 'unknown'
   if (!(await rateLimit(c.env.DB, `fedatt:${ip}`, ATTACHMENT_RATE_LIMIT, 60_000, Date.now()))) {
     throw new ApiError(429, 'Too many requests.')
   }

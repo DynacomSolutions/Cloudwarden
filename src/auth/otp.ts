@@ -5,10 +5,10 @@ import { schema } from '../db'
 import { sha256B64u } from './crypto'
 
 /** Purposes keep a code issued for one flow from unlocking another. */
-export type OtpPurpose = 'new-device' | 'user-verification'
+export type OtpPurpose = 'new-device' | 'user-verification' | 'email-change'
 
 export const OTP_TTL_MS = 10 * 60 * 1000
-const MAX_ATTEMPTS = 5
+export const MAX_ATTEMPTS = 5
 const MAX_ISSUES_PER_HOUR = 5
 
 /** Issues a six digit code for the user, replacing any pending one. The code is stored hashed. */

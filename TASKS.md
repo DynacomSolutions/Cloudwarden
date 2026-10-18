@@ -301,11 +301,9 @@ Owner feedback: federation should not tie two organisations together; a user sha
 
 ## 20. Security hardening: High
 
-ETA: 2026-10-19 12:00 ICT
-
 | ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
 |---|---|---|---|---|---|---|---|
-| 396 | Revoke refresh tokens when an admin deauthorises a user or removes their second factor, via one shared session-revocation statement set | in_progress | agent | fix/396-397-session-revocation | | 2026-10-19 12:00 ICT | Audit 2026-10-18 CW-01 |
+| 396 | Revoke refresh tokens when an admin deauthorises a user or removes their second factor, via one shared session-revocation statement set | done | agent | | | | Audit 2026-10-18 CW-01. Done 18 October 2026 in PR #87. |
 
 ## 21. Security hardening: Medium
 
@@ -313,10 +311,10 @@ ETA: 2026-10-19 12:00 ICT
 
 | ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
 |---|---|---|---|---|---|---|---|
-| 397 | Invalidate pending and approved login-with-device requests on every security-stamp rotation, including emergency takeover | in_progress | agent | fix/396-397-session-revocation | 20.396 | 2026-10-19 12:00 ICT | Audit 2026-10-18 CW-02 |
-| 398 | Apply the instance-role exclusion to bulk recovery details, the organisation device-approval list and emergency takeover details | in_progress | agent | fix/398-recovery-instance-role | | 2026-10-19 12:00 ICT | Audit 2026-10-18 CW-03 |
+| 397 | Invalidate pending and approved login-with-device requests on every security-stamp rotation, including emergency takeover | done | agent | | 20.396 | | Audit 2026-10-18 CW-02. Done 18 October 2026 in PR #87. |
+| 398 | Apply the instance-role exclusion to bulk recovery details, the organisation device-approval list and emergency takeover details | done | agent | | | | Audit 2026-10-18 CW-03. Done 18 October 2026 in PR #86. |
 | 399 | Hashed, single-use email change code with an atomic attempt cap | in_progress | agent | fix/399-email-change-code | | 2026-10-19 12:00 ICT | Audit 2026-10-18 CW-04 |
-| 400 | Send Strict-Transport-Security from the Worker and the static headers; add `upgrade-insecure-requests` to the CSP | in_progress | agent | fix/400-hsts | | 2026-10-19 12:00 ICT | Audit 2026-10-18 CW-05 |
+| 400 | Send Strict-Transport-Security from the Worker and the static headers; add `upgrade-insecure-requests` to the CSP | done | agent | | | | Audit 2026-10-18 CW-05. Done 18 October 2026 in PR #90. |
 | 401 | Enable "Always Use HTTPS" at the Cloudflare zone for every deployment | done | Thomas | | | | Audit 2026-10-18 CW-05. Done 18 October 2026: enabled on every zone, HTTP now returns 301. |
 
 ## 22. Security hardening: Low
@@ -335,6 +333,8 @@ ETA: 2026-10-25 18:00 ICT
 | 409 | Decide and document the Secrets Manager machine-token delegation boundary (write access versus read reachability) | todo | | | | | Audit 2026-10-18 CW-13 |
 | 410 | Remove the purpose-token raw-key verification fallback after its migration window | todo | | | | | Audit 2026-10-18 CW-14 |
 | 411 | Serve OpenID discovery documents at the root `.well-known` paths | todo | | | | | Audit 2026-10-18 CW-15 |
+| 412 | Re-check the security stamp in the refresh-token grant so a redemption racing a revocation cannot mint a lasting session | todo | | | | | Review follow-up to PR #87 |
+| 413 | Instance admins on a new device can request admin approval but the request is hidden from approvers; refuse it up front with a clear error, add a device-approval test for instance roles, and route emergency takeover through the shared recovery predicate | todo | | | | | Review follow-up to PR #86 |
 
 ## Evidence log
 

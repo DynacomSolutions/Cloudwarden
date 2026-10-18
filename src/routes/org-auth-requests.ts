@@ -48,7 +48,7 @@ const encString = z
   .regex(/^\d+\.[A-Za-z0-9+/=|_-]+$/, 'Invalid encrypted key.')
 
 /** Pending, unexpired admin requests of enrolled active members, joined to the membership. */
-async function pendingRequests(db: Db, orgUuid: string, ids?: string[]) {
+async function pendingRequests(db: Db, env: Env['Bindings'], orgUuid: string, ids?: string[]) {
   const uo = schema.usersOrganizations
   const ar = schema.authRequests
   const rows = await db
@@ -66,9 +66,10 @@ async function pendingRequests(db: Db, orgUuid: string, ids?: string[]) {
       ),
     )
     .orderBy(desc(ar.createdAt))
-  // Federated members and members of other organisations are never approvable from here.
+  // Instance admins and owners, federated members and members of other organisations are never approvable from here.
   const blocked = await unrecoverableMembers(
     db,
+    env,
     rows.map((x) => ({ m: x.m, u: x.u })),
   )
   return rows.filter((x) => !isExpired(x.r) && !blocked.has(x.m.uuid))
@@ -110,7 +111,7 @@ async function requireApprover(c: Ctx, db: Db) {
 orgAuthRequests.get('/api/organizations/:orgId/auth-requests', async (c) => {
   const db = createDb(c.env.DB)
   const actor = await requireApprover(c, db)
-  const rows = (await pendingRequests(db, org(c))).filter((x) => outranked(actor, x.m))
+  const rows = (await pendingRequests(db, c.env, org(c))).filter((x) => outranked(actor, x.m))
   return c.json({
     object: 'list',
     data: rows.map((x) => pendingJson(x.r, x.m, x.email)),
@@ -133,6 +134,7 @@ async function answer(c: Ctx, answers: Answer[]) {
     (
       await pendingRequests(
         db,
+        c.env,
         org(c),
         unique.map((a) => a.id),
       )

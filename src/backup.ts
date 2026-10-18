@@ -1,4 +1,5 @@
-import { hashRecoveryCode } from './auth/twofactor'
+import { sealLegacyUserSecrets } from './auth/user-secrets'
+import type { Bindings } from './env'
 import { errorKind, log } from './log'
 
 /**
@@ -31,23 +32,6 @@ export const REDACTED_COLUMNS: Record<string, Record<string, null | string>> = {
  * requests hold key material and approvals, so they are never exported.
  */
 export const EXCLUDED_TABLES = new Set(['admin_rate_limits', 'auth_requests'])
-
-/**
- * Recovery codes written before hashing are plain 32-character base32 strings. D1 has no SHA-256
- * function, so a migration cannot hash them; the export does it first so no backup holds one.
- */
-export async function hashLegacyRecoveryCodes(db: D1Database): Promise<void> {
-  const { results } = await db
-    .prepare(
-      "SELECT uuid, totp_recover AS code FROM users WHERE length(totp_recover) = 32 AND totp_recover NOT GLOB '*[^A-Z2-7]*'",
-    )
-    .all<{ uuid: string; code: string }>()
-  for (const { uuid, code } of results)
-    await db
-      .prepare('UPDATE users SET totp_recover = ?1 WHERE uuid = ?2 AND totp_recover = ?3')
-      .bind(await hashRecoveryCode(code), uuid, code)
-      .run()
-}
 
 export interface ManifestPart {
   key: string
@@ -141,13 +125,15 @@ export async function exportDatabase(
   now: Date,
   pageSize = PAGE_SIZE,
   partBytes = PART_BYTES,
+  /** When given, legacy plain API keys and recovery codes are encrypted first so no backup holds one. */
+  env?: Bindings,
 ): Promise<{ prefix: string; manifest: Manifest }> {
   const prefix = runPrefix(now)
   const encoder = new TextEncoder()
   const written: string[] = []
   // A rerun with the same timestamp must never leave an old manifest next to new parts.
   await bucket.delete(`${prefix}manifest.json`)
-  await hashLegacyRecoveryCodes(db)
+  if (env) await sealLegacyUserSecrets(env)
 
   try {
     const tables: ManifestTable[] = []
@@ -230,12 +216,16 @@ export async function pruneBackups(
   return deleted
 }
 
-export async function runBackup(
-  env: { DB: D1Database; ATTACHMENTS: R2Bucket },
-  now: Date,
-): Promise<BackupResult> {
+export async function runBackup(env: Bindings, now: Date): Promise<BackupResult> {
   try {
-    const { prefix, manifest } = await exportDatabase(env.DB, env.ATTACHMENTS, now)
+    const { prefix, manifest } = await exportDatabase(
+      env.DB,
+      env.ATTACHMENTS,
+      now,
+      PAGE_SIZE,
+      PART_BYTES,
+      env,
+    )
     const deleted = await pruneBackups(env.ATTACHMENTS, now)
     const rows = manifest.tables.reduce((n, t) => n + t.rows, 0)
     log('info', 'backup.done', { prefix, tables: manifest.tables.length, rows, deleted })

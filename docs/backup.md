@@ -22,8 +22,9 @@ backups/<YYYY-MM-DD>/run-<epoch seconds>/manifest.json          tables, ordered 
   requests (`auth_requests`, which hold encrypted key material).
 - Redacted columns: `devices.refresh_token` (written as an empty string, which the token endpoint treats as revoked),
   `devices.twofactor_remember` and `devices.push_token` (null), and `users.email_new_token` (null). Every device must
-  sign in again after a restore. The two-step recovery code is stored hashed; before each export any remaining
-  plain-text code is hashed in place.
+  sign in again after a restore. `users.api_key` and `users.totp_recover` are stored AES-GCM encrypted under a key derived from a Worker secret
+  (not in D1); before each export any remaining plain value is encrypted in place. Keep `DATA_ENCRYPTION_KEY` (or
+  `JWT_SECRET`) to read them after a restore.
   TOTP secrets and other two-factor material are kept because a restore is useless without them.
 - Nothing served to users may resolve a key under `backups/`; `src/blob-keys.ts` provides the guard.
 

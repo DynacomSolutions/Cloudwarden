@@ -24,7 +24,6 @@ import {
   enabledProviders,
   enableProviderStatements,
   generateRecoveryCode,
-  hashRecoveryCode,
   issueVerificationToken,
   lowerKeys,
   MAX_YUBIKEYS,
@@ -38,6 +37,7 @@ import {
   type YubiKeyData,
   yubicoConfig,
 } from '../auth/twofactor'
+import { openUserSecret, sealInPlace, sealUserSecret } from '../auth/user-secrets'
 import { findUserByEmail, normalizeEmail } from '../auth/users'
 import {
   COSE_ES256,
@@ -190,12 +190,22 @@ twofactor.delete('/api/two-factor/authenticator', requireAuth, async (c) => {
 
 twofactor.post('/api/two-factor/get-recover', requireAuth, async (c) => {
   const user = await authorise(c, await parseBody(c, proofOnly))
-  // Only a hash is stored, so each view issues a fresh code and retires the previous one.
-  const code = generateRecoveryCode()
-  await createDb(c.env.DB)
-    .update(schema.users)
-    .set({ totpRecover: await hashRecoveryCode(code), updatedAt: Date.now() })
-    .where(eq(schema.users.uuid, user.uuid))
+  const opened = user.totpRecover
+    ? await openUserSecret(c.env, user.uuid, 'recovery-code', user.totpRecover)
+    : null
+  let code = opened?.value
+  if (code) {
+    if (opened?.legacy) await sealInPlace(c.env, user.uuid, 'recovery-code', code)
+  } else {
+    code = generateRecoveryCode()
+    await createDb(c.env.DB)
+      .update(schema.users)
+      .set({
+        totpRecover: await sealUserSecret(c.env, user.uuid, 'recovery-code', code),
+        updatedAt: Date.now(),
+      })
+      .where(eq(schema.users.uuid, user.uuid))
+  }
   return c.json({ code, object: 'twoFactorRecover' })
 })
 
@@ -211,7 +221,8 @@ const recover = async (c: Ctx) => {
   const user = await findUserByEmail(db, body.email)
   if (user && (await overLimit(c, 'two-factor-recover', user.uuid))) return tooManyRequests(c)
   const passwordOk = await verifyMasterPassword(user, body.masterPasswordHash)
-  const spent = passwordOk && user ? await useRecoveryCode(db, user, body.recoveryCode) : false
+  const spent =
+    passwordOk && user ? await useRecoveryCode(c.env, db, user, body.recoveryCode) : false
   if (!user || !spent || !user.enabled) {
     throw new ApiError(400, 'Recovery code is incorrect. Try again.')
   }

@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, lt, sql } from 'drizzle-orm'
+import { and, eq, inArray, lt, sql } from 'drizzle-orm'
 import type { Context } from 'hono'
 import type { Db } from '../db'
 import { createDb, runBatch, schema } from '../db'
@@ -9,11 +9,12 @@ import type { Bindings, Env, User } from '../env'
 import { ApiError, oauthError } from '../errors'
 import { Status } from '../orgs/constants'
 import { overLimit, tooManyRequests } from '../ratelimit'
-import { randomB64u, safeEqualStrings, sha256B64u, toB64u } from './crypto'
+import { randomB64u, safeEqualStrings, sha256B64u } from './crypto'
 import { type DuoConfig, duoAuthUrl, duoVerifyCode } from './duo'
 import { signingSecret, signJwt, verificationSecrets, verifyJwt } from './jwt'
 import { verifyMasterPassword } from './passwords'
 import { base32Encode, generateTotpKey, verifyTotp } from './totp'
+import { openUserSecret, sealUserSecret } from './user-secrets'
 import {
   checkChallenge,
   createChallenge,
@@ -124,12 +125,6 @@ async function swapData(
 export const generateRecoveryCode = (): string =>
   base32Encode(crypto.getRandomValues(new Uint8Array(20)))
 
-/** The recovery code is stored only as this hash (160 bits of entropy, so an unsalted digest is enough). */
-export const hashRecoveryCode = (code: string): Promise<string> => sha256B64u(`recovery:${code}`)
-
-/** Hash-shaped placeholder for a code nobody has seen yet; the user reads a fresh one via get-recover. */
-const unseenRecoveryHash = (): string => toB64u(crypto.getRandomValues(new Uint8Array(32)))
-
 /** Upserts a provider row and, if the user has no recovery code yet, creates one. */
 export function enableProviderStatements(
   db: Db,
@@ -155,14 +150,6 @@ export function enableProviderStatements(
         target: [schema.twofactor.userUuid, schema.twofactor.atype],
         set: { enabled, data: JSON.stringify(data), lastUsed },
       }),
-    ...(enabled
-      ? [
-          db
-            .update(schema.users)
-            .set({ totpRecover: unseenRecoveryHash(), updatedAt: Date.now() })
-            .where(and(eq(schema.users.uuid, user.uuid), isNull(schema.users.totpRecover))),
-        ]
-      : []),
   ]
 }
 
@@ -656,14 +643,18 @@ export function normaliseRecoveryCode(input: string): string | null {
  * Spends the recovery code: removes every provider and remember token and rotates the code,
  * all guarded on the old code so it works once. Returns false if the code is not valid.
  */
-export async function useRecoveryCode(db: Db, user: User, input: string): Promise<boolean> {
+export async function useRecoveryCode(
+  env: Bindings,
+  db: Db,
+  user: User,
+  input: string,
+): Promise<boolean> {
   const supplied = normaliseRecoveryCode(input)
   const stored = user.totpRecover
   if (!supplied || !stored) return false
-  // Rows written before hashing hold the plain code until the next backup run hashes them.
-  const expected = RECOVERY_FORMAT.test(stored) ? supplied : await hashRecoveryCode(supplied)
-  if (!safeEqualStrings(stored, expected)) return false
-  const next = unseenRecoveryHash()
+  const opened = await openUserSecret(env, user.uuid, 'recovery-code', stored)
+  if (!opened || !safeEqualStrings(opened.value, supplied)) return false
+  const next = await sealUserSecret(env, user.uuid, 'recovery-code', generateRecoveryCode())
   const rotated = sql`exists (select 1 from users where uuid = ${user.uuid} and totp_recover = ${next})`
   await runBatch(db, [
     db
@@ -779,7 +770,7 @@ export const enforceTwoFactor: TwoFactorHook = async (c, user, form) => {
 
   // The recovery code is accepted as provider 8: it spends the code, then login continues.
   if (provider === TwoFactorType.RecoveryCode) {
-    if (await useRecoveryCode(db, user, token)) {
+    if (await useRecoveryCode(c.env, db, user, token)) {
       later(c, sendNotice(c.env, user.email, recoveryCodeUsedEmail()))
       return null
     }

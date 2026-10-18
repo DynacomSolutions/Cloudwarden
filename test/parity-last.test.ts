@@ -14,7 +14,7 @@ import {
   vapidAuthorization,
   webPushBody,
 } from '../src/notifications/webpush'
-import { authed, BASE, createSession, login, withEnv } from './helpers'
+import { authed, BASE, createSession, form, login, withEnv } from './helpers'
 import type { OidcIdp } from './oidc-idp'
 import { actor, addMember, createOrg } from './org-helpers'
 import {
@@ -738,7 +738,11 @@ describe('POST /api/accounts/key-connector/enroll', () => {
     const email = uemail('kcjit')
     const r = await oidcLogin(idp, identifier, { sub: unique('sub'), email })
     expect(r.token?.status).toBe(200)
-    return { email, token: r.body.access_token as string }
+    return {
+      email,
+      token: r.body.access_token as string,
+      refresh: r.body.refresh_token as string,
+    }
   }
   const stamp = async (email: string) =>
     (
@@ -788,6 +792,12 @@ describe('POST /api/accounts/key-connector/enroll', () => {
       .all<{ i: string; r: string }>()
     expect(devices.results.find((d) => d.i === 'kc-other')?.r).toBe('')
     expect(devices.results.find((d) => d.i === 'sso-device-1')?.r).not.toBe('')
+    // The device that enrolled keeps a refresh token that still works under the new stamp.
+    const refreshed = await form('/identity/connect/token', {
+      grant_type: 'refresh_token',
+      refresh_token: u.refresh,
+    })
+    expect(refreshed.status).toBe(200)
     // The old access token is dead; a second enrolment is refused.
     expect((await enroll(u.token)).status).toBe(401)
   })

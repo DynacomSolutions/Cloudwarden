@@ -87,6 +87,9 @@ export const devices = sqliteTable(
     webPushAuth: text('web_push_auth'),
     // SHA-256 (base64url) of the refresh token secret; empty string means revoked.
     refreshToken: text('refresh_token').notNull(),
+    // Security stamp of the account when the refresh token was issued (TASKS #412). A refresh is
+    // refused once the stamp differs; null for tokens issued before the column, which stay valid.
+    refreshStamp: text('refresh_stamp'),
     twofactorRemember: text('twofactor_remember'),
     // Trusted device encryption (TASKS #284): the user key encrypted with the device public key,
     // the device public key encrypted with the user key, and the device private key encrypted with

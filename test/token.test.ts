@@ -119,6 +119,37 @@ it('refresh grant rotates the refresh token and rejects replays', async () => {
   expect(garbage.status).toBe(400)
 })
 
+it('refresh grant refuses a token issued before a stamp rotation, even one written after the revocation', async () => {
+  const s = await createSession('stamped@example.com')
+  // A redemption that raced the revocation batch: the token is live (not blanked) but was issued
+  // under the old stamp.
+  await env.DB.prepare('update users set security_stamp = ? where email = ?')
+    .bind(crypto.randomUUID(), 'stamped@example.com')
+    .run()
+  const res = await form('/identity/connect/token', {
+    grant_type: 'refresh_token',
+    refresh_token: s.refresh_token,
+  })
+  expect(res.status).toBe(400)
+  expect(((await res.json()) as any).error).toBe('invalid_grant')
+})
+
+it('refresh grant keeps tokens issued before the stamp binding valid and binds them on use', async () => {
+  const s = await createSession('legacy-stamp@example.com')
+  await env.DB.prepare('update devices set refresh_stamp = null').run()
+  const res = await form('/identity/connect/token', {
+    grant_type: 'refresh_token',
+    refresh_token: s.refresh_token,
+  })
+  expect(res.status).toBe(200)
+  const row = await env.DB.prepare(
+    'select d.refresh_stamp s, u.security_stamp u from devices d join users u on u.uuid = d.user_uuid where u.email = ?',
+  )
+    .bind('legacy-stamp@example.com')
+    .first<{ s: string; u: string }>()
+  expect(row?.s).toBe(row?.u)
+})
+
 it('refresh grant rejects expired refresh tokens', async () => {
   const s = await createSession('stale@example.com')
   await env.DB.prepare('update devices set updated_at = ?')

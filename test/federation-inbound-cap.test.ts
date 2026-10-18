@@ -118,3 +118,19 @@ it('refuses an over-cap chunked pairing request while streaming', async () => {
   expect(res.status).toBe(413)
   expect(pulled.bytes).toBeLessThanOrEqual(MAX_PAIR_BYTES + 2_000_000)
 }, 60_000)
+
+it('refuses a replayed request before reading its body', async () => {
+  const body = new TextEncoder().encode('{}')
+  const headers = await signed(body)
+  const first = await net.B.fetch('/federation/v1/ping', { method: 'POST', headers, body })
+  expect(first.status).toBe(200)
+  const { stream, pulled } = endless()
+  const res = await net.B.fetch('/federation/v1/ping', {
+    method: 'POST',
+    headers,
+    body: stream,
+    duplex: 'half',
+  } as RequestInit)
+  expect(res.status).toBe(401)
+  expect(pulled.bytes).toBeLessThanOrEqual(65_536)
+}, 60_000)

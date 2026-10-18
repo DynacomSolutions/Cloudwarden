@@ -118,13 +118,12 @@ export function parseSignature(headers: Headers): ParsedSignature | null {
 export type VerifyFailure = 'malformed' | 'expired' | 'digest' | 'signature'
 
 /**
- * Checks the time window, the body digest and the signature against `publicKeyB64u`.
- * A null `body` checks the headers only (the digest header must be present), so a forged request
- * is refused before its body is read. Replay protection (the nonce) is the caller's job, since it needs storage.
+ * Checks the time window, the presence of the signed content-digest header and the signature, but
+ * not the body, so a forged request is refused before its body is read. Callers MUST then compare
+ * the body with that header (`verifyRequest` does). Replay protection is the caller's job.
  */
-export async function verifyRequest(
+export async function verifySignedHeaders(
   req: { method: string; url: string; headers: Headers },
-  body: Uint8Array | null,
   parsed: ParsedSignature,
   publicKeyB64u: string,
   now = Date.now(),
@@ -139,8 +138,7 @@ export async function verifyRequest(
   ) {
     return 'expired'
   }
-  const declared = req.headers.get('content-digest') ?? ''
-  if (body ? declared !== (await contentDigest(body)) : !declared) return 'digest'
+  if (!req.headers.get('content-digest')) return 'digest'
   const raw = fromB64u(publicKeyB64u)
   if (!raw) return 'malformed'
   const key = await crypto.subtle.importKey('raw', raw, { name: 'Ed25519' }, false, ['verify'])
@@ -151,4 +149,17 @@ export async function verifyRequest(
     utf8(signatureBase(req, parsed.params)),
   )
   return ok ? null : 'signature'
+}
+
+/** Checks the signed headers and that `body` matches the signed content-digest. */
+export async function verifyRequest(
+  req: { method: string; url: string; headers: Headers },
+  body: Uint8Array,
+  parsed: ParsedSignature,
+  publicKeyB64u: string,
+  now = Date.now(),
+): Promise<VerifyFailure | null> {
+  const failure = await verifySignedHeaders(req, parsed, publicKeyB64u, now)
+  if (failure) return failure
+  return req.headers.get('content-digest') === (await contentDigest(body)) ? null : 'digest'
 }

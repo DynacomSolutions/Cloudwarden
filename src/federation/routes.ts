@@ -161,6 +161,7 @@ federation.post('/federation/v1/pair', async (c) => {
     () => new ApiError(413, 'Federation request too large.'),
   )
   const body = new Uint8Array(await c.req.raw.arrayBuffer())
+  if (body.byteLength > MAX_PAIR_BYTES) throw new ApiError(413, 'Federation request too large.')
   let claimed: { domain?: unknown }
   try {
     claimed = JSON.parse(new TextDecoder().decode(body))

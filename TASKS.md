@@ -316,6 +316,7 @@ Owner feedback: federation should not tie two organisations together; a user sha
 | 401 | Enable "Always Use HTTPS" at the Cloudflare zone for every deployment | done | Thomas | | | | Audit 2026-10-18 CW-05. Done 18 October 2026: enabled on every zone, HTTP now returns 301. |
 
 ## 22. Security hardening: Low
+ETA: 2026-10-19 07:30 ICT
 
 | ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
 |---|---|---|---|---|---|---|---|
@@ -339,6 +340,7 @@ Owner feedback: federation should not tie two organisations together; a user sha
 | 421 | Confirm the shipped web vault never calls node-forge RSA signature verification (accepted advisory GHSA-86w9-cpqp-85rv) | done | agent | | | | Done 19 October 2026: the minified bundle requires node-forge from 2 sites only, both using hmac, md5, AES decipher and RSA encrypt/decrypt; the advisory is in DigestInfo parsing during verify, which decrypt never reaches. Revisit when a patched node-forge ships. |
 | 422 | Stream inbound federation peer request bodies against the size cap instead of buffering them whole | done | | | | | Done 19 October 2026 in PR #114. |
 | 423 | Key rate-limit buckets and login-with-device eviction ranking on the IPv6 /64 prefix rather than the exact address | done | | | | | Done 19 October 2026 in PR #115. |
+| 424 | Instance admin setting for the SSO login rate limit (per address or IPv6 /64 per minute), so offices behind one address are not throttled | in_progress | agent | feat-424-sso-rate-limit | | 2026-10-19 07:30 ICT | Follow-up from #423 review: the fixed binding allows 20/min, about 4 concurrent SSO logins. |
 
 ## 23. Security hardening: Info
 

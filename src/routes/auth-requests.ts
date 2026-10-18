@@ -138,14 +138,15 @@ const createRequest = async (c: import('hono').Context<Env>) => {
   const user = await findUserByEmail(db, body.email)
   // Unknown or disabled accounts get a decoy row (no owner, no push) so the response, the
   // poll endpoint and the anonymous hub behave identically and emails cannot be probed.
-  // Per-target budget (five per 15 minutes) spent for every address, so refusal is invisible: an
-  // over-budget real account gets the decoy too, with no push.
+  // Per-target push budget (five per 15 minutes), spent for every address. Over budget the real
+  // request is still created and approvable; only the push is skipped, so a legitimate request
+  // is never blocked and the response is identical.
   const withinBudget = await spendBudget(c.env.DB, `authreq:${normalizeEmail(body.email)}`, 5)
-  const real = user?.enabled && withinBudget ? user : null
+  const real = user?.enabled ? user : null
   row.userUuid = real?.uuid ?? null
   await purgeExpired(db, now)
   await db.insert(schema.authRequests).values(row)
-  if (!real) return c.json(requestJson(row))
+  if (!real || !withinBudget) return c.json(requestJson(row))
   c.executionCtx.waitUntil(
     pushUserUpdate(
       c.env,

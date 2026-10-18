@@ -76,7 +76,7 @@ it('locks TOTP guesses per user and resets on success', async () => {
   expect(row?.n).toBe(0)
 })
 
-it('caps push-creating auth requests per target, with an identical response', async () => {
+it('caps push-sending auth requests per target, with an identical response', async () => {
   const email = 'budget-ar@example.com'
   await registerUser(email)
   const create = () =>
@@ -97,7 +97,7 @@ it('caps push-creating auth requests per target, with an identical response', as
   const count = await env.DB.prepare(
     "SELECT count(*) AS n FROM auth_requests WHERE user_uuid IS NOT NULL AND request_device_identifier = 'd'",
   ).first<{ n: number }>()
-  expect(count?.n).toBe(5)
+  expect(count?.n).toBe(7)
 })
 
 it('does not block an approved login-with-device when the password budget is exhausted', async () => {
@@ -122,6 +122,35 @@ it('does not block an approved login-with-device when the password budget is exh
   })
   const res = await login(email, 'code-1', {
     authRequest: created.id,
+    deviceIdentifier: 'new-device',
+  })
+  expect(res.status).toBe(200)
+})
+
+it('keeps over-budget login-with-device requests approvable', async () => {
+  const email = 'budget-over@example.com'
+  const s = await createSession(email)
+  const create = async () =>
+    (await (
+      await json('/api/auth-requests/', {
+        email,
+        deviceIdentifier: 'new-device',
+        publicKey: 'pub',
+        type: 0,
+        accessCode: 'code-1',
+      })
+    ).json()) as { id: string }
+  for (let i = 0; i < 5; i++) await create()
+  const sixth = await create()
+  const put = await authed(`/api/auth-requests/${sixth.id}`, s.access_token, 'PUT', {
+    key: 'k',
+    masterPasswordHash: 'h',
+    deviceIdentifier: 'device-1',
+    requestApproved: true,
+  })
+  expect(put.status).toBe(200)
+  const res = await login(email, 'code-1', {
+    authRequest: sixth.id,
     deviceIdentifier: 'new-device',
   })
   expect(res.status).toBe(200)

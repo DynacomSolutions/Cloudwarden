@@ -26,7 +26,12 @@ export interface DeviceInput {
  * Creates or updates the device row for (user, identifier) and issues a fresh refresh
  * token secret. Returns the opaque refresh token the client stores.
  */
-export async function registerDevice(db: Db, userUuid: string, d: DeviceInput): Promise<string> {
+export async function registerDevice(
+  db: Db,
+  user: Pick<User, 'uuid' | 'securityStamp'>,
+  d: DeviceInput,
+): Promise<string> {
+  const userUuid = user.uuid
   const now = Date.now()
   const uuid = crypto.randomUUID()
   const secret = randomB64u(32)
@@ -39,12 +44,20 @@ export async function registerDevice(db: Db, userUuid: string, d: DeviceInput): 
       name: d.name,
       type: d.type,
       refreshToken: await sha256B64u(secret),
+      // The stamp the caller authenticated against, so a revocation that lands in between wins.
+      refreshStamp: user.securityStamp,
       createdAt: now,
       updatedAt: now,
     })
     .onConflictDoUpdate({
       target: [schema.devices.userUuid, schema.devices.identifier],
-      set: { name: d.name, type: d.type, refreshToken: await sha256B64u(secret), updatedAt: now },
+      set: {
+        name: d.name,
+        type: d.type,
+        refreshToken: await sha256B64u(secret),
+        refreshStamp: user.securityStamp,
+        updatedAt: now,
+      },
     })
   const [row] = await db
     .select({ uuid: schema.devices.uuid })

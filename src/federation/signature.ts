@@ -119,11 +119,12 @@ export type VerifyFailure = 'malformed' | 'expired' | 'digest' | 'signature'
 
 /**
  * Checks the time window, the body digest and the signature against `publicKeyB64u`.
- * Replay protection (the nonce) is the caller's job, since it needs storage.
+ * A null `body` checks the headers only (the digest header must be present), so a forged request
+ * is refused before its body is read. Replay protection (the nonce) is the caller's job, since it needs storage.
  */
 export async function verifyRequest(
   req: { method: string; url: string; headers: Headers },
-  body: Uint8Array,
+  body: Uint8Array | null,
   parsed: ParsedSignature,
   publicKeyB64u: string,
   now = Date.now(),
@@ -138,7 +139,8 @@ export async function verifyRequest(
   ) {
     return 'expired'
   }
-  if ((req.headers.get('content-digest') ?? '') !== (await contentDigest(body))) return 'digest'
+  const declared = req.headers.get('content-digest') ?? ''
+  if (body ? declared !== (await contentDigest(body)) : !declared) return 'digest'
   const raw = fromB64u(publicKeyB64u)
   if (!raw) return 'malformed'
   const key = await crypto.subtle.importKey('raw', raw, { name: 'Ed25519' }, false, ['verify'])

@@ -15,7 +15,7 @@ import { ApiError } from '../errors'
 import { PushType, pushUserUpdate } from '../notifications/publish'
 import { requireMember } from '../orgs/access'
 import { canListMembers } from '../orgs/members'
-import { parseBody } from '../validation'
+import { assertBodyWithin, parseBody } from '../validation'
 import { FederationEvent, federationEventStatement, listFederationEvents } from './events'
 import {
   acceptFederatedInvite,
@@ -55,6 +55,7 @@ import {
   getPeer,
   isActive,
   listPeers,
+  MAX_PAIR_BYTES,
   normaliseDomainOrThrow,
   outboundOk,
   PAIR_RATE_LIMIT,
@@ -153,6 +154,11 @@ federation.post('/federation/v1/pair', async (c) => {
   }
   const parsed = parseSignature(c.req.raw.headers)
   if (!parsed) throw new ApiError(401, 'Missing or malformed federation signature.')
+  await assertBodyWithin(
+    c,
+    MAX_PAIR_BYTES,
+    () => new ApiError(413, 'Federation request too large.'),
+  )
   const body = new Uint8Array(await c.req.raw.arrayBuffer())
   let claimed: { domain?: unknown }
   try {

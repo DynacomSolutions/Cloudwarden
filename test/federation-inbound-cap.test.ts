@@ -2,7 +2,7 @@
 // workerd (test/federation-helpers.ts).
 import { beforeAll, expect, it } from 'vitest'
 import { loadIdentity } from '../src/federation/identity'
-import { MAX_INBOUND_BYTES } from '../src/federation/peers'
+import { MAX_INBOUND_BYTES, MAX_PAIR_BYTES } from '../src/federation/peers'
 import { signRequest } from '../src/federation/signature'
 import { type Net, pair, twoInstances, userOn } from './federation-helpers'
 
@@ -64,3 +64,57 @@ it('accepts a valid signed peer request under the cap', async () => {
   })
   expect(res.status).toBe(200)
 })
+
+it('refuses a forged signature before reading the body or spending the peer budget', async () => {
+  const id = await loadIdentity(net.A.env as never)
+  const other = (await crypto.subtle.generateKey({ name: 'Ed25519' }, true, [
+    'sign',
+    'verify',
+  ])) as CryptoKeyPair
+  const headers = new Headers({ 'content-type': 'application/json' })
+  await signRequest(
+    'POST',
+    `${net.B.base}/federation/v1/ping`,
+    headers,
+    new Uint8Array(),
+    id.instanceId,
+    other.privateKey,
+  )
+  const { stream, pulled } = endless()
+  const res = await net.B.fetch('/federation/v1/ping', {
+    method: 'POST',
+    headers,
+    body: stream,
+    duplex: 'half',
+  } as RequestInit)
+  expect(res.status).toBe(401)
+  expect(pulled.bytes).toBeLessThanOrEqual(65_536)
+}, 60_000)
+
+it('accepts a valid signed request sent as a chunked stream', async () => {
+  const body = new TextEncoder().encode('{}')
+  const res = await net.B.fetch('/federation/v1/ping', {
+    method: 'POST',
+    headers: await signed(body),
+    body: new ReadableStream({
+      start(ctrl) {
+        ctrl.enqueue(body)
+        ctrl.close()
+      },
+    }),
+    duplex: 'half',
+  } as RequestInit)
+  expect(res.status).toBe(200)
+})
+
+it('refuses an over-cap chunked pairing request while streaming', async () => {
+  const { stream, pulled } = endless()
+  const res = await net.B.fetch('/federation/v1/pair', {
+    method: 'POST',
+    headers: await signed(new Uint8Array()),
+    body: stream,
+    duplex: 'half',
+  } as RequestInit)
+  expect(res.status).toBe(413)
+  expect(pulled.bytes).toBeLessThanOrEqual(MAX_PAIR_BYTES + 2_000_000)
+}, 60_000)

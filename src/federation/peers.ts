@@ -35,6 +35,8 @@ export const PeerStatus = { Pending: 'pending', Active: 'active', Suspended: 'su
 export const PEER_RATE_LIMIT = 600
 /** Largest signed request body accepted (forwarded attachment uploads included). */
 export const MAX_INBOUND_BYTES = 26 * 1024 * 1024
+/** Pairing carries only a domain name. */
+export const MAX_PAIR_BYTES = 64 * 1024
 /** Unsigned-peer pairing attempts per client address per minute. */
 export const PAIR_RATE_LIMIT = 10
 
@@ -221,7 +223,7 @@ const deny = (status: 401 | 403 | 429, message: string) => new ApiError(status, 
 export async function verifyInbound(
   c: Context<Env>,
   publicKey: string,
-  body: Uint8Array,
+  body: Uint8Array | null,
 ): Promise<string> {
   const parsed = parseSignature(c.req.raw.headers)
   if (!parsed) throw deny(401, 'Missing or malformed federation signature.')
@@ -267,16 +269,20 @@ export const requirePeer: MiddlewareHandler<Env> = async (c, next) => {
   if (!isActive(peer)) throw deny(403, 'The peer is not active on this instance.')
   // Blocks apply to every signed route, not only to pairing.
   if (await isBlocked(c.env, peer)) throw deny(403, 'This peer is blocked.')
+  // Signed headers (with the content-digest value) are checked before the body is read, and before
+  // the rate limit, so a forged request neither costs a read nor spends the real peer's budget.
+  await verifyInbound(c, peer.publicKey, null)
   if (!(await rateLimit(c.env.DB, `fed:${peer.uuid}`, PEER_RATE_LIMIT, 60_000, Date.now()))) {
     throw deny(429, 'Too many federation requests.')
   }
-  // The signature covers the body, so it is read; the bounded reader refuses an over-cap body first.
+  // The digest covers the body, so it is read; the bounded reader refuses an over-cap body first.
   await assertBodyWithin(
     c,
     MAX_INBOUND_BYTES,
     () => new ApiError(413, 'Federation request too large.'),
   )
   const body = new Uint8Array(await c.req.raw.clone().arrayBuffer())
+  if (body.byteLength > MAX_INBOUND_BYTES) throw new ApiError(413, 'Federation request too large.')
   const nonce = await verifyInbound(c, peer.publicKey, body)
   if (!(await claimNonce(c.env, peer.uuid, nonce))) throw deny(401, 'Replayed federation request.')
   const user = c.req.header(USER_HEADER)

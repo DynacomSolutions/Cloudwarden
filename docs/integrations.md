@@ -18,7 +18,7 @@ page) and confirms their master password. The dialog shows:
 accepted only by the Public API; user endpoints reject it, and member tokens are rejected by the
 Public API. **Rotate API key** replaces the key and revokes every token issued from the old one.
 
-The personal API key (`users.api_key`) is stored encrypted. Without `DATA_ENCRYPTION_KEY` these secrets are sealed under `JWT_SECRET`. Rotating `JWT_SECRET` without setting `JWT_SECRET_PREVIOUS` first makes them unreadable (the affected requests fail with 500 and nothing is overwritten). Set `DATA_ENCRYPTION_KEY` to avoid this.
+The personal API key (`users.api_key`) is stored encrypted. Set `DATA_ENCRYPTION_KEY` before you ever rotate `JWT_SECRET`. Without it these secrets are sealed under `JWT_SECRET`, and rotating destroys every user API key and two-step recovery code that was not read while `JWT_SECRET_PREVIOUS` was still set, along with organisation secrets. Sealing them again on read is only a best-effort convenience; nothing re-seals in bulk. An unreadable value fails with 500 and is never overwritten.
 Keys are stored sealed (see below), never in clear.
 
 The Public API is served at `<base>/api/public/*` (the self-hosted layout) and `<base>/public/*`

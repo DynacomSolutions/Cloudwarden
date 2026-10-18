@@ -156,4 +156,4 @@ five per account, and are separate from the second factor keys of provider 7.
 
 ## Recovery code storage
 
-The recovery code is stored AES-GCM encrypted (`users.totp_recover`), and viewing it returns the same code each time. Without `DATA_ENCRYPTION_KEY` these secrets are sealed under `JWT_SECRET`. Rotating `JWT_SECRET` without setting `JWT_SECRET_PREVIOUS` first makes them unreadable (the affected requests fail with 500 and nothing is overwritten). Set `DATA_ENCRYPTION_KEY` to avoid this.
+The recovery code is stored AES-GCM encrypted (`users.totp_recover`), and viewing it returns the same code each time. Set `DATA_ENCRYPTION_KEY` before you ever rotate `JWT_SECRET`. Without it these secrets are sealed under `JWT_SECRET`, and rotating destroys every user API key and two-step recovery code that was not read while `JWT_SECRET_PREVIOUS` was still set, along with organisation secrets. Sealing them again on read is only a best-effort convenience; nothing re-seals in bulk. An unreadable value fails with 500 and is never overwritten.

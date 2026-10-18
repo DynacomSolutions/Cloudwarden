@@ -103,8 +103,9 @@ Members:
   or any policy on its project, a machine account through a member or group policy on it. `write`
   implies `read`; policies from several sources combine to the most permissive.
 - A member who creates a project or a machine account is granted read and write on it.
-- Creating an access token needs write on the machine account and, for non-admins, the same access (write where it has write) on every
-  project and secret granted to it, so a token never reaches further than its creator.
+- Creating an access token needs write on the machine account and, for non-admins, the same access
+  (write where it has write) on every project and secret granted to it. This is checked only when
+  the token is minted; grants added to the machine account later also apply to its existing tokens.
 - Only confirmed members can be grantees. `accessSecretsManager` is changed only by owners, admins
   or custom members who already have it, and never on oneself. Access decisions read the primary.
 - Only owners and admins may keep a secret outside every project; at most one project per secret.

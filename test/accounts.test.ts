@@ -223,9 +223,11 @@ it('changes email with a token and re-keys the account', async () => {
     masterPasswordHash: PW,
   })
   expect(tok.status).toBe(204)
-  const row = await env.DB.prepare('select email_new_token t from users where email = ?')
+  const row = { t: /\b(\d{6})\b/.exec(mb.sent.at(-1)?.text ?? '')?.[1] }
+  const stored = await env.DB.prepare('select email_new_token t from users where email = ?')
     .bind('old@example.com')
-    .first<{ t: string }>()
+    .first<{ t: string | null }>()
+  expect(stored?.t).toBeNull()
   const change = (token: string) =>
     authed('/api/accounts/email', s.access_token, 'POST', {
       newEmail: 'new@example.com',
@@ -235,32 +237,70 @@ it('changes email with a token and re-keys the account', async () => {
       key: '2.emailKey',
     })
   expect((await change('000000x')).status).toBe(400)
-  expect((await change(row?.t as string)).status).toBe(200)
+  expect((await change(row.t as string)).status).toBe(200)
   expect((await login('old@example.com', 'email-hash')).status).toBe(400)
   expect((await login('new@example.com', 'email-hash')).status).toBe(200)
   expect((await authed('/api/accounts/profile', s.access_token)).status).toBe(401)
 })
 
+// Drives the mail-enabled email change flow and returns the emailed code.
+const mailedChange = async (email: string, newEmail: string) => {
+  const s = await createSession(email)
+  const mb = mailbox()
+  const call = async (path: string, body: unknown) => {
+    const { default: app } = await import('../src/index')
+    return app.fetch(
+      new Request(`${BASE}${path}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${s.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }),
+      { ...env, EMAIL: mb.EMAIL, MAIL_FROM: mb.MAIL_FROM },
+    )
+  }
+  expect(
+    (await call('/api/accounts/email-token', { newEmail, masterPasswordHash: PW })).status,
+  ).toBe(204)
+  const code = /\b(\d{6})\b/.exec(mb.sent.at(-1)?.text ?? '')?.[1] as string
+  const change = (token: string) =>
+    call('/api/accounts/email', {
+      newEmail,
+      masterPasswordHash: PW,
+      newMasterPasswordHash: 'n',
+      token,
+      key: 'k',
+    })
+  return { code, change, call, mb }
+}
+
 it('rejects an expired email change token', async () => {
-  const s = await createSession('exp@example.com')
-  await authed('/api/accounts/email-token', s.access_token, 'POST', {
-    newEmail: 'exp2@example.com',
-    masterPasswordHash: PW,
-  })
+  const { code, change } = await mailedChange('exp@example.com', 'exp2@example.com')
   await env.DB.prepare('update users set email_new_expires_at = 1 where email = ?')
     .bind('exp@example.com')
     .run()
-  const row = await env.DB.prepare('select email_new_token t from users where email = ?')
-    .bind('exp@example.com')
-    .first<{ t: string }>()
-  const res = await authed('/api/accounts/email', s.access_token, 'POST', {
-    newEmail: 'exp2@example.com',
-    masterPasswordHash: PW,
-    newMasterPasswordHash: 'n',
-    token: row?.t,
-    key: 'k',
-  })
-  expect(res.status).toBe(400)
+  expect((await change(code)).status).toBe(400)
+})
+
+it('spends the email change code on first use', async () => {
+  const { code, change } = await mailedChange('once@example.com', 'once2@example.com')
+  expect((await change(code)).status).toBe(200)
+  // The change signs the session out, so replay is refused either way; the code itself is gone.
+  expect((await change(code)).status).not.toBe(200)
+  const row = await env.DB.prepare('select otp_hash h from users where email = ?')
+    .bind('once2@example.com')
+    .first<{ h: string | null }>()
+  expect(row?.h).toBeNull()
+})
+
+it('kills the email change after the attempt cap, even for the right code', async () => {
+  const { code, change } = await mailedChange('cap@example.com', 'cap2@example.com')
+  const wrong = code === '000000' ? '111111' : '000000'
+  for (let i = 0; i < 5; i++) expect((await change(wrong)).status).toBe(400)
+  expect((await change(code)).status).toBe(400)
+  const row = await env.DB.prepare('select email, email_new n from users where email = ?')
+    .bind('cap@example.com')
+    .first<{ n: string | null }>()
+  expect(row?.n).toBeNull()
 })
 
 const seedVault = async (email: string) => {
@@ -390,4 +430,54 @@ it('stores the SDK user key id report and returns it in sync', async () => {
   expect(
     (await authed('/api/accounts/key-management/user-key-id', s.access_token, 'POST', {})).status,
   ).toBe(400)
+})
+
+it('refuses a code issued for another address even if email_new is swapped back', async () => {
+  const { call, mb } = await mailedChange('bind@example.com', 'bindA@example.com')
+  await call('/api/accounts/email-token', { newEmail: 'bindB@example.com', masterPasswordHash: PW })
+  const codeB = /\b(\d{6})\b/.exec(mb.sent.at(-1)?.text ?? '')?.[1] as string
+  await env.DB.prepare('update users set email_new = ? where email = ?')
+    .bind('binda@example.com', 'bind@example.com')
+    .run()
+  const res = await call('/api/accounts/email', {
+    newEmail: 'bindA@example.com',
+    masterPasswordHash: PW,
+    newMasterPasswordHash: 'n',
+    token: codeB,
+    key: 'k',
+  })
+  expect(res.status).toBe(400)
+})
+
+it('caps concurrent guesses at the attempt budget', async () => {
+  const { code, change } = await mailedChange('race@example.com', 'race2@example.com')
+  const wrong = code === '000000' ? '111111' : '000000'
+  const res = await Promise.all([...Array.from({ length: 20 }, () => change(wrong)), change(code)])
+  // The right code may win the race, but then no more than the budget was ever spent.
+  const row = await env.DB.prepare(
+    'select otp_attempts n, otp_hash h from users where email in (?, ?)',
+  )
+    .bind('race@example.com', 'race2@example.com')
+    .first<{ n: number; h: string | null }>()
+  expect(row?.n).toBeLessThanOrEqual(5)
+  expect(res.filter((r) => r.status === 200).length).toBeLessThanOrEqual(1)
+})
+
+it('counts exactly the budget of concurrent wrong guesses', async () => {
+  const { code, change } = await mailedChange('race3@example.com', 'race4@example.com')
+  const wrong = code === '000000' ? '111111' : '000000'
+  await Promise.all(Array.from({ length: 20 }, () => change(wrong)))
+  const row = await env.DB.prepare('select otp_attempts n from users where email = ?')
+    .bind('race3@example.com')
+    .first<{ n: number }>()
+  expect(row?.n).toBe(5)
+  expect((await change(code)).status).toBe(400)
+})
+
+it('refuses an expired email change code', async () => {
+  const { code, change } = await mailedChange('otpexp@example.com', 'otpexp2@example.com')
+  await env.DB.prepare('update users set otp_expires_at = 1 where email = ?')
+    .bind('otpexp@example.com')
+    .run()
+  expect((await change(code)).status).toBe(400)
 })

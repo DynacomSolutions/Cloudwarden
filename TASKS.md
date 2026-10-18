@@ -307,13 +307,11 @@ Owner feedback: federation should not tie two organisations together; a user sha
 
 ## 21. Security hardening: Medium
 
-ETA: 2026-10-19 12:00 ICT
-
 | ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
 |---|---|---|---|---|---|---|---|
 | 397 | Invalidate pending and approved login-with-device requests on every security-stamp rotation, including emergency takeover | done | agent | | 20.396 | | Audit 2026-10-18 CW-02. Done 18 October 2026 in PR #87. |
 | 398 | Apply the instance-role exclusion to bulk recovery details, the organisation device-approval list and emergency takeover details | done | agent | | | | Audit 2026-10-18 CW-03. Done 18 October 2026 in PR #86. |
-| 399 | Hashed, single-use email change code with an atomic attempt cap | in_progress | agent | fix/399-email-change-code | | 2026-10-19 12:00 ICT | Audit 2026-10-18 CW-04 |
+| 399 | Hashed, single-use email change code with an atomic attempt cap | done | agent | | | | Audit 2026-10-18 CW-04. Done 18 October 2026 in PR #88. |
 | 400 | Send Strict-Transport-Security from the Worker and the static headers; add `upgrade-insecure-requests` to the CSP | done | agent | | | | Audit 2026-10-18 CW-05. Done 18 October 2026 in PR #90. |
 | 401 | Enable "Always Use HTTPS" at the Cloudflare zone for every deployment | done | Thomas | | | | Audit 2026-10-18 CW-05. Done 18 October 2026: enabled on every zone, HTTP now returns 301. |
 

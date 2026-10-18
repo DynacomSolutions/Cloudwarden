@@ -9,7 +9,7 @@ import type { Bindings, Env, User } from '../env'
 import { ApiError, oauthError } from '../errors'
 import { Status } from '../orgs/constants'
 import { overLimit, tooManyRequests } from '../ratelimit'
-import { randomB64u, safeEqualStrings, sha256B64u } from './crypto'
+import { randomB64u, safeEqualStrings, sha256B64u, toB64u } from './crypto'
 import { type DuoConfig, duoAuthUrl, duoVerifyCode } from './duo'
 import { signingSecret, signJwt, verificationSecrets, verifyJwt } from './jwt'
 import { verifyMasterPassword } from './passwords'
@@ -124,6 +124,12 @@ async function swapData(
 export const generateRecoveryCode = (): string =>
   base32Encode(crypto.getRandomValues(new Uint8Array(20)))
 
+/** The recovery code is stored only as this hash (160 bits of entropy, so an unsalted digest is enough). */
+export const hashRecoveryCode = (code: string): Promise<string> => sha256B64u(`recovery:${code}`)
+
+/** Hash-shaped placeholder for a code nobody has seen yet; the user reads a fresh one via get-recover. */
+const unseenRecoveryHash = (): string => toB64u(crypto.getRandomValues(new Uint8Array(32)))
+
 /** Upserts a provider row and, if the user has no recovery code yet, creates one. */
 export function enableProviderStatements(
   db: Db,
@@ -153,7 +159,7 @@ export function enableProviderStatements(
       ? [
           db
             .update(schema.users)
-            .set({ totpRecover: generateRecoveryCode(), updatedAt: Date.now() })
+            .set({ totpRecover: unseenRecoveryHash(), updatedAt: Date.now() })
             .where(and(eq(schema.users.uuid, user.uuid), isNull(schema.users.totpRecover))),
         ]
       : []),
@@ -653,8 +659,11 @@ export function normaliseRecoveryCode(input: string): string | null {
 export async function useRecoveryCode(db: Db, user: User, input: string): Promise<boolean> {
   const supplied = normaliseRecoveryCode(input)
   const stored = user.totpRecover
-  if (!supplied || !stored || !safeEqualStrings(stored, supplied)) return false
-  const next = generateRecoveryCode()
+  if (!supplied || !stored) return false
+  // Rows written before hashing hold the plain code until the next backup run hashes them.
+  const expected = RECOVERY_FORMAT.test(stored) ? supplied : await hashRecoveryCode(supplied)
+  if (!safeEqualStrings(stored, expected)) return false
+  const next = unseenRecoveryHash()
   const rotated = sql`exists (select 1 from users where uuid = ${user.uuid} and totp_recover = ${next})`
   await runBatch(db, [
     db

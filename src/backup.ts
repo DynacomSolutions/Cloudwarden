@@ -1,3 +1,4 @@
+import { hashRecoveryCode } from './auth/twofactor'
 import { errorKind, log } from './log'
 
 /**
@@ -22,10 +23,31 @@ export const PART_BYTES = 5 * 1024 * 1024
  */
 export const REDACTED_COLUMNS: Record<string, Record<string, null | string>> = {
   devices: { refresh_token: '', twofactor_remember: null, push_token: null },
+  users: { email_new_token: null },
 }
 
-/** Short-lived auth state that is useless after a restore and sensitive to keep. */
-export const EXCLUDED_TABLES = new Set(['admin_rate_limits'])
+/**
+ * Short-lived auth state that is useless after a restore and sensitive to keep. Login-with-device
+ * requests hold key material and approvals, so they are never exported.
+ */
+export const EXCLUDED_TABLES = new Set(['admin_rate_limits', 'auth_requests'])
+
+/**
+ * Recovery codes written before hashing are plain 32-character base32 strings. D1 has no SHA-256
+ * function, so a migration cannot hash them; the export does it first so no backup holds one.
+ */
+export async function hashLegacyRecoveryCodes(db: D1Database): Promise<void> {
+  const { results } = await db
+    .prepare(
+      "SELECT uuid, totp_recover AS code FROM users WHERE length(totp_recover) = 32 AND totp_recover NOT GLOB '*[^A-Z2-7]*'",
+    )
+    .all<{ uuid: string; code: string }>()
+  for (const { uuid, code } of results)
+    await db
+      .prepare('UPDATE users SET totp_recover = ?1 WHERE uuid = ?2 AND totp_recover = ?3')
+      .bind(await hashRecoveryCode(code), uuid, code)
+      .run()
+}
 
 export interface ManifestPart {
   key: string
@@ -125,6 +147,7 @@ export async function exportDatabase(
   const written: string[] = []
   // A rerun with the same timestamp must never leave an old manifest next to new parts.
   await bucket.delete(`${prefix}manifest.json`)
+  await hashLegacyRecoveryCodes(db)
 
   try {
     const tables: ManifestTable[] = []

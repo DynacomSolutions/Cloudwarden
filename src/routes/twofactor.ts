@@ -24,6 +24,7 @@ import {
   enabledProviders,
   enableProviderStatements,
   generateRecoveryCode,
+  hashRecoveryCode,
   issueVerificationToken,
   lowerKeys,
   MAX_YUBIKEYS,
@@ -189,14 +190,12 @@ twofactor.delete('/api/two-factor/authenticator', requireAuth, async (c) => {
 
 twofactor.post('/api/two-factor/get-recover', requireAuth, async (c) => {
   const user = await authorise(c, await parseBody(c, proofOnly))
-  let code = user.totpRecover
-  if (!code) {
-    code = generateRecoveryCode()
-    await createDb(c.env.DB)
-      .update(schema.users)
-      .set({ totpRecover: code, updatedAt: Date.now() })
-      .where(eq(schema.users.uuid, user.uuid))
-  }
+  // Only a hash is stored, so each view issues a fresh code and retires the previous one.
+  const code = generateRecoveryCode()
+  await createDb(c.env.DB)
+    .update(schema.users)
+    .set({ totpRecover: await hashRecoveryCode(code), updatedAt: Date.now() })
+    .where(eq(schema.users.uuid, user.uuid))
   return c.json({ code, object: 'twoFactorRecover' })
 })
 

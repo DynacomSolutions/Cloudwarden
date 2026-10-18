@@ -294,7 +294,7 @@ describe('remember token', () => {
 })
 
 describe('recovery code', () => {
-  it('returns a stable code, disables every provider and rotates the code', async () => {
+  it('stores only a hash, retires the old code on each view, disables every provider and rotates the code', async () => {
     clock.now = () => FIXED
     const email = 'tf-recover@example.com'
     const s = await createSession(email)
@@ -303,7 +303,19 @@ describe('recovery code', () => {
     expect(got.status).toBe(200)
     expect(got.body.code).toMatch(/^[A-Z2-7]{32}$/)
     const again = await call(s, '/api/two-factor/get-recover', { masterPasswordHash: PW })
-    expect(again.body.code).toBe(got.body.code)
+    expect(again.body.code).not.toBe(got.body.code)
+    const stored = await env.DB.prepare('select totp_recover r from users where email = ?')
+      .bind(email)
+      .first<{ r: string }>()
+    expect(stored?.r).not.toBe(again.body.code)
+    expect(stored?.r).not.toBe(got.body.code)
+    expect(stored?.r).toMatch(/^[A-Za-z0-9_-]{43}$/)
+    const retired = await json('/api/two-factor/recover', {
+      email,
+      masterPasswordHash: PW,
+      recoveryCode: got.body.code,
+    })
+    expect(retired.status).toBe(400)
 
     const wrongCode = await json('/api/two-factor/recover', {
       email,
@@ -314,7 +326,7 @@ describe('recovery code', () => {
     const wrongPw = await json('/api/two-factor/recover', {
       email,
       masterPasswordHash: 'nope',
-      recoveryCode: got.body.code,
+      recoveryCode: again.body.code,
     })
     expect(wrongPw.status).toBe(400)
     expect((await challenge(email)).status).toBe(400)
@@ -322,19 +334,19 @@ describe('recovery code', () => {
     const ok = await json('/identity/accounts/two-factor/recover', {
       email: email.toUpperCase(),
       masterPasswordHash: PW,
-      recoveryCode: `${(got.body.code as string).toLowerCase()}`,
+      recoveryCode: `${(again.body.code as string).toLowerCase()}`,
     })
     expect(ok.status).toBe(200)
 
     expect((await login(email)).status).toBe(200)
     expect((await call(s, '/api/two-factor', undefined, 'GET')).body.data).toEqual([])
     const rotated = await call(s, '/api/two-factor/get-recover', { masterPasswordHash: PW })
-    expect(rotated.body.code).not.toBe(got.body.code)
+    expect(rotated.body.code).not.toBe(again.body.code)
 
     const reuse = await json('/api/two-factor/recover', {
       email,
       masterPasswordHash: PW,
-      recoveryCode: got.body.code,
+      recoveryCode: again.body.code,
     })
     expect(reuse.status).toBe(400)
   })

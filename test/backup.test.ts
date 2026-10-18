@@ -83,6 +83,31 @@ describe('D1 export to R2', () => {
     expect(manifest.tables.find((t) => t.name === 'folders')?.parts).toEqual([])
   })
 
+  it('redacts the email change token, hashes legacy recovery codes and omits auth requests', async () => {
+    const now = Date.now()
+    await env.DB.prepare(
+      "INSERT INTO users (uuid, email, name, password_hash, salt, password_iterations, akey, security_stamp, totp_recover, email_new_token, created_at, updated_at) VALUES ('u-bk2', 'bk2@example.com', 'n', 'h', 's', 1, 'k', 'st', 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567', 'TOKEN123456', ?, ?)",
+    )
+      .bind(now, now)
+      .run()
+    try {
+      const { manifest } = await exportDatabase(env.DB, env.ATTACHMENTS, NOW)
+      expect(manifest.tables.map((t) => t.name)).not.toContain('auth_requests')
+      const part = manifest.tables.find((t) => t.name === 'users')?.parts[0]
+      const text = (await (await env.ATTACHMENTS.get(part?.key ?? ''))?.text()) ?? ''
+      expect(text).not.toContain('TOKEN123456')
+      expect(text).not.toContain('ABCDEFGHIJKLMNOPQRSTUVWXYZ234567')
+      const stored = await env.DB.prepare(
+        "SELECT totp_recover r FROM users WHERE uuid = 'u-bk2'",
+      ).first<{
+        r: string
+      }>()
+      expect(stored?.r).toMatch(/^[A-Za-z0-9_-]{43}$/)
+    } finally {
+      await env.DB.prepare("DELETE FROM users WHERE uuid = 'u-bk2'").run()
+    }
+  })
+
   it('redacts device credentials', async () => {
     const now = Date.now()
     await env.DB.prepare(

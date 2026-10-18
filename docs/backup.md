@@ -18,9 +18,12 @@ backups/<YYYY-MM-DD>/run-<epoch seconds>/manifest.json          tables, ordered 
 - A failure fails the scheduled invocation (the export is awaited), so it appears in the dashboard and in
   `backup.failed` log lines.
 - Backups older than 14 days are deleted after each successful export.
-- Skipped tables: `d1_migrations` and the short-lived rate limit counters (`admin_rate_limits`).
+- Skipped tables: `d1_migrations`, the short-lived rate limit counters (`admin_rate_limits`) and login-with-device
+  requests (`auth_requests`, which hold encrypted key material).
 - Redacted columns: `devices.refresh_token` (written as an empty string, which the token endpoint treats as revoked),
-  `devices.twofactor_remember` and `devices.push_token` (null). Every device must sign in again after a restore.
+  `devices.twofactor_remember` and `devices.push_token` (null), and `users.email_new_token` (null). Every device must
+  sign in again after a restore. The two-step recovery code is stored hashed; before each export any remaining
+  plain-text code is hashed in place.
   TOTP secrets and other two-factor material are kept because a restore is useless without them.
 - Nothing served to users may resolve a key under `backups/`; `src/blob-keys.ts` provides the guard.
 
@@ -56,7 +59,9 @@ backup allows offline guessing of master passwords, so treat it like the databas
    ```
 
    Without `--out-dir` the script prints one SQL stream to stdout. The first statement defers foreign key checks.
-5. Point the Worker at the restored database and test a login.
+5. The restore script ends with `DELETE FROM "auth_requests"`, so no pending or approved device login request
+   survives, even from an older backup that still contained them.
+6. Point the Worker at the restored database and test a login.
 
 The script refuses a backup whose files do not match the manifest, and rejects table or column names that are not
 plain identifiers.

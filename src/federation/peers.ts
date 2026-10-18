@@ -6,6 +6,7 @@ import { utf8 } from '../auth/crypto'
 import { createDb, schema } from '../db'
 import type { Bindings, Env } from '../env'
 import { ApiError } from '../errors'
+import { assertBodyWithin } from '../validation'
 import {
   baseUrl,
   type Descriptor,
@@ -269,11 +270,13 @@ export const requirePeer: MiddlewareHandler<Env> = async (c, next) => {
   if (!(await rateLimit(c.env.DB, `fed:${peer.uuid}`, PEER_RATE_LIMIT, 60_000, Date.now()))) {
     throw deny(429, 'Too many federation requests.')
   }
-  if (Number(c.req.header('content-length') ?? '0') > MAX_INBOUND_BYTES) {
-    throw new ApiError(413, 'Federation request too large.')
-  }
+  // The signature covers the body, so it is read; the bounded reader refuses an over-cap body first.
+  await assertBodyWithin(
+    c,
+    MAX_INBOUND_BYTES,
+    () => new ApiError(413, 'Federation request too large.'),
+  )
   const body = new Uint8Array(await c.req.raw.clone().arrayBuffer())
-  if (body.byteLength > MAX_INBOUND_BYTES) throw new ApiError(413, 'Federation request too large.')
   const nonce = await verifyInbound(c, peer.publicKey, body)
   if (!(await claimNonce(c.env, peer.uuid, nonce))) throw deny(401, 'Replayed federation request.')
   const user = c.req.header(USER_HEADER)

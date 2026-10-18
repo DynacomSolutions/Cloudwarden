@@ -30,7 +30,11 @@ async function twoDevices(email: string) {
         ready = true
         return
       }
-      events.push(JSON.parse(data.slice(0, -1)).arguments[0])
+      // The hub also sends keep-alive pings (type 6, no arguments) when a slow run outlives 15 s.
+      for (const frame of data.split(RS).filter(Boolean)) {
+        const msg = JSON.parse(frame)
+        if (msg.type === 1) events.push(msg.arguments[0])
+      }
     })
     ws.accept()
     ws.send(`{"protocol":"json","version":1}${RS}`)

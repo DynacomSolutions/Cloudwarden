@@ -14,6 +14,18 @@ beforeEach(() => {
 })
 afterEach(() => vi.useRealTimers())
 
+it('runs the Worker under the pinned clock', async () => {
+  // Proves the fake Date reaches the code under test: a pin far from real time shows up in the
+  // stored window. (Token validity does not matter for a failed password login.)
+  const pinned = Date.UTC(2031, 0, 1, 0, 1)
+  vi.setSystemTime(pinned)
+  expect((await login('budget-clock@example.com', 'bad')).status).toBe(400)
+  const row = await env.DB.prepare('SELECT window_start FROM admin_rate_limits WHERE key = ?1')
+    .bind('pwfail:budget-clock@example.com')
+    .first<{ window_start: number }>()
+  expect(row?.window_start).toBe(Math.floor(pinned / FAILURE_WINDOW_MS) * FAILURE_WINDOW_MS)
+})
+
 it('locks the password grant after the budget and resets on success', async () => {
   await registerUser('budget-pw@example.com')
   for (let i = 0; i < 9; i++) expect((await login('budget-pw@example.com', 'bad')).status).toBe(400)

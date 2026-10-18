@@ -18509,6 +18509,27 @@
       }
     }
   },
+  "cwSsoRateLimit": {
+    "message": "SSO rate limit"
+  },
+  "cwSsoRateLimitDesc": {
+    "message": "How many SSO requests one client address (an IPv4 address or an IPv6 /64) may make per minute. One SSO login uses about 4 to 6 requests, so raise this when many people sign in from one office."
+  },
+  "cwSsoRateLimitField": {
+    "message": "SSO requests per minute"
+  },
+  "cwSsoRateLimitHint": {
+    "message": "A whole number from 5 to 1000. Default: the platform limit (20 per minute on Cloudflare)."
+  },
+  "cwSsoRateLimitReset": {
+    "message": "Reset to default"
+  },
+  "cwSsoRateLimitResetDone": {
+    "message": "SSO rate limit reset to the default"
+  },
+  "cwSsoRateLimitSaved": {
+    "message": "SSO rate limit saved"
+  },
   "cwMobilePush": {
     "message": "Mobile push"
   },

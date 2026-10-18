@@ -154,6 +154,12 @@ export interface WebPushState {
   subscriptions: number;
 }
 
+export interface SsoRateLimit {
+  ssoRateLimitPerMinute: number;
+  /** False while the platform default applies. */
+  custom: boolean;
+}
+
 export type AdminUserAction =
   "disable" | "enable" | "deauthorize" | "remove-2fa";
 
@@ -354,6 +360,24 @@ export class InstanceAdminApiService {
       true,
       true,
     );
+  }
+
+  ssoRateLimit(): Promise<SsoRateLimit> {
+    return this.apiService.send("GET", `${ADMIN}/sso-rate-limit`, null, true, true);
+  }
+
+  saveSsoRateLimit(ssoRateLimitPerMinute: number): Promise<SsoRateLimit> {
+    return this.apiService.send(
+      "PUT",
+      `${ADMIN}/sso-rate-limit`,
+      { ssoRateLimitPerMinute },
+      true,
+      true,
+    );
+  }
+
+  resetSsoRateLimit(): Promise<SsoRateLimit> {
+    return this.apiService.send("DELETE", `${ADMIN}/sso-rate-limit`, null, true, true);
   }
 
   testPushSettings(): Promise<{ ok: boolean; error: string | null }> {

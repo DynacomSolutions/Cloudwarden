@@ -8,6 +8,7 @@ import { InstanceAdminInvitationsComponent } from "./instance-admin-invitations.
 import { InstanceAdminOrganizationsComponent } from "./instance-admin-organizations.component";
 import { InstanceAdminOverviewComponent } from "./instance-admin-overview.component";
 import { InstanceAdminPushComponent } from "./instance-admin-push.component";
+import { InstanceAdminSsoRateLimitComponent } from "./instance-admin-sso-rate-limit.component";
 import { InstanceAdminUsersComponent } from "./instance-admin-users.component";
 import { instanceAdminGuard } from "./instance-admin.guard";
 
@@ -43,6 +44,11 @@ export const instanceAdminRoutes: Routes = [
         path: "push",
         component: InstanceAdminPushComponent,
         data: { titleId: "cwMobilePush" } satisfies RouteDataProperties,
+      },
+      {
+        path: "sso-rate-limit",
+        component: InstanceAdminSsoRateLimitComponent,
+        data: { titleId: "cwSsoRateLimit" } satisfies RouteDataProperties,
       },
       {
         // Federated organisations (docs/federation.md).

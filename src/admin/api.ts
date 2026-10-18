@@ -49,6 +49,7 @@ import {
   setUserRole,
   tfaName,
 } from './service'
+import { deleteSsoRateLimit, saveSsoRateLimit, ssoRateLimitView } from './sso-rate-limit'
 
 const PREFIX = '/api/cloudwarden/admin'
 const DEFAULT_PAGE_SIZE = 50
@@ -181,6 +182,14 @@ export function createAdminApi(deps: AdminApiDeps = {}) {
   api.get(`${PREFIX}/web-push`, async (c) => c.json(await webPushView(c.env)))
   api.put(`${PREFIX}/web-push`, async (c) =>
     c.json(await saveWebPush(c.env, await c.req.json().catch(() => null), auditOf(c))),
+  )
+  // SSO login rate limit (TASKS #424).
+  api.get(`${PREFIX}/sso-rate-limit`, async (c) => c.json(await ssoRateLimitView(c.env)))
+  api.put(`${PREFIX}/sso-rate-limit`, async (c) =>
+    c.json(await saveSsoRateLimit(c.env, await c.req.json().catch(() => null), auditOf(c))),
+  )
+  api.delete(`${PREFIX}/sso-rate-limit`, async (c) =>
+    c.json(await deleteSsoRateLimit(c.env, auditOf(c))),
   )
   api.post(`${PREFIX}/push-settings/test`, async (c) => {
     if (!(await rateLimit(c.env.DB, `pushtest:${c.var.user.uuid}`, 5, 60_000, Date.now()))) {

@@ -20,6 +20,7 @@ import { emailVerifiedFor, mailConfigured } from '../emailless'
 import type { Env, User } from '../env'
 import { ApiError } from '../errors'
 import { federatedProfileOrgs } from '../federation/replica'
+import { MAX_CIPHER_NOTES, MAX_ENC_NAME } from '../limits'
 import { pushLogOut } from '../notifications/publish'
 import { relayDeleteDevice } from '../notifications/relay'
 import { EventType } from '../orgs/constants'
@@ -30,7 +31,7 @@ import { profileOrganizations } from '../orgs/views'
 import { type KdfParams, kdfProblem, parseBody } from '../validation'
 import { userAttachmentKeys } from '../vault/attachments'
 import { deleteBlobs } from '../vault/blobs'
-import { packPayload } from '../vault/ciphers'
+import { fieldsSchema, opaque, packPayload } from '../vault/ciphers'
 import { userSendKeys } from '../vault/sends'
 
 export const accounts = new Hono<Env>()
@@ -500,17 +501,22 @@ const rotateSchema = z.object({
   masterPasswordHash: z.string().min(1),
   key: z.string().min(1),
   privateKey: z.string().min(1),
-  folders: z.array(z.object({ id: z.string(), name: z.string() })).default([]),
+  folders: z.array(z.object({ id: z.string(), name: z.string().max(MAX_ENC_NAME) })).default([]),
   ciphers: z
     .array(
       z
         .object({
           id: z.string(),
-          name: z.string(),
-          notes: z.string().nullish(),
-          key: z.string().nullish(),
-          fields: z.unknown().optional(),
-          passwordHistory: z.unknown().optional(),
+          name: z.string().max(MAX_ENC_NAME),
+          notes: z.string().max(MAX_CIPHER_NOTES).nullish(),
+          key: z.string().max(MAX_ENC_NAME).nullish(),
+          fields: fieldsSchema.optional(),
+          passwordHistory: opaque.optional(),
+          login: opaque.optional(),
+          card: opaque.optional(),
+          identity: opaque.optional(),
+          secureNote: opaque.optional(),
+          sshKey: opaque.optional(),
         })
         .passthrough(),
     )

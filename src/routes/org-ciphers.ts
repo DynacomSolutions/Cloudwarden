@@ -191,7 +191,11 @@ orgCiphers.post('/api/ciphers/admin', async (c) => {
 })
 
 orgCiphers.post('/api/ciphers/import', async (c, next) => {
-  const body = await parseBody(c, z.object({ ciphers: z.array(z.unknown()).default([]) }))
+  const body = await parseBody(
+    c,
+    z.object({ ciphers: z.array(z.unknown()).default([]) }),
+    MAX_IMPORT_BODY,
+  )
   if (body.ciphers.length > 0) {
     await assertPersonalOwnershipAllowed(createDb(c.env.DB), c.var.user.uuid)
   }
@@ -211,9 +215,9 @@ const importOrgSchema = z.object({
 })
 orgCiphers.post('/api/ciphers/import-organization', async (c) => {
   const orgUuid = c.req.query('organizationId') ?? ''
-  const body = await parseBody(c, importOrgSchema, MAX_IMPORT_BODY)
   const db = createDb(c.env.DB)
   await requirePermission(db, c.var.user.uuid, orgUuid, 'accessImportExport')
+  const body = await parseBody(c, importOrgSchema, MAX_IMPORT_BODY)
   if (body.ciphers.length > 7000)
     throw new ApiError(400, 'You cannot import this much data at once.')
   for (const r of body.collectionRelationships) {

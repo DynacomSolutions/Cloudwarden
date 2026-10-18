@@ -10,7 +10,10 @@ export const MAX_CIPHER_NOTES = 10_000
 export const MAX_SEND_NOTES = 1000
 /** Encrypted Send text (our bound). */
 export const MAX_SEND_TEXT = 10_000
+/** One custom field name (Bitwarden: 1000) and value (Bitwarden: 5000). */
+export const MAX_FIELD_NAME = 1000
+export const MAX_FIELD_VALUE = 5000
 /** Serialised type payload, custom fields or password history of one cipher or Send (our bound). */
-export const MAX_PAYLOAD_JSON = 100_000
+export const MAX_PAYLOAD_JSON = 250_000
 /** Whole import request body (our bound; D1 rows hold about 2 MB each). */
 export const MAX_IMPORT_BODY = 25_000_000

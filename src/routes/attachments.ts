@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { changes, createDb, runBatch, schema } from '../db'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
+import { MAX_ENC_NAME } from '../limits'
 import { PushType } from '../notifications/publish'
 import { notifyCipher } from '../notifications/vault-events'
 import { bumpOrgRevision, canManageAllCiphers, requireMember } from '../orgs/access'
@@ -41,8 +42,8 @@ import { bumpRevision } from '../vault/ciphers'
 type Ctx = Context<Env>
 
 const requestSchema = z.object({
-  fileName: z.string().min(1),
-  key: z.string().min(1),
+  fileName: z.string().min(1).max(MAX_ENC_NAME),
+  key: z.string().min(1).max(MAX_ENC_NAME),
   fileSize: z.number().int().min(1),
   adminRequest: z.boolean().nullish(),
   lastKnownRevisionDate: z.string().nullish(),

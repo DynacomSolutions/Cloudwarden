@@ -1,6 +1,6 @@
 // Size caps on cipher, folder, Send and import payloads (TASKS #408).
 import { expect, it } from 'vitest'
-import { MAX_CIPHER_NOTES, MAX_ENC_NAME, MAX_IMPORT_BODY } from '../src/limits'
+import { MAX_CIPHER_NOTES, MAX_ENC_NAME } from '../src/limits'
 import { authed, createSession } from './helpers'
 
 const cipher = (extra: Record<string, unknown> = {}) => ({
@@ -46,12 +46,29 @@ it('accepts normal payloads and refuses oversized ones with the usual error', as
     validationErrors: { notes: expect.any(Array) },
   })
   await refused('/api/ciphers', cipher({ name: 'x'.repeat(MAX_ENC_NAME + 1) }))
-  await refused('/api/ciphers', cipher({ secureNote: { blob: 'x'.repeat(200_000) } }))
+  await refused('/api/ciphers', cipher({ secureNote: { blob: 'x'.repeat(300_000) } }))
   await refused('/api/folders', { name: 'x'.repeat(MAX_ENC_NAME + 1) })
   await refused('/api/sends', send({ notes: 'x'.repeat(1001) }))
   await refused('/api/sends', send({ text: { text: 'x'.repeat(10_001) } }))
   await refused('/api/ciphers/import', { ciphers: [cipher({ notes: bigNotes })] })
-  await refused('/api/ciphers/import', {
-    ciphers: [cipher({ notes: 'x'.repeat(MAX_IMPORT_BODY) })],
+  // Many small valid ciphers that together pass the body cap: refused before parsing.
+  const many = Array.from({ length: 2600 }, () => cipher({ notes: 'x'.repeat(MAX_CIPHER_NOTES) }))
+  expect(await refused('/api/ciphers/import', { ciphers: many })).toMatchObject({
+    message: 'You cannot import this much data at once.',
   })
+  // Fields are capped per value, not per list: 25 fields of 5000 characters pass.
+  const field = (value: string) => ({ name: '2.f', value, type: 0 })
+  const fields = Array.from({ length: 25 }, () => field('x'.repeat(5000)))
+  expect((await post('/api/ciphers', cipher({ fields }))).status).toBe(200)
+  await refused('/api/ciphers', cipher({ fields: [field('x'.repeat(5001))] }))
+  // Key rotation applies the same caps.
+  const rotated = await post('/api/accounts/key', {
+    masterPasswordHash: 'client-derived-hash',
+    key: '2.newkey',
+    privateKey: '2.newpk',
+    folders: [],
+    sends: [],
+    ciphers: [{ id: crypto.randomUUID(), name: '2.n', notes: bigNotes }],
+  })
+  expect(rotated.status).toBe(400)
 })

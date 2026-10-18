@@ -27,7 +27,7 @@ import {
   systemActor,
 } from '../orgs/provisioning'
 import { batch } from '../orgs/util'
-import { overLimit } from '../ratelimit'
+import { clientKey, overLimit } from '../ratelimit'
 import { sendInvite } from '../routes/org-users'
 import { isUuid } from '../sm/auth'
 import { matches, parseFilter, ScimError } from './filter'
@@ -86,7 +86,7 @@ const requireScimAuth: MiddlewareHandler<Env> = async (c, next) => {
   const ok = await apiKeyMatches(c.env, key, match[1])
   if (!config?.enabled || !ok || !(await organizationActive(db, orgUuid))) {
     // Failed attempts are limited per client address and organisation.
-    const ip = c.req.header('CF-Connecting-IP') ?? 'unknown'
+    const ip = clientKey(c) ?? 'unknown'
     if (await overLimit(c, 'scim-auth', `${ip}:${orgUuid}`)) {
       return scimError(c, 429, 'Too many failed attempts. Try again later.')
     }

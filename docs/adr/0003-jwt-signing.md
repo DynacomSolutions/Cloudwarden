@@ -15,6 +15,7 @@ Status: accepted (TASKS #24)
 1. Set `JWT_SECRET_PREVIOUS` to the current secret and `JWT_SECRET` to the new one, then deploy. New tokens are signed with the new secret, tokens signed with the old one still verify.
 2. After at least one hour (the access token lifetime), remove `JWT_SECRET_PREVIOUS` and deploy again.
 3. To force every client to log in again immediately, skip step 1 and just replace `JWT_SECRET`; refresh tokens are unaffected, so clients silently refresh.
+4. Personal API keys and two-step recovery codes are encrypted at rest. Without `DATA_ENCRYPTION_KEY` these secrets are sealed under `JWT_SECRET`. Rotating `JWT_SECRET` without setting `JWT_SECRET_PREVIOUS` first makes them unreadable (the affected requests fail with 500 and nothing is overwritten). Set `DATA_ENCRYPTION_KEY` to avoid this. With `JWT_SECRET_PREVIOUS` set, they still open and are sealed again under the new secret on the next read.
 
 Emergency revocation of all sessions: rotate the security stamp of affected users (or run an `UPDATE` on `users.security_stamp`).
 

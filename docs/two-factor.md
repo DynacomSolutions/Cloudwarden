@@ -153,3 +153,7 @@ five per account, and are separate from the second factor keys of provider 7.
   statements in the same batch, so a keyset stored concurrently under the old key is removed; naming a credential that is not the caller's or has no
   keyset is rejected and nothing changes.
 - Account deletion removes credentials with the user row.
+
+## Recovery code storage
+
+The recovery code is stored AES-GCM encrypted (`users.totp_recover`), and viewing it returns the same code each time. Without `DATA_ENCRYPTION_KEY` these secrets are sealed under `JWT_SECRET`. Rotating `JWT_SECRET` without setting `JWT_SECRET_PREVIOUS` first makes them unreadable (the affected requests fail with 500 and nothing is overwritten). Set `DATA_ENCRYPTION_KEY` to avoid this.

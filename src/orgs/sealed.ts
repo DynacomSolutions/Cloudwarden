@@ -5,14 +5,15 @@
 // value records which source sealed it.
 
 import { fromB64u, toB64u, utf8 } from '../auth/crypto'
-import { signingSecret } from '../auth/jwt'
+import { signingSecret, verificationSecrets } from '../auth/jwt'
 import type { Bindings } from '../env'
 
 const INFO = 'cloudwarden-sealed-v1'
 type Source = 'd' | 'j'
 
-async function keyFor(env: Bindings, source: Source): Promise<CryptoKey> {
-  const material = source === 'd' ? env.DATA_ENCRYPTION_KEY : `jwt-derived:${signingSecret(env)}`
+async function keyFor(env: Bindings, source: Source, jwtSecret?: string): Promise<CryptoKey> {
+  const material =
+    source === 'd' ? env.DATA_ENCRYPTION_KEY : `jwt-derived:${jwtSecret ?? signingSecret(env)}`
   if (!material || material.length < 32) {
     throw new Error('DATA_ENCRYPTION_KEY must be at least 32 characters')
   }
@@ -40,18 +41,42 @@ export async function seal(env: Bindings, purpose: string, plaintext: string): P
   return `v1.${source}.${toB64u(iv)}.${toB64u(new Uint8Array(ct))}`
 }
 
-/** Opens a sealed value; throws when it was tampered with or sealed for another purpose. */
-export async function unseal(env: Bindings, purpose: string, sealed: string): Promise<string> {
+/**
+ * Opens a sealed value; throws when it was tampered with or sealed for another purpose. A value
+ * sealed under the `JWT_SECRET` fallback also opens with `JWT_SECRET_PREVIOUS` (ADR 0003 rotation);
+ * `stale` then tells the caller to seal it again under the current secret.
+ */
+export async function unsealWithInfo(
+  env: Bindings,
+  purpose: string,
+  sealed: string,
+): Promise<{ value: string; stale: boolean }> {
   const [v, source, ivPart, ctPart] = sealed.split('.')
   const iv = fromB64u(ivPart ?? '')
   const ct = fromB64u(ctPart ?? '')
   if (v !== 'v1' || (source !== 'd' && source !== 'j') || !iv || !ct) {
     throw new Error('Malformed sealed value')
   }
-  const pt = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv, additionalData: utf8(purpose) },
-    await keyFor(env, source),
-    ct,
-  )
-  return new TextDecoder().decode(pt)
+  const secrets = source === 'j' ? verificationSecrets(env) : [undefined]
+  let lastError: unknown
+  for (const [i, secret] of secrets.entries()) {
+    try {
+      const pt = await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv, additionalData: utf8(purpose) },
+        await keyFor(env, source, secret),
+        ct,
+      )
+      return {
+        value: new TextDecoder().decode(pt),
+        stale: i > 0 || source !== currentSource(env),
+      }
+    } catch (err) {
+      lastError = err
+    }
+  }
+  throw lastError
+}
+
+export async function unseal(env: Bindings, purpose: string, sealed: string): Promise<string> {
+  return (await unsealWithInfo(env, purpose, sealed)).value
 }

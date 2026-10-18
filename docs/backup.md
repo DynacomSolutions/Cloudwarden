@@ -24,7 +24,7 @@ backups/<YYYY-MM-DD>/run-<epoch seconds>/manifest.json          tables, ordered 
   `devices.twofactor_remember` and `devices.push_token` (null), and `users.email_new_token` (null). Every device must
   sign in again after a restore. `users.api_key` and `users.totp_recover` are stored AES-GCM encrypted under a key derived from a Worker secret
   (not in D1); before each export any remaining plain value is encrypted in place. Keep `DATA_ENCRYPTION_KEY` (or
-  `JWT_SECRET`) to read them after a restore.
+  `JWT_SECRET`) to read them after a restore. Without `DATA_ENCRYPTION_KEY` these secrets are sealed under `JWT_SECRET`. Rotating `JWT_SECRET` without setting `JWT_SECRET_PREVIOUS` first makes them unreadable (the affected requests fail with 500 and nothing is overwritten). Set `DATA_ENCRYPTION_KEY` to avoid this.
   TOTP secrets and other two-factor material are kept because a restore is useless without them.
 - Nothing served to users may resolve a key under `backups/`; `src/blob-keys.ts` provides the guard.
 

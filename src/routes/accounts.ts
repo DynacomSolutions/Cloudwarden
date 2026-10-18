@@ -8,7 +8,7 @@ import { requireAuth } from '../auth/middleware'
 import { consumeOtp, issueOtp, MAX_ATTEMPTS } from '../auth/otp'
 import { hashMasterPassword, verifyMasterPassword } from '../auth/passwords'
 import { accountKeysJson, stampRotationStatements } from '../auth/session'
-import { openUserSecret, sealInPlace, sealUserSecret } from '../auth/user-secrets'
+import { sealUserSecret, viewUserSecret } from '../auth/user-secrets'
 import { findUserByEmail, normalizeEmail } from '../auth/users'
 import { createDb, type Db, runBatch, schema } from '../db'
 import {
@@ -374,13 +374,11 @@ const apiKeyHandler = (rotate: boolean) => async (c: Ctx) => {
   const { masterPasswordHash } = await parseBody(c, passwordOnly)
   const user = c.var.user
   await requirePassword(user, masterPasswordHash)
-  const opened =
-    !rotate && user.apiKey ? await openUserSecret(c.env, user.uuid, 'api-key', user.apiKey) : null
-  let apiKey = opened?.value
-  if (apiKey) {
-    if (opened?.legacy) await sealInPlace(c.env, user.uuid, 'api-key', apiKey)
-  } else {
-    apiKey = randomB64u(24).replace(/[-_]/g, 'x')
+  const generate = () => randomB64u(24).replace(/[-_]/g, 'x')
+  let apiKey: string
+  if (rotate) {
+    // Rotation is the one deliberate overwrite.
+    apiKey = generate()
     await createDb(c.env.DB)
       .update(schema.users)
       .set({
@@ -388,6 +386,8 @@ const apiKeyHandler = (rotate: boolean) => async (c: Ctx) => {
         updatedAt: Date.now(),
       })
       .where(eq(schema.users.uuid, user.uuid))
+  } else {
+    apiKey = await viewUserSecret(c.env, user.uuid, 'api-key', user.apiKey, generate)
   }
   return c.json({ apiKey, revisionDate: new Date().toISOString(), object: 'apiKey' })
 }

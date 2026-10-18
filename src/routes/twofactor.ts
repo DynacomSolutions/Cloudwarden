@@ -37,7 +37,7 @@ import {
   type YubiKeyData,
   yubicoConfig,
 } from '../auth/twofactor'
-import { openUserSecret, sealInPlace, sealUserSecret } from '../auth/user-secrets'
+import { viewUserSecret } from '../auth/user-secrets'
 import { findUserByEmail, normalizeEmail } from '../auth/users'
 import {
   COSE_ES256,
@@ -190,22 +190,13 @@ twofactor.delete('/api/two-factor/authenticator', requireAuth, async (c) => {
 
 twofactor.post('/api/two-factor/get-recover', requireAuth, async (c) => {
   const user = await authorise(c, await parseBody(c, proofOnly))
-  const opened = user.totpRecover
-    ? await openUserSecret(c.env, user.uuid, 'recovery-code', user.totpRecover)
-    : null
-  let code = opened?.value
-  if (code) {
-    if (opened?.legacy) await sealInPlace(c.env, user.uuid, 'recovery-code', code)
-  } else {
-    code = generateRecoveryCode()
-    await createDb(c.env.DB)
-      .update(schema.users)
-      .set({
-        totpRecover: await sealUserSecret(c.env, user.uuid, 'recovery-code', code),
-        updatedAt: Date.now(),
-      })
-      .where(eq(schema.users.uuid, user.uuid))
-  }
+  const code = await viewUserSecret(
+    c.env,
+    user.uuid,
+    'recovery-code',
+    user.totpRecover,
+    generateRecoveryCode,
+  )
   return c.json({ code, object: 'twoFactorRecover' })
 })
 

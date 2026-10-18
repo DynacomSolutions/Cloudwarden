@@ -227,9 +227,9 @@ async function createAccount(c: import('hono').Context<Env>) {
   return c.json({ object: 'register', captchaBypassToken: '' })
 }
 
-register.post('/identity/accounts/register', rateLimit('register'), createAccount)
-register.post('/api/accounts/register', rateLimit('register'), createAccount)
-register.post('/identity/accounts/register/finish', rateLimit('register'), createAccount)
+register.post('/identity/accounts/register', rateLimit('register', 20), createAccount)
+register.post('/api/accounts/register', rateLimit('register', 20), createAccount)
+register.post('/identity/accounts/register/finish', rateLimit('register', 20), createAccount)
 
 const sendSchema = z.object({
   email: z.string().email(),
@@ -243,7 +243,7 @@ const sendSchema = z.object({
 // and the token is returned directly (200).
 register.post(
   '/identity/accounts/register/send-verification-email',
-  rateLimit('register'),
+  rateLimit('register', 20),
   async (c) => {
     const body = await parseBody(c, sendSchema)
     const email = normalizeEmail(body.email)
@@ -307,13 +307,13 @@ const emailClicked = async (c: import('hono').Context<Env>) => {
 }
 register.post(
   '/identity/accounts/register/verification-email-clicked',
-  rateLimit('register'),
+  rateLimit('register', 20),
   emailClicked,
 )
 // The iOS app posts the same request to the API host.
 register.post(
   '/api/accounts/register/verification-email-clicked',
-  rateLimit('register'),
+  rateLimit('register', 20),
   emailClicked,
 )
 

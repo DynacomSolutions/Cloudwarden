@@ -8,7 +8,7 @@ import { mailConfigured } from '../emailless'
 import type { Bindings, Env, User } from '../env'
 import { ApiError, oauthError } from '../errors'
 import { Status } from '../orgs/constants'
-import { overLimit, tooManyRequests } from '../ratelimit'
+import { overLimit, resetBudget, spendBudget, tooManyRequests } from '../ratelimit'
 import { randomB64u, safeEqualStrings, sha256B64u } from './crypto'
 import { type DuoConfig, duoAuthUrl, duoVerifyCode } from './duo'
 import { signingSecret, signJwt, verificationSecrets, verifyJwt } from './jwt'
@@ -767,10 +767,14 @@ export const enforceTwoFactor: TwoFactorHook = async (c, user, form) => {
   }
 
   if (await overLimit(c, 'two-factor', user.uuid)) return tooManyRequests(c)
+  // Durable per-user failure budget (the binding is location-local); reset on success.
+  const budgetKey = `tffail:${user.uuid}`
+  if (!(await spendBudget(c.env.DB, budgetKey))) return tooManyRequests(c)
 
   // The recovery code is accepted as provider 8: it spends the code, then login continues.
   if (provider === TwoFactorType.RecoveryCode) {
     if (await useRecoveryCode(c.env, db, user, token)) {
+      await resetBudget(c.env.DB, budgetKey)
       later(c, sendNotice(c.env, user.email, recoveryCodeUsedEmail()))
       return null
     }
@@ -787,7 +791,10 @@ export const enforceTwoFactor: TwoFactorHook = async (c, user, form) => {
   }
 
   if (provider === TwoFactorType.Remember) {
-    if (await rememberValid(db, user.uuid, form.deviceIdentifier?.trim(), token)) return null
+    if (await rememberValid(db, user.uuid, form.deviceIdentifier?.trim(), token)) {
+      await resetBudget(c.env.DB, budgetKey)
+      return null
+    }
     return challengeBody(c, user, rows, 'Two factor required.', form.deviceIdentifier?.trim())
   }
 
@@ -824,6 +831,7 @@ export const enforceTwoFactor: TwoFactorHook = async (c, user, form) => {
       'Two-step token is invalid. Try again.',
     )
   }
+  await resetBudget(c.env.DB, budgetKey)
   c.set('twoFactorVerified', true)
   return null
 }

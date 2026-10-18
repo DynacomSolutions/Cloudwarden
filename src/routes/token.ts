@@ -18,14 +18,14 @@ import {
 } from '../auth/session'
 import { enforceTwoFactor, issueRememberToken } from '../auth/twofactor'
 import { openUserSecret, resealIfNeeded } from '../auth/user-secrets'
-import { findUserByEmail } from '../auth/users'
+import { findUserByEmail, normalizeEmail } from '../auth/users'
 import { WebAuthnError } from '../auth/webauthn'
 import { createDb, schema } from '../db'
 import type { Env, User } from '../env'
 import { ApiError, oauthError, sendAccessError } from '../errors'
 import { isStandInUser } from '../federation/standin'
 import { organizationLoginGrant } from '../orgs/api-keys'
-import { rateLimit, tooManyRequests } from '../ratelimit'
+import { rateLimit, resetBudget, spendBudget, tooManyRequests } from '../ratelimit'
 import { MACHINE_SCOPE, machineLoginGrant } from '../sm/auth'
 import { consumeCode, findRedeemableCode } from '../sso/flow'
 import { requiredSsoIdentifier } from '../sso/policy'
@@ -150,6 +150,12 @@ async function passwordGrant(c: Ctx, form: Form) {
   const device = deviceFrom(form)
   if (!device) return oauthError(c, 'invalid_request', 'Device information is required.')
 
+  // Durable per-account failure budget; the same for unknown accounts, so it leaks nothing.
+  const budgetKey = `pwfail:${normalizeEmail(form.username)}`
+  // Skipped for login with device: that code is single-use and needs approval, so it must not be
+  // lockable by someone else's bad password guesses.
+  if (!form.authRequest && !(await spendBudget(c.env.DB, budgetKey))) return tooManyRequests(c)
+
   const user = await findUserByEmail(db, form.username)
   // Login with device: the "password" is the request's access code, approved on another device.
   const authRequest = form.authRequest
@@ -159,6 +165,7 @@ async function passwordGrant(c: Ctx, form: Form) {
     ? authRequest !== null
     : await verifyMasterPassword(user, form.password)
   if (!ok || !user) return BAD_LOGIN(c)
+  await resetBudget(c.env.DB, budgetKey)
   if (!user.enabled) {
     return oauthError(
       c,
@@ -467,7 +474,7 @@ async function sendAccessGrant(c: Ctx, form: Form) {
   })
 }
 
-token.post('/identity/connect/token', rateLimit('token'), async (c) => {
+token.post('/identity/connect/token', rateLimit('token', 30), async (c) => {
   const body = await c.req.parseBody().catch(() => ({}))
   const form: Form = {}
   for (const [k, v] of Object.entries(body)) if (typeof v === 'string') form[k] = v

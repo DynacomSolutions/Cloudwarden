@@ -120,14 +120,14 @@ async function checkLegacyAccess(
 }
 
 // Newer clients: Bearer token from the `send_access` grant on the identity endpoint.
-sends.post('/api/sends/access', rateLimit('send-access'), async (c) => {
+sends.post('/api/sends/access', rateLimit('send-access', 60), async (c) => {
   const db = createDb(c.env.DB)
   const bearer = await sendFromBearer(c.env, db, c.req.header('Authorization'))
   if (!bearer) throw new ApiError(401, 'Unauthorized')
   return accessPayload(c, bearer.uuid)
 })
 
-sends.post('/api/sends/access/file/:fileId', rateLimit('send-access'), async (c) => {
+sends.post('/api/sends/access/file/:fileId', rateLimit('send-access', 60), async (c) => {
   const db = createDb(c.env.DB)
   const bearer = await sendFromBearer(c.env, db, c.req.header('Authorization'))
   if (!bearer) throw new ApiError(401, 'Unauthorized')
@@ -136,14 +136,14 @@ sends.post('/api/sends/access/file/:fileId', rateLimit('send-access'), async (c)
 })
 
 // Legacy clients: the access id in the path and the password in the body.
-sends.post('/api/sends/access/:accessId', rateLimit('send-access'), async (c) => {
+sends.post('/api/sends/access/:accessId', rateLimit('send-access', 60), async (c) => {
   const body = await parseBody(c, passwordBody.nullish())
   const send = await loadForAccess(createDb(c.env.DB), c.req.param('accessId') ?? '')
   await checkLegacyAccess(c, send, body)
   return accessPayload(c, send.uuid)
 })
 
-sends.post('/api/sends/:id/access/file/:fileId', rateLimit('send-access'), async (c) => {
+sends.post('/api/sends/:id/access/file/:fileId', rateLimit('send-access', 60), async (c) => {
   const body = await parseBody(c, passwordBody.nullish())
   const db = createDb(c.env.DB)
   const send = await loadForAccess(db, c.req.param('id') ?? '')

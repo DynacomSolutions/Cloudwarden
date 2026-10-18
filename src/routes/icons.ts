@@ -69,7 +69,7 @@ export function createIcons(fetcher: Fetcher = (u, i) => fetch(u, i)) {
 
     // Only cache misses cost an outbound fetch, so only they are rate limited per client address.
     let allowed = false
-    const limited = await rateLimit('icons')(c, async () => {
+    const limited = await rateLimit('icons', 120)(c, async () => {
       allowed = true
     })
     if (!allowed) return limited as Response
@@ -131,7 +131,7 @@ export function createIcons(fetcher: Fetcher = (u, i) => fetch(u, i)) {
     if (hit) return c.json(await hit.json())
 
     let allowed = false
-    const limited = await rateLimit('icons')(c, async () => {
+    const limited = await rateLimit('icons', 120)(c, async () => {
       allowed = true
     })
     if (!allowed) return limited as Response

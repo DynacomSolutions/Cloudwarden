@@ -41,6 +41,9 @@ export default defineConfig({
         // Federated organisations (TASKS #300, docs/federation.md).
         '/federation/*',
         '/.well-known/cloudwarden-federation',
+        // OpenID discovery at the issuer root (TASKS #411).
+        '/.well-known/openid-configuration',
+        '/.well-known/jwks.json',
       ],
     },
     // Workers Logs: structured JSON lines from src/log.ts (TASKS #164), see docs/observability.md.

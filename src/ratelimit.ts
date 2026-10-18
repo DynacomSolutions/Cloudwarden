@@ -1,5 +1,6 @@
 import type { Context, MiddlewareHandler } from 'hono'
 import { rateLimit as d1Window } from './admin/security'
+import { loadSsoRateLimit } from './admin/sso-rate-limit'
 import type { Env } from './env'
 import { errorBody } from './errors'
 
@@ -62,6 +63,14 @@ export const rateLimit =
   async (c, next) => {
     const limiter = c.env.LOGIN_LIMITER
     const header = clientKey(c)
+    // An admin set SSO limit replaces the binding (its limit is fixed): enforce it in D1.
+    const custom = scope === 'sso' ? await loadSsoRateLimit(c.env) : null
+    if (custom && header) {
+      if (!(await d1Window(c.env.DB, `${scope}:${header}`, custom, 60_000, Date.now()))) {
+        return tooManyRequests(c)
+      }
+      return next()
+    }
     if (!limiter && d1Fallback && header) {
       // No limiter bound: fall back to the D1 fixed window (per address, 60 s).
       if (!(await d1Window(c.env.DB, `${scope}:${header}`, d1Fallback, 60_000, Date.now()))) {

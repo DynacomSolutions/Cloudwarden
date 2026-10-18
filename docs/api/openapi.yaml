@@ -6420,6 +6420,59 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+  /api/cloudwarden/admin/sso-rate-limit:
+    get:
+      tags:
+      - x-cloudwarden
+      operationId: adminGetSsoRateLimit
+      summary: SSO login rate limit per client address per minute (20 until an admin sets it)
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminSsoRateLimit'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    put:
+      tags:
+      - x-cloudwarden
+      operationId: adminPutSsoRateLimit
+      summary: Set the SSO login rate limit
+      description: 'While set, SSO routes ignore the rate limit binding and count per client address in D1. Recorded in the admin audit log (event 9014).'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ssoRateLimitPerMinute:
+                  type: integer
+                  minimum: 5
+                  maximum: 1000
+              required:
+              - ssoRateLimitPerMinute
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminSsoRateLimit'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
   /api/cloudwarden/admin/web-push:
     get:
       tags:
@@ -24725,6 +24778,17 @@ components:
       - available
       - publicKey
       - subscriptions
+    AdminSsoRateLimit:
+      type: object
+      properties:
+        ssoRateLimitPerMinute:
+          type: integer
+        custom:
+          type: boolean
+          description: False while the built-in default of 20 applies.
+      required:
+      - ssoRateLimitPerMinute
+      - custom
     AdminPushTestResult:
       type: object
       properties:

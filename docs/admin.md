@@ -46,12 +46,22 @@ The operations are documented under the `x-cloudwarden` tag in `docs/api/openapi
 | `GET /invitations`, `POST /invitations` `{email}`, `DELETE /invitations/:email` | Invitations; create returns `emailStatus` of `sent`, `not-configured` or `failed` |
 | `GET /organizations`, `DELETE /organizations/:id` | Organisations and deletion (members are kept) |
 | `GET /diagnostics` | Storage figures and configuration |
+| `GET` and `PUT /sso-rate-limit` | The SSO login rate limit per minute (see below) |
 | `GET /health?range=24h\|7d` | Worker limit failures and CPU time from Cloudflare analytics (see Health) |
 
 Invitations are stored in the `invitations` table and gate registration. Deleting a user or
 organisation also removes its R2 attachment and Send blobs. Every write inserts a row in `events`
-(types 9001 to 9013, outside the codes the official clients use) recording the acting admin.
+(types 9001 to 9014, outside the codes the official clients use) recording the acting admin.
 Invitation events never contain the address.
+
+SSO rate limit (TASKS #424): every SSO route is limited per client address (an IPv4 address or an IPv6
+/64). One SSO login spends about 4 to 6 requests, so an office behind one address hits the built-in
+limit of 20 per minute after a few simultaneous logins. An instance admin can set
+`ssoRateLimitPerMinute` (a whole number from 5 to 1000) with `PUT /api/cloudwarden/admin/sso-rate-limit`
+or under Instance admin > SSO rate limit. While it is set, the SSO routes ignore the `LOGIN_LIMITER`
+binding (whose limit cannot change at run time) and count in D1 instead, atomically, 60 seconds per
+address; it is audited as event 9014 (`SsoRateLimitUpdated`). Other rate limits are unchanged. Changes
+reach every Worker instance within about 10 seconds.
 
 `SIGNUPS_DOMAINS_WHITELIST` governs public sign-up only. Organisation invite links admit their allowed
 domains on their own and need no whitelist entry. Only an owner (`ADMIN_EMAILS`) or a granted admin (Instance admin) with a verified address can create an

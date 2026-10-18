@@ -356,7 +356,8 @@ async function refreshGrant(c: Ctx, form: Form) {
     return invalid()
   }
 
-  // Rotate the refresh token. The WHERE clause makes a replayed token lose the race.
+  // Rotate the refresh token. The WHERE clause makes a replayed token lose the race, and matching
+  // the stamp read above stops a concurrent rebind (Key Connector enrolment) being overwritten.
   const next = randomB64u(32)
   const result = await db
     .update(schema.devices)
@@ -369,6 +370,9 @@ async function refreshGrant(c: Ctx, form: Form) {
       and(
         eq(schema.devices.uuid, device.uuid),
         eq(schema.devices.refreshToken, device.refreshToken),
+        device.refreshStamp === null
+          ? isNull(schema.devices.refreshStamp)
+          : eq(schema.devices.refreshStamp, device.refreshStamp),
       ),
     )
   if (result.meta.changes === 0) return invalid()
@@ -393,8 +397,9 @@ async function clientCredentialsGrant(c: Ctx, form: Form) {
     .from(schema.users)
     .where(eq(schema.users.uuid, clientId.slice(5)))
     .limit(1)
+  // A key that cannot be unsealed answers like a wrong secret (already logged by the opener).
   const opened = user?.apiKey
-    ? await openUserSecret(c.env, user.uuid, 'api-key', user.apiKey)
+    ? await openUserSecret(c.env, user.uuid, 'api-key', user.apiKey).catch(() => null)
     : null
   const matches = safeEqualStrings(opened?.value ?? '\0', form.client_secret)
   if (!user || !opened || !matches || !user.enabled) return bad()

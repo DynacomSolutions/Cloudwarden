@@ -1,7 +1,11 @@
 import { env } from 'cloudflare:workers'
+import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
+import { useRecoveryCode } from '../src/auth/twofactor'
 import { openUserSecret, sealUserSecret } from '../src/auth/user-secrets'
-import { createSession, withEnv } from './helpers'
+import { createDb, schema } from '../src/db'
+import type { User } from '../src/env'
+import { createSession, dbWithRace, withEnv } from './helpers'
 
 const PW = 'client-derived-hash'
 const NEW_JWT = 'n'.repeat(48)
@@ -49,7 +53,7 @@ describe('stored secrets survive key problems', () => {
     expect(opened).toMatchObject({ value: 'value', stale: true })
   })
 
-  it('a wrong DATA_ENCRYPTION_KEY gives 500 and leaves the recovery code and API key untouched', async () => {
+  it('a wrong DATA_ENCRYPTION_KEY gives 500 on views, a plain login failure at the token endpoint, and leaves the recovery code and API key untouched', async () => {
     const email = 'us-wrong-key@example.com'
     const s = await createSession(email)
     const e1 = { DATA_ENCRYPTION_KEY: KEY_A }
@@ -70,8 +74,13 @@ describe('stored secrets survive key problems', () => {
       expect(res.status).toBe(500)
       expect(await res.text()).not.toContain(code)
     }
-    const login = await credentials(e2, (await column(email, 'api_key')).uuid, apiKey)
-    expect(login.status).toBe(500)
+    // The token endpoint treats an unreadable key like a wrong secret (TASKS #415).
+    const uuid = (await column(email, 'api_key')).uuid
+    const wrong = await credentials(e1, uuid, 'not-the-key')
+    const login = await credentials(e2, uuid, apiKey)
+    expect(login.status).toBe(wrong.status)
+    expect(login.status).toBe(400)
+    expect(await login.text()).toBe(await wrong.text())
     expect({
       r: (await column(email, 'totp_recover')).v,
       k: (await column(email, 'api_key')).v,
@@ -135,5 +144,32 @@ describe('stored secrets survive key problems', () => {
     expect(b).toBe(a)
     expect(c).toBe(a)
     expect(await view()).toBe(a)
+  })
+})
+
+describe('recovery code use races a re-seal', () => {
+  it('a valid code still works once when a view re-seals it between read and write', async () => {
+    const email = 'us-recover-race@example.com'
+    const s = await createSession(email)
+    const rec = await post({}, s.access_token, '/api/two-factor/get-recover', {
+      masterPasswordHash: PW,
+    })
+    const code = ((await rec.json()) as any).code as string
+    const { uuid } = await column(email, 'totp_recover')
+    const load = async () =>
+      (
+        await createDb(env.DB).select().from(schema.users).where(eq(schema.users.uuid, uuid))
+      )[0] as User
+    const user = await load()
+
+    const DB = dbWithRace(env.DB, /^update "users"/i, async () => {
+      await env.DB.prepare('update users set totp_recover = ? where uuid = ?')
+        .bind(await sealUserSecret(env, uuid, 'recovery-code', code), uuid)
+        .run()
+    })
+    const raced = { ...env, DB }
+    expect(await useRecoveryCode(raced, createDb(DB), user, code)).toBe(true)
+    // Single use: the same code fails now.
+    expect(await useRecoveryCode(env, createDb(env.DB), await load(), code)).toBe(false)
   })
 })

@@ -1,7 +1,7 @@
 import { env } from 'cloudflare:workers'
 import { expect, it } from 'vitest'
 import { verifyJwt } from '../src/auth/jwt'
-import { authed, createSession, form, login, registerUser } from './helpers'
+import { authed, createSession, dbWithRace, form, login, registerUser, withEnv } from './helpers'
 
 it('password grant returns the client-expected shape', async () => {
   await registerUser('shape@example.com')
@@ -221,4 +221,23 @@ it('client_credentials accepts a legacy plain API key and encrypts it', async ()
     .bind(row?.uuid)
     .first<{ k: string }>()
   expect(after?.k).toMatch(/^v1\./)
+})
+
+it('refresh grant loses to a concurrent change of the device refresh stamp', async () => {
+  const s = await createSession('stamp-race@example.com')
+  const DB = dbWithRace(env.DB, /^update "devices"/i, async () => {
+    await env.DB.prepare("update devices set refresh_stamp = 'enrolled-stamp'").run()
+  })
+  const res = await withEnv({ DB }, '/identity/connect/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'refresh_token',
+      refresh_token: s.refresh_token,
+    }).toString(),
+  })
+  expect(res.status).toBe(400)
+  expect(((await res.json()) as any).error).toBe('invalid_grant')
+  const row = await env.DB.prepare('select refresh_stamp s from devices').first<{ s: string }>()
+  expect(row?.s).toBe('enrolled-stamp')
 })

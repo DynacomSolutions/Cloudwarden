@@ -140,7 +140,8 @@ resolve against the page origin. Static responses get their headers from the gen
 `_headers`: a Content-Security-Policy that allows `wasm-unsafe-eval` (WebAssembly SDK),
 same-origin scripts and connections (`'self'` covers the same-origin notifications WebSocket; no
 scheme-wide `wss:`), Duo frames for two-step login, the vault's own WebAuthn connector frame and
-the breach-check API, plus
+the breach-check API (and `upgrade-insecure-requests`), plus
+`Strict-Transport-Security: max-age=31536000` (no `includeSubDomains` or `preload`; the Worker sends it too),
 `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` and `Permissions-Policy`. Edit
 `scripts/build-web.mjs` to loosen `connect-src` or `frame-src`.
 

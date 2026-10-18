@@ -77,12 +77,14 @@ export const cspFor = (extra = []) =>
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'self'",
+    'upgrade-insecure-requests',
   ].join('; ')
 
 const CSP = cspFor(extraConnectSources(process.env.CLOUDWARDEN_CONNECT_SRC))
 
 export const HEADERS = `/*
   Content-Security-Policy: ${CSP}
+  Strict-Transport-Security: max-age=31536000
   X-Content-Type-Options: nosniff
   X-Frame-Options: SAMEORIGIN
   Referrer-Policy: same-origin

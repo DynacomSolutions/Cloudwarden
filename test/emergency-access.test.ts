@@ -221,6 +221,22 @@ it('refuses takeover of a granted instance admin', async () => {
   expect((await login(grantor.email, 'client-derived-hash')).status).toBe(200)
 })
 
+it('withholds takeover details of an instance admin and an owner address', async () => {
+  const adm = await approvedTakeover('ea-det-adm')
+  await env.DB.prepare("UPDATE users SET instance_role = 'admin' WHERE uuid = ?1")
+    .bind(adm.grantor.uuid)
+    .run()
+  expect((await adm.grantee.call(`/api/emergency-access/${adm.id}/takeover`, 'POST')).status).toBe(
+    400,
+  )
+  const own = await approvedTakeover('ea-det-own', {
+    ADMIN_EMAILS: 'ea-det-own-grantor@example.com',
+  })
+  expect((await own.grantee.call(`/api/emergency-access/${own.id}/takeover`, 'POST')).status).toBe(
+    400,
+  )
+})
+
 it('refuses takeover of an owner address', async () => {
   const { grantor, grantee, id } = await approvedTakeover('ea-own', {
     ADMIN_EMAILS: 'ea-own-grantor@example.com',

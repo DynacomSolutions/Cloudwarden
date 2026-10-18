@@ -7,4 +7,5 @@ it('GET /alive returns an ISO timestamp string', async () => {
   const body = await res.json<string>()
   expect(new Date(body).toISOString()).toBe(body)
   expect(res.headers.get('X-Content-Type-Options')).toBe('nosniff')
+  expect(res.headers.get('Strict-Transport-Security')).toBe('max-age=31536000')
 })

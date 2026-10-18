@@ -1,4 +1,5 @@
 import { and, eq, inArray, isNotNull, ne } from 'drizzle-orm'
+import { holdsInstanceRole } from '../admin/security'
 import type { Db } from '../db'
 import { schema } from '../db'
 import { ApiError } from '../errors'
@@ -88,15 +89,19 @@ export function assertRecoverable(target: Member): asserts target is Member & {
  * Targets an organisation must never recover (account takeover guards): federated members and
  * their stand-in accounts (their credentials live on the home instance), and accounts that also
  * belong to another organisation (the administrator would reach data they do not govern; revoked
- * memberships do not count). Returns the uuids of the blocked members.
+ * memberships do not count), and instance admins and owners (an organisation admin must never
+ * inherit instance rights). Returns the uuids of the blocked members.
  */
 export async function unrecoverableMembers(
   db: Db,
-  rows: { m: Member; u: Pick<UserRow, 'passwordHash'> }[],
+  env: { ADMIN_EMAILS?: string },
+  rows: { m: Member; u: Pick<UserRow, 'passwordHash' | 'email' | 'instanceRole'> }[],
 ): Promise<Set<string>> {
   const blocked = new Set<string>()
   if (rows.length === 0) return blocked
-  for (const { m, u } of rows) if (isStandInUser(u)) blocked.add(m.uuid)
+  for (const { m, u } of rows) {
+    if (isStandInUser(u) || holdsInstanceRole(env, u)) blocked.add(m.uuid)
+  }
   const federated = await db
     .select({ id: schema.federationMembers.organizationUserUuid })
     .from(schema.federationMembers)
@@ -130,8 +135,13 @@ export async function unrecoverableMembers(
   return blocked
 }
 
-export async function assertNotUnrecoverable(db: Db, m: Member, u: Pick<UserRow, 'passwordHash'>) {
-  if ((await unrecoverableMembers(db, [{ m, u }])).has(m.uuid)) {
+export async function assertNotUnrecoverable(
+  db: Db,
+  env: { ADMIN_EMAILS?: string },
+  m: Member,
+  u: Pick<UserRow, 'passwordHash' | 'email' | 'instanceRole'>,
+) {
+  if ((await unrecoverableMembers(db, env, [{ m, u }])).has(m.uuid)) {
     throw new ApiError(400, 'This member cannot be recovered.')
   }
 }

@@ -1,4 +1,5 @@
 import { and, eq, inArray, ne } from 'drizzle-orm'
+import { holdsInstanceRole } from '../admin/security'
 import type { Db } from '../db'
 import { schema } from '../db'
 import type { User } from '../env'
@@ -85,6 +86,7 @@ export async function keyConnectorUrlFor(db: Db, userUuid: string): Promise<stri
 }
 
 export interface DecryptionContext {
+  env: { ADMIN_EMAILS?: string }
   deviceIdentifier: string
   /** Organisation of an SSO login. */
   ssoOrgUuid?: string
@@ -150,7 +152,11 @@ export async function decryptionOptions(db: Db, user: User, ctx: DecryptionConte
             .limit(1)
         : []
     out.TrustedDeviceOption = {
-      HasAdminApproval: sso.member.resetPasswordKey !== null && recovery?.enabled === true,
+      // Instance admins and owners are hidden from approvers, so they must not be offered it.
+      HasAdminApproval:
+        sso.member.resetPasswordKey !== null &&
+        recovery?.enabled === true &&
+        !holdsInstanceRole(ctx.env, user),
       HasLoginApprovingDevice: approving,
       HasManageResetPasswordPermission: can(sso.member, 'manageResetPassword'),
       IsTdeOffboarding: offboarding,

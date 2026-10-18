@@ -1,0 +1,1 @@
+ALTER TABLE `devices` ADD `refresh_stamp` text;

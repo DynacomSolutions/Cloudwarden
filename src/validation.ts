@@ -20,8 +20,11 @@ export function normalizeKeys(value: unknown, depth = 2): unknown {
  * Refuses a body over `max` bytes before it is read: by Content-Length, and for bodies without
  * one by counting a copy of the stream, which stops at the cap. Hono keeps the body for later reads.
  */
-export async function assertBodyWithin(c: Context<Env>, max: number) {
-  const tooBig = () => new ApiError(400, 'You cannot import this much data at once.')
+export async function assertBodyWithin(
+  c: Context<Env>,
+  max: number,
+  tooBig = () => new ApiError(400, 'You cannot import this much data at once.'),
+) {
   const declared = c.req.header('Content-Length')
   if (declared != null && Number(declared) > max) throw tooBig()
   if (declared != null || !c.req.raw.body) return

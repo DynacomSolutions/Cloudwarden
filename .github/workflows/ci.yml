@@ -104,9 +104,12 @@ jobs:
           cache: pnpm
       - run: node scripts/check-identifiers.mjs
       - run: node scripts/check-web-licence.mjs
+      # Production-only dependency audits (TASKS #406): fail on high or critical advisories.
+      - run: node scripts/audit-web.mjs
       # Script tests need dev dependencies.
       - run: pnpm install --frozen-lockfile
       - run: node --test scripts/*.test.mjs
+      - run: pnpm audit --prod --audit-level=high
 
   web-unit:
     name: Web client unit tests

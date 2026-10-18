@@ -4,7 +4,14 @@ import { describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
 import raw from '../docs/api/openapi.yaml?raw'
 import { AdminEventType } from '../src/admin/service'
-import { BASE, createSession, freezeRateLimitWindow, login, withEnv } from './helpers'
+import {
+  BASE,
+  createSession,
+  freezeRateLimitWindow,
+  liveSessionArtefacts,
+  login,
+  withEnv,
+} from './helpers'
 import { actor, createOrg, mailbox } from './org-helpers'
 
 const P = '/api/cloudwarden/admin'
@@ -398,8 +405,10 @@ describe('admin API user actions', () => {
   it('deauthorizes a user by rotating the security stamp', async () => {
     const a = await person('deauth', true)
     const t = await person('target', false)
+    const old = await liveSessionArtefacts(t.email, t.token)
     expect((await a.call(`${P}/users/${t.id}/deauthorize`, 'POST')).status).toBe(204)
     expect((await t.call('/api/accounts/profile')).status).toBe(401)
+    await old.expectRevoked()
     expect((await events(AdminEventType.UserDeauthorized)).some((e) => e.user_uuid === t.id)).toBe(
       true,
     )
@@ -408,6 +417,7 @@ describe('admin API user actions', () => {
   it('removes two-factor providers and recovery code and signs the user out', async () => {
     const a = await person('rm2fa', true)
     const t = await person('target', false)
+    const old = await liveSessionArtefacts(t.email, t.token)
     await env.DB.batch([
       env.DB.prepare(
         "INSERT INTO twofactor (uuid,user_uuid,atype,enabled,data,last_used) VALUES (?1,?2,0,1,'x',0)",
@@ -424,6 +434,7 @@ describe('admin API user actions', () => {
       .first<{ r: string | null }>()
     expect(u?.r).toBeNull()
     expect((await t.call('/api/accounts/profile')).status).toBe(401)
+    await old.expectRevoked()
     expect(
       (await events(AdminEventType.UserTwoFactorRemoved)).some((e) => e.user_uuid === t.id),
     ).toBe(true)

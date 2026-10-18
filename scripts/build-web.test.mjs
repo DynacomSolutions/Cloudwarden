@@ -57,3 +57,14 @@ test('the camera is allowed for the vault origin only (workspace QR scanning)', 
   assert.match(policy, /geolocation=\(\)/)
   assert.ok(!/camera=\(\*\)|camera=\*/.test(policy))
 })
+
+test('headers send HSTS with max-age only and upgrade insecure requests', () => {
+  assert.match(HEADERS, /^ {2}Strict-Transport-Security: max-age=31536000$/m)
+  assert.ok(!/includeSubDomains|preload/i.test(HEADERS))
+  assert.ok(
+    csp
+      .split(';')
+      .map((d) => d.trim())
+      .includes('upgrade-insecure-requests'),
+  )
+})

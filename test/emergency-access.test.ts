@@ -1,6 +1,6 @@
 import { env } from 'cloudflare:workers'
 import { expect, it } from 'vitest'
-import { login } from './helpers'
+import { liveSessionArtefacts, login } from './helpers'
 import { actor, linkParams, loginCipher, mailbox } from './org-helpers'
 
 async function trust(
@@ -124,6 +124,7 @@ it('runs takeover and lets the grantor sign in with the new password only', asyn
   })
   expect((await grantee.json(`/api/emergency-access/${id}/policies`)).data).toEqual([])
 
+  const old = await liveSessionArtefacts(grantor.email, grantor.token)
   const set = await grantee.call(`/api/emergency-access/${id}/password`, 'POST', {
     newMasterPasswordHash: 'recovered-hash',
     key: '2.newUserKey',
@@ -135,6 +136,7 @@ it('runs takeover and lets the grantor sign in with the new password only', asyn
   expect(((await ok.json()) as any).Key).toBe('2.newUserKey')
   // The grantor's old token no longer works.
   expect((await grantor.call('/api/accounts/profile')).status).toBe(401)
+  await old.expectRevoked()
 })
 
 it('guards invitations: self, duplicates, wrong token, and either side can delete', async () => {
@@ -217,6 +219,22 @@ it('refuses takeover of a granted instance admin', async () => {
     .first<{ r: string }>()
   expect(row?.r).toBe('admin')
   expect((await login(grantor.email, 'client-derived-hash')).status).toBe(200)
+})
+
+it('withholds takeover details of an instance admin and an owner address', async () => {
+  const adm = await approvedTakeover('ea-det-adm')
+  await env.DB.prepare("UPDATE users SET instance_role = 'admin' WHERE uuid = ?1")
+    .bind(adm.grantor.uuid)
+    .run()
+  expect((await adm.grantee.call(`/api/emergency-access/${adm.id}/takeover`, 'POST')).status).toBe(
+    400,
+  )
+  const own = await approvedTakeover('ea-det-own', {
+    ADMIN_EMAILS: 'ea-det-own-grantor@example.com',
+  })
+  expect((await own.grantee.call(`/api/emergency-access/${own.id}/takeover`, 'POST')).status).toBe(
+    400,
+  )
 })
 
 it('refuses takeover of an owner address', async () => {

@@ -1014,6 +1014,12 @@ ssoAccounts.post('/api/accounts/key-connector/enroll', requireAuth, async (c) =>
           device ? ne(schema.devices.identifier, device) : undefined,
         ),
       ),
+    // Every device forgets its second-factor remember token; login requests are void.
+    db
+      .update(schema.devices)
+      .set({ twofactorRemember: null })
+      .where(eq(schema.devices.userUuid, user.uuid)),
+    db.delete(schema.authRequests).where(eq(schema.authRequests.userUuid, user.uuid)),
     eventStatement(db, c, {
       type: SsoEventType.UserMigratedKeyToKeyConnector,
       userUuid: user.uuid,

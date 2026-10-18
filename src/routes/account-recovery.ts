@@ -2,7 +2,6 @@ import { eq } from 'drizzle-orm'
 import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { z } from 'zod'
-import { holdsInstanceRole } from '../admin/security'
 import { authenticationData, checkNested, unlockData } from '../auth/credentials'
 import { hashMasterPassword, verifyMasterPassword } from '../auth/passwords'
 import { stampRotationStatements } from '../auth/session'
@@ -137,11 +136,7 @@ async function loadTarget(c: Ctx, db: Db, id: string) {
   assertRecoverable(target)
   const [u] = await db.select().from(schema.users).where(eq(schema.users.uuid, target.userUuid))
   if (!u) throw new ApiError(404, 'User not found.')
-  await assertNotUnrecoverable(db, target, u)
-  // Instance admins and owners are never recoverable by an organisation admin.
-  if (holdsInstanceRole(c.env, u)) {
-    throw new ApiError(400, 'This member cannot be recovered.')
-  }
+  await assertNotUnrecoverable(db, c.env, target, u)
   return { actor, orgRow, target, user: u }
 }
 
@@ -167,7 +162,7 @@ accountRecovery.post(
     const orgRow = await requireOrg(db, orgUuid)
     assertOrgKeys(orgRow)
     const rows = await enrolledMembers(db, orgUuid, [...new Set(ids)])
-    const blocked = await unrecoverableMembers(db, rows)
+    const blocked = await unrecoverableMembers(db, c.env, rows)
     const data = rows.flatMap(({ m, u }) => {
       try {
         assertCanRecover(actor, m)
@@ -277,8 +272,6 @@ async function recover(
           eventStatement(db, c, { type: EventType.OrganizationUserAdminResetTwoFactor, ...base }),
         ]
       : []),
-    // Requests made with the old credentials, answered or not, must not outlive the recovery.
-    db.delete(schema.authRequests).where(eq(schema.authRequests.userUuid, user.uuid)),
     // Every session of the recovered account ends: its old credentials no longer apply.
     ...stampRotationStatements(db, user.uuid),
   ])

@@ -410,6 +410,34 @@ it('refuses to recover an instance admin (granted role) and leaves the role alon
   expect((await login(member.email, PASSWORD)).status).toBe(200)
 })
 
+it('omits instance admins and owners from the bulk details but keeps eligible members', async () => {
+  const mb = (await import('./org-helpers')).mail
+  const owner = await actor('ar-bulk-owner@example.com', mb, {
+    ADMIN_EMAILS: 'ar-bulk-owner@example.com,ar-bulk-ownaddr@example.com',
+  })
+  const plain = await actor('ar-bulk-plain@example.com')
+  const admin = await actor('ar-bulk-admin@example.com')
+  const ownAddr = await actor('ar-bulk-ownaddr@example.com')
+  const { id: orgId } = await createOrg(owner)
+  await enablePolicy(owner, orgId)
+  const ids: string[] = []
+  for (const m of [plain, admin, ownAddr]) {
+    ids.push(await addMember(owner, orgId, m, { type: 2 }))
+    expect((await enroll(m, orgId)).status).toBe(200)
+  }
+  await env.DB.prepare("UPDATE users SET instance_role = 'admin' WHERE uuid = ?1")
+    .bind(admin.uuid)
+    .run()
+  const many = await owner.json(
+    `/api/organizations/${orgId}/users/account-recovery-details`,
+    'POST',
+    { ids },
+  )
+  expect(many.data.map((d: { organizationUserId: string }) => d.organizationUserId)).toEqual([
+    ids[0],
+  ])
+})
+
 it('refuses to recover an owner address even without a stored role', async () => {
   const mb = (await import('./org-helpers')).mail
   const ownerActor = await actor('ar-inst-owner-o@example.com', mb, {

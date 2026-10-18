@@ -297,15 +297,13 @@ Owner feedback: federation should not tie two organisations together; a user sha
 | 384 | Password strength label showed the raw placeholder (`Password strength score __$1__`) on Recover account and the forced change-password page while the field was empty | done | agent | | | | Upstream behaviour, not a locale or build fault: `password-strength-v2.component.html` fed the null `text` of an empty field to the `passwordStrengthScore` message, so the placeholder was never substituted. The screen-reader announcement is now rendered only once a score exists. Jest `password-strength-v2.component.spec.ts` (11 tests) covers the empty and scored states |
 | 385 | Members list not refreshed after Invite member (by email) until a page reload, seen in the 2026-10-06 live test | done | agent | | | | Reproduced on the live instance on 2026-10-07 with headless Chromium on the production web vault (device verification passed by presenting an already known device id, no security setting changed). Plain invites behave: `POST /users/invite` 200 after about 4 to 6 s (the invite mail is sent before the reply), then `GET /users?includeGroups=true` about 1 s later with the new rows (`no-store`), for one address, two addresses, a second invite in the same session and the Invited status tab; with a non matching search the new row is hidden by the client side filter (by design). Reproduced: press Escape (or click outside) about 1 s after Invite while the POST is pending. The dialog closes, the POST still returns 200 and the invite exists, but no `GET /users` follows and the list stays stale until a reload. Root cause: the invite dialog stays dismissible while its request is in flight, and the members page only reloads when the dialog reports `Saved`; a dismissed dialog reports `Canceled`, so the result is lost. It was invisible locally because the POST there takes milliseconds. Live differences checked: D1 Sessions is off by default (`D1_SESSIONS=false`, no `x-d1-bookmark` header on the live API), live API responses are `no-store`, the live `/api/config` flags enable the by-link tab (an extra `GET invite-link` 404 is harmless). Fix: (1) the Members page reloads the list whenever the invite dialog closes, whatever the result (Saved, Canceled, or dismissed), since a read is cheap and the server may have applied the change; (2) `withDismissBlocked` (`web/apps/web/src/app/cloudwarden/organizations/dismiss-guard.ts`) blocks Escape, backdrop and X during the invite submit, and Cancel is ignored meanwhile (the Invite button already shows its loading state through `bitFormButton`). Tests: `members.component.spec.ts` "should still reload the list when the invite dialog closes with ..." (fails on main, passes now) and `dismiss-guard.spec.ts`; run `npx jest src/app/cloudwarden src/app/admin-console/organizations/members/members.component.spec.ts` in `web/apps/web` (now in the web-unit CI job). The 400 for inviting an existing account on live is correct behaviour: that account is already a confirmed member (`User already invited.` with `emails: <email> is already a member.`, `src/routes/org-users.ts`); inviting an account that is not yet a member works (covered by `test/orgs.test.ts`). Deploy: `.github/workflows/deploy.yml` runs on every push to main and the last runs succeeded, but whether it targets the live instance is not shown here. Verified on the live instance on 2026-10-07 after the deploy of PR 66: `invite2.mjs --esc` (local cw385 scripts) printed PASS, the dialog stayed open on Escape during the pending POST (200) and the follow-up `GET /users` listed the new row (12 to 13) without a reload. Follow up idea, not done: send invite mail via `waitUntil` so the POST returns at once |
 | 386 | README visual refresh: thematic hero artwork, accurate architecture graphic and real web-client screenshots using fictional example.com data; local-only capture helper | done | agent | | | | Added `hero.webp`, `architecture.svg` and three real client screenshots (vault overview and masked item detail at 1440 × 960; sign-in at 1440 × 913). Captured from the existing local client against an isolated local Worker seeded with fictional example.com data; token, sync and all three encrypted cipher API requests returned 200. Capture-build provenance recorded in `docs/images/README.md`. Foreground reviewed the graphics and screenshots; `git diff --check` and `pnpm check:identifiers` passed. No product source changed |
-| 395 | Allow the Astra security-audit runner in Claude permissions | done | Thomas | | | Owner added a Claude Code allow rule for the audit runner script. Done 18 October 2026. |
+| 395 | Allow the Astra security-audit runner in Claude permissions | done | Thomas | | | | Owner added a Claude Code allow rule for the audit runner script. Done 18 October 2026. |
 
 ## 20. Security hardening: High
 
-ETA: 2026-10-19 12:00 ICT
-
 | ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
 |---|---|---|---|---|---|---|---|
-| 396 | Revoke refresh tokens when an admin deauthorises a user or removes their second factor, via one shared session-revocation statement set | in_progress | agent | fix/396-397-session-revocation | | 2026-10-19 12:00 ICT | Audit 2026-10-18 CW-01 |
+| 396 | Revoke refresh tokens when an admin deauthorises a user or removes their second factor, via one shared session-revocation statement set | done | agent | | | | Audit 2026-10-18 CW-01. Done 18 October 2026 in PR #87. |
 
 ## 21. Security hardening: Medium
 
@@ -313,28 +311,37 @@ ETA: 2026-10-19 12:00 ICT
 
 | ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
 |---|---|---|---|---|---|---|---|
-| 397 | Invalidate pending and approved login-with-device requests on every security-stamp rotation, including emergency takeover | in_progress | agent | fix/396-397-session-revocation | 20.396 | 2026-10-19 12:00 ICT | Audit 2026-10-18 CW-02 |
-| 398 | Apply the instance-role exclusion to bulk recovery details, the organisation device-approval list and emergency takeover details | in_progress | agent | fix/398-recovery-instance-role | | 2026-10-19 12:00 ICT | Audit 2026-10-18 CW-03 |
+| 397 | Invalidate pending and approved login-with-device requests on every security-stamp rotation, including emergency takeover | done | agent | | 20.396 | | Audit 2026-10-18 CW-02. Done 18 October 2026 in PR #87. |
+| 398 | Apply the instance-role exclusion to bulk recovery details, the organisation device-approval list and emergency takeover details | done | agent | | | | Audit 2026-10-18 CW-03. Done 18 October 2026 in PR #86. |
 | 399 | Hashed, single-use email change code with an atomic attempt cap | in_progress | agent | fix/399-email-change-code | | 2026-10-19 12:00 ICT | Audit 2026-10-18 CW-04 |
-| 400 | Send Strict-Transport-Security from the Worker and the static headers; add `upgrade-insecure-requests` to the CSP | in_progress | agent | fix/400-hsts | | 2026-10-19 12:00 ICT | Audit 2026-10-18 CW-05 |
-| 401 | Enable "Always Use HTTPS" at the Cloudflare zone for every deployment | done | Thomas | | | Audit 2026-10-18 CW-05. Done 18 October 2026: enabled on every zone, HTTP now returns 301. |
+| 400 | Send Strict-Transport-Security from the Worker and the static headers; add `upgrade-insecure-requests` to the CSP | done | agent | | | | Audit 2026-10-18 CW-05. Done 18 October 2026 in PR #90. |
+| 401 | Enable "Always Use HTTPS" at the Cloudflare zone for every deployment | done | Thomas | | | | Audit 2026-10-18 CW-05. Done 18 October 2026: enabled on every zone, HTTP now returns 301. |
 
 ## 22. Security hardening: Low
 
-ETA: 2026-10-25 18:00 ICT
+ETA: 2026-10-20 18:00 ICT
 
 | ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
 |---|---|---|---|---|---|---|---|
-| 402 | Durable per-account failure budgets for the password grant, plus `d1Fallback` values for the authentication rate-limit scopes | todo | | | | | Audit 2026-10-18 CW-06 |
-| 403 | Durable per-user TOTP failure budget, independent of the rate-limit binding | todo | | | | | Audit 2026-10-18 CW-07 |
-| 404 | Per-target budget for anonymous login-with-device requests | todo | | | | | Audit 2026-10-18 CW-08 |
-| 405 | Hash the API key and two-step recovery code at rest; redact the pending email-change token and exclude auth-request state from backups; invalidate auth requests on restore | todo | | | | | Audit 2026-10-18 CW-09 |
-| 406 | Rebuild the web vault on patched Angular (21.2.20 or later) and add a production-only dependency audit to CI | todo | | | | | Audit 2026-10-18 CW-10 |
-| 407 | Make "require approval for incoming workspaces" the federation default | todo | | | | | Audit 2026-10-18 CW-11 |
-| 408 | Size caps on cipher, folder, Send and import payloads | todo | | | | | Audit 2026-10-18 CW-12 |
-| 409 | Decide and document the Secrets Manager machine-token delegation boundary (write access versus read reachability) | todo | | | | | Audit 2026-10-18 CW-13 |
-| 410 | Remove the purpose-token raw-key verification fallback after its migration window | todo | | | | | Audit 2026-10-18 CW-14 |
-| 411 | Serve OpenID discovery documents at the root `.well-known` paths | todo | | | | | Audit 2026-10-18 CW-15 |
+| 402 | Durable per-account failure budgets for the password grant, plus `d1Fallback` values for the authentication rate-limit scopes | in_progress | agent | sec-402-404-failure-budgets | | 2026-10-19 12:00 ICT | Audit 2026-10-18 CW-06 |
+| 403 | Durable per-user TOTP failure budget, independent of the rate-limit binding | in_progress | agent | sec-402-404-failure-budgets | | 2026-10-19 12:00 ICT | Audit 2026-10-18 CW-07 |
+| 404 | Per-target budget for anonymous login-with-device requests | in_progress | agent | sec-402-404-failure-budgets | | 2026-10-19 12:00 ICT | Audit 2026-10-18 CW-08 |
+| 405 | Hash the API key and two-step recovery code at rest; redact the pending email-change token and exclude auth-request state from backups; invalidate auth requests on restore | in_progress | agent | sec-405-secrets-at-rest | | 2026-10-19 12:00 ICT | Audit 2026-10-18 CW-09 |
+| 406 | Rebuild the web vault on patched Angular (21.2.20 or later) and add a production-only dependency audit to CI | in_progress | agent | sec-406-angular-audit |  | 2026-10-19 18:00 ICT | Audit 2026-10-18 CW-10 |
+| 407 | Make "require approval for incoming workspaces" the federation default | in_progress | agent | sec-407-408-defaults-and-caps | | 2026-10-19 12:00 ICT | Audit 2026-10-18 CW-11 |
+| 408 | Size caps on cipher, folder, Send and import payloads | in_progress | agent | sec-407-408-defaults-and-caps | | 2026-10-19 12:00 ICT | Audit 2026-10-18 CW-12 |
+| 409 | Decide and document the Secrets Manager machine-token delegation boundary (write access versus read reachability) | in_progress | agent | sec-409-machine-token-scope |  | 2026-10-19 18:00 ICT | Audit 2026-10-18 CW-13 |
+| 412 | Re-check the security stamp in the refresh-token grant so a redemption racing a revocation cannot mint a lasting session | in_progress | agent | sec-412-413-review-followups | | 2026-10-19 12:00 ICT | Review follow-up to PR #87 |
+| 413 | Instance admins on a new device can request admin approval but the request is hidden from approvers; refuse it up front with a clear error, add a device-approval test for instance roles, and route emergency takeover through the shared recovery predicate | in_progress | agent | sec-412-413-review-followups | | 2026-10-19 12:00 ICT | Review follow-up to PR #86 |
+
+## 23. Security hardening: Info
+
+ETA: 2026-10-20 18:00 ICT
+
+| ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
+|---|---|---|---|---|---|---|---|
+| 410 | Remove the purpose-token raw-key verification fallback after its migration window | in_progress | agent | sec-410-411-info |  | 2026-10-19 18:00 ICT | Audit 2026-10-18 CW-14. Info severity. |
+| 411 | Serve OpenID discovery documents at the root `.well-known` paths | in_progress | agent | sec-410-411-info |  | 2026-10-19 18:00 ICT | Audit 2026-10-18 CW-15. Info severity. |
 
 ## Evidence log
 

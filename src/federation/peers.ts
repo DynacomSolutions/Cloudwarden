@@ -1,11 +1,12 @@
 // Peer registry, signed outbound calls and inbound signature checks (TASKS #301).
-import { eq, lt } from 'drizzle-orm'
+import { and, eq, lt } from 'drizzle-orm'
 import type { Context, MiddlewareHandler } from 'hono'
 import { rateLimit } from '../admin/security'
 import { utf8 } from '../auth/crypto'
 import { createDb, schema } from '../db'
 import type { Bindings, Env } from '../env'
 import { ApiError } from '../errors'
+import { assertBodyWithin } from '../validation'
 import {
   baseUrl,
   type Descriptor,
@@ -24,6 +25,7 @@ import {
   signRequest,
   USER_HEADER,
   verifyRequest,
+  verifySignedHeaders,
 } from './signature'
 import { isBlocked } from './trust-settings'
 
@@ -34,6 +36,8 @@ export const PeerStatus = { Pending: 'pending', Active: 'active', Suspended: 'su
 export const PEER_RATE_LIMIT = 600
 /** Largest signed request body accepted (forwarded attachment uploads included). */
 export const MAX_INBOUND_BYTES = 26 * 1024 * 1024
+/** Pairing carries only a domain name. */
+export const MAX_PAIR_BYTES = 64 * 1024
 /** Unsigned-peer pairing attempts per client address per minute. */
 export const PAIR_RATE_LIMIT = 10
 
@@ -216,7 +220,22 @@ declare module 'hono' {
 
 const deny = (status: 401 | 403 | 429, message: string) => new ApiError(status, message)
 
-/** Verifies the signature of the current request against a known public key. */
+const inboundReq = (c: Context<Env>) => ({
+  method: c.req.method,
+  url: c.req.url,
+  headers: c.req.raw.headers,
+})
+
+/** Verifies the signed headers only (no body read); returns the nonce. */
+export async function verifyInboundHeaders(c: Context<Env>, publicKey: string): Promise<string> {
+  const parsed = parseSignature(c.req.raw.headers)
+  if (!parsed) throw deny(401, 'Missing or malformed federation signature.')
+  const failure = await verifySignedHeaders(inboundReq(c), parsed, publicKey)
+  if (failure) throw deny(401, `Federation signature rejected (${failure}).`)
+  return parsed.params.nonce
+}
+
+/** Verifies the signature and the body digest of the current request. */
 export async function verifyInbound(
   c: Context<Env>,
   publicKey: string,
@@ -224,12 +243,7 @@ export async function verifyInbound(
 ): Promise<string> {
   const parsed = parseSignature(c.req.raw.headers)
   if (!parsed) throw deny(401, 'Missing or malformed federation signature.')
-  const failure = await verifyRequest(
-    { method: c.req.method, url: c.req.url, headers: c.req.raw.headers },
-    body,
-    parsed,
-    publicKey,
-  )
+  const failure = await verifyRequest(inboundReq(c), body, parsed, publicKey)
   if (failure) throw deny(401, `Federation signature rejected (${failure}).`)
   return parsed.params.nonce
 }
@@ -266,12 +280,27 @@ export const requirePeer: MiddlewareHandler<Env> = async (c, next) => {
   if (!isActive(peer)) throw deny(403, 'The peer is not active on this instance.')
   // Blocks apply to every signed route, not only to pairing.
   if (await isBlocked(c.env, peer)) throw deny(403, 'This peer is blocked.')
+  // Signed headers (with the content-digest value) are checked before the body is read, and before
+  // the rate limit, so a forged request neither costs a read nor spends the real peer's budget.
+  const seen = await verifyInboundHeaders(c, peer.publicKey)
+  // A replay is refused before the rate limit and the read; the nonce is still claimed after the body check.
+  const [used] = await createDb(c.env.DB)
+    .select({ nonce: schema.federationNonces.nonce })
+    .from(schema.federationNonces)
+    .where(
+      and(eq(schema.federationNonces.peerUuid, peer.uuid), eq(schema.federationNonces.nonce, seen)),
+    )
+    .limit(1)
+  if (used) throw deny(401, 'Replayed federation request.')
   if (!(await rateLimit(c.env.DB, `fed:${peer.uuid}`, PEER_RATE_LIMIT, 60_000, Date.now()))) {
     throw deny(429, 'Too many federation requests.')
   }
-  if (Number(c.req.header('content-length') ?? '0') > MAX_INBOUND_BYTES) {
-    throw new ApiError(413, 'Federation request too large.')
-  }
+  // The digest covers the body, so it is read; the bounded reader refuses an over-cap body first.
+  await assertBodyWithin(
+    c,
+    MAX_INBOUND_BYTES,
+    () => new ApiError(413, 'Federation request too large.'),
+  )
   const body = new Uint8Array(await c.req.raw.clone().arrayBuffer())
   if (body.byteLength > MAX_INBOUND_BYTES) throw new ApiError(413, 'Federation request too large.')
   const nonce = await verifyInbound(c, peer.publicKey, body)

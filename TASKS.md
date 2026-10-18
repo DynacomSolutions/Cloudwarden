@@ -299,6 +299,43 @@ Owner feedback: federation should not tie two organisations together; a user sha
 | 386 | README visual refresh: thematic hero artwork, accurate architecture graphic and real web-client screenshots using fictional example.com data; local-only capture helper | done | agent | | | | Added `hero.webp`, `architecture.svg` and three real client screenshots (vault overview and masked item detail at 1440 × 960; sign-in at 1440 × 913). Captured from the existing local client against an isolated local Worker seeded with fictional example.com data; token, sync and all three encrypted cipher API requests returned 200. Capture-build provenance recorded in `docs/images/README.md`. Foreground reviewed the graphics and screenshots; `git diff --check` and `pnpm check:identifiers` passed. No product source changed |
 | 395 | Allow the Astra security-audit runner in Claude permissions | done | Thomas | | | | The Claude auto-mode classifier blocks the coordinator from launching Codex Astra review steps for the 18 October 2026 security audit. Add a Claude Code allow rule (via /permissions, swap identity) for: `Bash(.data/DynacomSolutions/Cloudwarden/scripts/run-astra-review.sh:*)` (use the full local path to that script when entering the rule). Done 18 October 2026: owner added the permission rule. |
 
+## 20. Security hardening: High
+
+ETA: 2026-10-19 12:00 ICT
+
+| ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
+|---|---|---|---|---|---|---|---|
+| 396 | Revoke refresh tokens when an admin deauthorises a user or removes their second factor, via one shared session-revocation statement set | in_progress | agent | fix/396-397-session-revocation | | 2026-10-19 12:00 ICT | Audit 2026-10-18 CW-01 |
+
+## 21. Security hardening: Medium
+
+ETA: 2026-10-19 12:00 ICT
+
+| ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
+|---|---|---|---|---|---|---|---|
+| 397 | Invalidate pending and approved login-with-device requests on every security-stamp rotation, including emergency takeover | in_progress | agent | fix/396-397-session-revocation | 20.396 | 2026-10-19 12:00 ICT | Audit 2026-10-18 CW-02 |
+| 398 | Apply the instance-role exclusion to bulk recovery details, the organisation device-approval list and emergency takeover details | in_progress | agent | fix/398-recovery-instance-role | | 2026-10-19 12:00 ICT | Audit 2026-10-18 CW-03 |
+| 399 | Hashed, single-use email change code with an atomic attempt cap | in_progress | agent | fix/399-email-change-code | | 2026-10-19 12:00 ICT | Audit 2026-10-18 CW-04 |
+| 400 | Send Strict-Transport-Security from the Worker and the static headers; add `upgrade-insecure-requests` to the CSP | in_progress | agent | fix/400-hsts | | 2026-10-19 12:00 ICT | Audit 2026-10-18 CW-05 |
+| 401 | Enable "Always Use HTTPS" at the Cloudflare zone for every deployment | blocked_on_owner | Thomas | | | | Audit 2026-10-18 CW-05. Live zone setting change; needs owner go-ahead |
+
+## 22. Security hardening: Low
+
+ETA: 2026-10-25 18:00 ICT
+
+| ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
+|---|---|---|---|---|---|---|---|
+| 402 | Durable per-account failure budgets for the password grant, plus `d1Fallback` values for the authentication rate-limit scopes | todo | | | | | Audit 2026-10-18 CW-06 |
+| 403 | Durable per-user TOTP failure budget, independent of the rate-limit binding | todo | | | | | Audit 2026-10-18 CW-07 |
+| 404 | Per-target budget for anonymous login-with-device requests | todo | | | | | Audit 2026-10-18 CW-08 |
+| 405 | Hash the API key and two-step recovery code at rest; redact the pending email-change token and exclude auth-request state from backups; invalidate auth requests on restore | todo | | | | | Audit 2026-10-18 CW-09 |
+| 406 | Rebuild the web vault on patched Angular (21.2.20 or later) and add a production-only dependency audit to CI | todo | | | | | Audit 2026-10-18 CW-10 |
+| 407 | Make "require approval for incoming workspaces" the federation default | todo | | | | | Audit 2026-10-18 CW-11 |
+| 408 | Size caps on cipher, folder, Send and import payloads | todo | | | | | Audit 2026-10-18 CW-12 |
+| 409 | Decide and document the Secrets Manager machine-token delegation boundary (write access versus read reachability) | todo | | | | | Audit 2026-10-18 CW-13 |
+| 410 | Remove the purpose-token raw-key verification fallback after its migration window | todo | | | | | Audit 2026-10-18 CW-14 |
+| 411 | Serve OpenID discovery documents at the root `.well-known` paths | todo | | | | | Audit 2026-10-18 CW-15 |
+
 ## Evidence log
 
 Newest first. One line per verified fact.

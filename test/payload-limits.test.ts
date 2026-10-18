@@ -1,7 +1,9 @@
 // Size caps on cipher, folder, Send and import payloads (TASKS #408).
+
+import { SELF } from 'cloudflare:test'
 import { expect, it } from 'vitest'
 import { MAX_CIPHER_NOTES, MAX_ENC_NAME } from '../src/limits'
-import { authed, createSession } from './helpers'
+import { authed, BASE, createSession } from './helpers'
 
 const cipher = (extra: Record<string, unknown> = {}) => ({
   type: 2,
@@ -71,4 +73,28 @@ it('accepts normal payloads and refuses oversized ones with the usual error', as
     ciphers: [{ id: crypto.randomUUID(), name: '2.n', notes: bigNotes }],
   })
   expect(rotated.status).toBe(400)
+})
+
+it('caps a chunked import body (no Content-Length) before reading it', async () => {
+  const s = await createSession('limits-chunked@example.com')
+  const streamed = (body: unknown) => {
+    const bytes = new TextEncoder().encode(JSON.stringify(body))
+    const stream = new ReadableStream({
+      start(ctrl) {
+        for (let i = 0; i < bytes.length; i += 65_536) ctrl.enqueue(bytes.slice(i, i + 65_536))
+        ctrl.close()
+      },
+    })
+    return SELF.fetch(`${BASE}/api/ciphers/import`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${s.access_token}`, 'Content-Type': 'application/json' },
+      body: stream,
+      duplex: 'half',
+    } as RequestInit)
+  }
+  expect((await streamed({ ciphers: [cipher()] })).status).toBe(200)
+  const many = Array.from({ length: 2600 }, () => cipher({ notes: 'x'.repeat(MAX_CIPHER_NOTES) }))
+  const res = await streamed({ ciphers: many })
+  expect(res.status).toBe(400)
+  expect(await res.json()).toMatchObject({ message: 'You cannot import this much data at once.' })
 })

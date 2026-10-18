@@ -522,7 +522,13 @@ const rotateSchema = z.object({
     )
     .default([]),
   sends: z
-    .array(z.object({ id: z.string(), key: z.string(), name: z.string().nullish() }))
+    .array(
+      z.object({
+        id: z.string(),
+        key: z.string().max(MAX_ENC_NAME),
+        name: z.string().max(MAX_ENC_NAME).nullish(),
+      }),
+    )
     .default([]),
 })
 

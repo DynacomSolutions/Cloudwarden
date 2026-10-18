@@ -342,10 +342,6 @@ ETA: 2026-10-20 18:00 ICT
 |---|---|---|---|---|---|---|---|
 | 410 | Remove the purpose-token raw-key verification fallback after its migration window | todo | | | | | Audit 2026-10-18 CW-14. Info severity. |
 | 411 | Serve OpenID discovery documents at the root `.well-known` paths | todo | | | | | Audit 2026-10-18 CW-15. Info severity. |
-| 414 | Make prelogin return indistinguishable KDF settings for unknown accounts, and drop mail-configuration detail from error text | todo | | | | | Audit 2026-10-18 CW-16 |
-| 415 | Offer a short-lived single-use ticket for the notification hub instead of the access token in the query string, keeping the token path for compatibility | todo | | | | | Audit 2026-10-18 CW-17 |
-| 416 | Shorten signed attachment download link lifetime and issue links on demand rather than on every sync | todo | | | | | Audit 2026-10-18 CW-18 |
-| 417 | Omit the stored Send password hash from owner responses where clients do not need it | todo | | | | | Audit 2026-10-18 CW-19 |
 
 ## Evidence log
 

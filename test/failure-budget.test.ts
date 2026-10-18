@@ -1,10 +1,18 @@
 import { env } from 'cloudflare:workers'
-import { expect, it } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { generateTotpKey, totpAt } from '../src/auth/totp'
 import { clock } from '../src/auth/twofactor'
+import { FAILURE_WINDOW_MS } from '../src/ratelimit'
 import { authed, createSession, json, login, registerUser } from './helpers'
 
 const PW = 'client-derived-hash'
+
+// Pin Date early in a budget window so the 15 minute fixed window cannot roll over mid-test.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(Math.floor(Date.now() / FAILURE_WINDOW_MS) * FAILURE_WINDOW_MS + 60_000)
+})
+afterEach(() => vi.useRealTimers())
 
 it('locks the password grant after the budget and resets on success', async () => {
   await registerUser('budget-pw@example.com')

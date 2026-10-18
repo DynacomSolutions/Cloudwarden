@@ -504,6 +504,9 @@ emergencyAccess.get('/api/emergency-access/:id/:cipherId/attachment/:attachmentI
 
 emergencyAccess.post('/api/emergency-access/:id/takeover', async (c) => {
   const { row, grantor } = await approvedFor(c, EmergencyType.Takeover)
+  if (holdsInstanceRole(c.env, grantor)) {
+    throw new ApiError(400, 'Emergency access is not available.')
+  }
   return c.json({
     object: 'emergencyAccessTakeover',
     keyEncrypted: row.keyEncrypted,

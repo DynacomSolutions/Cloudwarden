@@ -97,4 +97,16 @@ describe("InstanceAdminSsoRateLimitComponent", () => {
     expect(c.form.value.limit).toBe(20);
     expect(c.custom()).toBe(false);
   });
+
+  it("shows the error when the reset fails", async () => {
+    api.ssoRateLimit.mockResolvedValue({ ssoRateLimitPerMinute: 50, custom: true });
+    api.resetSsoRateLimit.mockRejectedValue(new Error("boom"));
+    const f = await render();
+    const c = f.componentInstance as any;
+    await c.reset();
+    f.detectChanges();
+    expect(c.error()).toBe("boom");
+    expect(c.custom()).toBe(true);
+    expect(toast.showToast).not.toHaveBeenCalled();
+  });
 });

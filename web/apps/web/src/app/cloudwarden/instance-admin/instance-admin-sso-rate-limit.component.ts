@@ -99,8 +99,13 @@ export class InstanceAdminSsoRateLimitComponent implements OnInit {
   }
 
   reset = async () => {
-    this.apply(await this.api.resetSsoRateLimit());
-    this.toast.showToast({ variant: "success", message: this.i18n.t("cwSsoRateLimitResetDone") });
+    try {
+      this.apply(await this.api.resetSsoRateLimit());
+      this.error.set(null);
+      this.toast.showToast({ variant: "success", message: this.i18n.t("cwSsoRateLimitResetDone") });
+    } catch (e) {
+      this.error.set((e as Error)?.message ?? String(e));
+    }
   };
 
   save = async () => {

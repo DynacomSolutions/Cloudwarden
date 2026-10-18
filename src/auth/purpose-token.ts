@@ -14,9 +14,6 @@ export interface PurposeClaims {
   ref?: string
 }
 
-/** Purposes whose tokens only ever verify under their own derived key (no legacy fallback). */
-const DERIVED_ONLY = new Set(['delete-organization'])
-
 /** HKDF-SHA256 key for one purpose, so a token signed for it never verifies for another. */
 async function purposeSecret(secret: string, purpose: string): Promise<string> {
   const base = await crypto.subtle.importKey('raw', utf8(secret), 'HKDF', false, ['deriveBits'])
@@ -59,11 +56,7 @@ export async function verifyPurposeToken(
 ): Promise<PurposeClaims | null> {
   const secrets = verificationSecrets(env)
   const derived = await Promise.all(secrets.map((x) => purposeSecret(x, purpose)))
-  // Tokens issued before per-purpose keys (invitations, links) stay valid until they expire.
-  const claims = await verifyJwt<PurposeClaims>(
-    token,
-    DERIVED_ONLY.has(purpose) ? derived : [...derived, ...secrets],
-  )
+  const claims = await verifyJwt<PurposeClaims>(token, derived)
   if (!claims || claims.purpose !== purpose || claims.iss !== issuerFor(env.DOMAIN)) return null
   return claims
 }

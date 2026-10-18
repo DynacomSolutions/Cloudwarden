@@ -45,3 +45,26 @@ it('checks permission before reading the body', async () => {
   expect((await streamed(plain.token, id, big)).status).toBe(403)
   expect((await streamed(outsider.token, id, big)).status).toBe(404)
 })
+
+it('stops reading an endless chunked import at the cap', async () => {
+  const mb = mailbox()
+  const owner = await actor('bounded-endless@example.com', mb)
+  const { id } = await createOrg(owner, 'Bounded Endless')
+  const chunk = new Uint8Array(65_536).fill(120)
+  let pulled = 0
+  const stream = new ReadableStream({
+    pull(ctrl) {
+      if (pulled >= 200_000_000) return ctrl.close()
+      pulled += chunk.length
+      ctrl.enqueue(chunk)
+    },
+  })
+  const res = await SELF.fetch(`${BASE}/api/organizations/${id}/import`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${owner.token}`, 'Content-Type': 'application/json' },
+    body: stream,
+    duplex: 'half',
+  } as RequestInit)
+  expect(res.status).toBe(413)
+  expect(pulled).toBeLessThanOrEqual(MAX_IMPORT_BYTES + 2_000_000)
+})

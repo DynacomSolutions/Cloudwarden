@@ -40,25 +40,44 @@ beforeAll(async () => {
   await net.flush()
 }, 120_000)
 
-it('refuses an over-cap chunked import for a federated organisation without forwarding it', async () => {
+/** About 200 MB of chunks made on demand; `pulled.bytes` counts what the server asked for. */
+const endless = () => {
   const chunk = new Uint8Array(65_536).fill(120)
-  let sent = 0
+  const pulled = { bytes: 0 }
   const stream = new ReadableStream({
     pull(ctrl) {
-      if (sent > MAX_IMPORT_BODY + 100_000) return ctrl.close()
-      sent += chunk.length
+      if (pulled.bytes >= 200_000_000) return ctrl.close()
+      pulled.bytes += chunk.length
       ctrl.enqueue(chunk)
     },
   })
-  net.log.length = 0
-  const res = await net.B.fetch(`/api/ciphers/import-organization?organizationId=${orgId}`, {
+  return { stream, pulled }
+}
+
+const post = (path: string, body: ReadableStream) =>
+  net.B.fetch(path, {
     method: 'POST',
     headers: { Authorization: `Bearer ${alice.token}`, 'Content-Type': 'application/json' },
-    body: stream,
+    body,
     duplex: 'half',
   } as RequestInit)
+
+it('refuses an over-cap chunked import-organization for a federated organisation without forwarding it', async () => {
+  const { stream, pulled } = endless()
+  net.log.length = 0
+  const res = await post(`/api/ciphers/import-organization?organizationId=${orgId}`, stream)
   expect(res.status).toBe(400)
   expect(await res.json()).toMatchObject({ message: 'You cannot import this much data at once.' })
   expect(net.log.filter((l) => l.includes(net.A.domain))).toEqual([])
-  expect(sent).toBeLessThan(MAX_IMPORT_BODY + 2_000_000)
+  expect(pulled.bytes).toBeLessThanOrEqual(MAX_IMPORT_BODY + 2_000_000)
+}, 60_000)
+
+// `/import` is a feature that does not cross instances: it is refused before any body read.
+it('refuses a chunked organisation import for a federated organisation without reading or forwarding it', async () => {
+  const { stream, pulled } = endless()
+  net.log.length = 0
+  const res = await post(`/api/organizations/${orgId}/import`, stream)
+  expect(res.status).toBe(400)
+  expect(net.log.filter((l) => l.includes(net.A.domain))).toEqual([])
+  expect(pulled.bytes).toBeLessThanOrEqual(2_000_000)
 }, 60_000)

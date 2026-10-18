@@ -317,8 +317,6 @@ Owner feedback: federation should not tie two organisations together; a user sha
 
 ## 22. Security hardening: Low
 
-ETA: 2026-10-19 07:00 ICT
-
 | ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
 |---|---|---|---|---|---|---|---|
 | 402 | Durable per-account failure budgets for the password grant, plus `d1Fallback` values for the authentication rate-limit scopes | done | agent | |  | | Done 18 October 2026 in PR #99. |
@@ -339,8 +337,8 @@ ETA: 2026-10-19 07:00 ICT
 | 419 | Make `test/vault-events.test.ts` "announces moves, imports and purges" reliable under host load (it times out waiting for events), and confirm the failure-budget test clock pin reaches the Worker under test. | done | | | | | Done 19 October 2026 in PR #110. |
 | 420 | Set `DATA_ENCRYPTION_KEY` on every deployment so sealed user and organisation secrets survive a `JWT_SECRET` rotation | done | agent | | | | Done 19 October 2026: set where missing and confirmed by a login and API key smoke check; key held in the owner's secret store. |
 | 421 | Confirm the shipped web vault never calls node-forge RSA signature verification (accepted advisory GHSA-86w9-cpqp-85rv) | done | agent | | | | Done 19 October 2026: the minified bundle requires node-forge from 2 sites only, both using hmac, md5, AES decipher and RSA encrypt/decrypt; the advisory is in DigestInfo parsing during verify, which decrypt never reaches. Revisit when a patched node-forge ships. |
-| 422 | Stream inbound federation peer request bodies against the size cap instead of buffering them whole | in_progress | agent | sec-422-peer-body-stream | | 2026-10-19 07:00 ICT | Review follow-up from #417; `src/federation/peers.ts` around line 275. |
-| 423 | Key rate-limit buckets and login-with-device eviction ranking on the IPv6 /64 prefix rather than the exact address | in_progress | agent | sec-423-ipv6-prefix | | 2026-10-19 07:00 ICT | Review follow-up from #418; rotating addresses within one /64 bypasses per-IP limits. |
+| 422 | Stream inbound federation peer request bodies against the size cap instead of buffering them whole | done | | | | | Done 19 October 2026 in PR #114. |
+| 423 | Key rate-limit buckets and login-with-device eviction ranking on the IPv6 /64 prefix rather than the exact address | done | | | | | Done 19 October 2026 in PR #115. |
 
 ## 23. Security hardening: Info
 

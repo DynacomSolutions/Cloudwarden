@@ -185,3 +185,53 @@ export async function liveSessionArtefacts(email: string, accessToken: string) {
     },
   }
 }
+
+/**
+ * D1 binding that runs `hook` once, just before the first write whose SQL matches `sql` (a single
+ * statement or a batch), to simulate another request landing between a read and that write.
+ */
+export function dbWithRace(db: D1Database, sql: RegExp, hook: () => Promise<void>): D1Database {
+  let fired = false
+  const fire = async () => {
+    if (fired) return
+    fired = true
+    await hook()
+  }
+  return new Proxy(db, {
+    get(target, prop) {
+      if (prop === 'prepare') {
+        return (query: string) => {
+          const stmt = target.prepare(query)
+          if (!sql.test(query)) return stmt
+          return new Proxy(stmt, {
+            get(s, p) {
+              if (p === 'bind') return (...a: unknown[]) => wrap(s.bind(...a))
+              return Reflect.get(s, p, s)
+            },
+          })
+        }
+      }
+      if (prop === 'batch') {
+        return async (stmts: D1PreparedStatement[]) => {
+          if (stmts.some((s) => (s as any).__race)) await fire()
+          return target.batch(stmts.map((s) => (s as any).__race ?? s))
+        }
+      }
+      const v = Reflect.get(target, prop, target)
+      return typeof v === 'function' ? v.bind(target) : v
+    },
+  })
+  function wrap(bound: D1PreparedStatement) {
+    return new Proxy(bound, {
+      get(s, p) {
+        if (p === '__race') return bound
+        if (p === 'run' || p === 'all' || p === 'raw' || p === 'first')
+          return async (...a: unknown[]) => {
+            await fire()
+            return (s as any)[p](...a)
+          }
+        return Reflect.get(s, p, s)
+      },
+    })
+  }
+}

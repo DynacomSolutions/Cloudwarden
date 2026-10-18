@@ -14,21 +14,20 @@ export const MAX_INCOMING_PENDING = 20
 /** Incoming requests nobody approved are dropped after this long. */
 export const INCOMING_TTL_MS = 7 * 24 * 3_600_000
 
-/** Whether incoming pairing requests need an instance admin's approval (default: no). */
+/** Whether incoming pairing requests need an instance admin's approval (default yes; a stored value wins). */
 export async function requireIncomingApproval(env: Bindings): Promise<boolean> {
   const [row] = await createDb(env.DB)
     .select({ config: schema.instanceSettings.config })
     .from(schema.instanceSettings)
     .where(eq(schema.instanceSettings.key, SETTINGS_KEY))
     .limit(1)
-  if (!row) return false
+  if (!row) return true
   try {
-    return (
-      (JSON.parse(row.config) as { requireIncomingApproval?: unknown }).requireIncomingApproval ===
-      true
-    )
+    const stored = (JSON.parse(row.config) as { requireIncomingApproval?: unknown })
+      .requireIncomingApproval
+    return typeof stored === 'boolean' ? stored : true
   } catch {
-    return false
+    return true
   }
 }
 

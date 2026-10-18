@@ -6,6 +6,7 @@ import { verifyMasterPassword } from '../auth/passwords'
 import { createDb, type Db, schema } from '../db'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
+import { MAX_ENC_NAME, MAX_IMPORT_BODY } from '../limits'
 import { PushType } from '../notifications/publish'
 import { notifyCiphers } from '../notifications/vault-events'
 import {
@@ -190,7 +191,11 @@ orgCiphers.post('/api/ciphers/admin', async (c) => {
 })
 
 orgCiphers.post('/api/ciphers/import', async (c, next) => {
-  const body = await parseBody(c, z.object({ ciphers: z.array(z.unknown()).default([]) }))
+  const body = await parseBody(
+    c,
+    z.object({ ciphers: z.array(z.unknown()).default([]) }),
+    MAX_IMPORT_BODY,
+  )
   if (body.ciphers.length > 0) {
     await assertPersonalOwnershipAllowed(createDb(c.env.DB), c.var.user.uuid)
   }
@@ -200,7 +205,9 @@ orgCiphers.post('/api/ciphers/import', async (c, next) => {
 const importOrgSchema = z.object({
   ciphers: z.array(cipherSchema).default([]),
   collections: z
-    .array(z.object({ name: z.string().min(1), externalId: z.string().nullish() }))
+    .array(
+      z.object({ name: z.string().min(1).max(MAX_ENC_NAME), externalId: z.string().nullish() }),
+    )
     .default([]),
   collectionRelationships: z
     .array(z.object({ key: z.number().int(), value: z.number().int() }))
@@ -208,9 +215,9 @@ const importOrgSchema = z.object({
 })
 orgCiphers.post('/api/ciphers/import-organization', async (c) => {
   const orgUuid = c.req.query('organizationId') ?? ''
-  const body = await parseBody(c, importOrgSchema)
   const db = createDb(c.env.DB)
   await requirePermission(db, c.var.user.uuid, orgUuid, 'accessImportExport')
+  const body = await parseBody(c, importOrgSchema, MAX_IMPORT_BODY)
   if (body.ciphers.length > 7000)
     throw new ApiError(400, 'You cannot import this much data at once.')
   for (const r of body.collectionRelationships) {

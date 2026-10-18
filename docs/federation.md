@@ -135,6 +135,10 @@ there is no public suffix list, so name the registrable domain), `instance:<id>`
 `fp:<fingerprint>`. They are checked in `/federation/v1/pair`, on every signed route and when an
 admin adds a peer; adding a rule removes the peers it matches.
 
+Incoming workspaces wait for an instance admin's approval by default. The setting is stored per
+instance; an instance that never stored it uses the default (on), and an explicitly stored choice
+(on or off) is always kept. Turning it off trusts valid incoming requests at once, as below.
+
 Caps on the receiving side: pairing requests per address (10 a minute) and per instance (30 a
 minute); at most 25 peers trusted automatically; at most 20 incoming requests waiting for an admin
 (dropped after 7 days); peers an admin added are not counted in either. Both are enforced inside
@@ -187,7 +191,7 @@ Cloudwarden addition; nothing of it comes from `bitwarden_license/`.
    - An **instance admin** creates and approves the peer in one step. The signed pairing request goes
      to the remote instance, whose own administrator must still approve it on their Instance admin,
      Trusted workspaces list only when that instance requires approval of incoming workspaces
-     (see "Pairing"); by default the other side trusts it at once.
+     (see "Pairing"); by default the other side holds it for approval too, unless its admin turned that setting off.
    - **Anyone else** who manages the collection only creates a pending request
      (`federation_peers.requested_by`, no signed request is sent, nothing is trusted). Such
      requests have their own caps (5 open instance wide, 2 per user, not counted against the 20
@@ -414,7 +418,7 @@ federated organisations.
 | Threat | Mitigation |
 |---|---|
 | A rogue server pretends to be a peer | Requests must be signed by a key pinned at pairing. The side that starts pairing compares fingerprints out of band (typed or scanned); the receiving side relies on the https binding of the caller's domain (WebPKI and DNS) instead, unless its admin requires approval. Either way the key is bound to the domain through the https descriptor. |
-| An attacker who controls a domain pairs with this instance | Possible by default (automatic incoming trust), and bounded: the peer is inbound only (never a sharing or invitation target until an admin approves it with the fingerprint) and can only send invitations that users must accept, in the app only, labelled unverified, with sanitised text, rate limited per peer and capped per user and peer; at most 25 automatic peers, 20 waiting requests, and per address and global pairing limits. Admins can suspend, remove, block by domain, suffix, instance or fingerprint, or require approval for incoming workspaces. |
+| An attacker who controls a domain pairs with this instance | Held for admin approval by default ("Require approval for incoming workspaces" is on unless an admin stored a different choice); if an admin turns that off, automatic incoming trust applies, and is bounded: the peer is inbound only (never a sharing or invitation target until an admin approves it with the fingerprint) and can only send invitations that users must accept, in the app only, labelled unverified, with sanitised text, rate limited per peer and capped per user and peer; at most 25 automatic peers, 20 waiting requests, and per address and global pairing limits. Admins can suspend, remove, block by domain, suffix, instance or fingerprint, or require approval for incoming workspaces. |
 | Replay or tampering of server-to-server calls | Signature covers method, full URL, body digest and the user and device headers; 300 second window; per-peer nonce store. |
 | A peer acting for users it does not own | A only accepts a user id that is a stand-in account of the calling peer, and runs every request as that account through the normal authorisation. B only accepts events for its own users who hold something from the calling peer. |
 | A peer reading organisation data | Same as a member's client: only EncStrings the member may see. Organisation keys are wrapped in the browser for the member's public key; neither server ever holds them. |

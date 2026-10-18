@@ -7,6 +7,7 @@ import { verifyMasterPassword } from '../auth/passwords'
 import { changes, createDb, runBatch, schema } from '../db'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
+import { MAX_ENC_NAME } from '../limits'
 import { PushType } from '../notifications/publish'
 import { notifyCipher, notifyCiphers, notifyUser } from '../notifications/vault-events'
 import { assertNotClaimed } from '../orgs/domains'
@@ -90,9 +91,10 @@ ciphers.post('/api/ciphers/create', async (c) => {
   return createCipher(c, body.cipher)
 })
 
+// The body cap runs once, in the org-ciphers middleware that reads the body first.
 // Import: folders, ciphers and a list of (cipher index, folder index) pairs, in one batch.
 const importSchema = z.object({
-  folders: z.array(z.object({ name: z.string().min(1) })).default([]),
+  folders: z.array(z.object({ name: z.string().min(1).max(MAX_ENC_NAME) })).default([]),
   ciphers: z.array(cipherSchema).default([]),
   folderRelationships: z
     .array(z.object({ key: z.number().int(), value: z.number().int() }))

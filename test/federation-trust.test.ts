@@ -43,7 +43,7 @@ beforeAll(async () => {
 }, 120_000)
 
 describe('incoming pairing', { timeout: 120_000 }, () => {
-  it('activates the receiving side automatically by default, with an audit event', async () => {
+  it('activates the receiving side automatically when approval is not required, with an audit event', async () => {
     const { res } = await sharerPairs()
     expect(res.status).toBe(200)
     expect(await res.json()).toMatchObject({ active: true, acceptedAutomatically: false })

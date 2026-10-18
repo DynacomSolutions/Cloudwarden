@@ -3,6 +3,13 @@ import { z } from 'zod'
 import type { Db } from '../db'
 import { schema } from '../db'
 import { ApiError } from '../errors'
+import {
+  MAX_CIPHER_NOTES,
+  MAX_ENC_NAME,
+  MAX_FIELD_NAME,
+  MAX_FIELD_VALUE,
+  MAX_PAYLOAD_JSON,
+} from '../limits'
 
 export const CIPHER_PAYLOAD_KEYS = ['login', 'card', 'identity', 'secureNote', 'sshKey'] as const
 type PayloadKey = (typeof CIPHER_PAYLOAD_KEYS)[number]
@@ -28,20 +35,39 @@ export const chunk = <T>(items: T[], size = ID_CHUNK): T[][] => {
   return out
 }
 
-const opaque = z.unknown()
-const nullishString = z.string().nullish()
+export const opaque = z
+  .unknown()
+  .refine((v) => (JSON.stringify(v) ?? '').length <= MAX_PAYLOAD_JSON, {
+    message: 'Value is too large.',
+  })
+const nullishString = z.string().max(MAX_ENC_NAME).nullish()
 
 /** Wire model for create/update. Type payloads are opaque: they hold encrypted strings. */
+/** Custom fields: each name and value is capped like Bitwarden's, the whole list by `opaque`. */
+export const fieldsSchema = z
+  .array(
+    z
+      .object({
+        name: z.string().max(MAX_FIELD_NAME).nullish(),
+        value: z.string().max(MAX_FIELD_VALUE).nullish(),
+      })
+      .passthrough(),
+  )
+  .nullish()
+  .refine((v) => JSON.stringify(v ?? null).length <= MAX_PAYLOAD_JSON, {
+    message: 'Value is too large.',
+  })
+
 export const cipherSchema = z.object({
   type: z.number().int().min(1).max(5),
-  name: z.string().min(1),
-  notes: nullishString,
+  name: z.string().min(1).max(MAX_ENC_NAME),
+  notes: z.string().max(MAX_CIPHER_NOTES).nullish(),
   folderId: nullishString,
   organizationId: nullishString,
   favorite: z.boolean().nullish(),
   reprompt: z.number().int().min(0).max(1).nullish(),
   key: nullishString,
-  fields: opaque.optional(),
+  fields: fieldsSchema.optional(),
   passwordHistory: opaque.optional(),
   login: opaque.optional(),
   card: opaque.optional(),

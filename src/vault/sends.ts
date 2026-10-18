@@ -6,6 +6,7 @@ import type { Db } from '../db'
 import { schema } from '../db'
 import type { Bindings } from '../env'
 import { ApiError } from '../errors'
+import { MAX_ENC_NAME, MAX_PAYLOAD_JSON, MAX_SEND_NOTES, MAX_SEND_TEXT } from '../limits'
 import { baseUrl, sizeName } from './blobs'
 
 export type SendRow = typeof schema.sends.$inferSelect
@@ -111,12 +112,14 @@ export function sendAccessJson(send: SendRow, creatorEmail: string | null) {
   }
 }
 
-const enc = z.string().min(1)
-const text = z.object({ text: z.string().nullish(), hidden: z.boolean().nullish() }).passthrough()
+const enc = z.string().min(1).max(MAX_ENC_NAME)
+const text = z
+  .object({ text: z.string().max(MAX_SEND_TEXT).nullish(), hidden: z.boolean().nullish() })
+  .passthrough()
 const file = z
   .object({
     id: z.string().nullish(),
-    fileName: z.string().nullish(),
+    fileName: z.string().max(MAX_ENC_NAME).nullish(),
     size: z.union([z.string(), z.number()]).nullish(),
     sizeName: z.string().nullish(),
   })
@@ -125,14 +128,17 @@ const file = z
 export const sendSchema = z.object({
   type: z.number().int().min(0).max(2),
   name: enc,
-  notes: z.string().nullish(),
+  notes: z.string().max(MAX_SEND_NOTES).nullish(),
   key: enc,
   maxAccessCount: z.number().int().min(1).nullish(),
   expirationDate: z.string().nullish(),
   deletionDate: z.string().min(1),
   text: text.nullish(),
   file: file.nullish(),
-  data: z.record(z.string(), z.unknown()).nullish(),
+  data: z
+    .record(z.string(), z.unknown())
+    .refine((v) => JSON.stringify(v).length <= MAX_PAYLOAD_JSON, { message: 'Value is too large.' })
+    .nullish(),
   fileLength: z.number().int().nullish(),
   password: z.string().nullish(),
   emails: z.string().nullish(),

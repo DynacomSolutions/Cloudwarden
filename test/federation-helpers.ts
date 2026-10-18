@@ -1,6 +1,7 @@
 // Two Cloudwarden instances in one workerd (TASKS #308): the same app with separate D1 databases
 // and domains, wired together by an in-process transport that also answers DNS over HTTPS.
 import { env } from 'cloudflare:workers'
+import { setRequireIncomingApproval } from '../src/federation/trust-settings'
 import { isOrgCreate, mailbox } from './org-helpers'
 
 export const A_DOMAIN = 'vault.example.com'
@@ -26,7 +27,11 @@ export interface Net {
   flush(): Promise<void>
 }
 
-export async function twoInstances(): Promise<Net> {
+/**
+ * `shippedDefaults` keeps the settings nobody stored (incoming workspaces need approval). Without
+ * it the instances trust incoming peers at once, which the older pairing tests rely on.
+ */
+export async function twoInstances(opts: { shippedDefaults?: boolean } = {}): Promise<Net> {
   const { default: app } = await import('../src/index')
   const pending: Promise<unknown>[] = []
   const ctx = {
@@ -91,6 +96,9 @@ export async function twoInstances(): Promise<Net> {
   }
   const A = make('A', A_DOMAIN, env.DB)
   const B = make('B', B_DOMAIN, env.DB_PEER)
+  if (!opts.shippedDefaults) {
+    for (const i of [A, B]) await setRequireIncomingApproval(i.env as never, false, 'test')
+  }
   return {
     A,
     B,

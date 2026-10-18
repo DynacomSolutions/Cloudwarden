@@ -10,28 +10,25 @@ import { requirePermission } from '../orgs/access'
 import { clientImportSchema, importDirectory } from '../orgs/directory-import'
 import { authOnce } from '../orgs/util'
 import { rateLimit } from '../ratelimit'
-import { parseBody } from '../validation'
+import { assertBodyWithin, parseBody } from '../validation'
 
 export const orgImport = new Hono<Env>()
 
 /** Largest request body (about 10,000 members and groups with long ids fit well below this). */
 export const MAX_IMPORT_BYTES = 5 * 1024 * 1024
+const tooLarge = () => new ApiError(413, 'The import is too large.')
 
 orgImport.post(
   '/api/organizations/:orgId/import',
   rateLimit('org-import', 10),
   authOnce,
   async (c) => {
-    const declared = Number(c.req.header('Content-Length') ?? 0)
-    if (declared > MAX_IMPORT_BYTES) throw new ApiError(413, 'The import is too large.')
-    // Chunked bodies carry no length: measure a copy before parsing.
-    if ((await c.req.raw.clone().arrayBuffer()).byteLength > MAX_IMPORT_BYTES) {
-      throw new ApiError(413, 'The import is too large.')
-    }
     const orgUuid = c.req.param('orgId')
-    const body = await parseBody(c, clientImportSchema)
     const db = createDb(c.env.DB)
+    // Permission first: a caller without it never makes the worker read the body.
     const actor = await requirePermission(db, c.var.user.uuid, orgUuid, 'manageUsers')
+    await assertBodyWithin(c, MAX_IMPORT_BYTES, tooLarge)
+    const body = await parseBody(c, clientImportSchema)
     if ((body.groups?.length ?? 0) > 0 || body.overwriteExisting) {
       await requirePermission(db, c.var.user.uuid, orgUuid, 'manageGroups')
     }

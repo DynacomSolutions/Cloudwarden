@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, isNotNull, isNull, lt, ne, notInArray, or } from 'drizzle-orm'
+import { and, desc, eq, gt, isNotNull, isNull, lt, ne, notInArray, or, sql } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { z } from 'zod'
 import { rateLimit as d1Window } from '../admin/security'
@@ -37,6 +37,9 @@ const NOT_FOUND = () => new ApiError(404, 'Auth request not found.')
 export const authRequestTtl = (type: number) =>
   type === AuthRequestType.AdminApproval ? ADMIN_AUTH_REQUEST_TTL_MS : AUTH_REQUEST_TTL_MS
 export const isExpired = (r: AuthRequestRow) => Date.now() - r.createdAt >= authRequestTtl(r.type)
+
+/** Most live pending requests kept per user; a newer one evicts the oldest (TASKS #418). */
+export const MAX_PENDING_REQUESTS = 10
 
 /** Deletes expired requests of every type. */
 export const purgeExpired = (db: ReturnType<typeof createDb>, now: number) =>
@@ -108,6 +111,13 @@ const createSchema = z.object({
   accessCode: z.string().min(1),
 })
 
+const pendingOf = (userUuid: string) =>
+  and(
+    eq(schema.authRequests.userUuid, userUuid),
+    isNull(schema.authRequests.approved),
+    ne(schema.authRequests.type, AuthRequestType.AdminApproval),
+  )
+
 const createRequest = async (c: import('hono').Context<Env>) => {
   const body = await parseBody(c, createSchema)
   const type = body.type ?? 0
@@ -146,7 +156,21 @@ const createRequest = async (c: import('hono').Context<Env>) => {
   const real = user?.enabled ? user : null
   row.userUuid = real?.uuid ?? null
   await purgeExpired(db, now)
-  await db.insert(schema.authRequests).values(row)
+  const insert = db.insert(schema.authRequests).values(row)
+  if (real) {
+    // Keep only the newest cap-1 unanswered requests, then add this one, in one batch.
+    const a = schema.authRequests
+    const keep = db
+      .select({ uuid: a.uuid })
+      .from(a)
+      .where(pendingOf(real.uuid))
+      .orderBy(desc(a.createdAt), sql`rowid desc`)
+      .limit(MAX_PENDING_REQUESTS - 1)
+    await batch(db, [
+      db.delete(a).where(and(pendingOf(real.uuid), notInArray(a.uuid, keep))),
+      insert,
+    ])
+  } else await insert
   if (!real || !withinBudget) return c.json(requestJson(row))
   c.executionCtx.waitUntil(
     pushUserUpdate(

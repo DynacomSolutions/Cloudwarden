@@ -130,6 +130,36 @@ it('runs login with device end to end', async () => {
   anonWs.close(1000)
 })
 
+it('caps live pending requests per user, evicting the oldest', async () => {
+  const email = 'ar-cap@example.com'
+  const s = await createSession(email)
+  const shape = (b: object) => Object.keys(b).sort()
+  const ids: string[] = []
+  const shapes: string[][] = []
+  // Cap is 10; the push budget (5) is exhausted well before the end.
+  for (let i = 0; i < 13; i++) {
+    const res = await create(email, `cap-${i}`, `code-${i}`)
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { id: string }
+    ids.push(body.id)
+    shapes.push(shape(body))
+  }
+  expect(new Set(shapes.map((x) => x.join())).size).toBe(1)
+  const list = (await (await authed('/api/auth-requests/pending', s.access_token)).json()) as {
+    data: { id: string }[]
+  }
+  expect(list.data.map((r) => r.id).sort()).toEqual(ids.slice(3).sort())
+  // The newest is approvable; the evicted oldest is gone.
+  const put = await authed(`/api/auth-requests/${ids[12]}`, s.access_token, 'PUT', {
+    key: 'k',
+    masterPasswordHash: 'h',
+    deviceIdentifier: 'device-1',
+    requestApproved: true,
+  })
+  expect(put.status).toBe(200)
+  expect((await authed(`/api/auth-requests/${ids[0]}`, s.access_token)).status).toBe(404)
+})
+
 it('hides whether an email exists', async () => {
   await createSession('ar-real@example.com')
   const look = async (email: string) => {

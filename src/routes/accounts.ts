@@ -5,6 +5,7 @@ import { isAdminEmail } from '../admin/security'
 import { authenticationData, checkNested, toKdfParams, unlockData } from '../auth/credentials'
 import { randomB64u } from '../auth/crypto'
 import { requireAuth } from '../auth/middleware'
+import { consumeOtp, issueOtp, MAX_ATTEMPTS } from '../auth/otp'
 import { hashMasterPassword, verifyMasterPassword } from '../auth/passwords'
 import { accountKeysJson, stampRotationStatements } from '../auth/session'
 import { findUserByEmail, normalizeEmail } from '../auth/users'
@@ -409,16 +410,15 @@ accounts.post('/api/accounts/email-token', requireAuth, async (c) => {
   }
   // Without mail the new address cannot be proven, so it must not be one that grants admin rights.
   if (!mailOn && isAdminEmail(c.env.ADMIN_EMAILS, newEmail)) throw adminAddressWithoutMail()
-  const code = String((crypto.getRandomValues(new Uint32Array(1))[0] ?? 0) % 1_000_000).padStart(
-    6,
-    '0',
-  )
+  // With mail the code lives hashed in the shared OTP columns (single use, capped attempts).
+  const code = mailOn ? await issueOtp(db, user.uuid, 'email-change', newEmail) : null
+  if (mailOn && !code) throw new ApiError(429, 'Too many requests. Try again later.')
   await db
     .update(schema.users)
     .set({
       emailNew: newEmail,
-      // Without mail there is no code; the master password given here and again on the change is the proof.
-      emailNewToken: mailOn ? code : null,
+      // No code is stored here; without mail the master password given here and again on the change is the proof.
+      emailNewToken: null,
       emailNewExpiresAt: Date.now() + EMAIL_TOKEN_TTL_MS,
     })
     .where(eq(schema.users.uuid, user.uuid))
@@ -451,14 +451,26 @@ accounts.post('/api/accounts/email', requireAuth, async (c) => {
   if (!mailOn && isAdminEmail(c.env.ADMIN_EMAILS, newEmail)) throw adminAddressWithoutMail()
   // With mail the emailed code proves the new address. Without it the pending request made with
   // the master password (checked again above) is required instead; no code exists to be guessed.
-  const valid =
-    user.emailNew === newEmail &&
-    (mailOn
-      ? user.emailNewToken !== null && user.emailNewToken === body.token
-      : user.emailNewToken === null) &&
-    (user.emailNewExpiresAt ?? 0) > Date.now()
-  if (!valid) throw new ApiError(400, 'Invalid token.')
   const db = createDb(c.env.DB)
+  const pending =
+    user.emailNew === newEmail &&
+    user.emailNewToken === null &&
+    (user.emailNewExpiresAt ?? 0) > Date.now()
+  if (!pending) throw new ApiError(400, 'Invalid token.')
+  if (mailOn && !(await consumeOtp(db, user.uuid, 'email-change', body.token ?? '', newEmail))) {
+    // A spent attempt budget voids the pending change; a fresh request is needed.
+    const [cur] = await db
+      .select({ n: schema.users.otpAttempts })
+      .from(schema.users)
+      .where(eq(schema.users.uuid, user.uuid))
+    if ((cur?.n ?? 0) >= MAX_ATTEMPTS) {
+      await db
+        .update(schema.users)
+        .set({ emailNew: null, emailNewExpiresAt: null })
+        .where(eq(schema.users.uuid, user.uuid))
+    }
+    throw new ApiError(400, 'Invalid token.')
+  }
   if (!mailOn && (await hasPendingInvitation(db, newEmail))) {
     throw new ApiError(400, 'Email is already in use.')
   }

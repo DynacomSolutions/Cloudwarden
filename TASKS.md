@@ -337,6 +337,8 @@ ETA: 2026-10-20 18:00 ICT
 | 417 | Organisation import and the federation forwarder should use the bounded body reader, with permission checked before the body is read. | todo | agent | | | | Review follow-up, 18 October 2026 |
 | 418 | Bound how many pending login-with-device requests one target can accumulate, beyond the push budget. | todo | agent | | | | Review follow-up, 18 October 2026 |
 | 419 | Make `test/vault-events.test.ts` "announces moves, imports and purges" reliable under host load (it times out waiting for events), and confirm the failure-budget test clock pin reaches the Worker under test. | todo | agent | | | | Review follow-up, 18 October 2026 |
+| 420 | Set `DATA_ENCRYPTION_KEY` on every deployment so sealed user and organisation secrets survive a `JWT_SECRET` rotation | done | agent | | | | Done 19 October 2026: set where missing and confirmed by a login and API key smoke check; key held in the owner's secret store. |
+| 421 | Confirm the shipped web vault never calls node-forge RSA signature verification (accepted advisory GHSA-86w9-cpqp-85rv) | done | agent | | | | Done 19 October 2026: the minified bundle requires node-forge from 2 sites only, both using hmac, md5, AES decipher and RSA encrypt/decrypt; the advisory is in DigestInfo parsing during verify, which decrypt never reaches. Revisit when a patched node-forge ships. |
 
 ## 23. Security hardening: Info
 

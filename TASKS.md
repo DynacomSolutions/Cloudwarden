@@ -4,7 +4,7 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 
 **Status key:** `todo` · `in_progress` · `in_review` · `blocked` · `blocked_on_owner` · `parked` · `done`. Also `dropped` (Notes start `Dropped: <reason>.`) and `superseded` (Notes start `Superseded by <epic>.<task>.`).
 
-**Format:** one `## <N>. <Epic name>` heading per epic (N stable, never renumbered), one table per epic with the header `| ID | Task | Status | Owner | Branch | Depends | ETA | Notes |`. Depends holds comma-separated `<epic>.<task>` references. ETA is `YYYY-MM-DD HH:MM <tz>`.
+**Format:** one `## <N>. <Epic name>` heading per epic (N stable, never renumbered), one table per epic with the header `| ID | Task | Status | Owner | Branch | Depends | ETA | Notes |`. Depends holds comma-separated `<epic>.<task>` references. ETA is `YYYY-MM-DD HH:MM <tz>`. Each epic has an `ETA: YYYY-MM-DD HH:MM <tz>` line directly under its heading (roughly the latest ETA of its open rows). Cells are not padded.
 
 **Rules**
 
@@ -17,6 +17,7 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 ---
 
 ## 1. Phase 0: Repository foundation
+ETA: 2026-10-20 00:00 UTC
 
 | ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
 |---|---|---|---|---|---|---|---|
@@ -36,6 +37,7 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 | 12 | Local dev container without committing local hostnames | done | agent | | | | `Dockerfile`, `scripts/dev-container.mjs`, runtime `DEV_ALLOWED_HOSTS`; chart stays out of the repo (`docs/local-dev.md`). Image built and answered `/alive` and API calls under foreign Host headers |
 
 ## 2. Phase 1: Identity and accounts
+ETA: 2026-10-20 00:00 UTC
 
 | ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
 |---|---|---|---|---|---|---|---|
@@ -51,6 +53,7 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 | 29 | Rate limiting on login, prelogin and 2FA (Workers Rate Limiting binding) | done | | | | | Exceeding limit returns 429 |
 
 ## 3. Phase 2: Vault data
+ETA: 2026-10-20 00:00 UTC
 
 | ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
 |---|---|---|---|---|---|---|---|
@@ -62,6 +65,7 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 | 45 | Import endpoint (`/api/ciphers/import`) | done | | | | | Bitwarden JSON export round-trips |
 
 ## 4. Phase 3: Organisations
+ETA: 2026-10-20 00:00 UTC
 
 | ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
 |---|---|---|---|---|---|---|---|
@@ -77,6 +81,7 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 | 393 | Organisation creation follows in-app instance roles (owner via `ADMIN_EMAILS`, or database `admin`), verified address required; web vault hides every New organisation entry for users without it | done | claude | org-create-db-role | 4.392 | | PR #76; server tests (parity-orgs, admin-api, traffic-replay, contract) green; web jest 24 suites / 170 tests; web:build 348 s; also fixes the `public-api` wrong-key flake (a key ending in `x` made the wrong key equal the real one); browser not tested |
 
 ## 5. Phase 4: Sends and attachments
+ETA: 2026-10-20 00:00 UTC
 
 | ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
 |---|---|---|---|---|---|---|---|
@@ -92,6 +97,7 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 | 254 | Missing cipher and folder endpoints found by diffing client calls against routes: `DELETE /folders` (bulk), `DELETE /folders/all`, attachments on organisation items (collection permissions, admin routes `GET` and `DELETE /ciphers/:id/attachment/:attachmentId/admin`), `POST /ciphers/:id/attachment/:attachmentId/share` | done | agent | | | | `test/org-attachments.test.ts`, `test/archive.test.ts` |
 
 ## 6. Phase 5: Live sync
+ETA: 2026-10-20 00:00 UTC
 
 | ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
 |---|---|---|---|---|---|---|---|
@@ -102,6 +108,7 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 | 394 | Org item delete died with 503 (Worker exceeded CPU time limit on Workers Free): `cipherRecipients` now uses a fixed six queries instead of 2 + 5N, `notifyOrgCipher` sends one organisation-targeted relay push instead of one per recipient | done | claude | org-delete-cpu | | | PR #78 merged (0e187f0), deployed; owner confirmed org item delete works on the personal instance. `test/org-recipients.test.ts`; relay push now reaches every org member's mobile devices, as the official server does |
 
 ## 7. Phase 6: Two-factor authentication
+ETA: 2026-10-20 00:00 UTC
 
 | ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
 |---|---|---|---|---|---|---|---|
@@ -113,6 +120,7 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 | 125 | Login with passkey (passwordless) | done | agent | | | | Delivered in PR #20 (b80d03f): `/api/webauthn` credential store with PRF keysets, `grant_type=webauthn`, migrations 0006/0007; `test/passkey.test.ts` 38 passed on 2026-10-10; see `docs/two-factor.md`. Row was left stale by PR #20. |
 
 ## 8. Phase 7: Optional services
+ETA: 2026-10-20 00:00 UTC
 
 | ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
 |---|---|---|---|---|---|---|---|
@@ -128,6 +136,7 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 | 213 | Native Instance admin in the web client (overview, users with disable, enable, deauthorise, remove 2FA and delete, invitations, organisations, diagnostics) on the JSON admin API (#145), shown only when `/api/cloudwarden/me` says `isAdmin`; remove the injected `admin-link.js` and `/admin/session/exchange` (keep `/admin/recovery`) | done | agent | | | | Admin user sees Instance admin and lists users in a headless check |
 
 ## 9. Phase 8: Operations
+ETA: 2026-10-20 00:00 UTC
 
 | ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
 |---|---|---|---|---|---|---|---|
@@ -139,6 +148,7 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 | 165 | D1 Sessions API if read replication is enabled | done | agent | | | | Replication stays off (documented); `D1_SESSIONS=true` opts in to a `withSession` wrapper (`src/db/sessions.ts`) with the `x-d1-bookmark` header, default off. Tests in `test/d1-sessions.test.ts`; see `docs/d1-sessions.md`. Not run against a replicated production database |
 
 ## 10. Phase 9: Compatibility and quality
+ETA: 2026-10-20 00:00 UTC
 
 | ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
 |---|---|---|---|---|---|---|---|
@@ -152,6 +162,7 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 | 183 | Threat model document | done | agent | | | | `docs/threat-model.md` (STRIDE per area) |
 
 ## 11. Phase 11: Secrets Manager
+ETA: 2026-10-20 00:00 UTC
 
 | ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
 |---|---|---|---|---|---|---|---|
@@ -169,6 +180,7 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 | 231 | Interoperability audit (workstream G): `docs/parity-matrix.md` generated by `scripts/parity-matrix.mjs` from call inventories of the web, browser, desktop, CLI, Android, iOS clients and the SDK API client (`docs/parity/*.tsv`); implement every remaining client-called endpoint not owned by workstreams A to F (accounts and devices misc, folders, attachments admin, organisation misc, notifications centre, tasks, Secrets Manager events and trash, self-host billing, plans, sponsorships and provider answers) | done | agent | | | | Matrix committed; the 107 billing, sponsorship, licence and Provider Portal rows are classified `self-host` in `docs/parity/notes.tsv` and verified served by `test/self-host-routes.test.ts`; resend-new-device-otp, Send events and the Azure validation callback added (`test/parity-remaining.test.ts`); the 55 rows owned by open workstreams carry an explicit note; tests per endpoint; e2e extended; invite links (status, validate, accept, confirm, invite), auto-confirm tied to policy 18, limit item deletion in cipher permissions. Verified 2026-10-05: `docs/parity-matrix.md` summary reads 0 rows owned by workstreams A to F not yet implemented and 0 remaining for G (526 of 625 implemented, 92 SDK-only, 7 not applicable); `test/self-host-routes.test.ts` and `test/parity-remaining.test.ts` pass. Shipped in PRs 36, 43, 44, 45 |
 
 ## 12. Phase 12: Bitwarden parity
+ETA: 2026-10-20 00:00 UTC
 
 | ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
 |---|---|---|---|---|---|---|---|
@@ -179,6 +191,7 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 | 241 | Device approvals: admin approval auth requests (type 2, seven day expiry) via `POST /api/auth-requests/admin-request`; organisation listing, approve, deny and bulk endpoints under `/api/organizations/{orgId}/auth-requests`; push and email notifications; events 1010, 1513, 1514; own Admin Console page (`web/apps/web/src/app/cloudwarden/device-approvals/`). Removes the "admin approval not supported" refusal (#102) | done | agent | | | | `test/device-approvals.test.ts`; Jest `rewrap.spec.ts`. 2026-10-06 live browser test on production: organisation SSO set to trusted devices (temporarily); a member admin-approval request (API) appeared on Device approvals with fingerprint phrase, device and IP, was approved in the UI, and the requesting device received the approved request with the key; SSO and Require SSO reverted |
 
 ## 13. Phase 13: Organisation API, directory sync, SCIM and integrations
+ETA: 2026-10-20 00:00 UTC
 
 | ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
 |---|---|---|---|---|---|---|---|
@@ -192,6 +205,7 @@ Live board for Cloudwarden. Every unit of work gets a stable number here before 
 | 277 | Instance admin managed mobile push settings: `instance_settings` table (migration `0017_instance_settings`), installation key sealed at rest and never returned, region us, eu or custom with derived URIs, `GET`/`PUT`/`DELETE /api/cloudwarden/admin/push-settings` and rate-limited `POST .../test`, Worker secrets override the store, re-registration of mobile devices on change, admin audit events 9009 to 9011, Instance admin > Mobile push page. See `docs/push-notifications.md` | done | agent | | | | `test/push-settings.test.ts` (403 for non-admin, key never returned, sealed row, env precedence, URI derivation, stand-in relay test, re-registration); Jest spec for the page |
 
 ## 14. Phase 14: Single sign-on, trusted devices, Key Connector, claimed domains
+ETA: 2026-10-20 00:00 UTC
 
 See `docs/sso.md`. Bitwarden's SSO server and SSO settings screens are Bitwarden-licensed and were not read.
 
@@ -208,6 +222,7 @@ See `docs/sso.md`. Bitwarden's SSO server and SSO settings screens are Bitwarden
 | 288 | E2E SSO against a mock OIDC provider (`e2e/oidc-idp.mjs`, `e2e/sso.mjs`): the script plays the web client through prevalidate, authorize, provider sign-in, callback and code redemption; dev-only `SSO_ALLOW_INSECURE_LOOPBACK` admits the http loopback provider | done | agent | | | | `pnpm e2e` SSO steps (run in CI) |
 
 ## 15. Phase 13: Federated organisations (Cloudwarden exclusive, owner approved)
+ETA: 2026-10-20 00:00 UTC
 
 | ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
 |---|---|---|---|---|---|---|---|
@@ -227,6 +242,7 @@ See `docs/sso.md`. Bitwarden's SSO server and SSO settings screens are Bitwarden
 | 333 | `POST /api/installations`: the official self-hosted server does not expose it (cloud service that registers installation ids), so it is documented as not applicable in the parity matrix; push relay credentials stay Worker secrets | done | agent | | | | `docs/parity/notes.tsv`, `docs/parity-matrix.md` |
 
 ## 16. Phase 10: Going public
+ETA: 2026-10-20 00:00 UTC
 
 | ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
 |---|---|---|---|---|---|---|---|
@@ -240,6 +256,7 @@ See `docs/sso.md`. Bitwarden's SSO server and SSO settings screens are Bitwarden
 ---
 
 ## 17. Phase 15: Final parity gaps
+ETA: 2026-10-20 00:00 UTC
 
 | ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
 |---|---|---|---|---|---|---|---|
@@ -256,6 +273,7 @@ See `docs/sso.md`. Bitwarden's SSO server and SSO settings screens are Bitwarden
 | 390 | Saving a new invite link failed with "Not found": the SDK reads `GET /api/organizations/{id}/private-key` first; added for owners, admins and custom members (`organizationPrivateKey`, `privateKey`), parity matrix regenerated | done | agent | invite-link-private-key | | | PR #71; response shape matches upstream bitwarden/sdk-internal `OrganizationPrivateKeyResponseModel` (crates/bitwarden-api-api/src/models/organization_private_key_response_model.rs: `object`, `privateKey`); `object` value is ours and not read by the SDK; `test/parity-orgs.test.ts`. |
 
 ## 18. Phase 16: Email-less installations
+ETA: 2026-10-20 00:00 UTC
 
 A deployment with no outbound mail (for example the Workers Free plan, which has no Email Sending) must be fully usable and secure. See `docs/emailless.md`.
 
@@ -277,6 +295,7 @@ A deployment with no outbound mail (for example the Workers Free plan, which has
 | 355 | Load-sensitive test flakes: on the shared runner (load average 60-120) CI and the deploy quality gate failed intermittently (3 s notification waits, a hub ping frame read as an event, 20-50 ms sleeps before background work, 30 s and 10 s default timeouts). Waits now poll the real condition with `waitFor` (`test/helpers.ts`); `testTimeout` 120 s, `hookTimeout` 60 s; CI and deploy run `pnpm test --maxWorkers=2` | done | agent | | | | Touched files green 5 times each and the full suite once with `--maxWorkers=2`; lint, typecheck, `pnpm test:scripts` green |
 
 ## 19. Phase 17: Collection-first federated sharing
+ETA: 2026-10-20 00:00 UTC
 
 Owner feedback: federation should not tie two organisations together; a user shares a collection with a specific external workspace and person. The model underneath (pairing is a signed trust channel with pinned keys; a remote user is a federated member holding only the granted collections) stays. Design and security decisions: `docs/federation.md`, "Sharing a collection".
 
@@ -300,12 +319,14 @@ Owner feedback: federation should not tie two organisations together; a user sha
 | 395 | Allow the Astra security-audit runner in Claude permissions | done | Thomas | | | | Owner added a Claude Code allow rule for the audit runner script. Done 18 October 2026. |
 
 ## 20. Security hardening: High
+ETA: 2026-10-20 00:00 UTC
 
 | ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
 |---|---|---|---|---|---|---|---|
 | 396 | Revoke refresh tokens when an admin deauthorises a user or removes their second factor, via one shared session-revocation statement set | done | agent | | | | Audit 2026-10-18 CW-01. Done 18 October 2026 in PR #87. |
 
 ## 21. Security hardening: Medium
+ETA: 2026-10-20 00:00 UTC
 
 | ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
 |---|---|---|---|---|---|---|---|
@@ -316,19 +337,20 @@ Owner feedback: federation should not tie two organisations together; a user sha
 | 401 | Enable "Always Use HTTPS" at the Cloudflare zone for every deployment | done | Thomas | | | | Audit 2026-10-18 CW-05. Done 18 October 2026: enabled on every zone, HTTP now returns 301. |
 
 ## 22. Security hardening: Low
+ETA: 2026-10-20 00:00 UTC
 
 | ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
 |---|---|---|---|---|---|---|---|
-| 402 | Durable per-account failure budgets for the password grant, plus `d1Fallback` values for the authentication rate-limit scopes | done | agent | |  | | Done 18 October 2026 in PR #99. |
-| 403 | Durable per-user TOTP failure budget, independent of the rate-limit binding | done | agent | |  | | Done 18 October 2026 in PR #99. |
-| 404 | Per-target budget for anonymous login-with-device requests | done | agent | |  | | Done 18 October 2026 in PR #99. |
-| 405 | Encrypt the API key and the two-step recovery code at rest with the server key; redact the pending email-change token and exclude auth-request state from backups; invalidate auth requests on restore | done | agent | |  | | Done 18 October 2026 in PR #98. |
-| 406 | Rebuild the web vault on patched Angular (21.2.20 or later) and add a production-only dependency audit to CI | done | agent | |  | | Done 18 October 2026 in PR #102. |
-| 407 | Make "require approval for incoming workspaces" the federation default | done | agent | |  | | Done 18 October 2026 in PR #100. |
-| 408 | Size caps on cipher, folder, Send and import payloads | done | agent | |  | | Done 18 October 2026 in PR #100. |
-| 409 | Decide and document the Secrets Manager machine-token delegation boundary (write access versus read reachability) | done | agent | |  | | Done 18 October 2026 in PR #97 and #103. |
-| 412 | Re-check the security stamp in the refresh-token grant so a redemption racing a revocation cannot mint a lasting session | done | agent | |  | | Done 18 October 2026 in PR #101. |
-| 413 | Instance admins on a new device can request admin approval but the request is hidden from approvers; refuse it up front with a clear error, add a device-approval test for instance roles, and route emergency takeover through the shared recovery predicate | done | agent | |  | | Done 18 October 2026 in PR #101. |
+| 402 | Durable per-account failure budgets for the password grant, plus `d1Fallback` values for the authentication rate-limit scopes | done | agent | | | | Done 18 October 2026 in PR #99. |
+| 403 | Durable per-user TOTP failure budget, independent of the rate-limit binding | done | agent | | | | Done 18 October 2026 in PR #99. |
+| 404 | Per-target budget for anonymous login-with-device requests | done | agent | | | | Done 18 October 2026 in PR #99. |
+| 405 | Encrypt the API key and the two-step recovery code at rest with the server key; redact the pending email-change token and exclude auth-request state from backups; invalidate auth requests on restore | done | agent | | | | Done 18 October 2026 in PR #98. |
+| 406 | Rebuild the web vault on patched Angular (21.2.20 or later) and add a production-only dependency audit to CI | done | agent | | | | Done 18 October 2026 in PR #102. |
+| 407 | Make "require approval for incoming workspaces" the federation default | done | agent | | | | Done 18 October 2026 in PR #100. |
+| 408 | Size caps on cipher, folder, Send and import payloads | done | agent | | | | Done 18 October 2026 in PR #100. |
+| 409 | Decide and document the Secrets Manager machine-token delegation boundary (write access versus read reachability) | done | agent | | | | Done 18 October 2026 in PR #97 and #103. |
+| 412 | Re-check the security stamp in the refresh-token grant so a redemption racing a revocation cannot mint a lasting session | done | agent | | | | Done 18 October 2026 in PR #101. |
+| 413 | Instance admins on a new device can request admin approval but the request is hidden from approvers; refuse it up front with a clear error, add a device-approval test for instance roles, and route emergency takeover through the shared recovery predicate | done | agent | | | | Done 18 October 2026 in PR #101. |
 | 414 | Refresh-token grant's update should also match the expected prior `refresh_stamp`, so a refresh racing a Key Connector enrolment cannot bind the old stamp. | done | | | | | Done 19 October 2026 in PR #107. |
 | 415 | A stored API key that cannot be decrypted should fail API-key login as an ordinary bad-credential response, not a server error, before the secret is checked. | done | | | | | Done 19 October 2026 in PR #107. |
 | 416 | A recovery-code login racing a recovery-code view can fail once; retry the conditional write against the re-sealed value. | done | | | | | Done 19 October 2026 in PR #107. |
@@ -342,11 +364,12 @@ Owner feedback: federation should not tie two organisations together; a user sha
 | 424 | Instance admin setting for the SSO login rate limit (per address or IPv6 /64 per minute), so offices behind one address are not throttled | done | | | | | Done 19 October 2026 in PR #118. |
 
 ## 23. Security hardening: Info
+ETA: 2026-10-20 00:00 UTC
 
 | ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
 |---|---|---|---|---|---|---|---|
-| 410 | Remove the purpose-token raw-key verification fallback after its migration window | done | agent | |  | | Done 18 October 2026 in PR #96. |
-| 411 | Serve OpenID discovery documents at the root `.well-known` paths | done | agent | |  | | Done 18 October 2026 in PR #96. |
+| 410 | Remove the purpose-token raw-key verification fallback after its migration window | done | agent | | | | Done 18 October 2026 in PR #96. |
+| 411 | Serve OpenID discovery documents at the root `.well-known` paths | done | agent | | | | Done 18 October 2026 in PR #96. |
 
 ## Evidence log
 

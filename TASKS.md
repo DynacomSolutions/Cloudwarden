@@ -362,6 +362,7 @@ ETA: 2026-10-20 00:00 UTC
 | 422 | Stream inbound federation peer request bodies against the size cap instead of buffering them whole | done | | | | | Done 19 October 2026 in PR #114. |
 | 423 | Key rate-limit buckets and login-with-device eviction ranking on the IPv6 /64 prefix rather than the exact address | done | | | | | Done 19 October 2026 in PR #115. |
 | 424 | Instance admin setting for the SSO login rate limit (per address or IPv6 /64 per minute), so offices behind one address are not throttled | done | | | | | Done 19 October 2026 in PR #118. |
+| 425 | Host disk cleanup for this repository (CLUSTER-287): remove finished task worktrees and rebuildable working files | done | agent | | | | Done 21 October 2026: six finished task worktrees removed (one unpushed, superseded board branch saved as a bundle first), downloads, build copies, script dependencies and push logs deleted; audit evidence, notes and scripts kept. |
 
 ## 23. Security hardening: Info
 ETA: 2026-10-20 00:00 UTC

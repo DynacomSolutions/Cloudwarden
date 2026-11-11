@@ -56,7 +56,7 @@
     "pkijs": "^3.4.0",
     "xml-core": "^1.2.6",
     "xmldsigjs": "^2.8.8",
-    "zod": "^4.6.5"
+    "zod": "^4.6.7"
   },
   "packageManager": "pnpm@9.15.9",
   "engines": {

@@ -4,9 +4,8 @@
  * Production dependency audit for the vendored web client (TASKS #406). Fails on any high or
  * critical advisory that is not in ACCEPTED. The upstream root manifest lists build tooling
  * under `dependencies`, so `npm audit --omit=dev` still reports it; those advisories are
- * accepted one by one here. Most affect build or dev-server tooling only. node-forge is the
- * exception: it ships in the bundle, but the vault never uses its signature verification.
- * Review the list whenever web/ is upgraded.
+ * accepted one by one here. They affect build or dev-server tooling, not the vault bundle. Review the
+ * list whenever web/ is upgraded, and remove entries that npm audit no longer reports.
  */
 
 import { spawnSync } from 'node:child_process'
@@ -16,14 +15,9 @@ import { fileURLToPath } from 'node:url'
 export const ACCEPTED = new Set([
   'GHSA-xvcm-6775-5m9r', // immutable, build tooling
   'GHSA-v56q-mh7h-f735', // immutable, build tooling
-  'GHSA-wc9g-mqfw-jrwm', // multer, dev server tooling
-  'GHSA-qfvm-cv95-jqjf', // multer, dev server tooling
-  'GHSA-535w-7cp7-47q4', // multer, dev server tooling
-  'GHSA-86w9-cpqp-85rv', // node-forge, runtime-shipped; vault never calls its RSA signature verify; revisit when patched
   'GHSA-c2c7-rcm5-vvqj', // picomatch, build tooling
   'GHSA-68fv-2mgg-jv7q', // source-map-js, build tooling
   'GHSA-ph9p-34f9-6g65', // tmp, build tooling
-  'GHSA-fx2h-pf6j-xcff', // vite, dev server (Windows only)
   'GHSA-96hv-2xvq-fx4p', // ws, dev server and signalr client in Node
 ])
 

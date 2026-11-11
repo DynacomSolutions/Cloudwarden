@@ -50,9 +50,9 @@
     "libs/**/*"
   ],
   "devDependencies": {
-    "@angular-devkit/build-angular": "21.2.9",
+    "@angular-devkit/build-angular": "21.2.29",
     "@angular-eslint/schematics": "21.3.1",
-    "@angular/cli": "21.2.9",
+    "@angular/cli": "21.2.29",
     "@angular/compiler-cli": "21.2.25",
     "@babel/core": "7.29.6",
     "@babel/preset-env": "7.29.2",
@@ -61,7 +61,7 @@
     "@electron/rebuild": "4.0.4",
     "@eslint/compat": "2.0.5",
     "@lit-labs/signals": "0.3.0",
-    "@ngtools/webpack": "21.2.9",
+    "@ngtools/webpack": "21.2.29",
     "@nx/devkit": "22.6.5",
     "@nx/eslint": "22.6.5",
     "@nx/jest": "22.6.5",
@@ -207,10 +207,10 @@
     "lit": "3.3.1",
     "lowdb": "1.0.0",
     "lunr": "2.3.9",
-    "multer": "2.2.0",
+    "multer": "2.5.0",
     "ngx-toastr": "19.1.0",
     "node-fetch": "2.7.0",
-    "node-forge": "1.4.0",
+    "node-forge": "1.4.3",
     "oauth4webapi": "3.8.6",
     "open": "8.4.2",
     "papaparse": "5.5.3",
@@ -242,7 +242,8 @@
     "@angular-devkit/build-angular": {
       "jest-environment-jsdom": "29.7.0"
     },
-    "tmp": ">=0.2.4"
+    "tmp": ">=0.2.4",
+    "vite": "7.3.7"
   },
   "engines": {
     "node": ">=24.17.0",

@@ -82,8 +82,10 @@ the key matches and build only on a miss.
 CI runs `pnpm audit --prod --audit-level=high` for the Worker and `node scripts/audit-web.mjs`
 for `web/` (`npm audit --omit=dev`). The latter fails on any high or critical advisory not listed
 in `ACCEPTED` in that script; the accepted ones are mostly build or dev-server tooling that upstream
-lists under `dependencies`. node-forge is the exception: it ships in the bundle, but the vault
-never uses its RSA signature verification (the advisory's path); revisit when a patched release exists.
+lists under `dependencies`. Do not accept runtime-shipped packages: upgrade them instead.
+node-forge and multer are pinned to patched releases; `@angular-devkit/build-angular`,
+`@angular/cli` and `@ngtools/webpack` are on 21.2.29, and a `vite` override keeps every copy on
+the 7.3.7 that release pins. Remove entries that the audit no longer reports.
 
 The `@angular/*` family (except `@angular/cdk` and the CLI/build packages) is pinned to 21.2.25 in
 `web/package.json`, ahead of the upstream tag, for the published XSS-class advisories fixed in

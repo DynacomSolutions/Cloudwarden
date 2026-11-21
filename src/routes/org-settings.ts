@@ -28,6 +28,7 @@ import {
   parseData,
   policyJson,
 } from '../orgs/policies'
+import { assertSeatsAvailable, loadSubscription, seatsAvailable } from '../orgs/subscription'
 import { authOnce, batch } from '../orgs/util'
 import { collectionJson, orgJson } from '../orgs/views'
 import { rateLimit } from '../ratelimit'
@@ -95,8 +96,7 @@ orgSettings.post('/api/organizations/invite-link/status', publicLimit, async (c)
     object: 'organizationInviteLinkStatus',
     organizationName: org.name,
     linksEnabled: true,
-    // Self-hosted organisations have no seat limit.
-    seatsAvailable: true,
+    seatsAvailable: await seatsAvailable(db, body.organizationId),
     supportsConfirmation: link.supportsConfirmation,
     // No single sign-on on this server.
     sso: null,
@@ -210,7 +210,7 @@ orgSettings.put('/api/organizations/:orgId/collection-management', async (c) => 
     ...events.map((type) => eventStatement(db, c, { type, organizationUuid: org(c) })),
     bumpOrgRevision(db, org(c), now),
   ])
-  return c.json(orgJson(await requireOrg(db, org(c))))
+  return c.json(orgJson(await requireOrg(db, org(c)), await loadSubscription(db, org(c))))
 })
 
 // Every collection and every live item of the organisation, as the Admin Console export reads it.
@@ -526,6 +526,7 @@ async function checkJoin(
       'You cannot join this organization vault until you enable two-step login on your user account.',
     )
   }
+  await assertSeatsAvailable(db, org.uuid)
   const others = await db
     .select({
       orgUuid: schema.usersOrganizations.organizationUuid,

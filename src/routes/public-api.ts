@@ -5,19 +5,32 @@
 // `collection`, `policy` and `event` objects inside `list` envelopes, errors as
 // `{ object: 'error', message, errors }`. Changes are made with admin authority: owners can
 // neither be created nor changed here, matching an admin acting in the web client.
-import { and, eq, inArray, type SQL } from 'drizzle-orm'
+import { type AnyColumn, and, eq, inArray, type SQL } from 'drizzle-orm'
 import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { z } from 'zod'
+import { isAdminEmail } from '../admin/security'
+import { isEmailTakenError, sendEmailChangeNotices } from '../auth/email-change'
+import { stampRotationStatements } from '../auth/session'
 import { createDb, type Db, schema } from '../db'
+import { later } from '../email/send'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
 import { errorKind, log } from '../log'
 import { bumpOrgRevision, type Member, requireOrg, storedPermissions } from '../orgs/access'
 import { requireOrgApiAuth } from '../orgs/api-keys'
-import { EventSystemUser, EventType, Role, Status } from '../orgs/constants'
+import {
+  EventSystemUser,
+  EventType,
+  MAX_POLICY_TYPE,
+  PolicyType,
+  PUBLIC_PERMISSION_KEYS,
+  Role,
+  Status,
+} from '../orgs/constants'
 import { importDirectory, importSchema } from '../orgs/directory-import'
-import { eventStatement, listEvents } from '../orgs/events'
+import { orgClaimsEmail } from '../orgs/domains'
+import { eventStatement, listEvents, publicEventRange } from '../orgs/events'
 import {
   accessOf,
   assertCanAssign,
@@ -32,7 +45,7 @@ import {
   VALID_ROLES,
 } from '../orgs/members'
 import { parseData } from '../orgs/policies'
-import { findPolicy, savePolicy } from '../orgs/policy-save'
+import { assertPolicyData, findPolicy, savePolicy } from '../orgs/policy-save'
 import {
   insertMemberStatements,
   invitedMember,
@@ -40,22 +53,30 @@ import {
   statusOnRestore,
   systemActor,
 } from '../orgs/provisioning'
+import {
+  assertSeatsAvailable,
+  loadSubscription,
+  mergeSubscription,
+  subscriptionJson,
+  subscriptionUpdateSchema,
+  subscriptionUpsert,
+} from '../orgs/subscription'
 import { batch } from '../orgs/util'
 import { normalizeKeys } from '../validation'
 import { sendInvite } from './org-users'
 
 type Ctx = Context<Env>
 
+// The published import model requires `overwriteExisting`.
+const publicImportSchema = importSchema.extend({ overwriteExisting: z.boolean() })
+
 export const publicApi = new Hono<Env>()
 
 const PREFIXES = ['/api/public', '/public'] as const
 
 const orgOf = (c: Ctx) => c.var.orgApi?.organizationUuid ?? ''
-const list = (data: unknown[], continuationToken: string | null = null) => ({
-  object: 'list',
-  data,
-  continuationToken,
-})
+/** List envelope. Only the event list carries a `continuationToken`, as the published models do. */
+const list = (data: unknown[]) => ({ object: 'list', data })
 
 /** Public API error envelope. */
 const fail = (c: Ctx, status: number, message: string, errors: unknown = null) =>
@@ -91,10 +112,12 @@ const selectionSchema = z.object({
     .transform((v) => v ?? false),
 })
 const permissionsSchema = z.record(z.string(), z.boolean().nullable()).nullish()
+// The published member types are 0, 1, 2 and 4. Manager (3) is gone.
+const PUBLIC_ROLES = VALID_ROLES.filter((t) => t !== Role.Manager)
 const roleSchema = z
   .number()
   .int()
-  .refine((t) => VALID_ROLES.includes(t), 'Invalid member type.')
+  .refine((t) => PUBLIC_ROLES.includes(t), 'Invalid member type.')
 
 const association = (s: Selection) => ({
   id: s.id,
@@ -107,6 +130,18 @@ const association = (s: Selection) => ({
 
 type UserRow = typeof schema.users.$inferSelect
 
+/** Custom permissions as the published model lists them: its 13 keys, nothing else. */
+const publicPermissions = (m: Member) => {
+  const stored = storedPermissions(m)
+  return Object.fromEntries(PUBLIC_PERMISSION_KEYS.map((k) => [k, stored[k]]))
+}
+
+/**
+ * The published model has no Manager type. A Manager holds no organisation permission here, so it
+ * reads back as a Custom member with every permission off, and that shape is accepted on write.
+ */
+const publicType = (m: Member) => (m.atype === Role.Manager ? Role.Custom : m.atype)
+
 function memberJson(m: Member, user: UserRow | null, lists: MemberLists) {
   return {
     object: 'member',
@@ -118,11 +153,10 @@ function memberJson(m: Member, user: UserRow | null, lists: MemberLists) {
     status: m.status,
     collections: (lists.collections.get(m.uuid) ?? []).map(association),
     resetPasswordEnrolled: m.resetPasswordKey !== null,
-    ssoExternalId: null,
-    type: m.atype,
-    accessAll: m.accessAll,
+    ssoExternalId: m.userUuid ? (lists.ssoExternalIds.get(m.userUuid) ?? null) : null,
+    type: publicType(m),
     externalId: m.externalId,
-    permissions: m.atype === Role.Custom ? storedPermissions(m) : null,
+    permissions: publicType(m) === Role.Custom ? publicPermissions(m) : null,
   }
 }
 
@@ -136,15 +170,124 @@ async function memberWithUser(db: Db, m: Member) {
 
 const memberCreateSchema = z.object({
   email: z.string().min(3).max(256),
+  name: z.string().max(50).nullish(),
   type: roleSchema,
-  accessAll: z.boolean().nullish(),
   externalId: z.string().max(300).nullish(),
-  resetPasswordEnrolled: z.boolean().nullish(),
   permissions: permissionsSchema,
   collections: z.array(selectionSchema).nullish(),
   groups: z.array(z.string()).nullish(),
 })
-const memberUpdateSchema = memberCreateSchema.omit({ email: true, resetPasswordEnrolled: true })
+const memberUpdateSchema = memberCreateSchema.extend({ email: z.string().max(256).nullish() })
+
+/**
+ * Permissions column for a member write. Only the published keys come from the request; a key
+ * outside the published model (`manageCiphers`) keeps the value the member already has.
+ */
+function memberPermissionsColumn(
+  type: number,
+  input: Record<string, boolean | null> | null | undefined,
+  existing?: Member,
+) {
+  if (type !== Role.Custom) return null
+  const kept = existing ? storedPermissions(existing) : null
+  const merged: Record<string, boolean | null> = { ...kept }
+  for (const k of PUBLIC_PERMISSION_KEYS) merged[k] = input?.[k] === true
+  return permissionsColumn(type, merged)
+}
+
+const EMAIL_TAKEN = 'The email address is already in use.'
+
+/**
+ * Changes of the account name and email address of a member. Both are allowed for a claimed
+ * member only: one whose accepted account is on a domain the organisation verified. The email
+ * address also needs an account without a master password and a new address on a verified domain.
+ */
+async function identityStatements(
+  c: Ctx,
+  db: Db,
+  orgUuid: string,
+  target: Member,
+  change: { name?: string | null; email?: string | null },
+) {
+  const wantName = change.name !== null && change.name !== undefined
+  const wantEmail =
+    change.email !== null && change.email !== undefined && change.email.trim() !== ''
+  const none = { statements: [], notify: null }
+  if (!wantName && !wantEmail) return none
+  const [user] = target.userUuid
+    ? await db.select().from(schema.users).where(eq(schema.users.uuid, target.userUuid)).limit(1)
+    : []
+  const newName = wantName ? (change.name as string) : null
+  const newEmail = wantEmail ? (change.email as string).trim().toLowerCase() : null
+  const nameChanges = newName !== null && newName !== (user?.name ?? null)
+  const emailChanges = newEmail !== null && newEmail !== (user?.email ?? target.email ?? '')
+  if (!nameChanges && !emailChanges) return none
+  const claimed =
+    user !== undefined &&
+    target.status >= Status.Accepted &&
+    (await orgClaimsEmail(db, orgUuid, user.email))
+  const errors: Record<string, string[]> = {}
+  if (nameChanges && !claimed) errors.name = ['Name can only be changed for a claimed member.']
+  if (emailChanges) {
+    if (!claimed || !user) {
+      errors.email = ['Email can only be changed for a claimed member.']
+    } else if (user.passwordHash !== '') {
+      errors.email = ['Email cannot be changed for a member with a master password.']
+    } else if (!newEmail?.includes('@') || !(await orgClaimsEmail(db, orgUuid, newEmail))) {
+      errors.email = ['The new email address must be on a domain verified by the organization.']
+    } else if (isAdminEmail(c.env.ADMIN_EMAILS, newEmail)) {
+      // Same answer as for an address that is taken, so the ADMIN_EMAILS list cannot be probed.
+      errors.email = [EMAIL_TAKEN]
+    } else {
+      const [taken] = await db
+        .select({ uuid: schema.users.uuid })
+        .from(schema.users)
+        .where(eq(schema.users.email, newEmail))
+        .limit(1)
+      if (taken) errors.email = [EMAIL_TAKEN]
+    }
+  }
+  if (Object.keys(errors).length > 0) throw new ApiError(400, 'The request is invalid.', errors)
+  if (!user) return none
+  const now = Date.now()
+  const changedEmail = emailChanges && newEmail !== null ? newEmail : null
+  return {
+    statements: [
+      db
+        .update(schema.users)
+        .set({
+          ...(nameChanges && newName !== null ? { name: newName } : {}),
+          ...(changedEmail !== null
+            ? {
+                email: changedEmail,
+                // A granted instance role belongs to the old address: a new one needs a fresh grant.
+                instanceRole: 'user',
+              }
+            : {}),
+          updatedAt: now,
+        })
+        .where(eq(schema.users.uuid, user.uuid)),
+      ...(changedEmail !== null
+        ? [
+            // Old sessions of the account stop working, as after the account's own change.
+            ...stampRotationStatements(db, user.uuid),
+            ...(target.email !== null
+              ? [
+                  db
+                    .update(schema.usersOrganizations)
+                    .set({ email: changedEmail })
+                    .where(eq(schema.usersOrganizations.uuid, target.uuid)),
+                ]
+              : []),
+          ]
+        : []),
+    ],
+    notify:
+      changedEmail !== null
+        ? () => later(c, sendEmailChangeNotices(c.env, user.email, changedEmail))
+        : null,
+  }
+}
 
 const ev = (db: Db, c: Ctx, e: Parameters<typeof eventStatement>[2]) =>
   eventStatement(db, c, { ...e, organizationUuid: orgOf(c), systemUser: EventSystemUser.PublicApi })
@@ -223,15 +366,16 @@ function registerMembers(r: Hono<Env>, p: string) {
     if (!email.includes('@'))
       throw new ApiError(400, 'The request is invalid.', { email: ['Invalid email address.'] })
     if (await memberByEmail(db, orgUuid, email)) throw new ApiError(400, 'User already invited.')
+    await assertSeatsAvailable(db, orgUuid)
     const cols = dedupeSelections(b.collections ?? [])
     const groups = [...new Set(b.groups ?? [])]
     await checkRefs(db, orgUuid, cols, groups)
     const m = await invitedMember(db, orgUuid, {
       email,
       type: b.type,
-      accessAll: b.accessAll === true,
+      accessAll: false,
       externalId: b.externalId ?? null,
-      permissions: permissionsColumn(b.type, b.permissions),
+      permissions: memberPermissionsColumn(b.type, b.permissions),
     })
     await batch(db, [
       ...insertMemberStatements(db, m, `organization:${orgUuid}`),
@@ -262,27 +406,39 @@ function registerMembers(r: Hono<Env>, p: string) {
     const cols = b.collections == null ? null : dedupeSelections(b.collections)
     const groups = b.groups == null ? null : [...new Set(b.groups)]
     await checkRefs(db, orgUuid, cols ?? [], groups ?? [])
-    const accessAll = b.accessAll === true
+    // The published model has no `accessAll`. As the spec says, a property that is not provided is
+    // reset, so a PUT ends blanket access and applies the collections it names.
+    const accessAll = false
+    const identity = await identityStatements(c, db, orgUuid, target, b)
     const now = Date.now()
-    await batch(db, [
-      db
-        .update(schema.usersOrganizations)
-        .set({
-          atype: b.type,
-          accessAll,
-          externalId: b.externalId ?? null,
-          permissions: permissionsColumn(b.type, b.permissions),
-          updatedAt: now,
-        })
-        .where(eq(schema.usersOrganizations.uuid, target.uuid)),
-      ...accessStatements(db, target.uuid, accessAll, cols, groups, false),
-      ev(db, c, {
-        type: EventType.OrganizationUserUpdated,
-        organizationUserUuid: target.uuid,
-        userUuid: target.userUuid,
-      }),
-      bumpOrgRevision(db, orgUuid, now),
-    ])
+    try {
+      await batch(db, [
+        db
+          .update(schema.usersOrganizations)
+          .set({
+            atype: b.type,
+            accessAll,
+            externalId: b.externalId ?? null,
+            permissions: memberPermissionsColumn(b.type, b.permissions, target),
+            updatedAt: now,
+          })
+          .where(eq(schema.usersOrganizations.uuid, target.uuid)),
+        ...identity.statements,
+        ...accessStatements(db, target.uuid, accessAll, cols, groups, false),
+        ev(db, c, {
+          type: EventType.OrganizationUserUpdated,
+          organizationUserUuid: target.uuid,
+          userUuid: target.userUuid,
+        }),
+        bumpOrgRevision(db, orgUuid, now),
+      ])
+    } catch (err) {
+      // Another account took the address after the check above.
+      if (isEmailTakenError(err))
+        throw new ApiError(400, 'The request is invalid.', { email: [EMAIL_TAKEN] })
+      throw err
+    }
+    identity.notify?.()
     return c.json(await memberWithUser(db, await getTarget(db, orgUuid, target.uuid)))
   })
 
@@ -412,7 +568,6 @@ async function groupJson(db: Db, groups: GroupRow[]) {
     object: 'group',
     id: g.uuid,
     name: g.name,
-    accessAll: g.accessAll,
     externalId: g.externalId,
     collections: grants
       .filter((x) => x.groupUuid === g.uuid)
@@ -422,7 +577,6 @@ async function groupJson(db: Db, groups: GroupRow[]) {
 
 const groupSchema = z.object({
   name: z.string().min(1).max(100),
-  accessAll: z.boolean().nullish(),
   externalId: z.string().max(300).nullish(),
   collections: z.array(selectionSchema).nullish(),
 })
@@ -464,7 +618,7 @@ function registerGroups(r: Hono<Env>, p: string) {
     const b = await body(c, groupSchema)
     const db = createDb(c.env.DB)
     const orgUuid = orgOf(c)
-    const cols = b.accessAll ? [] : dedupeSelections(b.collections ?? [])
+    const cols = dedupeSelections(b.collections ?? [])
     await checkRefs(db, orgUuid, cols, [])
     const uuid = crypto.randomUUID()
     const now = Date.now()
@@ -473,7 +627,7 @@ function registerGroups(r: Hono<Env>, p: string) {
         uuid,
         organizationUuid: orgUuid,
         name: b.name,
-        accessAll: b.accessAll === true,
+        accessAll: false,
         externalId: b.externalId ?? null,
         createdAt: now,
         updatedAt: now,
@@ -495,7 +649,9 @@ function registerGroups(r: Hono<Env>, p: string) {
     const db = createDb(c.env.DB)
     const orgUuid = orgOf(c)
     const g = await loadGroup(db, orgUuid, c.req.param('id'))
-    const cols = b.accessAll ? [] : b.collections == null ? null : dedupeSelections(b.collections)
+    // The published model has no `accessAll`. A property that is not provided is reset, so a PUT
+    // ends blanket access and applies the collections it names.
+    const cols = b.collections == null ? null : dedupeSelections(b.collections)
     await checkRefs(db, orgUuid, cols ?? [], [])
     const now = Date.now()
     await batch(db, [
@@ -503,7 +659,7 @@ function registerGroups(r: Hono<Env>, p: string) {
         .update(schema.groups)
         .set({
           name: b.name,
-          accessAll: b.accessAll === true,
+          accessAll: false,
           externalId: b.externalId ?? null,
           updatedAt: now,
         })
@@ -675,8 +831,23 @@ const policyJson = (p: PolicyRow) => ({
 
 const policyType = (c: Ctx) => {
   const t = Number(c.req.param('type'))
-  if (!Number.isInteger(t) || t < 0) throw new ApiError(400, 'Invalid policy type.')
+  if (!Number.isInteger(t) || t < 0 || t > MAX_POLICY_TYPE)
+    throw new ApiError(400, 'Invalid policy type.')
   return t
+}
+
+/**
+ * Policy metadata is data the policy needs when it is turned on but that is not part of its
+ * stored data. Only the organisation data ownership policy has any (the name of the default
+ * collection). Cloudwarden validates it and stores nothing.
+ */
+function assertPolicyMetadata(type: number, metadata: Record<string, unknown> | null | undefined) {
+  if (!metadata) return
+  const name = metadata.defaultUserCollectionName
+  if (type === PolicyType.PersonalOwnership && name != null && typeof name !== 'string')
+    throw new ApiError(400, 'The request is invalid.', {
+      'metadata.defaultUserCollectionName': ['Must be a string.'],
+    })
 }
 
 function registerPolicies(r: Hono<Env>, p: string) {
@@ -698,8 +869,14 @@ function registerPolicies(r: Hono<Env>, p: string) {
     const type = policyType(c)
     const b = await body(
       c,
-      z.object({ enabled: z.boolean(), data: z.record(z.string(), z.unknown()).nullish() }),
+      z.object({
+        enabled: z.boolean(),
+        data: z.record(z.string(), z.unknown()).nullish(),
+        metadata: z.record(z.string(), z.unknown()).nullish(),
+      }),
     )
+    assertPolicyData(type, b.data)
+    assertPolicyMetadata(type, b.metadata)
     const db = createDb(c.env.DB)
     const row = await savePolicy(c, db, orgOf(c), type, b, EventSystemUser.PublicApi)
     return c.json(policyJson(row))
@@ -729,12 +906,22 @@ const publicEventJson = (e: typeof schema.events.$inferSelect) => ({
 function registerEvents(r: Hono<Env>, p: string) {
   r.get(`${p}/events`, async (c) => {
     const e = schema.events
+    const range = publicEventRange(c.req.query('start'), c.req.query('end'))
     const where: SQL[] = [eq(e.organizationUuid, orgOf(c))]
-    const acting = c.req.query('actingUserId')
-    const item = c.req.query('itemId')
-    if (acting) where.push(eq(e.actingUserUuid, acting))
-    if (item) where.push(eq(e.cipherUuid, item))
-    const page = await listEvents(createDb(c.env.DB), c, and(...where), publicEventJson)
+    // The first filter present wins, in this order. With none, the whole organisation is listed.
+    const filters: [string, AnyColumn][] = [
+      ['actingUserId', e.actingUserUuid],
+      ['itemId', e.cipherUuid],
+      ['secretId', e.secretUuid],
+      ['projectId', e.projectUuid],
+    ]
+    for (const [name, column] of filters) {
+      const value = c.req.query(name)
+      if (!value) continue
+      where.push(eq(column, value))
+      break
+    }
+    const page = await listEvents(createDb(c.env.DB), c, and(...where), publicEventJson, range)
     return c.json(page)
   })
 }
@@ -742,8 +929,26 @@ function registerEvents(r: Hono<Env>, p: string) {
 // ----- organisation -----
 
 function registerOrganization(r: Hono<Env>, p: string) {
+  r.get(`${p}/organization/subscription`, async (c) => {
+    return c.json(subscriptionJson(await loadSubscription(createDb(c.env.DB), orgOf(c))))
+  })
+
+  r.put(`${p}/organization/subscription`, async (c) => {
+    const b = await body(c, subscriptionUpdateSchema)
+    const db = createDb(c.env.DB)
+    const orgUuid = orgOf(c)
+    const now = Date.now()
+    const row = await mergeSubscription(db, orgUuid, await loadSubscription(db, orgUuid), b, now)
+    await batch(db, [
+      subscriptionUpsert(db, row, b),
+      ev(db, c, { type: EventType.OrganizationUpdated }),
+      bumpOrgRevision(db, orgUuid, now),
+    ])
+    return c.body(null, 200)
+  })
+
   r.post(`${p}/organization/import`, async (c) => {
-    const b = await body(c, importSchema)
+    const b = await body(c, publicImportSchema)
     await importDirectory(c, orgOf(c), b, EventSystemUser.PublicApi)
     return c.body(null, 200)
   })

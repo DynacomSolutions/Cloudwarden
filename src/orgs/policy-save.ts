@@ -2,6 +2,7 @@
 // and enforce a policy the same way.
 import { and, eq } from 'drizzle-orm'
 import type { Context } from 'hono'
+import { z } from 'zod'
 import { type Db, schema } from '../db'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
@@ -112,4 +113,49 @@ export async function savePolicy(
   const row = await findPolicy(db, orgUuid, type)
   if (!row) throw new ApiError(500, 'Policy was not saved.')
   return row
+}
+
+const optionalBool = z.boolean().nullish()
+const optionalInt = z.number().int().min(0).nullish()
+
+/** Shape of the `data` of the policy types that Cloudwarden reads. Other keys pass through. */
+const DATA_SHAPES: Record<number, z.ZodType> = {
+  [PolicyType.MasterPassword]: z.looseObject({
+    minComplexity: z.number().int().min(0).max(4).nullish(),
+    minLength: z.number().int().min(0).max(128).nullish(),
+    requireUpper: optionalBool,
+    requireLower: optionalBool,
+    requireNumbers: optionalBool,
+    requireSpecial: optionalBool,
+    enforceOnLogin: optionalBool,
+  }),
+  [PolicyType.PasswordGenerator]: z.looseObject({
+    minLength: optionalInt,
+    minNumbers: optionalInt,
+    minSpecial: optionalInt,
+    useUpper: optionalBool,
+    useLower: optionalBool,
+    useNumbers: optionalBool,
+    useSpecial: optionalBool,
+  }),
+  [PolicyType.SendOptions]: z.looseObject({ disableHideEmail: optionalBool }),
+  [PolicyType.ResetPassword]: z.looseObject({ autoEnrollEnabled: optionalBool }),
+  [PolicyType.MaximumVaultTimeout]: z.looseObject({
+    minutes: optionalInt,
+    action: z.string().nullish(),
+  }),
+}
+
+/** Throws 400 when `data` has the wrong shape for the policy type (Public API). */
+export function assertPolicyData(type: number, data: Record<string, unknown> | null | undefined) {
+  const shape = DATA_SHAPES[type]
+  if (!shape || !data) return
+  const parsed = shape.safeParse(data)
+  if (parsed.success) return
+  const errors: Record<string, string[]> = {}
+  for (const issue of parsed.error.issues) {
+    const key = `data.${issue.path.join('.') || 'data'}`
+    errors[key] = [...(errors[key] ?? []), issue.message]
+  }
+  throw new ApiError(400, 'The request is invalid.', errors)
 }

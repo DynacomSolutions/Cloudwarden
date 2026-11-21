@@ -136,7 +136,31 @@ export const PERMISSION_KEYS = [
   'manageUsers',
   'manageResetPassword',
   'manageScim',
+  'manageAccessRules',
 ] as const
+
+/**
+ * The custom permissions the Public API reads and writes. `manageCiphers` is an older
+ * Cloudwarden key that the published Public API model does not have, so it stays internal.
+ */
+export const PUBLIC_PERMISSION_KEYS = [
+  'accessEventLogs',
+  'accessImportExport',
+  'accessReports',
+  'createNewCollections',
+  'editAnyCollection',
+  'deleteAnyCollection',
+  'manageGroups',
+  'managePolicies',
+  'manageSso',
+  'manageUsers',
+  'manageResetPassword',
+  'manageScim',
+  'manageAccessRules',
+] as const
+
+/** Highest policy type of the published Public API (FillAssist). */
+export const MAX_POLICY_TYPE = 22
 
 /**
  * Event codes for admin actions. They sit outside the range used by the official clients

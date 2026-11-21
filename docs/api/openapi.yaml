@@ -9324,6 +9324,8 @@ paths:
         required: true
         schema:
           type: integer
+          minimum: 0
+          maximum: 22
       responses:
         '200': &id047
           description: Success.
@@ -9422,6 +9424,7 @@ paths:
         name: start
         in: query
         required: false
+        description: Start date. Without it, 30 days before the end date (or before now, with no end date either).
         schema:
           type: string
           format: date-time
@@ -9429,6 +9432,7 @@ paths:
         name: end
         in: query
         required: false
+        description: End date. Without it, now. A start after the end is swapped. A range over 367 days returns 400.
         schema:
           type: string
           format: date-time
@@ -9443,6 +9447,21 @@ paths:
         name: itemId
         in: query
         required: false
+        schema:
+          type: string
+          format: uuid
+      - &evSecretId
+        name: secretId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - &evProjectId
+        name: projectId
+        in: query
+        required: false
+        description: Only the first filter present applies, in the order actingUserId, itemId, secretId, projectId.
         schema:
           type: string
           format: uuid
@@ -9478,9 +9497,54 @@ paths:
       - *id051
       - *id052
       - *id053
+      - *evSecretId
+      - *evProjectId
       - *id054
       responses:
         '200': *id055
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+  /api/public/organization/subscription:
+    get:
+      tags:
+      - PublicApi
+      operationId: publicGetSubscription
+      summary: Get the subscription limits
+      description: Cloudwarden has no billing. The limits are the values set with PUT, or null.
+      security:
+      - organizationToken: []
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicSubscription'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+    put:
+      tags:
+      - PublicApi
+      operationId: publicUpdateSubscription
+      summary: Set the subscription limits
+      description: Fields that are missing or null change nothing. Seats cannot be fewer than the members that hold one, and a maximum cannot be below its seats or machine accounts.
+      security:
+      - organizationToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublicSubscription'
+      responses:
+        '200':
+          description: Success.
         '400':
           $ref: '#/components/responses/PublicBadRequest'
         '401':
@@ -9510,6 +9574,49 @@ paths:
           $ref: '#/components/responses/PublicUnauthorized'
       x-source-version: bitwarden-public-api
       x-source-file: github.com/bitwarden/directory-connector libs/services/api.service.ts (postPublicImportDirectory), libs/models/request/organizationImportRequest.ts
+  /public/organization/subscription:
+    get:
+      tags:
+      - PublicApi
+      operationId: publicGetSubscriptionCloud
+      summary: Get the subscription limits (cloud path layout)
+      description: Cloudwarden has no billing. The limits are the values set with PUT, or null.
+      security:
+      - organizationToken: []
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicSubscription'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
+    put:
+      tags:
+      - PublicApi
+      operationId: publicUpdateSubscriptionCloud
+      summary: Set the subscription limits (cloud path layout)
+      description: Fields that are missing or null change nothing. Seats cannot be fewer than the members that hold one, and a maximum cannot be below its seats or machine accounts.
+      security:
+      - organizationToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublicSubscription'
+      responses:
+        '200':
+          description: Success.
+        '400':
+          $ref: '#/components/responses/PublicBadRequest'
+        '401':
+          $ref: '#/components/responses/PublicUnauthorized'
+      x-source-version: bitwarden-public-api
+      x-source-file: Bitwarden Public API reference (bitwarden.com/help/api), Public API OpenAPI document
   /public/organization/import:
     post:
       tags:
@@ -15272,6 +15379,473 @@ paths:
           $ref: '#/components/responses/Unauthorized'
       x-source-version: web-v2026.9.1
       x-source-file: libs/common/src/dirt/services/default-passkey-directory-api.service.ts
+  /api/reports/member-access/{org}:
+    parameters:
+    - &ReportOrg
+      name: org
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    get:
+      tags:
+      - Reports
+      operationId: getMemberAccessReport
+      summary: Member access report
+      description: One row per member and granted collection, from the real collection and group grants. A member without any grant has one row without a collection. Needs the access-reports permission (owners, admins and custom members holding it); others get 404.
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MemberAccessDetailReport'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/reports/member-cipher-details/{org}:
+    parameters:
+    - *ReportOrg
+    get:
+      tags:
+      - Reports
+      operationId: getMemberCipherDetails
+      summary: Member item report
+      description: One row per member with the ids of every item the member can reach. Needs the access-reports permission.
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MemberCipherDetails'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/reports/password-health-report-applications/{org}:
+    parameters:
+    - *ReportOrg
+    get:
+      tags:
+      - Reports
+      operationId: listPasswordHealthReportApplications
+      summary: List critical applications
+      description: Needs the access-reports permission.
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PasswordHealthReportApplication'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/reports/password-health-report-applications:
+    post:
+      tags:
+      - Reports
+      operationId: addPasswordHealthReportApplications
+      summary: Add critical applications
+      description: Up to 200 per request. The whole request is refused with 404 when the caller lacks the access-reports permission in any listed organization.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/PasswordHealthReportApplicationRequest'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PasswordHealthReportApplication'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/reports/password-health-report-application:
+    delete:
+      tags:
+      - Reports
+      operationId: dropPasswordHealthReportApplications
+      summary: Drop critical applications
+      description: Answers 400 when the organization has no applications. Needs the access-reports permission.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DropPasswordHealthReportApplicationRequest'
+      responses:
+        '200':
+          description: Success.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/reports/organizations/file/validate/azure:
+    post:
+      tags:
+      - Reports
+      operationId: validateAzureReportFile
+      summary: Azure Event Grid callback
+      description: Unauthenticated. Answers the subscription handshake only; report files are stored in R2 and checked when the upload ends.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+      responses:
+        '200':
+          description: Handshake answered.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /api/reports/organizations/{org}:
+    parameters:
+    - *ReportOrg
+    post:
+      tags:
+      - Reports
+      operationId: createOrganizationReport
+      summary: Create an organization report
+      description: With `fileSize` (1 byte to 98.9 MiB, see docs/reports.md) the report is reserved and the response names the URL to upload the encrypted file to. Without it the inline `reportData` is stored in R2 and the report is returned. At most 10 unfinished file reports per organization. Needs the access-reports permission.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddOrganizationReportRequest'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - $ref: '#/components/schemas/OrganizationReportResponse'
+                - $ref: '#/components/schemas/OrganizationReportFileResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '413':
+          description: The file is larger than 98.9 MiB (the Worker request body cap of 100 MB minus framing).
+  /api/reports/organizations/{org}/latest:
+    parameters:
+    - *ReportOrg
+    get:
+      tags:
+      - Reports
+      operationId: getLatestOrganizationReport
+      summary: Latest organization report
+      description: The newest complete report (a file report counts once its file is uploaded); 404 when there is none. Needs the access-reports permission.
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationReportResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/reports/organizations/{org}/data/summary:
+    parameters:
+    - *ReportOrg
+    get:
+      tags:
+      - Reports
+      operationId: listOrganizationReportSummaries
+      summary: Report summaries by date range
+      description: Summaries of the reports created between `startDate` and `endDate` (defaults are the beginning of time and now), oldest first, at most 1000. Needs the access-reports permission.
+      parameters:
+      - name: startDate
+        in: query
+        required: false
+        schema: {type: string, format: date-time}
+      - name: endDate
+        in: query
+        required: false
+        schema: {type: string, format: date-time}
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrganizationReportSummaryData'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/reports/organizations/{org}/data/summary/{report}:
+    parameters:
+    - *ReportOrg
+    - &ReportId
+      name: report
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    get:
+      tags:
+      - Reports
+      operationId: getOrganizationReportSummary
+      summary: Report summary
+      description: Needs the access-reports permission.
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationReportSummaryData'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags:
+      - Reports
+      operationId: updateOrganizationReportSummary
+      summary: Update the report summary
+      description: Replaces the summary string and metrics when given. The response omits the inline report data. Needs the access-reports permission.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOrganizationReportSummaryRequest'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationReportResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/reports/organizations/{org}/data/application/{report}:
+    parameters:
+    - *ReportOrg
+    - *ReportId
+    get:
+      tags:
+      - Reports
+      operationId: getOrganizationReportApplicationData
+      summary: Report application data
+      description: Needs the access-reports permission.
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationReportApplicationData'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags:
+      - Reports
+      operationId: updateOrganizationReportApplicationData
+      summary: Update the report application data
+      description: The response omits the inline report data. Needs the access-reports permission.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationReportApplicationData'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationReportResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/reports/organizations/{org}/{report}:
+    parameters:
+    - *ReportOrg
+    - *ReportId
+    get:
+      tags:
+      - Reports
+      operationId: getOrganizationReport
+      summary: Get an organization report
+      description: Includes the inline report data of the original flow, and the download URL once a file is uploaded. Needs the access-reports permission.
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationReportResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags:
+      - Reports
+      operationId: updateOrganizationReport
+      summary: Update an organization report
+      description: Replaces the key, summary and application strings when given, and the metrics. The response omits the inline report data. Needs the access-reports permission.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOrganizationReportRequest'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationReportResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+      - Reports
+      operationId: deleteOrganizationReport
+      summary: Delete an organization report
+      description: Removes the report and its stored blob. Needs the access-reports permission.
+      responses:
+        '200':
+          description: Success.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/reports/organizations/{org}/{report}/file:
+    parameters:
+    - *ReportOrg
+    - *ReportId
+    post:
+      tags:
+      - Reports
+      operationId: uploadOrganizationReportFile
+      summary: Upload the report file
+      description: Step 2 of the file flow. Streams the file into R2. The stored size may differ from the declared one by at most 1 MiB; otherwise the report is dropped and the answer is 400. Needs the access-reports permission.
+      parameters:
+      - name: reportFileId
+        in: query
+        required: true
+        schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                data: {type: string, format: binary}
+      responses:
+        '200':
+          description: Success.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: An upload for this report is in progress.
+        '413':
+          description: The file is larger than 98.9 MiB (the Worker request body cap of 100 MB minus framing).
+  /api/reports/organizations/{org}/{report}/file/download:
+    parameters:
+    - *ReportOrg
+    - *ReportId
+    get:
+      tags:
+      - Reports
+      operationId: downloadOrganizationReportFile
+      summary: Download the report file
+      description: Needs the access-reports permission and a finished upload.
+      responses:
+        '200':
+          description: The encrypted file.
+          content:
+            application/octet-stream:
+              schema: {type: string, format: binary}
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/reports/organizations/{org}/{report}/file/renew:
+    parameters:
+    - *ReportOrg
+    - *ReportId
+    get:
+      tags:
+      - Reports
+      operationId: renewOrganizationReportFileUpload
+      summary: Renew the report file upload
+      description: Returns the upload URL again while the file is not uploaded. Needs the access-reports permission.
+      parameters:
+      - name: reportFileId
+        in: query
+        required: true
+        schema: {type: string}
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationReportFileResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /icons/change-password-uri:
     get:
       tags:
@@ -17818,6 +18392,126 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponseModel'
   schemas:
+    MemberAccessDetailReport:
+      type: object
+      properties:
+        userGuid: {type: [string, 'null'], format: uuid}
+        userName: {type: [string, 'null']}
+        email: {type: [string, 'null']}
+        twoFactorEnabled: {type: boolean}
+        accountRecoveryEnabled: {type: boolean}
+        usesKeyConnector: {type: boolean}
+        collectionId: {type: [string, 'null'], format: uuid}
+        groupId: {type: [string, 'null'], format: uuid}
+        groupName: {type: [string, 'null']}
+        collectionName: {type: [string, 'null']}
+        readOnly: {type: boolean}
+        hidePasswords: {type: boolean}
+        manage: {type: boolean}
+        cipherIds: {type: array, items: {type: string, format: uuid}}
+    MemberCipherDetails:
+      type: object
+      properties:
+        userGuid: {type: [string, 'null'], format: uuid}
+        userName: {type: [string, 'null']}
+        email: {type: [string, 'null']}
+        usesKeyConnector: {type: boolean}
+        cipherIds: {type: array, items: {type: string, format: uuid}}
+    PasswordHealthReportApplication:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        organizationId: {type: string, format: uuid}
+        uri: {type: string}
+        creationDate: {type: string, format: date-time}
+        revisionDate: {type: string, format: date-time}
+    PasswordHealthReportApplicationRequest:
+      type: object
+      required: [organizationId, url]
+      properties:
+        organizationId: {type: string, format: uuid}
+        url: {type: string}
+    DropPasswordHealthReportApplicationRequest:
+      type: object
+      required: [organizationId, passwordHealthReportApplicationIds]
+      properties:
+        organizationId: {type: string, format: uuid}
+        passwordHealthReportApplicationIds: {type: array, items: {type: string, format: uuid}}
+    OrganizationReportMetrics:
+      type: object
+      properties:
+        totalApplicationCount: {type: [integer, 'null']}
+        totalAtRiskApplicationCount: {type: [integer, 'null']}
+        totalCriticalApplicationCount: {type: [integer, 'null']}
+        totalCriticalAtRiskApplicationCount: {type: [integer, 'null']}
+        totalMemberCount: {type: [integer, 'null']}
+        totalAtRiskMemberCount: {type: [integer, 'null']}
+        totalCriticalMemberCount: {type: [integer, 'null']}
+        totalCriticalAtRiskMemberCount: {type: [integer, 'null']}
+        totalPasswordCount: {type: [integer, 'null']}
+        totalAtRiskPasswordCount: {type: [integer, 'null']}
+        totalCriticalPasswordCount: {type: [integer, 'null']}
+        totalCriticalAtRiskPasswordCount: {type: [integer, 'null']}
+    AddOrganizationReportRequest:
+      type: object
+      properties:
+        reportData: {type: [string, 'null'], description: Inline encrypted report data of the original flow.}
+        contentEncryptionKey: {type: [string, 'null']}
+        summaryData: {type: [string, 'null']}
+        applicationData: {type: [string, 'null']}
+        metrics: {anyOf: [{$ref: '#/components/schemas/OrganizationReportMetrics'}, {type: 'null'}]}
+        fileSize: {type: [integer, 'null'], description: Size of the file to upload; selects the file flow.}
+    UpdateOrganizationReportRequest:
+      type: object
+      required: [reportMetrics]
+      properties:
+        contentEncryptionKey: {type: [string, 'null']}
+        summaryData: {type: [string, 'null']}
+        applicationData: {type: [string, 'null']}
+        reportMetrics: {$ref: '#/components/schemas/OrganizationReportMetrics'}
+    UpdateOrganizationReportSummaryRequest:
+      type: object
+      properties:
+        summaryData: {type: [string, 'null']}
+        metrics: {anyOf: [{$ref: '#/components/schemas/OrganizationReportMetrics'}, {type: 'null'}]}
+    OrganizationReportApplicationData:
+      type: object
+      properties:
+        applicationData: {type: [string, 'null']}
+    OrganizationReportSummaryData:
+      type: object
+      properties:
+        organizationId: {type: string, format: uuid}
+        encryptedData: {type: [string, 'null']}
+        encryptionKey: {type: [string, 'null']}
+        date: {type: string, format: date-time}
+    OrganizationReportFile:
+      type: object
+      properties:
+        id: {type: string}
+        fileName: {type: [string, 'null']}
+        size: {type: [integer, 'null']}
+        validated: {type: boolean}
+    OrganizationReportResponse:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        organizationId: {type: string, format: uuid}
+        reportData: {type: [string, 'null']}
+        contentEncryptionKey: {type: [string, 'null']}
+        summaryData: {type: [string, 'null']}
+        applicationData: {type: [string, 'null']}
+        reportFile: {anyOf: [{$ref: '#/components/schemas/OrganizationReportFile'}, {type: 'null'}]}
+        reportFileDownloadUrl: {type: [string, 'null']}
+        fileUploadType: {type: [integer, 'null'], description: 0 is a direct upload to this server.}
+        creationDate: {type: string, format: date-time}
+        revisionDate: {type: string, format: date-time}
+    OrganizationReportFileResponse:
+      type: object
+      properties:
+        reportFileUploadUrl: {type: string}
+        reportResponse: {$ref: '#/components/schemas/OrganizationReportResponse'}
+        fileUploadType: {type: integer}
     OrganizationDirectoryImportRequest:
       type: object
       description: Members and groups read from a directory. Groups take `memberExternalIds` or `users`; members arrive as `members` or `users`.
@@ -18494,17 +19188,12 @@ components:
           - 0
           - 1
           - 2
-          - 3
           - 4
-        accessAll:
-          type: boolean
         externalId: *id001
         permissions: &id002
-          additionalProperties:
-            type: boolean
-          type:
-          - object
-          - 'null'
+          oneOf:
+          - $ref: '#/components/schemas/PublicPermissions'
+          - type: 'null'
       required:
       - object
       - id
@@ -18513,22 +19202,56 @@ components:
       - type
       - collections
       - externalId
+    PublicPermissions:
+      type: object
+      description: Custom permissions of a member with the Custom type. Only these keys are read and written.
+      properties:
+        accessEventLogs:
+          type: boolean
+        accessImportExport:
+          type: boolean
+        accessReports:
+          type: boolean
+        createNewCollections:
+          type: boolean
+        editAnyCollection:
+          type: boolean
+        deleteAnyCollection:
+          type: boolean
+        manageGroups:
+          type: boolean
+        managePolicies:
+          type: boolean
+        manageSso:
+          type: boolean
+        manageUsers:
+          type: boolean
+        manageResetPassword:
+          type: boolean
+        manageScim:
+          type: boolean
+        manageAccessRules:
+          type: boolean
     PublicMemberCreateRequest:
       type: object
       properties:
         email:
           type: string
+          maxLength: 256
+        name:
+          type:
+          - string
+          - 'null'
+          maxLength: 50
+          description: The member name. Accepted, and applied to the account only for a claimed member (a new invitation is never claimed).
         type:
           type: integer
-        accessAll:
-          type:
-          - boolean
-          - 'null'
+          enum:
+          - 0
+          - 1
+          - 2
+          - 4
         externalId: *id001
-        resetPasswordEnrolled:
-          type:
-          - boolean
-          - 'null'
         permissions: *id002
         collections:
           type:
@@ -18549,12 +19272,25 @@ components:
     PublicMemberUpdateRequest:
       type: object
       properties:
+        email:
+          type:
+          - string
+          - 'null'
+          maxLength: 256
+          description: Can change only for a claimed member without a master password, to an address on a domain that the organization verified. Otherwise a different address returns 400.
+        name:
+          type:
+          - string
+          - 'null'
+          maxLength: 50
+          description: Can change only for a claimed member. Otherwise a different name returns 400.
         type:
           type: integer
-        accessAll:
-          type:
-          - boolean
-          - 'null'
+          enum:
+          - 0
+          - 1
+          - 2
+          - 4
         externalId: *id001
         permissions: *id002
         collections:
@@ -18605,8 +19341,6 @@ components:
           format: uuid
         name:
           type: string
-        accessAll:
-          type: boolean
         externalId: *id001
         collections:
           type: array
@@ -18623,10 +19357,6 @@ components:
       properties:
         name:
           type: string
-        accessAll:
-          type:
-          - boolean
-          - 'null'
         externalId: *id001
         collections:
           type:
@@ -18680,6 +19410,8 @@ components:
           format: uuid
         type:
           type: integer
+          minimum: 0
+          maximum: 22
         enabled:
           type: boolean
         data:
@@ -18701,6 +19433,12 @@ components:
           type:
           - object
           - 'null'
+          description: Policy data. Known fields of the master password, password generator, send options, account recovery and vault timeout policies are checked; other keys pass through.
+        metadata:
+          type:
+          - object
+          - 'null'
+          description: Policy metadata, validated and not stored. Only the organization data ownership policy has any (`defaultUserCollectionName`, a string).
       required:
       - enabled
     PublicEvent:
@@ -18797,9 +19535,7 @@ components:
             required:
             - externalId
         overwriteExisting:
-          type:
-          - boolean
-          - 'null'
+          type: boolean
         largeImport:
           type:
           - boolean
@@ -18813,6 +19549,30 @@ components:
           - boolean
           - 'null'
           description: Cloudwarden extension (not sent by the Directory Connector). Without it, admins and custom members are never removed by `deleted` entries or `overwriteExisting`; owners never are.
+      required:
+      - overwriteExisting
+    PublicSubscription:
+      type: object
+      description: Seat, storage and machine account limits of the organization. Null means no limit was set. Nothing is billed or enforced.
+      properties:
+        passwordManager:
+          type: object
+          properties:
+            seats: &subInt
+              type:
+              - integer
+              - 'null'
+              format: int32
+              minimum: 0
+            maxAutoScaleSeats: *subInt
+            storage: *subInt
+        secretsManager:
+          type: object
+          properties:
+            seats: *subInt
+            maxAutoScaleSeats: *subInt
+            serviceAccounts: *subInt
+            maxAutoScaleServiceAccounts: *subInt
     ScimMeta:
       type: object
       properties:
@@ -19179,11 +19939,9 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PublicMember'
-        continuationToken: *id001
       required:
       - object
       - data
-      - continuationToken
     PublicGroupList:
       type: object
       properties:
@@ -19195,11 +19953,9 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PublicGroup'
-        continuationToken: *id001
       required:
       - object
       - data
-      - continuationToken
     PublicCollectionList:
       type: object
       properties:
@@ -19211,11 +19967,9 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PublicCollection'
-        continuationToken: *id001
       required:
       - object
       - data
-      - continuationToken
     PublicPolicyList:
       type: object
       properties:
@@ -19227,11 +19981,9 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PublicPolicy'
-        continuationToken: *id001
       required:
       - object
       - data
-      - continuationToken
     PublicEventList:
       type: object
       properties:

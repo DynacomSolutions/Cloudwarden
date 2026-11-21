@@ -31,6 +31,7 @@ import {
   VALID_ROLES,
 } from '../orgs/members'
 import { listUserPolicies, policyJson, twoFactorRequired } from '../orgs/policies'
+import { assertSeatsAvailable } from '../orgs/subscription'
 import { collectionDetailsJson, profileOrganizations } from '../orgs/views'
 import { attachmentsByCipher } from '../vault/attachments'
 import { FederationEvent, federationEventStatement } from './events'
@@ -233,6 +234,7 @@ export async function createFederatedInvite(c: Ctx, orgUuid: string, input: Fede
   if (existing)
     throw new ApiError(400, 'User already invited.', { email: [`${email} is already a member.`] })
 
+  await assertSeatsAvailable(db, orgUuid)
   const now = Date.now()
   const memberUuid = crypto.randomUUID()
   await runBatch(db, [

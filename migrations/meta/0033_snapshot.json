@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "c680112e-64f1-4dcb-ae44-37076612271c",
+  "id": "5d2bd5a2-40c8-455a-be1b-a8da2b6d6b46",
   "prevId": "cd60ea4c-9a2e-4b11-9c9b-351f487d4339",
   "tables": {
     "admin_rate_limits": {
@@ -1189,13 +1189,6 @@
           "notNull": false,
           "autoincrement": false
         },
-        "send_uuid": {
-          "name": "send_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "system_user": {
           "name": "system_user",
           "type": "integer",
@@ -1244,13 +1237,6 @@
           "name": "events_date_idx",
           "columns": [
             "event_date"
-          ],
-          "isUnique": false
-        },
-        "events_send_idx": {
-          "name": "events_send_idx",
-          "columns": [
-            "send_uuid"
           ],
           "isUnique": false
         }
@@ -2400,6 +2386,93 @@
         "organization_scim_organization_uuid_organizations_uuid_fk": {
           "name": "organization_scim_organization_uuid_organizations_uuid_fk",
           "tableFrom": "organization_scim",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_uuid"
+          ],
+          "columnsTo": [
+            "uuid"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "organization_subscriptions": {
+      "name": "organization_subscriptions",
+      "columns": {
+        "organization_uuid": {
+          "name": "organization_uuid",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "seats": {
+          "name": "seats",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "max_autoscale_seats": {
+          "name": "max_autoscale_seats",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "storage_gb": {
+          "name": "storage_gb",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "sm_seats": {
+          "name": "sm_seats",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "sm_max_autoscale_seats": {
+          "name": "sm_max_autoscale_seats",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "sm_service_accounts": {
+          "name": "sm_service_accounts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "sm_max_autoscale_service_accounts": {
+          "name": "sm_max_autoscale_service_accounts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "organization_subscriptions_organization_uuid_organizations_uuid_fk": {
+          "name": "organization_subscriptions_organization_uuid_organizations_uuid_fk",
+          "tableFrom": "organization_subscriptions",
           "tableTo": "organizations",
           "columnsFrom": [
             "organization_uuid"

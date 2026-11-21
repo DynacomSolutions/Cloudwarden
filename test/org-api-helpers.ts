@@ -5,7 +5,13 @@ import { type Actor, mail } from './org-helpers'
 /** Calls the app with arbitrary headers (organisation tokens, SCIM keys). */
 export async function raw(
   path: string,
-  init: { method?: string; headers?: Record<string, string>; body?: unknown } = {},
+  init: {
+    method?: string
+    headers?: Record<string, string>
+    body?: unknown
+    /** Binding overrides for this one call, for example `ADMIN_EMAILS`. */
+    over?: Record<string, unknown>
+  } = {},
 ) {
   const { default: app } = await import('../src/index')
   const hasBody = init.body !== undefined
@@ -20,7 +26,7 @@ export async function raw(
         ? { body: typeof init.body === 'string' ? init.body : JSON.stringify(init.body) }
         : {}),
     }),
-    { ...env, EMAIL: mail.EMAIL, MAIL_FROM: mail.MAIL_FROM },
+    { ...env, EMAIL: mail.EMAIL, MAIL_FROM: mail.MAIL_FROM, ...init.over },
   )
 }
 

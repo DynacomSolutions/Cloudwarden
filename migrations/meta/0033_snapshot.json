@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "03c7977a-055c-40cc-b4a5-7786017d4195",
+  "id": "5d2bd5a2-40c8-455a-be1b-a8da2b6d6b46",
   "prevId": "cd60ea4c-9a2e-4b11-9c9b-351f487d4339",
   "tables": {
     "admin_rate_limits": {
@@ -2401,6 +2401,93 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
+    "organization_subscriptions": {
+      "name": "organization_subscriptions",
+      "columns": {
+        "organization_uuid": {
+          "name": "organization_uuid",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "seats": {
+          "name": "seats",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "max_autoscale_seats": {
+          "name": "max_autoscale_seats",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "storage_gb": {
+          "name": "storage_gb",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "sm_seats": {
+          "name": "sm_seats",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "sm_max_autoscale_seats": {
+          "name": "sm_max_autoscale_seats",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "sm_service_accounts": {
+          "name": "sm_service_accounts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "sm_max_autoscale_service_accounts": {
+          "name": "sm_max_autoscale_service_accounts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "organization_subscriptions_organization_uuid_organizations_uuid_fk": {
+          "name": "organization_subscriptions_organization_uuid_organizations_uuid_fk",
+          "tableFrom": "organization_subscriptions",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_uuid"
+          ],
+          "columnsTo": [
+            "uuid"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
     "organization_twofactor": {
       "name": "organization_twofactor",
       "columns": {
@@ -4359,13 +4446,6 @@
           "notNull": false,
           "autoincrement": false
         },
-        "account_keys_v2": {
-          "name": "account_keys_v2",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "kdf_type": {
           "name": "kdf_type",
           "type": "integer",
@@ -4786,13 +4866,6 @@
         },
         "reset_password_key": {
           "name": "reset_password_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "v2_upgrade_token": {
-          "name": "v2_upgrade_token",
           "type": "text",
           "primaryKey": false,
           "notNull": false,

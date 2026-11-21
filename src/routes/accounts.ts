@@ -11,6 +11,7 @@ import {
 } from '../auth/account-keys'
 import { authenticationData, checkNested, toKdfParams, unlockData } from '../auth/credentials'
 import { randomB64u } from '../auth/crypto'
+import { sendEmailChangeNotices } from '../auth/email-change'
 import { requireAuth } from '../auth/middleware'
 import { consumeOtp, issueOtp, MAX_ATTEMPTS } from '../auth/otp'
 import { hashMasterPassword, verifyMasterPassword } from '../auth/passwords'
@@ -25,13 +26,8 @@ import {
 import { sealUserSecret, viewUserSecret } from '../auth/user-secrets'
 import { findUserByEmail, normalizeEmail } from '../auth/users'
 import { createDb, type Db, runBatch, schema } from '../db'
-import {
-  createEmailTransport,
-  emailChangedNewEmail,
-  emailChangedOldEmail,
-  genericEmail,
-} from '../email'
-import { later, sendNotice } from '../email/send'
+import { createEmailTransport, genericEmail } from '../email'
+import { later } from '../email/send'
 import { emailVerifiedFor, mailConfigured } from '../emailless'
 import type { Env, User } from '../env'
 import { ApiError } from '../errors'
@@ -521,13 +517,7 @@ accounts.post('/api/accounts/email', requireAuth, async (c) => {
   } catch {
     throw new ApiError(400, 'Email is already in use.')
   }
-  later(
-    c,
-    Promise.all([
-      sendNotice(c.env, user.email, emailChangedOldEmail(newEmail)),
-      sendNotice(c.env, newEmail, emailChangedNewEmail()),
-    ]),
-  )
+  later(c, sendEmailChangeNotices(c.env, user.email, newEmail))
   return c.body(null, 200)
 })
 

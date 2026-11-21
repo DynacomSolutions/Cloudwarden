@@ -14,6 +14,7 @@ import { createDb, type Db, schema } from '../db'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
 import { requireMember, requireOrg, requireOwner } from '../orgs/access'
+import { loadSubscription } from '../orgs/subscription'
 import { authOnce } from '../orgs/util'
 import { orgJson, profileOrgJson } from '../orgs/views'
 import { rateLimit } from '../ratelimit'
@@ -398,7 +399,7 @@ r.get('/api/organizations/:id/subscription', authOnce, async (c) => {
   const org = await requireOrg(db, orgUuid)
   const bytes = await attachmentBytes(db, { orgUuid })
   return c.json({
-    ...orgJson(org),
+    ...orgJson(org, await loadSubscription(db, orgUuid)),
     object: 'organizationSubscription',
     plan: SELF_HOST_PLAN,
     ...storageJson(bytes),

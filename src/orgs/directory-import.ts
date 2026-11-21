@@ -15,10 +15,11 @@ import { sendInvite } from '../routes/org-users'
 import { chunk } from '../vault/ciphers'
 import { bumpOrgRevision, type Member, requireOrg } from './access'
 import { dropMemberStateFor } from './ciphers'
-import { EventType, Role } from './constants'
+import { EventType, Role, Status } from './constants'
 import { eventStatement } from './events'
 import { assertCanAssign } from './members'
 import { insertMemberStatements, invitedMember } from './provisioning'
+import { assertSeatsAvailable } from './subscription'
 import { batch } from './util'
 
 export const MAX_IMPORT = 10_000
@@ -158,12 +159,14 @@ export async function importDirectory(
   const statements: unknown[] = []
   const invited: Member[] = []
   const removed = new Set<string>()
+  let freedSeats = 0
   const remove = (m: Member) => {
     // Owners are never removed; admins and custom members only on explicit request.
     const privileged = m.atype === Role.Owner || m.atype === Role.Admin || m.atype === Role.Custom
     if (removed.has(m.uuid) || m.atype === Role.Owner || outranks(m)) return
     if (privileged && body.removePrivilegedMembers !== true) return
     removed.add(m.uuid)
+    if (m.status !== Status.Revoked) freedSeats++
     statements.push(
       ...(m.userUuid ? dropMemberStateFor(db, m.userUuid, orgUuid) : []),
       db.delete(schema.usersOrganizations).where(eq(schema.usersOrganizations.uuid, m.uuid)),
@@ -225,6 +228,8 @@ export async function importDirectory(
       if (r.m.externalId && !importedExternal.has(r.m.externalId)) remove(r.m)
     }
   }
+  // Members that the same import removes free their seats first.
+  if (invited.length > 0) await assertSeatsAvailable(db, orgUuid, invited.length - freedSeats)
   result.invited = invited.length
   result.removed = removed.size
 

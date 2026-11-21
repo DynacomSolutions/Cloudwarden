@@ -103,18 +103,37 @@ const parseDate = (s: string | undefined): number | null => {
   return Number.isNaN(t) ? null : t
 }
 
-/** Opaque cursor: the date and id of the last row of the previous page. */
-const encodeCursor = (e: { eventDate: number; uuid: string }) =>
-  toB64u(utf8(`${e.eventDate}.${e.uuid}`))
+interface Cursor {
+  date: number
+  uuid: string
+  /** The date window of the first page, kept so that a default window does not move. */
+  window: { start: number; end: number } | null
+}
 
-function decodeCursor(token: string | undefined): { date: number; uuid: string } | null {
+/**
+ * Opaque cursor: the date and id of the last row of the previous page, and the date window when
+ * the list has one. Ids hold no dot, so the parts are joined with dots.
+ */
+const encodeCursor = (e: { eventDate: number; uuid: string }, window?: Cursor['window']) =>
+  toB64u(utf8([e.eventDate, e.uuid, ...(window ? [window.start, window.end] : [])].join('.')))
+
+function decodeCursor(token: string | undefined): Cursor | null {
   if (!token) return null
   const raw = fromB64u(token)
   if (!raw) return null
   const text = new TextDecoder().decode(raw)
   const dot = text.indexOf('.')
+  if (dot <= 0) return null
   const date = Number(text.slice(0, dot))
-  return dot > 0 && Number.isFinite(date) ? { date, uuid: text.slice(dot + 1) } : null
+  if (!Number.isFinite(date)) return null
+  const [uuid = '', start, end] = text.slice(dot + 1).split('.')
+  const window =
+    start !== undefined && end !== undefined ? { start: Number(start), end: Number(end) } : null
+  return {
+    date,
+    uuid,
+    window: window && Number.isFinite(window.start) && Number.isFinite(window.end) ? window : null,
+  }
 }
 
 const DAY_MS = 24 * 3600 * 1000
@@ -157,9 +176,12 @@ export async function listEvents(
   map: (e: typeof schema.events.$inferSelect) => unknown = eventJson,
   range?: { start: number; end: number },
 ) {
-  const start = range ? range.start : parseDate(c.req.query('start'))
-  const end = range ? range.end : parseDate(c.req.query('end'))
   const cursor = decodeCursor(c.req.query('continuationToken'))
+  // Later pages keep the window of the first one: a default window is relative to now, and it
+  // would otherwise move between requests and drop or repeat events.
+  const window = range ? (cursor?.window ?? range) : null
+  const start = window ? window.start : parseDate(c.req.query('start'))
+  const end = window ? window.end : parseDate(c.req.query('end'))
   const e = schema.events
   const conditions = [
     where,
@@ -180,6 +202,6 @@ export async function listEvents(
   return {
     object: 'list',
     data: page.map(map),
-    continuationToken: rows.length > EVENT_PAGE_SIZE && last ? encodeCursor(last) : null,
+    continuationToken: rows.length > EVENT_PAGE_SIZE && last ? encodeCursor(last, window) : null,
   }
 }

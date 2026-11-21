@@ -149,20 +149,20 @@ describe('members', () => {
     expect((await pub(`/members/${ok.body.id}`, 'PUT', { type: 3 })).status).toBe(400)
   })
 
-  it('keeps blanket access when a member is updated', async () => {
+  it('resets blanket access when a member is updated and applies the named collections', async () => {
     const m = await pub('/members', 'POST', { email: 'parity-all@example.com', type: 2 })
     const db = createDb(env.DB)
     await db
       .update(schema.usersOrganizations)
       .set({ accessAll: true })
       .where(eq(schema.usersOrganizations.uuid, m.body.id))
-    const put = await pub(`/members/${m.body.id}`, 'PUT', { type: 2, externalId: 'kept' })
+    const put = await pub(`/members/${m.body.id}`, 'PUT', { type: 2, externalId: 'reset' })
     expect(put.status).toBe(200)
     const [row] = await db
       .select()
       .from(schema.usersOrganizations)
       .where(eq(schema.usersOrganizations.uuid, m.body.id))
-    expect(row?.accessAll).toBe(true)
+    expect(row?.accessAll).toBe(false)
   })
 
   it('returns the SSO external id of a linked member', async () => {

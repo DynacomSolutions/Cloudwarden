@@ -62,7 +62,7 @@ function fail(errors: Record<string, string[]>): never {
 }
 
 /** Members that hold a seat: every member that is not revoked. */
-async function occupiedSeats(db: Db, orgUuid: string): Promise<number> {
+export async function occupiedSeats(db: Db, orgUuid: string): Promise<number> {
   const uo = schema.usersOrganizations
   const [r] = await db
     .select({ n: sql<number>`count(*)` })
@@ -98,7 +98,9 @@ export async function mergeSubscription(
     ),
     updatedAt: now,
   }
-  if (pm?.seats != null) {
+  // A seat count that did not change needs no check: members may already exceed it, for example
+  // after a restore, and that must not block an unrelated update.
+  if (pm?.seats != null && pm.seats !== current?.seats) {
     const used = await occupiedSeats(db, orgUuid)
     if (pm.seats < used) {
       fail({
@@ -128,4 +130,52 @@ export async function mergeSubscription(
     })
   }
   return row
+}
+
+/**
+ * Statement that stores the merged row. A new row is inserted whole. An existing row gets only the
+ * limits the request supplied, so two updates that run at the same time keep each other's values.
+ */
+export function subscriptionUpsert(db: Db, row: SubscriptionRow, update: SubscriptionUpdate) {
+  const pm = update.passwordManager
+  const sm = update.secretsManager
+  const set: Partial<SubscriptionRow> = { updatedAt: row.updatedAt }
+  if (pm?.seats != null) set.seats = row.seats
+  if (pm?.maxAutoScaleSeats != null) set.maxAutoscaleSeats = row.maxAutoscaleSeats
+  if (pm?.storage != null) set.storageGb = row.storageGb
+  if (sm?.seats != null) set.smSeats = row.smSeats
+  if (sm?.maxAutoScaleSeats != null) set.smMaxAutoscaleSeats = row.smMaxAutoscaleSeats
+  if (sm?.serviceAccounts != null) set.smServiceAccounts = row.smServiceAccounts
+  if (sm?.maxAutoScaleServiceAccounts != null)
+    set.smMaxAutoscaleServiceAccounts = row.smMaxAutoscaleServiceAccounts
+  return db
+    .insert(schema.organizationSubscriptions)
+    .values(row)
+    .onConflictDoUpdate({ target: schema.organizationSubscriptions.organizationUuid, set })
+}
+
+/** The seat limit of the organisation, or null when none was set. */
+export async function seatLimit(db: Db, orgUuid: string): Promise<number | null> {
+  return (await loadSubscription(db, orgUuid))?.seats ?? null
+}
+
+/** The refusal for an organisation whose seats are all taken. */
+export const seatsFullError = (seats: number) =>
+  new ApiError(
+    400,
+    `You have reached the maximum number of users (${seats}) allowed for this organization.`,
+  )
+
+/** Whether `adding` more members fit in the seats. With no limit set, they always fit. */
+export async function seatsAvailable(db: Db, orgUuid: string, adding = 1): Promise<boolean> {
+  const seats = await seatLimit(db, orgUuid)
+  return seats === null || (await occupiedSeats(db, orgUuid)) + adding <= seats
+}
+
+/** Throws the seat refusal unless `adding` more members fit. Call before any member is added. */
+export async function assertSeatsAvailable(db: Db, orgUuid: string, adding = 1): Promise<void> {
+  const seats = await seatLimit(db, orgUuid)
+  if (seats !== null && (await occupiedSeats(db, orgUuid)) + adding > seats) {
+    throw seatsFullError(seats)
+  }
 }

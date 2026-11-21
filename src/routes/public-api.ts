@@ -9,7 +9,11 @@ import { type AnyColumn, and, eq, inArray, type SQL } from 'drizzle-orm'
 import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { z } from 'zod'
+import { isAdminEmail } from '../admin/security'
+import { isEmailTakenError, sendEmailChangeNotices } from '../auth/email-change'
+import { stampRotationStatements } from '../auth/session'
 import { createDb, type Db, schema } from '../db'
+import { later } from '../email/send'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
 import { errorKind, log } from '../log'
@@ -50,10 +54,12 @@ import {
   systemActor,
 } from '../orgs/provisioning'
 import {
+  assertSeatsAvailable,
   loadSubscription,
   mergeSubscription,
   subscriptionJson,
   subscriptionUpdateSchema,
+  subscriptionUpsert,
 } from '../orgs/subscription'
 import { batch } from '../orgs/util'
 import { normalizeKeys } from '../validation'
@@ -130,6 +136,12 @@ const publicPermissions = (m: Member) => {
   return Object.fromEntries(PUBLIC_PERMISSION_KEYS.map((k) => [k, stored[k]]))
 }
 
+/**
+ * The published model has no Manager type. A Manager holds no organisation permission here, so it
+ * reads back as a Custom member with every permission off, and that shape is accepted on write.
+ */
+const publicType = (m: Member) => (m.atype === Role.Manager ? Role.Custom : m.atype)
+
 function memberJson(m: Member, user: UserRow | null, lists: MemberLists) {
   return {
     object: 'member',
@@ -142,9 +154,9 @@ function memberJson(m: Member, user: UserRow | null, lists: MemberLists) {
     collections: (lists.collections.get(m.uuid) ?? []).map(association),
     resetPasswordEnrolled: m.resetPasswordKey !== null,
     ssoExternalId: m.userUuid ? (lists.ssoExternalIds.get(m.userUuid) ?? null) : null,
-    type: m.atype,
+    type: publicType(m),
     externalId: m.externalId,
-    permissions: m.atype === Role.Custom ? publicPermissions(m) : null,
+    permissions: publicType(m) === Role.Custom ? publicPermissions(m) : null,
   }
 }
 
@@ -183,12 +195,15 @@ function memberPermissionsColumn(
   return permissionsColumn(type, merged)
 }
 
+const EMAIL_TAKEN = 'The email address is already in use.'
+
 /**
  * Changes of the account name and email address of a member. Both are allowed for a claimed
  * member only: one whose accepted account is on a domain the organisation verified. The email
  * address also needs an account without a master password and a new address on a verified domain.
  */
 async function identityStatements(
+  c: Ctx,
   db: Db,
   orgUuid: string,
   target: Member,
@@ -197,7 +212,8 @@ async function identityStatements(
   const wantName = change.name !== null && change.name !== undefined
   const wantEmail =
     change.email !== null && change.email !== undefined && change.email.trim() !== ''
-  if (!wantName && !wantEmail) return []
+  const none = { statements: [], notify: null }
+  if (!wantName && !wantEmail) return none
   const [user] = target.userUuid
     ? await db.select().from(schema.users).where(eq(schema.users.uuid, target.userUuid)).limit(1)
     : []
@@ -205,7 +221,7 @@ async function identityStatements(
   const newEmail = wantEmail ? (change.email as string).trim().toLowerCase() : null
   const nameChanges = newName !== null && newName !== (user?.name ?? null)
   const emailChanges = newEmail !== null && newEmail !== (user?.email ?? target.email ?? '')
-  if (!nameChanges && !emailChanges) return []
+  if (!nameChanges && !emailChanges) return none
   const claimed =
     user !== undefined &&
     target.status >= Status.Accepted &&
@@ -219,36 +235,58 @@ async function identityStatements(
       errors.email = ['Email cannot be changed for a member with a master password.']
     } else if (!newEmail?.includes('@') || !(await orgClaimsEmail(db, orgUuid, newEmail))) {
       errors.email = ['The new email address must be on a domain verified by the organization.']
+    } else if (isAdminEmail(c.env.ADMIN_EMAILS, newEmail)) {
+      // Same answer as for an address that is taken, so the ADMIN_EMAILS list cannot be probed.
+      errors.email = [EMAIL_TAKEN]
     } else {
       const [taken] = await db
         .select({ uuid: schema.users.uuid })
         .from(schema.users)
         .where(eq(schema.users.email, newEmail))
         .limit(1)
-      if (taken) errors.email = ['The email address is already in use.']
+      if (taken) errors.email = [EMAIL_TAKEN]
     }
   }
   if (Object.keys(errors).length > 0) throw new ApiError(400, 'The request is invalid.', errors)
-  if (!user) return []
+  if (!user) return none
   const now = Date.now()
-  return [
-    db
-      .update(schema.users)
-      .set({
-        ...(nameChanges && newName !== null ? { name: newName } : {}),
-        ...(emailChanges && newEmail !== null ? { email: newEmail } : {}),
-        updatedAt: now,
-      })
-      .where(eq(schema.users.uuid, user.uuid)),
-    ...(emailChanges && newEmail !== null && target.email !== null
-      ? [
-          db
-            .update(schema.usersOrganizations)
-            .set({ email: newEmail })
-            .where(eq(schema.usersOrganizations.uuid, target.uuid)),
-        ]
-      : []),
-  ]
+  const changedEmail = emailChanges && newEmail !== null ? newEmail : null
+  return {
+    statements: [
+      db
+        .update(schema.users)
+        .set({
+          ...(nameChanges && newName !== null ? { name: newName } : {}),
+          ...(changedEmail !== null
+            ? {
+                email: changedEmail,
+                // A granted instance role belongs to the old address: a new one needs a fresh grant.
+                instanceRole: 'user',
+              }
+            : {}),
+          updatedAt: now,
+        })
+        .where(eq(schema.users.uuid, user.uuid)),
+      ...(changedEmail !== null
+        ? [
+            // Old sessions of the account stop working, as after the account's own change.
+            ...stampRotationStatements(db, user.uuid),
+            ...(target.email !== null
+              ? [
+                  db
+                    .update(schema.usersOrganizations)
+                    .set({ email: changedEmail })
+                    .where(eq(schema.usersOrganizations.uuid, target.uuid)),
+                ]
+              : []),
+          ]
+        : []),
+    ],
+    notify:
+      changedEmail !== null
+        ? () => later(c, sendEmailChangeNotices(c.env, user.email, changedEmail))
+        : null,
+  }
 }
 
 const ev = (db: Db, c: Ctx, e: Parameters<typeof eventStatement>[2]) =>
@@ -328,6 +366,7 @@ function registerMembers(r: Hono<Env>, p: string) {
     if (!email.includes('@'))
       throw new ApiError(400, 'The request is invalid.', { email: ['Invalid email address.'] })
     if (await memberByEmail(db, orgUuid, email)) throw new ApiError(400, 'User already invited.')
+    await assertSeatsAvailable(db, orgUuid)
     const cols = dedupeSelections(b.collections ?? [])
     const groups = [...new Set(b.groups ?? [])]
     await checkRefs(db, orgUuid, cols, groups)
@@ -367,30 +406,39 @@ function registerMembers(r: Hono<Env>, p: string) {
     const cols = b.collections == null ? null : dedupeSelections(b.collections)
     const groups = b.groups == null ? null : [...new Set(b.groups)]
     await checkRefs(db, orgUuid, cols ?? [], groups ?? [])
-    // The published model has no `accessAll`: a member keeps the blanket access it already has.
-    const accessAll = target.accessAll
-    const identity = await identityStatements(db, orgUuid, target, b)
+    // The published model has no `accessAll`. As the spec says, a property that is not provided is
+    // reset, so a PUT ends blanket access and applies the collections it names.
+    const accessAll = false
+    const identity = await identityStatements(c, db, orgUuid, target, b)
     const now = Date.now()
-    await batch(db, [
-      db
-        .update(schema.usersOrganizations)
-        .set({
-          atype: b.type,
-          accessAll,
-          externalId: b.externalId ?? null,
-          permissions: memberPermissionsColumn(b.type, b.permissions, target),
-          updatedAt: now,
-        })
-        .where(eq(schema.usersOrganizations.uuid, target.uuid)),
-      ...identity,
-      ...accessStatements(db, target.uuid, accessAll, cols, groups, false),
-      ev(db, c, {
-        type: EventType.OrganizationUserUpdated,
-        organizationUserUuid: target.uuid,
-        userUuid: target.userUuid,
-      }),
-      bumpOrgRevision(db, orgUuid, now),
-    ])
+    try {
+      await batch(db, [
+        db
+          .update(schema.usersOrganizations)
+          .set({
+            atype: b.type,
+            accessAll,
+            externalId: b.externalId ?? null,
+            permissions: memberPermissionsColumn(b.type, b.permissions, target),
+            updatedAt: now,
+          })
+          .where(eq(schema.usersOrganizations.uuid, target.uuid)),
+        ...identity.statements,
+        ...accessStatements(db, target.uuid, accessAll, cols, groups, false),
+        ev(db, c, {
+          type: EventType.OrganizationUserUpdated,
+          organizationUserUuid: target.uuid,
+          userUuid: target.userUuid,
+        }),
+        bumpOrgRevision(db, orgUuid, now),
+      ])
+    } catch (err) {
+      // Another account took the address after the check above.
+      if (isEmailTakenError(err))
+        throw new ApiError(400, 'The request is invalid.', { email: [EMAIL_TAKEN] })
+      throw err
+    }
+    identity.notify?.()
     return c.json(await memberWithUser(db, await getTarget(db, orgUuid, target.uuid)))
   })
 
@@ -601,8 +649,9 @@ function registerGroups(r: Hono<Env>, p: string) {
     const db = createDb(c.env.DB)
     const orgUuid = orgOf(c)
     const g = await loadGroup(db, orgUuid, c.req.param('id'))
-    // The published model has no `accessAll`: a group keeps the blanket access it already has.
-    const cols = g.accessAll ? [] : b.collections == null ? null : dedupeSelections(b.collections)
+    // The published model has no `accessAll`. A property that is not provided is reset, so a PUT
+    // ends blanket access and applies the collections it names.
+    const cols = b.collections == null ? null : dedupeSelections(b.collections)
     await checkRefs(db, orgUuid, cols ?? [], [])
     const now = Date.now()
     await batch(db, [
@@ -610,6 +659,7 @@ function registerGroups(r: Hono<Env>, p: string) {
         .update(schema.groups)
         .set({
           name: b.name,
+          accessAll: false,
           externalId: b.externalId ?? null,
           updatedAt: now,
         })
@@ -890,10 +940,7 @@ function registerOrganization(r: Hono<Env>, p: string) {
     const now = Date.now()
     const row = await mergeSubscription(db, orgUuid, await loadSubscription(db, orgUuid), b, now)
     await batch(db, [
-      db.insert(schema.organizationSubscriptions).values(row).onConflictDoUpdate({
-        target: schema.organizationSubscriptions.organizationUuid,
-        set: row,
-      }),
+      subscriptionUpsert(db, row, b),
       ev(db, c, { type: EventType.OrganizationUpdated }),
       bumpOrgRevision(db, orgUuid, now),
     ])

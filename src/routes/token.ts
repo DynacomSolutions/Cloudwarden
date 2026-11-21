@@ -25,6 +25,8 @@ import type { Env, User } from '../env'
 import { ApiError, oauthError, sendAccessError } from '../errors'
 import { isStandInUser } from '../federation/standin'
 import { organizationLoginGrant } from '../orgs/api-keys'
+import { EventType } from '../orgs/constants'
+import { recordUserEvent } from '../orgs/events'
 import { rateLimit, resetBudget, spendBudget, tooManyRequests } from '../ratelimit'
 import { MACHINE_SCOPE, machineLoginGrant } from '../sm/auth'
 import { consumeCode, findRedeemableCode } from '../sso/flow'
@@ -79,6 +81,12 @@ function deviceFrom(form: Form): DeviceInput | null {
     type: Number.isFinite(type) ? type : 14,
   }
 }
+
+/** Records a completed sign-in (event 1000), with the device type the client reported. */
+const recordLogin = (c: Ctx, user: User, device: DeviceInput) =>
+  recordUserEvent(createDb(c.env.DB), c, user.uuid, EventType.UserLoggedIn, {
+    deviceType: device.type,
+  })
 
 type AuthRequestRow = typeof schema.authRequests.$inferSelect
 
@@ -164,7 +172,13 @@ async function passwordGrant(c: Ctx, form: Form) {
   const ok = form.authRequest
     ? authRequest !== null
     : await verifyMasterPassword(user, form.password)
-  if (!ok || !user) return BAD_LOGIN(c)
+  if (!ok || !user) {
+    if (user)
+      await recordUserEvent(db, c, user.uuid, EventType.UserFailedLogIn, {
+        deviceType: device.type,
+      })
+    return BAD_LOGIN(c)
+  }
   await resetBudget(c.env.DB, budgetKey)
   if (!user.enabled) {
     return oauthError(
@@ -195,6 +209,7 @@ async function passwordGrant(c: Ctx, form: Form) {
   assertNotStandIn(user)
   const refreshToken = await registerDevice(db, user, device)
   if (state.isNew && state.hasOthers && !form.newDeviceOtp) announceNewDevice(c, user, device)
+  await recordLogin(c, user, device)
   const body = await tokenResponse(c.env, user, {
     deviceIdentifier: device.identifier,
     scope: ['api', 'offline_access'],
@@ -264,6 +279,7 @@ async function webauthnGrant(c: Ctx, form: Form) {
 
   assertNotStandIn(user)
   const refreshToken = await registerDevice(db, user, device)
+  await recordLogin(c, user, device)
   return c.json(
     await tokenResponse(c.env, user, {
       deviceIdentifier: device.identifier,
@@ -308,6 +324,7 @@ async function authorizationCodeGrant(c: Ctx, form: Form) {
 
   assertNotStandIn(user)
   const refreshToken = await registerDevice(db, user, device)
+  await recordLogin(c, user, device)
   const body = await tokenResponse(c.env, user, {
     deviceIdentifier: device.identifier,
     scope: ['api', 'offline_access'],
@@ -415,6 +432,7 @@ async function clientCredentialsGrant(c: Ctx, form: Form) {
   const device = deviceFrom(form) ?? { identifier: crypto.randomUUID(), name: 'API key', type: 14 }
   assertNotStandIn(user)
   await registerDevice(db, user, device)
+  await recordLogin(c, user, device)
   // API key sessions get no refresh token: clients re-authenticate with the key.
   return c.json(
     await tokenResponse(c.env, user, {

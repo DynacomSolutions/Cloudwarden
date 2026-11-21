@@ -7,7 +7,8 @@ import { later, sendNotice } from '../email/send'
 import { mailConfigured } from '../emailless'
 import type { Bindings, Env, User } from '../env'
 import { ApiError, oauthError } from '../errors'
-import { Status } from '../orgs/constants'
+import { EventType, Status } from '../orgs/constants'
+import { recordUserEvent } from '../orgs/events'
 import { overLimit, resetBudget, spendBudget, tooManyRequests } from '../ratelimit'
 import { randomB64u, safeEqualStrings, sha256B64u } from './crypto'
 import { type DuoConfig, duoAuthUrl, duoVerifyCode } from './duo'
@@ -782,9 +783,11 @@ export const enforceTwoFactor: TwoFactorHook = async (c, user, form) => {
   if (provider === TwoFactorType.RecoveryCode) {
     if (await useRecoveryCode(c.env, db, user, token)) {
       await resetBudget(c.env.DB, budgetKey)
+      await recordUserEvent(db, c, user.uuid, EventType.UserRecovered2fa)
       later(c, sendNotice(c.env, user.email, recoveryCodeUsedEmail()))
       return null
     }
+    await recordUserEvent(db, c, user.uuid, EventType.UserFailedLogIn2fa)
     return oauthError(c, 'invalid_grant', 'Recovery code is incorrect. Try again.')
   }
 
@@ -831,6 +834,7 @@ export const enforceTwoFactor: TwoFactorHook = async (c, user, form) => {
   }
 
   if (!ok) {
+    await recordUserEvent(db, c, user.uuid, EventType.UserFailedLogIn2fa)
     return oauthError(
       c,
       'invalid_grant',

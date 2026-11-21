@@ -31,10 +31,10 @@ Directory Connector, SCIM, event integrations; G this audit.
 | | Rows |
 |---|---|
 | Distinct method and path pairs | 625 |
-| Implemented (including self-host answers) | 527 |
+| Implemented (including self-host answers) | 540 |
 | Owned by workstreams A to F, not yet implemented | 0 |
 | Remaining for G | 0 |
-| Not called by any client (SDK-generated only) | 91 |
+| Not called by any client (SDK-generated only) | 78 |
 | Not applicable (not served by the official self-hosted server either) | 7 |
 
 ## Matrix
@@ -55,8 +55,8 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/access-requests/inbox` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | GET | `/api/access-requests/mine` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | GET | `/api/account/billing/subscription/preview` | sdk, web | implemented |  |  |
-| GET | `/api/account/billing/subscription/purchase/preview` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| GET | `/api/account/billing/subscription/upgrade/preview` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
+| GET | `/api/account/billing/subscription/purchase/preview` | sdk | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| GET | `/api/account/billing/subscription/upgrade/preview` | sdk | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | POST | `/api/account/billing/subscriptions/organizations/invoice/preview` | web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | POST | `/api/account/billing/subscriptions/premium/invoice/preview` | web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | POST | `/api/account/billing/subscriptions/premium/upgrade/invoice/preview` | web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
@@ -71,7 +71,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/api/account/billing/vnext/payment-method/verify-bank-account` | web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | POST | `/api/account/billing/vnext/portal-session` | android, ios, sdk | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | POST | `/api/account/billing/vnext/premium/checkout` | android, ios, sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
-| POST | `/api/account/billing/vnext/self-host/license` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
+| POST | `/api/account/billing/vnext/self-host/license` | sdk | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | GET | `/api/account/billing/vnext/subscription` | android, ios, sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | POST | `/api/account/billing/vnext/subscription` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | POST | `/api/account/billing/vnext/subscription/reinstate` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
@@ -136,7 +136,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/auth-requests/pending` | sdk, web | implemented |  |  |
 | POST | `/api/billing/preview-invoice/organizations/{orgId}/subscription/plan-change` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | POST | `/api/billing/preview-invoice/organizations/{orgId}/subscription/update` | web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
-| PUT | `/api/billing/preview-invoice/organizations/{id}/subscription/update` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
+| PUT | `/api/billing/preview-invoice/organizations/{id}/subscription/update` | sdk | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | POST | `/api/billing/preview-invoice/organizations/subscriptions/purchase` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | POST | `/api/billing/preview-invoice/premium/subscriptions/purchase` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | POST | `/api/billing/preview-invoice/premium/subscriptions/upgrade` | sdk, web | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
@@ -209,8 +209,8 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/devices` | android, ios, sdk, web | implemented |  |  |
 | POST | `/api/devices` | sdk | implemented |  |  |
 | DELETE | `/api/devices/{id}` | sdk | implemented |  |  |
-| GET | `/api/devices/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| PUT | `/api/devices/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
+| GET | `/api/devices/{id}` | sdk | implemented |  |  |
+| PUT | `/api/devices/{id}` | sdk | implemented |  |  |
 | POST | `/api/devices/{deviceId}/deactivate` | web | implemented |  |  |
 | PUT | `/api/devices/{deviceIdentifier}/keys` | android, ios, sdk, web | implemented | E |  |
 | POST | `/api/devices/{deviceIdentifier}/retrieve-keys` | web | implemented | E |  |
@@ -259,8 +259,8 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/leases/ciphers/{id}/state` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | GET | `/api/leases/history` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
 | GET | `/api/leases/mine` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| GET | `/api/licenses/organization/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| GET | `/api/licenses/user/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
+| GET | `/api/licenses/organization/{id}` | sdk | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
+| GET | `/api/licenses/user/{id}` | sdk | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | GET | `/api/notifications` | sdk, web | implemented |  |  |
 | DELETE | `/api/notifications/{notificationId}/delete` | web | implemented |  |  |
 | PATCH | `/api/notifications/{id}/delete` | sdk | implemented |  |  |
@@ -280,7 +280,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/api/organization/sponsorship/self-hosted/{orgId}/families-for-enterprise` | sdk, web | self-host | G | No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation |
 | GET | `/api/organization/sponsorship/self-hosted/{orgId}/sponsored` | sdk, web | self-host | G | No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation |
 | DELETE | `/api/organization/sponsorship/sponsored/{orgId}` | sdk, web | self-host | G | No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation |
-| POST | `/api/organization/sponsorship/sync` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
+| POST | `/api/organization/sponsorship/sync` | sdk | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | POST | `/api/organization/sponsorship/validate-token` | sdk, web | self-host | G | No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation |
 | GET | `/api/organizations` | sdk | implemented |  |  |
 | POST | `/api/organizations` | sdk, web | implemented |  |  |
@@ -467,7 +467,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | PUT | `/api/organizations/{orgId}/users/revoke` | sdk, web | implemented |  |  |
 | PUT | `/api/organizations/{orgId}/users/revoke-self` | android, ios, sdk, web | implemented |  |  |
 | POST | `/api/organizations/{id}/users/send-invite` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/organizations/billing/subscription/purchase/preview` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
+| POST | `/api/organizations/billing/subscription/purchase/preview` | sdk | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | POST | `/api/organizations/connections/` | sdk, web | self-host | G | Self-hosted answer of the official server with cloud communication disabled: the probe says false, writes answer 400 (create) or 404 (update, delete), there is never a connection to read (TASKS #344) |
 | DELETE | `/api/organizations/connections/{id}` | sdk, web | self-host | G | Self-hosted answer of the official server with cloud communication disabled: the probe says false, writes answer 400 (create) or 404 (update, delete), there is never a connection to read (TASKS #344) |
 | PUT | `/api/organizations/connections/{orgId}` | sdk, web | self-host | G | Self-hosted answer of the official server with cloud communication disabled: the probe says false, writes answer 400 (create) or 404 (update, delete), there is never a connection to read (TASKS #344) |
@@ -512,7 +512,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | PUT | `/api/providers/{providerId}/billing/vnext/payment-method` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
 | POST | `/api/providers/{providerId}/billing/vnext/payment-method/verify-bank-account` | web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
 | POST | `/api/providers/{providerId}/billing/vnext/subscription/restart` | web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
-| GET | `/api/providers/{id}/billing/vnext/warnings` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
+| GET | `/api/providers/{id}/billing/vnext/warnings` | sdk | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | POST | `/api/providers/{providerId}/clients` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
 | PUT | `/api/providers/{providerId}/clients/{orgId}` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
 | GET | `/api/providers/{providerId}/clients/addable` | sdk, web | self-host | G | No Provider Portal on a self-hosted server: lookups answer 404 like an unknown provider and lists are empty |
@@ -616,7 +616,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | PATCH | `/api/tasks/{taskId}/complete` | sdk, web | implemented |  |  |
 | GET | `/api/tasks/{id}/metrics` | sdk | implemented |  |  |
 | GET | `/api/tasks/organization` | sdk | implemented |  |  |
-| GET | `/api/tax/is-country-supported` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
+| GET | `/api/tax/is-country-supported` | sdk | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | GET | `/api/two-factor` | sdk, web | implemented |  |  |
 | DELETE | `/api/two-factor/authenticator` | sdk, web | implemented |  |  |
 | PUT | `/api/two-factor/authenticator` | sdk, web | implemented |  |  |
@@ -654,7 +654,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/identity/accounts/register/finish` | android, ios, sdk, web | implemented |  |  |
 | POST | `/identity/accounts/register/send-verification-email` | android, ios, sdk, web | implemented |  |  |
 | POST | `/identity/accounts/register/verification-email-clicked` | android, sdk, web | implemented |  |  |
-| POST | `/identity/accounts/trial/send-verification-email` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
+| POST | `/identity/accounts/trial/send-verification-email` | sdk | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | GET | `/identity/accounts/webauthn/assertion-options` | sdk, web | implemented |  |  |
 | GET | `/identity/alive` | sdk | implemented |  |  |
 | GET | `/identity/connect/authorize` | web | implemented | E |  |
@@ -666,3 +666,23 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/notifications/anonymous-hub` | web | implemented |  |  |
 | GET | `/notifications/hub` | web | implemented |  |  |
 | POST | `/notifications/hub/negotiate` | web | implemented |  |  |
+
+## Routes shadowed by a wildcard
+
+Two cases. A client call with no route of its own that a wildcard route answers with the literal as
+the parameter value. A route that a wildcard route of the same method answers first, because the
+wildcard is registered earlier in the same file or in a router mounted earlier; a wildcard handler
+that calls `next()` for ids it does not own still lets the literal route answer.
+
+| Method | Path | Shadowed by | Where |
+|---|---|---|---|
+| GET | `/api/organizations/{id}/collections/access` | `/api/organizations/:orgId/collections/:id` | `routes/collections.ts`, no route of its own |
+| POST | `/api/organizations/{id}/users/send-invite` | `/api/organizations/:orgId/users/:id` | `routes/org-users.ts`, no route of its own |
+| POST | `/api/ciphers/create` | `/api/ciphers/:id` | `routes/ciphers.ts` after `routes/org-ciphers.ts`, which calls `next()` |
+| POST | `/api/ciphers/delete` | `/api/ciphers/:id` | `routes/ciphers.ts` after `routes/org-ciphers.ts`, which calls `next()` |
+| PUT | `/api/ciphers/delete` | `/api/ciphers/:id` | `routes/ciphers.ts` after `routes/org-ciphers.ts`, which calls `next()` |
+| POST | `/api/ciphers/import` | `/api/ciphers/:id` | `routes/ciphers.ts` after `routes/org-ciphers.ts`, which calls `next()` |
+| POST | `/api/ciphers/move` | `/api/ciphers/:id` | `routes/ciphers.ts` after `routes/org-ciphers.ts`, which calls `next()` |
+| PUT | `/api/ciphers/move` | `/api/ciphers/:id` | `routes/ciphers.ts` after `routes/org-ciphers.ts`, which calls `next()` |
+| POST | `/api/ciphers/purge` | `/api/ciphers/:id` | `routes/ciphers.ts` after `routes/org-ciphers.ts`, which calls `next()` |
+| PUT | `/api/ciphers/restore` | `/api/ciphers/:id` | `routes/ciphers.ts` after `routes/org-ciphers.ts`, which calls `next()` |

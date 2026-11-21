@@ -2,7 +2,7 @@ import { env } from 'cloudflare:workers'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { login } from './helpers'
 import type { OidcIdp } from './oidc-idp'
-import { actor, createOrg } from './org-helpers'
+import { actor, createOrg, enableRecoveryPolicy } from './org-helpers'
 import { authedCall, configureOidc, oidcLogin, startIdp } from './sso-helpers'
 
 let idp: OidcIdp
@@ -206,7 +206,8 @@ describe('SSO JIT provision finish', { timeout: 300_000 }, () => {
   })
 
   it('stores the keys, the device keys and the recovery key for a trusted device member', async () => {
-    const { org, identifier } = await ssoOrg(2)
+    const { owner, org, identifier } = await ssoOrg(2)
+    await enableRecoveryPolicy(owner, org.id, true)
     const email = `${unique('tde')}@example.com`
     const first = await oidcLogin(idp, identifier, { sub: unique('sub'), email })
     const token = first.body.access_token as string
@@ -265,5 +266,154 @@ describe('SSO JIT provision finish', { timeout: 300_000 }, () => {
         })
       ).status,
     ).toBe(400)
+  })
+
+  const tdeBody = (orgId: string, over: Record<string, unknown> = {}) => ({
+    keys: { publicKey: 'tde-public', encryptedPrivateKey: '2.tdepriv', userKeyId: 'key-id-tde' },
+    organizationId: orgId,
+    accountRecoveryKey: '4.recoveryForOrg',
+    acceptOrganizationInvite: true,
+    ...over,
+  })
+  const resetKey = async (orgId: string, email: string) =>
+    (
+      await env.DB.prepare(
+        'SELECT m.reset_password_key AS k FROM users_organizations m JOIN users u ON u.uuid = m.user_uuid WHERE m.organization_uuid = ?1 AND u.email = ?2',
+      )
+        .bind(orgId, email)
+        .first<{ k: string | null }>()
+    )?.k
+
+  it('refuses every finish call for an account that already has keys', async () => {
+    const tde = await ssoOrg(2)
+    const email = `${unique('tde-keys')}@example.com`
+    const first = await oidcLogin(idp, tde.identifier, { sub: unique('sub'), email })
+    const token = first.body.access_token as string
+    await env.DB.prepare(
+      "UPDATE users SET public_key = 'old-public', private_key = '2.oldpriv' WHERE email = ?1",
+    )
+      .bind(email)
+      .run()
+    const res = await authedCall(token, path('trusted-device'), 'POST', tdeBody(tde.org.id))
+    expect(res.status).toBe(400)
+    expect(await res.text()).toContain('already initialized')
+    expect(await resetKey(tde.org.id, email)).toBeNull()
+    const profile = (await (await authedCall(token, '/api/accounts/profile')).json()) as any
+    expect(profile.privateKey).toBe('2.oldpriv')
+
+    const pw = await ssoOrg(0)
+    const member = await newMember(pw.identifier)
+    await env.DB.prepare(
+      "UPDATE users SET public_key = 'old-public', private_key = '2.oldpriv' WHERE email = ?1",
+    )
+      .bind(member.email)
+      .run()
+    expect(
+      (
+        await authedCall(
+          member.token,
+          path('password'),
+          'POST',
+          passwordBody(member.email, pw.identifier),
+        )
+      ).status,
+    ).toBe(400)
+
+    const kc = await ssoOrg(1)
+    const kcMember = await newMember(kc.identifier)
+    await env.DB.prepare(
+      "UPDATE users SET public_key = 'old-public', private_key = '2.oldpriv' WHERE email = ?1",
+    )
+      .bind(kcMember.email)
+      .run()
+    const keyConnectorKeys = {
+      keyConnectorKeyWrappedUserKey: '7.kcWrapped',
+      accountKeys: passwordBody('x@example.com', kc.identifier).accountKeys,
+      orgIdentifier: kc.identifier,
+    }
+    expect(
+      (
+        await authedCall(kcMember.token, path('key-connector'), 'POST', {
+          keyConnectorKeys,
+          acceptOrganizationInvite: true,
+        })
+      ).status,
+    ).toBe(400)
+  })
+
+  it('applies the recovery policy to the trusted device enrolment', async () => {
+    const tde = await ssoOrg(2)
+    const member = async () => {
+      const email = `${unique('tde-pol')}@example.com`
+      const first = await oidcLogin(idp, tde.identifier, { sub: unique('sub'), email })
+      return { email, token: first.body.access_token as string }
+    }
+    // Sets the account recovery policy (type 8) of the organisation directly.
+    const setPolicy = (enabled: boolean, autoEnroll: boolean) =>
+      env.DB.prepare(
+        `INSERT INTO policies (uuid, organization_uuid, atype, enabled, data, updated_at)
+         VALUES (?1, ?2, 8, ?3, ?4, 0)
+         ON CONFLICT (organization_uuid, atype) DO UPDATE SET enabled = ?3, data = ?4`,
+      )
+        .bind(
+          crypto.randomUUID(),
+          tde.org.id,
+          enabled ? 1 : 0,
+          JSON.stringify({ autoEnrollEnabled: autoEnroll }),
+        )
+        .run()
+    // The policy is off: a recovery key is refused.
+    await setPolicy(false, false)
+    const a = await member()
+    expect(
+      (await authedCall(a.token, path('trusted-device'), 'POST', tdeBody(tde.org.id))).status,
+    ).toBe(400)
+    expect(await resetKey(tde.org.id, a.email)).toBeNull()
+    // Without the key the call passes while the policy is off.
+    expect(
+      (
+        await authedCall(
+          a.token,
+          path('trusted-device'),
+          'POST',
+          tdeBody(tde.org.id, { accountRecoveryKey: null }),
+        )
+      ).status,
+    ).toBe(200)
+    // Auto-enrolment makes the key required.
+    await setPolicy(true, true)
+    const b = await member()
+    expect(
+      (
+        await authedCall(
+          b.token,
+          path('trusted-device'),
+          'POST',
+          tdeBody(tde.org.id, { accountRecoveryKey: null }),
+        )
+      ).status,
+    ).toBe(400)
+    expect(
+      (await authedCall(b.token, path('trusted-device'), 'POST', tdeBody(tde.org.id))).status,
+    ).toBe(200)
+    expect(await resetKey(tde.org.id, b.email)).toBe('4.recoveryForOrg')
+  })
+
+  it('applies the two-step login policy when the finish call accepts the invitation', async () => {
+    const { owner, org, identifier } = await ssoOrg(0)
+    const { email, token } = await newMember(identifier)
+    const set = await owner.call(`/api/organizations/${org.id}/policies/0`, 'PUT', {
+      enabled: true,
+      data: null,
+    })
+    expect(set.status, await set.clone().text()).toBe(200)
+    await env.DB.prepare(
+      'UPDATE users_organizations SET status = 0 WHERE organization_uuid = ?1 AND user_uuid = (SELECT uuid FROM users WHERE email = ?2)',
+    )
+      .bind(org.id, email)
+      .run()
+    const res = await authedCall(token, path('password'), 'POST', passwordBody(email, identifier))
+    expect(res.status).toBe(400)
+    expect(await statusOf(org.id, email)).toBe(0)
   })
 })

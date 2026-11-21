@@ -169,6 +169,21 @@ it('answers the storage event hook like a server that keeps files locally', asyn
   expect(await other.text()).toBe('')
   expect((await post('not json')).status).toBe(400)
   expect((await post({ eventType: 'x' })).status).toBe(400)
+  // A body above 64 KB is refused, by its declared length and by its real length.
+  const big = JSON.stringify([{ eventType: 'x', data: 'a'.repeat(70_000) }])
+  expect((await post(big)).status).toBe(413)
+})
+
+it('rate limits the anonymous storage event hook per address', async () => {
+  const hit = () =>
+    SELF.fetch(`${BASE}/api/ciphers/attachment/validate/azure`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': '203.0.113.77' },
+      body: '[]',
+    })
+  const codes: number[] = []
+  for (let i = 0; i < 40; i++) codes.push((await hit()).status)
+  expect(codes).toContain(429)
 })
 
 it('sends the invitation again through users/send-invite', async () => {

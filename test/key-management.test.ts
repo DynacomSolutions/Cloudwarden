@@ -19,6 +19,8 @@ const PASSWORD = 'client-derived-hash'
 const RECOVERY_KEY = '4.recoveryKeyWrappedForOrg'
 const KDF = { kdfType: 0, iterations: 600000 }
 
+const KDF_NESTED = { kdfType: 0, iterations: 600000 }
+
 const ROTATE = '/api/accounts/key-management/rotate-user-keys'
 
 /** A `RotateUserKeysRequestModel` for a master password account. */
@@ -180,7 +182,7 @@ it('rotates the user key with rotate-user-keys and re-wraps what the client send
   const body = rotation(member.email, {
     wrappedAccountCryptographicState: {
       publicKeyEncryptionKeyPair: {
-        wrappedPrivateKey: '2.newPriv',
+        wrappedPrivateKey: '7.newPriv',
         publicKey: 'public-key',
         signedPublicKey: '7.signedPublic',
       },
@@ -228,10 +230,10 @@ it('rotates the user key with rotate-user-keys and re-wraps what the client send
   expect((await authed('/api/accounts/profile', member.token)).status).toBe(401)
   const again = (await (await login(member.email, PASSWORD)).json()) as Record<string, any>
   expect(again.Key).toBe('2.rotatedUserKey')
-  expect(again.PrivateKey).toBe('2.newPriv')
+  expect(again.PrivateKey).toBe('7.newPriv')
   expect(again.AccountKeys).toEqual({
     publicKeyEncryptionKeyPair: {
-      wrappedPrivateKey: '2.newPriv',
+      wrappedPrivateKey: '7.newPriv',
       publicKey: 'public-key',
       signedPublicKey: '7.signedPublic',
     },
@@ -279,7 +281,7 @@ it('checks the unlock method and the key id against the account', async () => {
   expect((await rotate(user, changed)).status).toBe(400)
   // A stale old key id is refused once the account has a key id.
   await user.call('/api/accounts/key-management/user-key-id', 'POST', { userKeyId: 'id-1' })
-  expect((await rotate(user, { ...base, oldUserKeyId: 'id-0' })).status).toBe(400)
+  expect((await rotate(user, { ...base, oldUserKeyId: 'id-0' })).status).toBe(409)
   expect((await rotate(user, { ...base, oldUserKeyId: 'id-1', newUserKeyId: 'id-2' })).status).toBe(
     200,
   )
@@ -363,7 +365,7 @@ it('unenrols a member whose V2 upgrade cannot be completed', async () => {
   expect(await memberRow(memberId)).toEqual({ key: null, token: null })
 })
 
-it('regenerates the key pair only for an account without one, or with the same public key', async () => {
+it('regenerates the key pair of an account', async () => {
   const user = await actor('km-regen@example.com')
   const path = '/api/accounts/key-management/regenerate-keys'
   // The same public key re-wraps the private key.
@@ -373,7 +375,7 @@ it('regenerates the key pair only for an account without one, or with the same p
   })
   expect(same.status).toBe(200)
   expect((await user.json('/api/accounts/profile')).privateKey).toBe('2.repaired')
-  // Another public key would strand confirmed organisation keys.
+  // Another public key is accepted: what the old one opened is reset.
   expect(
     (
       await user.call(path, 'POST', {
@@ -381,7 +383,7 @@ it('regenerates the key pair only for an account without one, or with the same p
         userKeyEncryptedUserPrivateKey: '2.x',
       })
     ).status,
-  ).toBe(400)
+  ).toBe(200)
   expect((await user.call(path, 'POST', { userPublicKey: 'public-key' })).status).toBe(400)
 
   // An account without keys gets its pair.
@@ -397,4 +399,260 @@ it('regenerates the key pair only for an account without one, or with the same p
   expect(profile).toMatchObject({ privateKey: '2.brandNew' })
   expect(profile.accountKeys.publicKeyEncryptionKeyPair.publicKey).toBe('brand-new-key')
   expect((await authed(path, 'bad', 'POST', {})).status).toBe(401)
+})
+
+const v2State = (over: Record<string, unknown> = {}) => ({
+  publicKeyEncryptionKeyPair: {
+    wrappedPrivateKey: '7.v2Priv',
+    publicKey: 'public-key',
+    signedPublicKey: '7.signedPublic',
+  },
+  signatureKeyPair: {
+    signatureAlgorithm: 'ed25519',
+    wrappedSigningKey: '7.wrappedSigning',
+    verifyingKey: 'verifying',
+  },
+  securityState: { securityState: 'signed-state', securityVersion: 2 },
+  ...over,
+})
+
+/** Gives the account the stored shape of a V2 user. */
+async function makeV2(user: Actor) {
+  await env.DB.prepare('UPDATE users SET account_keys_v2 = ?1, private_key = ?2 WHERE uuid = ?3')
+    .bind(
+      JSON.stringify({
+        signedPublicKey: '7.signedPublic',
+        signatureKeyPair: {
+          signatureAlgorithm: 'ed25519',
+          wrappedSigningKey: '7.wrappedSigning',
+          verifyingKey: 'verifying',
+        },
+        securityState: { securityState: 'signed-state', securityVersion: 2 },
+      }),
+      '7.v2Priv',
+      user.uuid,
+    )
+    .run()
+}
+
+it('holds a V2 account to a full V2 set with the verifying key it has', async () => {
+  const user = await actor('km-v2-shape@example.com')
+  await makeV2(user)
+  const send = (state: unknown) =>
+    rotate(user, rotation(user.email, { wrappedAccountCryptographicState: state }))
+  // No signature key pair, a partial set, a V1 private key and a new verifying key are refused.
+  expect(
+    (await send({ publicKeyEncryptionKeyPair: v2State().publicKeyEncryptionKeyPair })).status,
+  ).toBe(400)
+  expect((await send(v2State({ securityState: null }))).status).toBe(400)
+  expect((await send(v2State({ signatureKeyPair: { verifyingKey: 'verifying' } }))).status).toBe(
+    400,
+  )
+  const v1Priv = v2State()
+  v1Priv.publicKeyEncryptionKeyPair = {
+    ...v1Priv.publicKeyEncryptionKeyPair,
+    wrappedPrivateKey: '2.v1Priv',
+  }
+  expect((await send(v1Priv)).status).toBe(400)
+  const other = v2State()
+  other.signatureKeyPair = { ...other.signatureKeyPair, verifyingKey: 'another-verifying' }
+  expect((await send(other)).status).toBe(400)
+  // The same verifying key rotates.
+  expect((await send(v2State())).status).toBe(200)
+})
+
+it('refuses partial V2 data and a non AES private key from a V1 account', async () => {
+  const user = await actor('km-v1-shape@example.com')
+  const send = (state: unknown) =>
+    rotate(user, rotation(user.email, { wrappedAccountCryptographicState: state }))
+  const pair = { publicKey: 'public-key', wrappedPrivateKey: '2.newPriv' }
+  // A signed public key without a signature key pair is partial V2 data.
+  expect(
+    (await send({ publicKeyEncryptionKeyPair: { ...pair, signedPublicKey: '7.s' } })).status,
+  ).toBe(400)
+  // A V1 private key is an AES-CBC-HMAC string.
+  expect(
+    (await send({ publicKeyEncryptionKeyPair: { ...pair, wrappedPrivateKey: '7.cose' } })).status,
+  ).toBe(400)
+  expect((await send({ publicKeyEncryptionKeyPair: pair })).status).toBe(200)
+})
+
+async function grantTo(grantor: Actor, grantee: Actor) {
+  const before = mail.sent.length
+  await grantor.call('/api/emergency-access/invite', 'POST', {
+    email: grantee.email,
+    type: 0,
+    waitTimeDays: 1,
+  })
+  const p = linkParams(mail.sent[before])
+  const id = p.get('id') as string
+  await grantee.call(`/api/emergency-access/${id}/accept`, 'POST', { token: p.get('token') })
+  await grantor.call(`/api/emergency-access/${id}/confirm`, 'POST', { key: '4.old' })
+  return id
+}
+
+it('needs every confirmed emergency access grant exactly once', async () => {
+  const grantor = await actor('km-ea-grantor@example.com')
+  const one = await grantTo(grantor, await actor('km-ea-one@example.com'))
+  const two = await grantTo(grantor, await actor('km-ea-two@example.com'))
+  const send = (list: { id: string; keyEncrypted: string }[]) =>
+    rotate(
+      grantor,
+      rotation(grantor.email, {
+        unlockData: {
+          organizationAccountRecoveryUnlockData: [],
+          passkeyUnlockData: [],
+          emergencyAccessUnlockData: list.map((g) => ({ ...g, type: 0, waitTimeDays: 1 })),
+        },
+      }),
+    )
+  const key = async (id: string) =>
+    (
+      await env.DB.prepare('SELECT key_encrypted AS k FROM emergency_access WHERE uuid = ?1')
+        .bind(id)
+        .first<{ k: string }>()
+    )?.k
+  expect((await send([])).status).toBe(400)
+  expect((await send([{ id: one, keyEncrypted: '4.new1' }])).status).toBe(400)
+  expect(
+    (
+      await send([
+        { id: one, keyEncrypted: '4.new1' },
+        { id: one, keyEncrypted: '4.new1' },
+        { id: two, keyEncrypted: '4.new2' },
+      ])
+    ).status,
+  ).toBe(400)
+  expect(await key(one)).toBe('4.old')
+  expect(
+    (
+      await send([
+        { id: one, keyEncrypted: '4.new1' },
+        { id: two, keyEncrypted: '4.new2' },
+      ])
+    ).status,
+  ).toBe(200)
+  expect(await key(one)).toBe('4.new1')
+  expect(await key(two)).toBe('4.new2')
+})
+
+it('keeps recovery keys and the sessions in a V1 to V2 upgrade, and refuses a reset meanwhile', async () => {
+  const { owner, member, orgId, memberId } = await recoveryOrg('km-up')
+  const token = { wrappedUserKey1: '2.v2ByV1', wrappedUserKey2: '2.v1ByV2' }
+  const upgrade = (key: string | null, state = v2State(), tok: unknown = token) =>
+    rotate(
+      member,
+      rotation(member.email, {
+        wrappedAccountCryptographicState: state,
+        unlockData: {
+          organizationAccountRecoveryUnlockData: [{ organizationId: orgId, resetPasswordKey: key }],
+          passkeyUnlockData: [],
+          v2UpgradeToken: tok,
+        },
+        newUserKeyId: 'id-2',
+      }),
+    )
+  // An upgrade cannot re-wrap the recovery key.
+  expect((await upgrade('4.rewrapped')).status).toBe(400)
+  expect((await upgrade(null)).status, 'upgrade').toBe(200)
+  // The sessions stay and the token reaches the client with sync.
+  const sync = await member.json('/api/sync')
+  expect(sync.userDecryption.v2UpgradeToken).toEqual(token)
+  expect(await memberRow(memberId)).toMatchObject({ key: RECOVERY_KEY })
+
+  // An administrator reset would store a key for the old user key: refused until the upgrade ends.
+  const reset = () =>
+    owner.call(`/api/organizations/${orgId}/users/${memberId}/recover-account`, 'PUT', {
+      resetMasterPassword: true,
+      resetTwoFactor: false,
+      authenticationData: {
+        salt: member.email,
+        kdf: KDF_NESTED,
+        masterPasswordAuthenticationHash: 'temp-hash',
+      },
+      unlockData: { salt: member.email, kdf: KDF_NESTED, masterKeyWrappedUserKey: '2.newKey' },
+    })
+  expect((await reset()).status).toBe(400)
+
+  // Enrolling again writes a new key and clears the token.
+  expect((await enroll(member, orgId)).status).toBe(200)
+  expect(await memberRow(memberId)).toEqual({ key: RECOVERY_KEY, token: null })
+  expect((await reset()).status).toBe(200)
+})
+
+it('ignores a V2 upgrade token of an account that already has V2 keys', async () => {
+  const { member, orgId } = await recoveryOrg('km-up-v2')
+  await makeV2(member)
+  const body = rotation(member.email, {
+    wrappedAccountCryptographicState: v2State(),
+    unlockData: {
+      organizationAccountRecoveryUnlockData: [{ organizationId: orgId, resetPasswordKey: null }],
+      passkeyUnlockData: [],
+      v2UpgradeToken: { wrappedUserKey1: '2.a', wrappedUserKey2: '2.b' },
+    },
+  })
+  expect((await rotate(member, body)).status).toBe(400)
+})
+
+it('only completes a V2 upgrade for the key id still on the account', async () => {
+  const { owner, member, orgId, memberId } = await recoveryOrg('km-up-race')
+  await member.call('/api/accounts/key-management/user-key-id', 'POST', { userKeyId: 'id-1' })
+  const token = JSON.stringify({ wrappedUserKey1: '2.a', wrappedUserKey2: '2.b' })
+  await env.DB.prepare('UPDATE users_organizations SET v2_upgrade_token = ?1 WHERE uuid = ?2')
+    .bind(token, memberId)
+    .run()
+  const upgrade = (userKeyId: string) =>
+    owner.call(`/api/organizations/${orgId}/users/keys/v2-upgrades`, 'POST', {
+      upgrades: [{ organizationUserId: memberId, userKeyId, accountRecoveryKey: '4.v2' }],
+    })
+  expect((await upgrade('id-0')).status).toBe(200)
+  expect(await memberRow(memberId)).toMatchObject({ key: RECOVERY_KEY })
+  expect((await upgrade('id-1')).status).toBe(200)
+  expect(await memberRow(memberId)).toEqual({ key: '4.v2', token: null })
+})
+
+it('rejects a wrapped user key whose key id is not the new one', async () => {
+  const user = await actor('km-contained@example.com')
+  const body = rotation(user.email, {
+    unlockMethodData: {
+      unlockMethod: 1,
+      masterPasswordUnlockData: {
+        kdf: KDF,
+        masterKeyWrappedUserKey: '2.k',
+        salt: user.email,
+        containedKeyId: 'id-a',
+      },
+    },
+    newUserKeyId: 'id-b',
+  })
+  expect((await rotate(user, body)).status).toBe(400)
+})
+
+it('regenerates keys with a new pair and resets what the old public key opened', async () => {
+  const { owner, member, orgId, memberId } = await recoveryOrg('km-regen2')
+  await env.DB.prepare('UPDATE users_organizations SET status = 2, akey = ?1 WHERE uuid = ?2')
+    .bind('4.orgKey', memberId)
+    .run()
+  const owned = await grantTo(owner, member)
+  const res = await member.call('/api/accounts/key-management/regenerate-keys', 'POST', {
+    userPublicKey: 'another-public-key',
+    userKeyEncryptedUserPrivateKey: '2.another',
+  })
+  expect(res.status).toBe(200)
+  const row = await env.DB.prepare(
+    'SELECT status AS s, akey AS k FROM users_organizations WHERE uuid = ?1',
+  )
+    .bind(memberId)
+    .first<{ s: number; k: string }>()
+  expect(row).toEqual({ s: 1, k: '' })
+  const grant = await env.DB.prepare(
+    'SELECT status AS s, key_encrypted AS k FROM emergency_access WHERE uuid = ?1',
+  )
+    .bind(owned)
+    .first<{ s: number; k: string | null }>()
+  expect(grant).toEqual({ s: 1, k: null })
+  expect(
+    (await member.json('/api/accounts/profile')).accountKeys.publicKeyEncryptionKeyPair.publicKey,
+  ).toBe('another-public-key')
+  void orgId
 })

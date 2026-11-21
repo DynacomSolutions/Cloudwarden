@@ -4,6 +4,7 @@ import { fromB64u, toB64u, utf8 } from '../auth/crypto'
 import type { Db } from '../db'
 import { schema } from '../db'
 import type { Env } from '../env'
+import { ApiError } from '../errors'
 
 export interface EventInput {
   type: number
@@ -102,30 +103,85 @@ const parseDate = (s: string | undefined): number | null => {
   return Number.isNaN(t) ? null : t
 }
 
-/** Opaque cursor: the date and id of the last row of the previous page. */
-const encodeCursor = (e: { eventDate: number; uuid: string }) =>
-  toB64u(utf8(`${e.eventDate}.${e.uuid}`))
+interface Cursor {
+  date: number
+  uuid: string
+  /** The date window of the first page, kept so that a default window does not move. */
+  window: { start: number; end: number } | null
+}
 
-function decodeCursor(token: string | undefined): { date: number; uuid: string } | null {
+/**
+ * Opaque cursor: the date and id of the last row of the previous page, and the date window when
+ * the list has one. Ids hold no dot, so the parts are joined with dots.
+ */
+const encodeCursor = (e: { eventDate: number; uuid: string }, window?: Cursor['window']) =>
+  toB64u(utf8([e.eventDate, e.uuid, ...(window ? [window.start, window.end] : [])].join('.')))
+
+function decodeCursor(token: string | undefined): Cursor | null {
   if (!token) return null
   const raw = fromB64u(token)
   if (!raw) return null
   const text = new TextDecoder().decode(raw)
   const dot = text.indexOf('.')
+  if (dot <= 0) return null
   const date = Number(text.slice(0, dot))
-  return dot > 0 && Number.isFinite(date) ? { date, uuid: text.slice(dot + 1) } : null
+  if (!Number.isFinite(date)) return null
+  const [uuid = '', start, end] = text.slice(dot + 1).split('.')
+  const window =
+    start !== undefined && end !== undefined ? { start: Number(start), end: Number(end) } : null
+  return {
+    date,
+    uuid,
+    window: window && Number.isFinite(window.start) && Number.isFinite(window.end) ? window : null,
+  }
 }
 
-/** One page of events, newest first, filtered by `where` and the request's start, end and cursor. */
+const DAY_MS = 24 * 3600 * 1000
+const MAX_RANGE_DAYS = 367
+
+/**
+ * The date range of a Public API event list. A supplied bound is kept and the missing one is
+ * inferred: no start means 30 days before the end (or before now, with no end either), no end
+ * means now. An inverted range is swapped. A range over 367 days is refused. A value that is
+ * not a date is refused.
+ */
+export function publicEventRange(
+  startQuery: string | undefined,
+  endQuery: string | undefined,
+  now = Date.now(),
+): { start: number; end: number } {
+  const read = (name: string, v: string | undefined) => {
+    if (v === undefined || v === '') return null
+    const t = Date.parse(v)
+    if (Number.isNaN(t))
+      throw new ApiError(400, 'The request is invalid.', { [name]: ['Invalid date.'] })
+    return t
+  }
+  const given = { start: read('start', startQuery), end: read('end', endQuery) }
+  const end = given.end ?? now
+  const start = given.start ?? end - 30 * DAY_MS
+  const [from, to] = start > end ? [end, start] : [start, end]
+  if (to - from > MAX_RANGE_DAYS * DAY_MS) throw new ApiError(400, 'Date range must be < 367 days.')
+  return { start: from, end: to }
+}
+
+/**
+ * One page of events, newest first, filtered by `where` and the request's start, end and cursor.
+ * `range` replaces the start and end of the query string.
+ */
 export async function listEvents(
   db: Db,
   c: Context<Env>,
   where: SQL | undefined,
   map: (e: typeof schema.events.$inferSelect) => unknown = eventJson,
+  range?: { start: number; end: number },
 ) {
-  const start = parseDate(c.req.query('start'))
-  const end = parseDate(c.req.query('end'))
   const cursor = decodeCursor(c.req.query('continuationToken'))
+  // Later pages keep the window of the first one: a default window is relative to now, and it
+  // would otherwise move between requests and drop or repeat events.
+  const window = range ? (cursor?.window ?? range) : null
+  const start = window ? window.start : parseDate(c.req.query('start'))
+  const end = window ? window.end : parseDate(c.req.query('end'))
   const e = schema.events
   const conditions = [
     where,
@@ -146,6 +202,6 @@ export async function listEvents(
   return {
     object: 'list',
     data: page.map(map),
-    continuationToken: rows.length > EVENT_PAGE_SIZE && last ? encodeCursor(last) : null,
+    continuationToken: rows.length > EVENT_PAGE_SIZE && last ? encodeCursor(last, window) : null,
   }
 }

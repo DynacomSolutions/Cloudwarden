@@ -284,7 +284,7 @@ describe('SSO JIT provision finish', { timeout: 300_000 }, () => {
         .first<{ k: string | null }>()
     )?.k
 
-  it('refuses every finish call for an account that already has keys', async () => {
+  it('refuses the trusted device finish for an account that already has keys', async () => {
     const tde = await ssoOrg(2)
     const email = `${unique('tde-keys')}@example.com`
     const first = await oidcLogin(idp, tde.identifier, { sub: unique('sub'), email })
@@ -300,7 +300,9 @@ describe('SSO JIT provision finish', { timeout: 300_000 }, () => {
     expect(await resetKey(tde.org.id, email)).toBeNull()
     const profile = (await (await authedCall(token, '/api/accounts/profile')).json()) as any
     expect(profile.privateKey).toBe('2.oldpriv')
+  })
 
+  it('refuses the master password finish for an account that already has keys', async () => {
     const pw = await ssoOrg(0)
     const member = await newMember(pw.identifier)
     await env.DB.prepare(
@@ -318,7 +320,9 @@ describe('SSO JIT provision finish', { timeout: 300_000 }, () => {
         )
       ).status,
     ).toBe(400)
+  })
 
+  it('refuses the key connector finish for an account that already has keys', async () => {
     const kc = await ssoOrg(1)
     const kcMember = await newMember(kc.identifier)
     await env.DB.prepare(

@@ -302,6 +302,7 @@ orgUsers.post('/api/organizations/:orgId/users/invite', async (c) => {
       status: Status.Invited,
       atype: body.type,
       resetPasswordKey: null,
+      v2UpgradeToken: null,
       externalId: null,
       accessSecretsManager: body.accessSecretsManager === true,
       accessPam: false,

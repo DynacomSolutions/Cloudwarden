@@ -22,7 +22,7 @@ skips quietly, as noted below. Notices are best effort and never fail the reques
 | Emergency access | Invite and request (existing); accepted, confirmed, approved, rejected, and approval by elapsed wait time (hourly sweep, `src/emergency-sweep.ts`) | none |
 | Organisation | Invite (existing); accepted (to owners and admins), confirmed (to the member) | none |
 
-`POST /api/accounts/verify-devices` turns new device verification on or off and needs the master password
+`PUT /api/accounts/verify-devices` (the current verb) and `POST /api/accounts/verify-devices` (still sent by the web vault) turn new device verification on or off and needs the master password
 or an emailed code. One time codes (`src/auth/otp.ts`) are six digits, stored hashed with their purpose,
 valid for 10 minutes, five wrong guesses burn them, and a match is consumed atomically. The setting and
 code columns come from migration `0011`.

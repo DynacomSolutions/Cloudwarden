@@ -23,6 +23,11 @@ export const users = sqliteTable(
     akey: text('akey').notNull(),
     privateKey: text('private_key'),
     publicKey: text('public_key'),
+    /**
+     * JSON `{signedPublicKey, signatureKeyPair, securityState}` of an account with a V2 user key
+     * (set by the V2 key rotation and the SSO JIT finish); null for V1 accounts.
+     */
+    accountKeysV2: text('account_keys_v2'),
     kdfType: integer('kdf_type').notNull().default(0),
     kdfIterations: integer('kdf_iterations').notNull().default(600000),
     kdfMemory: integer('kdf_memory'),
@@ -292,6 +297,9 @@ export const usersOrganizations = sqliteTable(
     status: integer('status').notNull(),
     atype: integer('atype').notNull(),
     resetPasswordKey: text('reset_password_key'),
+    // JSON `{wrappedUserKey1, wrappedUserKey2}` left by a rotation to a V2 user key: the recovery
+    // key above still wraps the old key until an administrator re-wraps it (`keys/v2-upgrades`).
+    v2UpgradeToken: text('v2_upgrade_token'),
     externalId: text('external_id'),
     accessSecretsManager: integer('access_secrets_manager', { mode: 'boolean' })
       .notNull()

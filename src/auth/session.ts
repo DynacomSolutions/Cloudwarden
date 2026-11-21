@@ -111,17 +111,38 @@ export function masterPasswordUnlockJson(user: User) {
   }
 }
 
-/** V1 account keys (no signature key pair), or null while the account has no key pair yet. */
+/** The V2 parts of the account keys, as stored in `users.accountKeysV2`. */
+export interface AccountKeysV2 {
+  signedPublicKey: string | null
+  signatureKeyPair: {
+    signatureAlgorithm: string | null
+    wrappedSigningKey: string | null
+    verifyingKey: string | null
+  } | null
+  securityState: { securityState: string | null; securityVersion: number } | null
+}
+
+function storedV2(user: User): Partial<AccountKeysV2> {
+  if (!user.accountKeysV2) return {}
+  try {
+    return JSON.parse(user.accountKeysV2) as Partial<AccountKeysV2>
+  } catch {
+    return {}
+  }
+}
+
+/** Account keys, with the signature key pair and security state of a V2 account; null without a key pair. */
 export function accountKeysJson(user: User) {
   if (!user.privateKey || !user.publicKey) return null
+  const v2 = storedV2(user)
   return {
     publicKeyEncryptionKeyPair: {
       wrappedPrivateKey: user.privateKey,
       publicKey: user.publicKey,
-      signedPublicKey: null,
+      signedPublicKey: v2.signedPublicKey ?? null,
     },
-    signatureKeyPair: null,
-    securityState: null,
+    signatureKeyPair: v2.signatureKeyPair ?? null,
+    securityState: v2.securityState ?? null,
   }
 }
 

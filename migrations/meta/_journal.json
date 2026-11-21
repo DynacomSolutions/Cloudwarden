@@ -232,6 +232,13 @@
       "when": 1792355253831,
       "tag": "0032_auth_request_ip_key",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "6",
+      "when": 1795285587732,
+      "tag": "0033_privileged_access_rotation",
+      "breakpoints": true
     }
   ]
 }

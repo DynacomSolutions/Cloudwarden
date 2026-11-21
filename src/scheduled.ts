@@ -4,6 +4,7 @@ import type { Bindings } from './env'
 import { DELIVERY_CRON, deliverIntegrations } from './integrations/deliver'
 import { errorKind, log } from './log'
 import { verifyPendingDomains } from './orgs/domains'
+import { sweepRotation } from './pam/rotation'
 import { purgeExpired } from './vault/purge'
 
 /**
@@ -66,6 +67,12 @@ export const scheduled = async (
       await deliverIntegrations(env)
     } catch (err) {
       log('error', 'integrations.failed', { errorKind: errorKind(err) }, env)
+    }
+    // Privileged access: release abandoned rotation claims, time out old jobs, queue due rotations.
+    try {
+      await sweepRotation(env)
+    } catch (err) {
+      log('error', 'pam_rotation_sweep.failed', { errorKind: errorKind(err) }, env)
     }
   }
   if (backupFailed) throw backupError

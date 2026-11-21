@@ -388,7 +388,7 @@ ETA: 2026-11-22 20:00 ICT
 | 431 | Account key management and `PUT /api/accounts/verify-devices` | in_progress | agent | | | 2026-11-22 07:00 ICT | Gap audit of 22 Nov 2026, group D5 |
 | 432 | Vault and organisation extras, SSO JIT finish, v2 key upgrades, integration completes | in_progress | agent | | | 2026-11-22 08:00 ICT | Gap audit of 22 Nov 2026, groups D6 and E (current) |
 | 433 | Billing, licence and trial routes with self-hosted answers | done | agent | | | | PR #127 (merge `541dab5`), CI green<br>`test/self-host-billing.test.ts`, `test/self-host-routes.test.ts` |
-| 434 | Emit every Public API event type | in_progress | agent | | | 2026-11-22 10:00 ICT | Gap audit of 22 Nov 2026, group G (95 of 153 codes missing) |
+| 434 | Emit every Public API event type | done | agent | | | | Gap audit of 22 Nov 2026, group G<br>PR #128 merged as f2aeb2f, 47 more codes<br>Codes with no Cloudwarden feature listed in docs/events.md |
 | 435 | Access Intelligence reports | done | agent | | | | Gap audit of 22 Nov 2026, group D4<br>PR #133 merged as 24874f4<br>Newest 50 reports per organisation, 99 MB file cap |
 | 436 | Privileged access: access connectors and credential rotation | in_progress | agent | | | 2026-11-22 18:00 ICT | Gap audit of 22 Nov 2026, groups D1 and D2 |
 | 437 | Privileged access: access requests, leases and access rules | in_progress | agent | | | 2026-11-22 18:00 ICT | Gap audit of 22 Nov 2026, group D3 |

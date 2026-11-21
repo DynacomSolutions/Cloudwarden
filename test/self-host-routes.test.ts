@@ -14,6 +14,9 @@ const rows = notes
   .filter((c) => c[2] === 'self-host')
   .map(([method, path]) => [method as string, path as string] as const)
 
+// Routes that clients call before an account exists: they answer anonymous callers too.
+const ANONYMOUS = new Set(['POST /identity/accounts/trial/send-verification-email'])
+
 const concrete = (p: string) => p.replace(/\{[^}]*\}|\([^)]*\)/g, ID).replace(/\/\//g, '/')
 
 describe('self-hosted answers', () => {
@@ -36,7 +39,9 @@ describe('self-hosted answers', () => {
         headers: { 'Content-Type': 'application/json' },
         body: hasBody ? '{}' : undefined,
       })
-      if (anon.status !== 401) open.push(`${method} ${path} ${anon.status}`)
+      if (ANONYMOUS.has(`${method} ${path}`)) {
+        if (anon.status !== 400) open.push(`${method} ${path} ${anon.status}`)
+      } else if (anon.status !== 401) open.push(`${method} ${path} ${anon.status}`)
     }
     expect(unrouted).toEqual([])
     expect(open).toEqual([])

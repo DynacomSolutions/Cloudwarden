@@ -61,14 +61,15 @@ devices.get('/api/devices', requireAuth, async (c) => {
 })
 
 // Unauthenticated: the client asks before login whether this device is already known.
-devices.get('/api/devices/knowndevice', rateLimit('knowndevice', 30), async (c) => {
-  const encoded = c.req.header('X-Request-Email')
-  const identifier = c.req.header('X-Device-Identifier')
-  const bytes = encoded ? fromB64u(encoded) : null
-  if (!bytes || !identifier)
+async function knownDevice(
+  c: import('hono').Context<Env>,
+  email: string | null,
+  identifier: string | undefined,
+) {
+  if (!email || !identifier)
     throw new ApiError(400, 'Both X-Request-Email and X-Device-Identifier are required.')
   const db = createDb(c.env.DB)
-  const user = await findUserByEmail(db, new TextDecoder().decode(bytes))
+  const user = await findUserByEmail(db, email)
   if (!user) return c.json(false)
   const [row] = await db
     .select({ uuid: schema.devices.uuid })
@@ -76,7 +77,20 @@ devices.get('/api/devices/knowndevice', rateLimit('knowndevice', 30), async (c) 
     .where(and(eq(schema.devices.userUuid, user.uuid), eq(schema.devices.identifier, identifier)))
     .limit(1)
   return c.json(row !== undefined)
+}
+devices.get('/api/devices/knowndevice', rateLimit('knowndevice', 30), (c) => {
+  const encoded = c.req.header('X-Request-Email')
+  const bytes = encoded ? fromB64u(encoded) : null
+  return knownDevice(
+    c,
+    bytes ? new TextDecoder().decode(bytes) : null,
+    c.req.header('X-Device-Identifier'),
+  )
 })
+// Obsolete spelling: the plain email and the device identifier are path segments.
+devices.get('/api/devices/knowndevice/:email/:identifier', rateLimit('knowndevice', 30), (c) =>
+  knownDevice(c, c.req.param('email'), c.req.param('identifier')),
+)
 
 async function ownDevice(c: import('hono').Context<Env>, where: ReturnType<typeof eq>) {
   const [row] = await createDb(c.env.DB)
@@ -207,15 +221,18 @@ const keysSchema = z.object({
 })
 
 /** `PUT devices/{identifier}/keys`: trust this device by storing its key set. */
-devices.put('/api/devices/:identifier/keys', requireAuth, async (c) => {
+const putKeys = async (c: import('hono').Context<Env>) => {
   const body = await parseBody(c, keysSchema)
-  const row = await ownDevice(c, eq(schema.devices.identifier, c.req.param('identifier')))
+  const row = await ownDevice(c, eq(schema.devices.identifier, c.req.param('identifier') ?? ''))
   await createDb(c.env.DB)
     .update(schema.devices)
     .set({ ...body, updatedAt: Date.now() })
     .where(eq(schema.devices.uuid, row.uuid))
   return c.json(deviceJson({ ...row, ...body }))
-})
+}
+devices.put('/api/devices/:identifier/keys', requireAuth, putKeys)
+// Obsolete spelling, still routed by the official server.
+devices.post('/api/devices/:identifier/keys', requireAuth, putKeys)
 
 /** `POST devices/{identifier}/retrieve-keys`: the stored key set of a trusted device. */
 devices.post('/api/devices/:identifier/retrieve-keys', requireAuth, async (c) => {
@@ -370,3 +387,5 @@ const updateDevice = async (c: import('hono').Context<Env>) => {
   return c.json(deviceJson(await ownDevice(c, eq(schema.devices.uuid, row.uuid))))
 }
 devices.put(DEVICE_ID, requireAuth, updateDevice)
+// Obsolete spelling, still routed by the official server.
+devices.post(DEVICE_ID, requireAuth, updateDevice)

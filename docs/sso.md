@@ -119,6 +119,16 @@ the others. Approval paths: another device (auth requests), admin approval (acco
 enrolment, workstream C) and master password. `PUT /api/accounts/update-tde-offboarding-password`
 serves members whose organisation left trusted devices.
 
+## Finishing just in time provisioning
+
+The newest clients finish a JIT member in one call: `POST /api/sso-jit-provision-finish/password`
+(master password, key id and either V2 `accountKeys` or V1 `keys`), `.../key-connector` (the body of
+`set-key-connector-key` plus `acceptOrganizationInvite`) and `.../trusted-device` (keys, the keys of
+the calling device and the account recovery key). They share the checks of the older calls. SSO
+sign-in already accepts the membership; `acceptOrganizationInvite: true` also accepts one that is
+still pending. The trusted device call needs an organisation on trusted device encryption and, for
+the recovery key, the account recovery policy.
+
 ## Key Connector
 
 `POST /api/accounts/set-key-connector-key`, `POST /api/accounts/convert-to-key-connector` (owners

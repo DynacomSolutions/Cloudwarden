@@ -182,3 +182,5 @@ export const pamAudit = sqliteTable(
   },
   (t) => [index('pam_audit_org_idx').on(t.organizationUuid, t.createdAt)],
 )
+
+export * from './access-schema'

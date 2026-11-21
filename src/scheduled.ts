@@ -4,6 +4,7 @@ import type { Bindings } from './env'
 import { DELIVERY_CRON, deliverIntegrations } from './integrations/deliver'
 import { errorKind, log } from './log'
 import { verifyPendingDomains } from './orgs/domains'
+import { sweepAccess } from './pam/leases'
 import { sweepRotation } from './pam/rotation'
 import { purgeExpired } from './vault/purge'
 
@@ -73,6 +74,12 @@ export const scheduled = async (
       await sweepRotation(env)
     } catch (err) {
       log('error', 'pam_rotation_sweep.failed', { errorKind: errorKind(err) }, env)
+    }
+    // Privileged access: expire stale requests and ended leases, queue access-end rotations.
+    try {
+      await sweepAccess(env)
+    } catch (err) {
+      log('error', 'pam_access_sweep.failed', { errorKind: errorKind(err) }, env)
     }
   }
   if (backupFailed) throw backupError

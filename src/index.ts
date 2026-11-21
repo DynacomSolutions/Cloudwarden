@@ -40,7 +40,9 @@ import { orgSettings } from './routes/org-settings'
 import { orgUsers } from './routes/org-users'
 import { organizations } from './routes/organizations'
 import { pamAdmin } from './routes/pam-admin'
+import { pamLeases } from './routes/pam-leases'
 import { pamRotation } from './routes/pam-rotation'
+import { pamRules } from './routes/pam-rules'
 import { policies, publicPolicies } from './routes/policies'
 import { prelogin } from './routes/prelogin'
 import { providers } from './routes/providers'
@@ -121,6 +123,8 @@ app.route('/', orgApiKeys)
 // Privileged access (docs/privileged-access.md): connector token routes first, then admin routes.
 app.route('/', pamRotation)
 app.route('/', pamAdmin)
+app.route('/', pamRules)
+app.route('/', pamLeases)
 app.route('/', orgIntegrations)
 // Billing, licence and sponsorship answers for a self-hosted server, and the absent Provider
 // Portal (TASKS #231). Literal paths only, so the order relative to the organisation routers is free.

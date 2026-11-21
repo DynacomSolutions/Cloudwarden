@@ -381,8 +381,8 @@ ETA: 2026-11-22 20:00 ICT
 | ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
 |---|---|---|---|---|---|---|---|
 | 426 | Install the Bitwarden MCP server and register both instances | done | agent | | | | `@bitwarden/cli` 2026.11.0, `@bitwarden/mcp-server` 2026.7.0<br>Wrapper `~/.local/bin/cloudwarden-mcp production\|personal`<br>Personal smoke test: 59 tools, `list folders` OK |
-| 427 | Give the MCP server a working login on production | blocked_on_owner | Thomas | | | | Neither JOBS nor README account can log in on `cloudwarden.dynacom.dev`<br>Needed: an agent account on production (email and master password in `~/.secrets`) |
-| 428 | Organisation API keys for the MCP admin tools on both instances | blocked_on_owner | Thomas | | 24.427 | | Needed: which organisation per instance the MCP admin tools manage<br>Then store `CLOUDWARDEN_<PROD\|PERSONAL>_ORG_CLIENT_ID/_SECRET` |
+| 427 | Give the MCP server a working login on production | done | agent | | | | Production agent account (`CLOUDWARDEN_PROD_MCP_EMAIL`) registered and verified (instance invitation, mail via `cloudwarden-test-inbox`)<br>Smoke test 22 Nov: 59 tools, `unlocked`, `list folders` OK |
+| 428 | Organisation API keys for the MCP admin tools on both instances | blocked_on_owner | Thomas | | | | Needed: invite the agent account as Owner to each organisation the MCP may manage, then confirm it<br>Production: the `CLOUDWARDEN_PROD_MCP` account; personal: the JOBS account<br>Agent then fetches and stores the keys |
 | 429 | Public API: subscription GET and PUT, and the 14 field and behaviour mismatches | in_progress | agent | | | 2026-11-22 07:00 ICT | Gap audit of 22 Nov 2026, groups A and B |
 | 430 | Parity generator: regex and wildcard false positives, obsolete aliases, newer client routes | in_progress | agent | | | 2026-11-22 07:00 ICT | Gap audit of 22 Nov 2026, groups D9 and E |
 | 431 | Account key management and `PUT /api/accounts/verify-devices` | in_progress | agent | | | 2026-11-22 07:00 ICT | Gap audit of 22 Nov 2026, group D5 |

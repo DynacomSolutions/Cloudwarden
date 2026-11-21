@@ -20,6 +20,10 @@ export const attachmentKey = (cipherId: string, attachmentId: string) =>
 export const sendFileKey = (sendId: string, fileId: string) =>
   assertUserBlobKey(`sends/${sendId}/${fileId}`)
 
+/** R2 key of the blob of an Access Intelligence report (inline data or the uploaded file). */
+export const orgReportKey = (orgId: string, reportId: string, blobId: string) =>
+  assertUserBlobKey(`org-reports/${orgId}/${reportId}/${blobId}`)
+
 export const sizeName = (bytes: number): string => {
   if (bytes < 1024) return `${bytes} Bytes`
   const units = ['KB', 'MB', 'GB']
@@ -180,6 +184,73 @@ export async function storeMultipartUpload(
   } catch {
     await c.env.ATTACHMENTS.delete(key).catch(() => {})
     throw new ApiError(400, 'The uploaded file does not match the declared size.')
+  }
+}
+
+/** The stored file length lies outside the accepted range: the upload is wrong, not unlucky. */
+export class SizeMismatchError extends ApiError {
+  constructor() {
+    super(400, 'The uploaded file does not match the declared size.')
+  }
+}
+
+/** Part size of a streamed upload whose final size is only known at the end (R2 needs equal parts). */
+const STREAM_PART_BYTES = 8 * 1024 * 1024
+
+/**
+ * Streams the single file part of a multipart upload into R2 when the final size is only roughly
+ * known: the stored length must lie within `[min, max]`, otherwise nothing is kept and a 400 is
+ * thrown. Uses an R2 multipart upload in 8 MiB parts, so memory stays bounded. Returns the stored
+ * length.
+ */
+export async function storeMultipartUploadWithin(
+  c: Context<Env>,
+  key: string,
+  min: number,
+  max: number,
+): Promise<number> {
+  const type = c.req.header('Content-Type') ?? ''
+  const boundary = /^multipart\/form-data;.*boundary=(?:"([^"]+)"|([^;\s]+))/i.exec(type)
+  const b = boundary?.[1] ?? boundary?.[2]
+  if (!b || !c.req.raw.body) throw new ApiError(400, 'Expected a multipart/form-data body.')
+  const length = Number(c.req.header('Content-Length') ?? '0')
+  if (length > max + MULTIPART_OVERHEAD) throw new ApiError(413, 'The file is too large.')
+  const upload = await c.env.ATTACHMENTS.createMultipartUpload(key)
+  const parts: R2UploadedPart[] = []
+  let total = 0
+  let buffer = new Uint8Array(STREAM_PART_BYTES)
+  let filled = 0
+  const flush = async (bytes: Uint8Array) => {
+    parts.push(await upload.uploadPart(parts.length + 1, bytes))
+  }
+  try {
+    const reader = c.req.raw.body.pipeThrough(multipartFilePart(b)).getReader()
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      total += value.byteLength
+      if (total > max) throw new SizeMismatchError()
+      let at = 0
+      while (at < value.byteLength) {
+        const take = Math.min(buffer.byteLength - filled, value.byteLength - at)
+        buffer.set(value.subarray(at, at + take), filled)
+        filled += take
+        at += take
+        if (filled === buffer.byteLength) {
+          await flush(buffer)
+          buffer = new Uint8Array(STREAM_PART_BYTES)
+          filled = 0
+        }
+      }
+    }
+    if (total < min || total < 1) throw new SizeMismatchError()
+    if (filled > 0) await flush(buffer.subarray(0, filled))
+    await upload.complete(parts)
+    return total
+  } catch (e) {
+    await upload.abort().catch(() => {})
+    if (e instanceof ApiError) throw e
+    throw new ApiError(400, 'The uploaded file could not be stored.')
   }
 }
 

@@ -1,8 +1,8 @@
-import { and, inArray, isNotNull, isNull, lt, lte } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, isNull, lt, lte, or } from 'drizzle-orm'
 import { createDb, runBatch, schema } from '../db'
 import type { Bindings } from '../env'
 import { errorKind, log } from '../log'
-import { deleteBlobsNow } from './blobs'
+import { deleteBlobsNow, UPLOAD_CLAIM_TTL_MS } from './blobs'
 import { chunk } from './ciphers'
 
 /** Uploads not completed within this window are abandoned. */
@@ -16,6 +16,7 @@ const CURSOR_KEY = 'meta/orphan-cursor'
 export interface PurgeResult {
   sends: number
   attachments: number
+  reports: number
   orphans: number
 }
 
@@ -92,12 +93,45 @@ async function purgePendingAttachments(env: Bindings, now: number): Promise<numb
   return total
 }
 
+/** Deletes file reports whose upload never finished, with any partial blob. */
+async function purgePendingReports(env: Bindings, now: number): Promise<number> {
+  const db = createDb(env.DB)
+  const rows = await db
+    .select({ id: schema.organizationReports.uuid, key: schema.organizationReports.blobKey })
+    .from(schema.organizationReports)
+    .where(
+      and(
+        isNotNull(schema.organizationReports.fileId),
+        eq(schema.organizationReports.fileValidated, false),
+        lt(schema.organizationReports.createdAt, now - PENDING_GRACE_MS),
+        // An upload that holds a live claim is still running: leave it to finish.
+        or(
+          isNull(schema.organizationReports.uploadStartedAt),
+          lt(schema.organizationReports.uploadStartedAt, now - UPLOAD_CLAIM_TTL_MS),
+        ),
+      ),
+    )
+    .limit(BATCH)
+  if (rows.length === 0) return 0
+  await deleteBlobsNow(
+    env,
+    rows.flatMap((r) => (r.key ? [r.key] : [])),
+  )
+  await runBatch(
+    db,
+    chunk(rows.map((r) => r.id)).map((part) =>
+      db.delete(schema.organizationReports).where(inArray(schema.organizationReports.uuid, part)),
+    ),
+  )
+  return rows.length
+}
+
 /** Only these prefixes are ever listed or deleted by the sweep; other keys (backups) are not ours. */
-const BLOB_PREFIXES = ['attachments/', 'sends/']
+const BLOB_PREFIXES = ['attachments/', 'sends/', 'org-reports/']
 
 /**
  * Sweeps one page of one prefix per run, resuming from a cursor kept in the bucket itself,
- * and deletes objects no attachment or Send row refers to.
+ * and deletes objects no attachment, Send or report row refers to.
  */
 async function purgeOrphans(env: Bindings, now: number): Promise<number> {
   const db = createDb(env.DB)
@@ -118,7 +152,7 @@ async function purgeOrphans(env: Bindings, now: number): Promise<number> {
   )
   const known = new Set<string>()
   for (const part of chunk(objects.map((o) => o.key))) {
-    const [a, s] = await Promise.all([
+    const [a, s, o] = await Promise.all([
       db
         .select({ key: schema.attachments.r2Key })
         .from(schema.attachments)
@@ -127,8 +161,12 @@ async function purgeOrphans(env: Bindings, now: number): Promise<number> {
         .select({ key: schema.sends.r2Key })
         .from(schema.sends)
         .where(inArray(schema.sends.r2Key, part)),
+      db
+        .select({ key: schema.organizationReports.blobKey })
+        .from(schema.organizationReports)
+        .where(inArray(schema.organizationReports.blobKey, part)),
     ])
-    for (const r of [...a, ...s]) if (r.key) known.add(r.key)
+    for (const r of [...a, ...s, ...o]) if (r.key) known.add(r.key)
   }
   const orphans = objects.filter((o) => !known.has(o.key)).map((o) => o.key)
   await deleteBlobsNow(env, orphans)
@@ -157,6 +195,7 @@ export async function purgeExpired(env: Bindings, now = Date.now()): Promise<Pur
   return {
     sends: await step('sends', () => purgeSends(env, now)),
     attachments: await step('attachments', () => purgePendingAttachments(env, now)),
+    reports: await step('reports', () => purgePendingReports(env, now)),
     orphans: await step('orphans', () => purgeOrphans(env, now)),
   }
 }

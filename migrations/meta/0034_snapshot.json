@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "3f534cbd-ee1d-4fe6-a2fc-b13ad41c72f9",
+  "id": "070115fe-1080-4812-a04a-fe2639e8c3c2",
   "prevId": "5d2bd5a2-40c8-455a-be1b-a8da2b6d6b46",
   "tables": {
     "admin_rate_limits": {
@@ -2348,6 +2348,138 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
+    "organization_reports": {
+      "name": "organization_reports",
+      "columns": {
+        "uuid": {
+          "name": "uuid",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "organization_uuid": {
+          "name": "organization_uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "content_encryption_key": {
+          "name": "content_encryption_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "summary_data": {
+          "name": "summary_data",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "application_data": {
+          "name": "application_data",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "metrics": {
+          "name": "metrics",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "blob_key": {
+          "name": "blob_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "file_id": {
+          "name": "file_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "file_name": {
+          "name": "file_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "file_size": {
+          "name": "file_size",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "file_validated": {
+          "name": "file_validated",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "upload_started_at": {
+          "name": "upload_started_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "organization_reports_org_created_idx": {
+          "name": "organization_reports_org_created_idx",
+          "columns": [
+            "organization_uuid",
+            "created_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "organization_reports_organization_uuid_organizations_uuid_fk": {
+          "name": "organization_reports_organization_uuid_organizations_uuid_fk",
+          "tableFrom": "organization_reports",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_uuid"
+          ],
+          "columnsTo": [
+            "uuid"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
     "organization_scim": {
       "name": "organization_scim",
       "columns": {
@@ -2681,6 +2813,73 @@
         }
       },
       "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "password_health_report_applications": {
+      "name": "password_health_report_applications",
+      "columns": {
+        "uuid": {
+          "name": "uuid",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "organization_uuid": {
+          "name": "organization_uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "uri": {
+          "name": "uri",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "password_health_report_applications_org_idx": {
+          "name": "password_health_report_applications_org_idx",
+          "columns": [
+            "organization_uuid"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "password_health_report_applications_organization_uuid_organizations_uuid_fk": {
+          "name": "password_health_report_applications_organization_uuid_organizations_uuid_fk",
+          "tableFrom": "password_health_report_applications",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_uuid"
+          ],
+          "columnsTo": [
+            "uuid"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
@@ -4446,20 +4645,6 @@
           "notNull": false,
           "autoincrement": false
         },
-        "account_keys_v2": {
-          "name": "account_keys_v2",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "v2_upgrade_token": {
-          "name": "v2_upgrade_token",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "kdf_type": {
           "name": "kdf_type",
           "type": "integer",
@@ -4880,13 +5065,6 @@
         },
         "reset_password_key": {
           "name": "reset_password_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "v2_upgrade_token": {
-          "name": "v2_upgrade_token",
           "type": "text",
           "primaryKey": false,
           "notNull": false,

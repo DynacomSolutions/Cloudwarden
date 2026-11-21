@@ -210,6 +210,13 @@ export async function eraseOrganization(c: Ctx, db: ReturnType<typeof createDb>,
       .innerJoin(schema.ciphers, eq(schema.ciphers.uuid, schema.attachments.cipherUuid))
       .where(eq(schema.ciphers.organizationUuid, id))
   ).map((r) => r.key)
+  // Access Intelligence report blobs sit under one prefix per organisation.
+  for (let cursor: string | undefined; ; ) {
+    const page = await c.env.ATTACHMENTS.list({ prefix: `org-reports/${id}/`, cursor })
+    blobKeys.push(...page.objects.map((o) => o.key))
+    if (!page.truncated) break
+    cursor = page.cursor
+  }
   const federated = await db
     .select({ user: schema.usersOrganizations.userUuid, member: schema.usersOrganizations.uuid })
     .from(schema.federationMembers)

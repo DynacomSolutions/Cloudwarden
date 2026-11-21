@@ -1,4 +1,4 @@
-import { and, inArray, isNotNull, isNull, lt, lte } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, isNull, lt, lte } from 'drizzle-orm'
 import { createDb, runBatch, schema } from '../db'
 import type { Bindings } from '../env'
 import { errorKind, log } from '../log'
@@ -16,6 +16,7 @@ const CURSOR_KEY = 'meta/orphan-cursor'
 export interface PurgeResult {
   sends: number
   attachments: number
+  reports: number
   orphans: number
 }
 
@@ -92,6 +93,34 @@ async function purgePendingAttachments(env: Bindings, now: number): Promise<numb
   return total
 }
 
+/** Deletes file reports whose upload never finished, with any partial blob. */
+async function purgePendingReports(env: Bindings, now: number): Promise<number> {
+  const db = createDb(env.DB)
+  const rows = await db
+    .select({ id: schema.organizationReports.uuid, key: schema.organizationReports.blobKey })
+    .from(schema.organizationReports)
+    .where(
+      and(
+        isNotNull(schema.organizationReports.fileId),
+        eq(schema.organizationReports.fileValidated, false),
+        lt(schema.organizationReports.createdAt, now - PENDING_GRACE_MS),
+      ),
+    )
+    .limit(BATCH)
+  if (rows.length === 0) return 0
+  await deleteBlobsNow(
+    env,
+    rows.flatMap((r) => (r.key ? [r.key] : [])),
+  )
+  await runBatch(
+    db,
+    chunk(rows.map((r) => r.id)).map((part) =>
+      db.delete(schema.organizationReports).where(inArray(schema.organizationReports.uuid, part)),
+    ),
+  )
+  return rows.length
+}
+
 /** Only these prefixes are ever listed or deleted by the sweep; other keys (backups) are not ours. */
 const BLOB_PREFIXES = ['attachments/', 'sends/']
 
@@ -157,6 +186,7 @@ export async function purgeExpired(env: Bindings, now = Date.now()): Promise<Pur
   return {
     sends: await step('sends', () => purgeSends(env, now)),
     attachments: await step('attachments', () => purgePendingAttachments(env, now)),
+    reports: await step('reports', () => purgePendingReports(env, now)),
     orphans: await step('orphans', () => purgeOrphans(env, now)),
   }
 }

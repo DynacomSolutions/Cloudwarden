@@ -317,6 +317,10 @@ orgCiphers.get('/api/ciphers/organization-details', async (c) => {
     folderLinks(db, c.var.user.uuid),
     userCipherStates(db, c.var.user.uuid),
   ])
+  // An administrator opening the whole organisation vault is itself audited.
+  await batch(db, [
+    eventStatement(db, c, { type: EventType.OrganizationVaultAccessed, organizationUuid: orgUuid }),
+  ])
   const byCipher = new Map<string, string[]>()
   for (const l of links) byCipher.set(l.cipher, [...(byCipher.get(l.cipher) ?? []), l.id])
   return c.json(
@@ -638,6 +642,7 @@ orgCiphers.post('/api/ciphers/purge', async (c, next) => {
   await batch(db, [
     bumpOrgRevision(db, orgUuid, Date.now()),
     db.delete(schema.ciphers).where(eq(schema.ciphers.organizationUuid, orgUuid)),
+    eventStatement(db, c, { type: EventType.OrganizationPurgedVault, organizationUuid: orgUuid }),
   ])
   notifyCiphersChanged(c, await activeMemberIds(db, orgUuid))
   return c.body(null, 200)

@@ -121,19 +121,31 @@ export async function assertTwoFactorCompliant(db: Db, userUuid: string, orgUuid
   }
 }
 
+/** Active non-owner members who have no two-step login. */
+const nonCompliantWhere = (db: Db, orgUuid: string) =>
+  and(
+    eq(schema.usersOrganizations.organizationUuid, orgUuid),
+    inArray(schema.usersOrganizations.status, [Status.Accepted, Status.Confirmed]),
+    sql`${schema.usersOrganizations.atype} != ${Role.Owner}`,
+    sql`${schema.usersOrganizations.userUuid} not in (select ${schema.twofactor.userUuid} from ${schema.twofactor} where ${schema.twofactor.enabled} = 1)`,
+  )
+
 /** Statement that revokes active non-owner members who have no two-step login. */
 export const revokeNonCompliantMembers = (db: Db, orgUuid: string, now: number) =>
   db
     .update(schema.usersOrganizations)
     .set({ status: Status.Revoked, updatedAt: now })
-    .where(
-      and(
-        eq(schema.usersOrganizations.organizationUuid, orgUuid),
-        inArray(schema.usersOrganizations.status, [Status.Accepted, Status.Confirmed]),
-        sql`${schema.usersOrganizations.atype} != ${Role.Owner}`,
-        sql`${schema.usersOrganizations.userUuid} not in (select ${schema.twofactor.userUuid} from ${schema.twofactor} where ${schema.twofactor.enabled} = 1)`,
-      ),
-    )
+    .where(nonCompliantWhere(db, orgUuid))
+
+/** The members `revokeNonCompliantMembers` would revoke, to record an event for each. */
+export const nonCompliantMembers = (db: Db, orgUuid: string) =>
+  db
+    .select({
+      uuid: schema.usersOrganizations.uuid,
+      userUuid: schema.usersOrganizations.userUuid,
+    })
+    .from(schema.usersOrganizations)
+    .where(nonCompliantWhere(db, orgUuid))
 
 /** Master password requirements merged across every organisation that enforces them. */
 export async function masterPasswordPolicyFor(db: Db, userUuid: string) {

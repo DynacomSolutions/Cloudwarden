@@ -336,7 +336,7 @@ organizations.post('/api/organizations/:id/leave', async (c) => {
         ),
       ),
     eventStatement(db, c, {
-      type: EventType.OrganizationUserRemoved,
+      type: EventType.OrganizationUserLeft,
       organizationUuid: id,
       organizationUserUuid: m.uuid,
       userUuid: m.userUuid,

@@ -454,6 +454,13 @@ describe('claimed domains', () => {
         .status,
     ).toBe(200)
     expect((await claimed.call('/api/accounts/profile')).status).toBe(401)
+    // The deletion is its own event (1515), recorded for the member and the acting owner.
+    const deleted = await env.DB.prepare(
+      'select acting_user_uuid a, organization_uuid o, organization_user_uuid m from events where event_type = 1515 and organization_user_uuid = ?',
+    )
+      .bind(m.id)
+      .all<{ a: string; o: string; m: string }>()
+    expect(deleted.results).toEqual([{ a: owner.uuid, o: o.id, m: m.id }])
   })
 
   it('verifies pending domains from the cron job', async () => {

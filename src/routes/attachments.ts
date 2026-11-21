@@ -17,6 +17,8 @@ import {
   orgCipherJson,
   userCipherState,
 } from '../orgs/ciphers'
+import { EventType } from '../orgs/constants'
+import { eventStatement } from '../orgs/events'
 import { cipherRecipients, notifyOrgCipher } from '../orgs/notify'
 import { parseBody } from '../validation'
 import {
@@ -145,6 +147,19 @@ function touchStatements(c: Ctx, loaded: Loaded, now: number) {
   ]
 }
 
+/** The event for an attachment change; only items of an organisation record one. */
+function attachmentEvent(c: Ctx, loaded: Loaded, type: number) {
+  const orgUuid = loaded.cipher.organizationUuid
+  if (!orgUuid) return []
+  return [
+    eventStatement(createDb(c.env.DB), c, {
+      type,
+      organizationUuid: orgUuid,
+      cipherUuid: loaded.cipher.uuid,
+    }),
+  ]
+}
+
 /** Marks the blob stored and moves the revision dates forward. */
 function completeStatements(c: Ctx, loaded: Loaded, attachmentId: string, now = Date.now()) {
   const db = createDb(c.env.DB)
@@ -153,6 +168,7 @@ function completeStatements(c: Ctx, loaded: Loaded, attachmentId: string, now = 
       .update(schema.attachments)
       .set({ uploadedAt: now })
       .where(eq(schema.attachments.id, attachmentId)),
+    ...attachmentEvent(c, loaded, EventType.CipherAttachmentCreated),
     ...touchStatements(c, loaded, now),
   ]
 }
@@ -242,6 +258,7 @@ export function registerAttachmentRoutes(r: Hono<Env>) {
         uploadedAt: now,
         createdAt: now,
       }),
+      ...attachmentEvent(c, loaded, EventType.CipherAttachmentCreated),
       ...touchStatements(c, loaded, now),
     ])
     await announce(c, loaded, now)
@@ -366,6 +383,7 @@ export function registerAttachmentRoutes(r: Hono<Env>) {
     const now = Date.now()
     await runBatch(db, [
       db.delete(schema.attachments).where(eq(schema.attachments.id, att.id)),
+      ...attachmentEvent(c, loaded, EventType.CipherAttachmentDeleted),
       ...touchStatements(c, loaded, now),
     ])
     deleteBlobs(c, [att.r2Key])

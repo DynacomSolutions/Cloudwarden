@@ -8,7 +8,7 @@ import { ApiError } from '../errors'
 import { bumpOrgRevision } from './access'
 import { EventType, PolicyType } from './constants'
 import { eventStatement } from './events'
-import { type PolicyRow, revokeNonCompliantMembers } from './policies'
+import { nonCompliantMembers, type PolicyRow, revokeNonCompliantMembers } from './policies'
 import { batch } from './util'
 
 export async function findPolicy(db: Db, orgUuid: string, type: number) {
@@ -55,6 +55,24 @@ export async function savePolicy(
   const uuid = existing?.uuid ?? crypto.randomUUID()
   const now = Date.now()
   const data = body.data ? JSON.stringify(body.data) : null
+  const revoking =
+    type === PolicyType.TwoFactorAuthentication && body.enabled
+      ? await nonCompliantMembers(db, orgUuid)
+      : []
+  // Turning automatic confirmation on or off is its own event, besides the policy update.
+  const autoConfirmEvent =
+    type === PolicyType.AutomaticUserConfirmation && (existing?.enabled ?? false) !== body.enabled
+      ? [
+          eventStatement(db, c, {
+            type: body.enabled
+              ? EventType.OrganizationAutoConfirmEnabledAdmin
+              : EventType.OrganizationAutoConfirmDisabledAdmin,
+            organizationUuid: orgUuid,
+            policyUuid: uuid,
+            systemUser,
+          }),
+        ]
+      : []
   await batch(db, [
     db
       .insert(schema.policies)
@@ -74,6 +92,17 @@ export async function savePolicy(
     ...(type === PolicyType.TwoFactorAuthentication && body.enabled
       ? [revokeNonCompliantMembers(db, orgUuid, now)]
       : []),
+    ...revoking.map((m) =>
+      eventStatement(db, c, {
+        type: EventType.OrganizationUserRevokedTwoFactorNonCompliance,
+        organizationUuid: orgUuid,
+        organizationUserUuid: m.uuid,
+        userUuid: m.userUuid,
+        policyUuid: uuid,
+        systemUser,
+      }),
+    ),
+    ...autoConfirmEvent,
     eventStatement(db, c, {
       type: EventType.PolicyUpdated,
       organizationUuid: orgUuid,

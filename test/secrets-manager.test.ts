@@ -579,6 +579,20 @@ describe('machine login and enforcement', () => {
     expect(changed.secrets.data[0].value).toBe(enc('rotated'))
   })
 
+  it('records a project read by a machine account (2200), not one by a member', async () => {
+    expect((await authed(`/api/projects/${projectId}`, token)).status).toBe(200)
+    expect((await owner.call(`/api/projects/${projectId}`)).status).toBe(200)
+    const events = await owner.json(`/api/organization/${orgId}/projects/${projectId}/events`)
+    const reads = events.data.filter((e: any) => e.type === 2200)
+    expect(reads).toHaveLength(1)
+    expect(reads[0]).toMatchObject({
+      projectId,
+      organizationId: orgId,
+      serviceAccountId: m.saId,
+      actingUserId: null,
+    })
+  })
+
   it('records events for Secrets Manager actions', async () => {
     const events = await owner.json(`/api/organizations/${orgId}/events`)
     const types = new Set(events.data.map((e: any) => e.type))

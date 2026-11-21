@@ -1,9 +1,12 @@
 import { SELF } from 'cloudflare:test'
 import { env } from 'cloudflare:workers'
-import { expect, it } from 'vitest'
+import { expect, it, vi } from 'vitest'
 import { purgeExpired } from '../src/vault/purge'
 import { BASE } from './helpers'
 import { type Actor, actor, addMember, createOrg, loginCipher } from './org-helpers'
+
+// Each test registers accounts and organisations, which can stall for minutes on a loaded host.
+vi.setConfig({ testTimeout: 900_000 })
 
 const R = '/api/reports'
 const metrics = {
@@ -22,14 +25,29 @@ const metrics = {
 }
 const UNKNOWN = '00000000-0000-4000-8000-000000000000'
 
-/** An organisation with an owner, an admin, a custom member with access to reports, and others. */
-async function setup(tag: string) {
-  const owner = await actor(`ai-${tag}-owner@example.com`)
-  const admin = await actor(`ai-${tag}-admin@example.com`)
-  const custom = await actor(`ai-${tag}-custom@example.com`)
-  const plain = await actor(`ai-${tag}-plain@example.com`)
-  const outsider = await actor(`ai-${tag}-out@example.com`)
+/** Accounts are registered once: each one costs a password hash, and tests make many organisations. */
+let accounts:
+  | Promise<Record<'owner' | 'admin' | 'custom' | 'plain' | 'outsider', Actor>>
+  | undefined
+const people = () =>
+  (accounts ??= (async () => ({
+    owner: await actor('ai-owner@example.com'),
+    admin: await actor('ai-admin@example.com'),
+    custom: await actor('ai-custom@example.com'),
+    plain: await actor('ai-plain@example.com'),
+    outsider: await actor('ai-outsider@example.com'),
+  }))())
+
+/** A new organisation with an owner, an admin, a custom member with access to reports, and others. */
+async function setup(_tag: string) {
+  const { owner, admin, custom, plain, outsider } = await people()
   const org = await createOrg(owner)
+  // createOrg reads the first collection of the owner's sync, which is another organisation's
+  // once the owner has several.
+  const collections = (await owner.json(`/api/organizations/${org.id}/collections`)) as {
+    data: { id: string }[]
+  }
+  org.defaultCollectionId = collections.data[0]?.id as string
   await addMember(owner, org.id, admin, { type: 1 })
   await addMember(owner, org.id, custom, { type: 4, permissions: { accessReports: true } })
   await addMember(owner, org.id, plain, { type: 4, permissions: { accessEventLogs: true } })
@@ -43,6 +61,9 @@ async function setup(tag: string) {
     defaultCollectionId: org.defaultCollectionId,
   }
 }
+
+const digest = async (data: ArrayBuffer | Uint8Array) =>
+  Buffer.from(await crypto.subtle.digest('SHA-256', data)).toString('hex')
 
 const upload = (url: string, token: string, bytes: Uint8Array) => {
   const fd = new FormData()
@@ -465,7 +486,8 @@ it('accepts a file within the size leeway and spans several parts', async () => 
   const dl = await t.owner.call(
     `${R}/organizations/${t.orgId}/${body.reportResponse.id}/file/download`,
   )
-  expect(new Uint8Array(await dl.arrayBuffer())).toEqual(bytes)
+  // Digests: comparing 9 million elements one by one exhausts the test worker's memory.
+  expect(await digest(await dl.arrayBuffer())).toBe(await digest(bytes))
   const get = (await t.owner.json(`${R}/organizations/${t.orgId}/${body.reportResponse.id}`)) as any
   expect(get.reportFile.size).toBe(bytes.length)
 })

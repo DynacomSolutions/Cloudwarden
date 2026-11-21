@@ -372,6 +372,7 @@ describe('directory import', () => {
         await sync({
           members: [{ email: 'dc-alice@example.com', externalId: 'cn=alice' }],
           groups: [],
+          overwriteExisting: false,
         })
       ).status,
     ).toBe(200)
@@ -383,6 +384,7 @@ describe('directory import', () => {
       members: [{ email: 'dc-bob@example.com', externalId: 'cn=bob', deleted: true }],
       groups: [{ name: 'Everyone', externalId: 'cn=staff', memberExternalIds: ['cn=alice'] }],
       inviteUsersAfterProvisioning: false,
+      overwriteExisting: false,
     })
     const after = (await o.json(`/api/organizations/${id}/users`)).data
     expect(after.some((m: any) => m.email === 'dc-bob@example.com')).toBe(false)
@@ -413,7 +415,7 @@ describe('directory import', () => {
     expect(dcInvites).toHaveLength(2)
     expect(dcInvites.every((e: any) => e.systemUser === 3)).toBe(true)
 
-    const bad = await sync({ members: [{ email: 'x@example.com' }] })
+    const bad = await sync({ members: [{ email: 'x@example.com' }], overwriteExisting: false })
     expect(bad.status).toBe(400)
     expect(await bad.json()).toMatchObject({ object: 'error' })
   })
@@ -433,6 +435,7 @@ describe('directory import', () => {
         { email: 'dcp-admin@example.com', externalId: 'a' },
         { email: 'dcp-custom@example.com', externalId: 'c' },
       ],
+      overwriteExisting: false,
     })
     const emails = async () =>
       (await o.json(`/api/organizations/${id}/users`)).data.map((m: any) => m.email).sort()

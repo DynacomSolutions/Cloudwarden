@@ -137,15 +137,57 @@ export const revokeNonCompliantMembers = (db: Db, orgUuid: string, now: number) 
     .set({ status: Status.Revoked, updatedAt: now })
     .where(nonCompliantWhere(orgUuid))
 
-/** The members `revokeNonCompliantMembers` would revoke, to record an event for each. */
-export const nonCompliantMembers = (db: Db, orgUuid: string) =>
-  db
-    .select({
-      uuid: schema.usersOrganizations.uuid,
-      userUuid: schema.usersOrganizations.userUuid,
-    })
-    .from(schema.usersOrganizations)
-    .where(nonCompliantWhere(orgUuid))
+/** A random version 4 identifier, made by SQLite so one statement can give every row its own. */
+const sqlUuid = sql<string>`(lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))), 2) || '-' || substr('89ab', 1 + (abs(random()) % 4), 1) || substr(lower(hex(randomblob(2))), 2) || '-' || lower(hex(randomblob(6))))`
+
+const nul = (name: string) => sql<null>`null`.as(name)
+
+/**
+ * One statement that records an event for every member `revokeNonCompliantMembers` would revoke:
+ * `INSERT INTO events ... SELECT ... FROM users_organizations`. Put it before the update in the
+ * same batch, because it reads the status the update changes.
+ */
+export const revocationEventsStatement = (
+  db: Db,
+  orgUuid: string,
+  event: {
+    type: number
+    policyUuid: string
+    actingUserUuid: string | null
+    systemUser: number | null
+    deviceType: number | null
+    ipAddress: string | null
+    date: number
+  },
+) => {
+  const uo = schema.usersOrganizations
+  return db.insert(schema.events).select(
+    db
+      .select({
+        uuid: sqlUuid.as('uuid'),
+        eventType: sql<number>`${event.type}`.as('eventType'),
+        userUuid: sql<string | null>`${uo.userUuid}`.as('userUuid'),
+        organizationUuid: sql<string>`${uo.organizationUuid}`.as('organizationUuid'),
+        cipherUuid: nul('cipherUuid'),
+        collectionUuid: nul('collectionUuid'),
+        groupUuid: nul('groupUuid'),
+        policyUuid: sql<string>`${event.policyUuid}`.as('policyUuid'),
+        organizationUserUuid: sql<string>`${uo.uuid}`.as('organizationUserUuid'),
+        actingUserUuid: sql<string | null>`${event.actingUserUuid}`.as('actingUserUuid'),
+        secretUuid: nul('secretUuid'),
+        projectUuid: nul('projectUuid'),
+        serviceAccountUuid: nul('serviceAccountUuid'),
+        grantedServiceAccountUuid: nul('grantedServiceAccountUuid'),
+        sendUuid: nul('sendUuid'),
+        systemUser: sql<number | null>`${event.systemUser}`.as('systemUser'),
+        deviceType: sql<number | null>`${event.deviceType}`.as('deviceType'),
+        ipAddress: sql<string | null>`${event.ipAddress}`.as('ipAddress'),
+        eventDate: sql<number>`${event.date}`.as('eventDate'),
+      })
+      .from(uo)
+      .where(nonCompliantWhere(orgUuid)),
+  )
+}
 
 /** Master password requirements merged across every organisation that enforces them. */
 export async function masterPasswordPolicyFor(db: Db, userUuid: string) {

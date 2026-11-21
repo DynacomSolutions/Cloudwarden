@@ -3,7 +3,7 @@ import { env } from 'cloudflare:workers'
 import { afterEach, describe, expect, it } from 'vitest'
 import { generateTotpKey, totpAt } from '../src/auth/totp'
 import { clock } from '../src/auth/twofactor'
-import { authed, createSession, json, login } from './helpers'
+import { authed, createSession, json, login, waitFor } from './helpers'
 import { actor, addMember, createOrg } from './org-helpers'
 
 const PW = 'client-derived-hash'
@@ -33,6 +33,13 @@ async function rowsOf(userUuid: string, type?: number) {
   return res.results
 }
 
+/** Sign-in events are written after the response, so wait for them. */
+const settled = (userUuid: string, type: number, count = 1) =>
+  waitFor(async () => {
+    const rows = await rowsOf(userUuid, type)
+    return rows.length >= count ? rows : false
+  })
+
 const uuidOf = async (token: string) =>
   ((await (await authed('/api/accounts/profile', token)).json()) as { id: string }).id
 
@@ -46,7 +53,7 @@ describe('sign-in events', () => {
   it('records a successful login (1000) with the device type', async () => {
     const s = await createSession('et-login@example.com')
     const id = await uuidOf(s.access_token)
-    const rows = await rowsOf(id, 1000)
+    const rows = await settled(id, 1000)
     expect(rows).toHaveLength(1)
     expect(rows[0]).toMatchObject({
       user_uuid: id,
@@ -61,7 +68,7 @@ describe('sign-in events', () => {
     const id = await uuidOf(s.access_token)
     expect((await login('et-fail@example.com', 'wrong')).status).toBe(400)
     expect((await login('et-nobody@example.com', 'wrong')).status).toBe(400)
-    const rows = await rowsOf(id, 1005)
+    const rows = await settled(id, 1005)
     expect(rows).toHaveLength(1)
     expect(rows[0]).toMatchObject({ acting_user_uuid: id, device_type: 9 })
     const stray = await env.DB.prepare(
@@ -82,6 +89,7 @@ describe('sign-in events', () => {
     const { id: orgId } = await createOrg(owner)
     const ouId = await addMember(owner, orgId, member)
     expect((await login(member.email, 'wrong')).status).toBe(400)
+    await settled(member.uuid, 1005, 2)
 
     const log = await owner.json(`/api/organizations/${orgId}/events`)
     const failed = log.data.find((e: any) => e.type === 1005)
@@ -188,13 +196,14 @@ describe('account events', () => {
     const now = new Date().toISOString()
     const res = await call(s.access_token, '/events/collect', 'POST', [
       { type: 1007, date: now },
+      // A phishing blocker event names an organisation: without one it is dropped.
       { type: 2400, date: now },
       // Not a client event: dropped.
       { type: 1001, date: now },
     ])
     expect(res.status).toBe(200)
     expect(await rowsOf(id, 1007)).toHaveLength(1)
-    expect(await rowsOf(id, 2400)).toHaveLength(1)
+    expect(await rowsOf(id, 2400)).toHaveLength(0)
     expect(await rowsOf(id, 1001)).toHaveLength(0)
   })
 })

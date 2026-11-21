@@ -6,6 +6,7 @@ import { randomB64u, safeEqualStrings } from '../auth/crypto'
 import { requireAuth } from '../auth/middleware'
 import { changes, createDb, runBatch, schema } from '../db'
 import { createEmailTransport } from '../email'
+import { later } from '../email/send'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
 import { PushType } from '../notifications/publish'
@@ -98,6 +99,18 @@ async function sendEvent(
   })
 }
 
+/**
+ * Records a Send access after the response. It is not part of an atomic change, so a failed event
+ * write must not fail the access or use one up.
+ */
+const recordAccess = (c: Ctx, send: Parameters<typeof sendEvent>[1]) =>
+  later(
+    c,
+    sendEvent(c, send, 'accessed')
+      .then((statements) => batch(createDb(c.env.DB), statements))
+      .catch(() => undefined),
+  )
+
 const list = (rows: ReturnType<typeof sendJson>[]) => ({
   data: rows,
   object: 'list',
@@ -123,7 +136,7 @@ async function accessPayload(c: Ctx, sendUuid: string) {
   if (send.atype !== SEND_FILE && !(await claimAccess(db, send.uuid, Date.now()))) {
     throw notAvailable()
   }
-  if (send.atype !== SEND_FILE) await batch(db, await sendEvent(c, send, 'accessed'))
+  if (send.atype !== SEND_FILE) recordAccess(c, send)
   return c.json(sendAccessJson(send, await creatorEmail(c, send.userUuid)))
 }
 
@@ -175,7 +188,7 @@ sends.post('/api/sends/access/file/:fileId', rateLimit('send-access', 60), async
   if (!bearer) throw new ApiError(401, 'Unauthorized')
   const send = await loadForAccess(db, bearer.uuid)
   const download = await fileDownloadUrl(db, c.env, send, c.req.param('fileId') ?? '')
-  await batch(db, await sendEvent(c, send, 'accessed'))
+  recordAccess(c, send)
   return c.json(download)
 })
 
@@ -193,7 +206,7 @@ sends.post('/api/sends/:id/access/file/:fileId', rateLimit('send-access', 60), a
   const send = await loadForAccess(db, c.req.param('id') ?? '')
   await checkLegacyAccess(c, send, body)
   const download = await fileDownloadUrl(db, c.env, send, c.req.param('fileId') ?? '')
-  await batch(db, await sendEvent(c, send, 'accessed'))
+  recordAccess(c, send)
   return c.json(download)
 })
 

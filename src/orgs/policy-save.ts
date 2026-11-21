@@ -7,8 +7,8 @@ import type { Env } from '../env'
 import { ApiError } from '../errors'
 import { bumpOrgRevision } from './access'
 import { EventType, PolicyType } from './constants'
-import { eventStatement } from './events'
-import { nonCompliantMembers, type PolicyRow, revokeNonCompliantMembers } from './policies'
+import { eventStatement, requestMeta } from './events'
+import { type PolicyRow, revocationEventsStatement, revokeNonCompliantMembers } from './policies'
 import { batch } from './util'
 
 export async function findPolicy(db: Db, orgUuid: string, type: number) {
@@ -55,10 +55,6 @@ export async function savePolicy(
   const uuid = existing?.uuid ?? crypto.randomUUID()
   const now = Date.now()
   const data = body.data ? JSON.stringify(body.data) : null
-  const revoking =
-    type === PolicyType.TwoFactorAuthentication && body.enabled
-      ? await nonCompliantMembers(db, orgUuid)
-      : []
   // Turning automatic confirmation on or off is its own event, besides the policy update.
   const autoConfirmEvent =
     type === PolicyType.AutomaticUserConfirmation && (existing?.enabled ?? false) !== body.enabled
@@ -88,20 +84,22 @@ export async function savePolicy(
         target: [schema.policies.organizationUuid, schema.policies.atype],
         set: { enabled: body.enabled, data, updatedAt: now },
       }),
-    // Members who cannot meet a newly required two-step login are revoked, owners excepted.
+    // Members who cannot meet a newly required two-step login are revoked, owners excepted. One
+    // statement records them all, and it runs first because it reads the status the update sets.
     ...(type === PolicyType.TwoFactorAuthentication && body.enabled
-      ? [revokeNonCompliantMembers(db, orgUuid, now)]
+      ? [
+          revocationEventsStatement(db, orgUuid, {
+            type: EventType.OrganizationUserRevokedTwoFactorNonCompliance,
+            policyUuid: uuid,
+            actingUserUuid: c.var.user?.uuid ?? null,
+            systemUser,
+            deviceType: requestMeta(c).deviceType,
+            ipAddress: requestMeta(c).ipAddress,
+            date: now,
+          }),
+          revokeNonCompliantMembers(db, orgUuid, now),
+        ]
       : []),
-    ...revoking.map((m) =>
-      eventStatement(db, c, {
-        type: EventType.OrganizationUserRevokedTwoFactorNonCompliance,
-        organizationUuid: orgUuid,
-        organizationUserUuid: m.uuid,
-        userUuid: m.userUuid,
-        policyUuid: uuid,
-        systemUser,
-      }),
-    ),
     ...autoConfirmEvent,
     eventStatement(db, c, {
       type: EventType.PolicyUpdated,

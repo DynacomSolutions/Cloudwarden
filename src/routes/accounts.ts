@@ -27,7 +27,7 @@ import { pushLogOut } from '../notifications/publish'
 import { relayDeleteDevice } from '../notifications/relay'
 import { EventType } from '../orgs/constants'
 import { assertNotClaimed } from '../orgs/domains'
-import { eventStatement, userEventStatements } from '../orgs/events'
+import { userEventStatements } from '../orgs/events'
 import { assertNotSoleOwner } from '../orgs/members'
 import { profileOrganizations } from '../orgs/views'
 import { type KdfParams, kdfProblem, parseBody } from '../validation'
@@ -314,7 +314,7 @@ accounts.put('/api/accounts/update-temp-password', requireAuth, async (c) => {
         ...(change.kdf ? kdfColumns(change.kdf) : {}),
       })
       .where(eq(schema.users.uuid, user.uuid)),
-    eventStatement(db, c, { type: EventType.UserUpdatedTempPassword, userUuid: user.uuid }),
+    ...(await userEventStatements(db, c, user.uuid, EventType.UserUpdatedTempPassword)),
     ...stampRotationStatements(db, user.uuid),
   ])
   c.executionCtx.waitUntil(pushLogOut(c.env, user.uuid, c.var.auth.deviceIdentifier))

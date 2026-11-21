@@ -8,9 +8,10 @@ import { ApiError } from '../errors'
 import { getMember, requirePermission } from '../orgs/access'
 import { accessToCipher, loadCipherById } from '../orgs/ciphers'
 import { ADMIN_EVENT_MAX, ADMIN_EVENT_MIN } from '../orgs/constants'
-import { eventStatement, listEvents } from '../orgs/events'
+import { eventStatement, listEvents, userEventStatements } from '../orgs/events'
 import { getTarget } from '../orgs/members'
 import { authOnce, batch } from '../orgs/util'
+import { rateLimit } from '../ratelimit'
 import { parseBody } from '../validation'
 
 export const events = new Hono<Env>()
@@ -28,7 +29,7 @@ const MAX_COLLECT = 100
  * export (1007, 1602), item views, visibility toggles, copies and autofill (1107 to 1114 and
  * 1117 to 1132), the notification banner (1522), invite link copy (1627) and phishing blocker
  * (2400 to 2402). Everything else is a server-side event, so a client may not forge it and it is
- * dropped.
+ * dropped. Like upstream, a phishing blocker event without an organisation is dropped too.
  */
 const CLIENT_EVENT_TYPES = new Set([
   1007,
@@ -42,8 +43,8 @@ const CLIENT_EVENT_TYPES = new Set([
   2402,
 ])
 
-/** Client events about the account itself, not an item or an organisation: they need neither. */
-const USER_CLIENT_EVENT_TYPES = new Set([1007, 2400, 2401, 2402])
+/** The vault export is about the account itself, not an item or an organisation. */
+const VAULT_EXPORT = 1007
 
 const collectSchema = z
   .array(
@@ -60,7 +61,7 @@ const collectSchema = z
  * Client-reported events (copy, autofill, view). Events about items the caller cannot see, or
  * about personal items, are dropped silently so one stale entry never fails the batch.
  */
-events.post('/events/collect', async (c) => {
+events.post('/events/collect', rateLimit('events-collect', 120), async (c) => {
   const body = await parseBody(c, collectSchema)
   const db = createDb(c.env.DB)
   const user = c.var.user
@@ -68,6 +69,11 @@ events.post('/events/collect', async (c) => {
   const rows = []
   for (const e of body) {
     if (!CLIENT_EVENT_TYPES.has(e.type)) continue
+    if (e.type === VAULT_EXPORT) {
+      // An account event: copied to every organisation the user belongs to, at server time.
+      rows.push(...(await userEventStatements(db, c, user.uuid, e.type)))
+      continue
+    }
     let orgUuid: string | null = null
     if (e.cipherId) {
       const cipher = await loadCipherById(db, e.cipherId)
@@ -78,7 +84,7 @@ events.post('/events/collect', async (c) => {
       const m = await getMember(db, user.uuid, e.organizationId)
       if (m && m.status >= 1) orgUuid = e.organizationId
       else continue
-    } else if (!USER_CLIENT_EVENT_TYPES.has(e.type)) continue
+    } else continue
     const when = e.date ? Date.parse(e.date) : now
     rows.push(
       eventStatement(db, c, {

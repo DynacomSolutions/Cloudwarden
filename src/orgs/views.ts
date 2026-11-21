@@ -5,6 +5,7 @@ import { MemberDecryptionType, parseConfigData } from '../sso/config'
 import { type Access, type Member, storedPermissions } from './access'
 import { Status } from './constants'
 import { emailDomain, verifiedDomains } from './domains'
+import type { SubscriptionRow } from './subscription'
 
 export type OrgRow = typeof schema.organizations.$inferSelect
 
@@ -41,7 +42,7 @@ export const collectionManagement = (o: OrgRow) => ({
   allowAdminAccessToAllCollectionItems: o.allowAdminAccessToAllCollectionItems,
 })
 
-export const orgJson = (o: OrgRow) => ({
+export const orgJson = (o: OrgRow, subscription?: SubscriptionRow) => ({
   object: 'organization',
   id: o.uuid,
   name: o.name,
@@ -53,8 +54,8 @@ export const orgJson = (o: OrgRow) => ({
   businessTaxNumber: null,
   billingEmail: o.billingEmail,
   planType: 0,
-  seats: null,
-  maxAutoscaleSeats: null,
+  seats: subscription?.seats ?? null,
+  maxAutoscaleSeats: subscription?.maxAutoscaleSeats ?? null,
   maxCollections: null,
   maxStorageGb: null,
   ...FEATURES,

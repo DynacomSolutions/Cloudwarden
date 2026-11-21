@@ -26,6 +26,7 @@ import {
   statusOnRestore,
   systemActor,
 } from '../orgs/provisioning'
+import { assertSeatsAvailable } from '../orgs/subscription'
 import { batch } from '../orgs/util'
 import { clientKey, overLimit } from '../ratelimit'
 import { sendInvite } from '../routes/org-users'
@@ -603,8 +604,10 @@ function register(p: string) {
     ) {
       throw new ScimError(409, 'User already exists.', 'uniqueness')
     }
-    const m = await invitedMember(db, orgUuid, { email, externalId })
     const active = scimBool(prop(body, 'active')) !== false
+    // A deactivated user is created revoked and holds no seat.
+    if (active) await assertSeatsAvailable(db, orgUuid)
+    const m = await invitedMember(db, orgUuid, { email, externalId })
     if (!active) m.status = Status.Revoked
     await batch(db, [
       ...insertMemberStatements(db, m, `organization:${orgUuid}`),

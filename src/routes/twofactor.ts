@@ -50,7 +50,7 @@ import {
   WebAuthnError,
 } from '../auth/webauthn'
 import { isOtp, isPublicId, type OtpPosition, publicIdOf, verifyOtp } from '../auth/yubico'
-import { createDb, runBatch, schema } from '../db'
+import { createDb, schema } from '../db'
 import {
   createEmailTransport,
   recoveryCodeUsedEmail,
@@ -61,6 +61,9 @@ import { later, sendNotice } from '../email/send'
 import type { Env, User } from '../env'
 import { ApiError } from '../errors'
 import { requirePermission } from '../orgs/access'
+import { EventType } from '../orgs/constants'
+import { recordUserEvent, userEventStatements } from '../orgs/events'
+import { batch } from '../orgs/util'
 import { overLimit, rateLimit, tooManyRequests } from '../ratelimit'
 import { parseBody } from '../validation'
 
@@ -123,13 +126,29 @@ function announceChange(c: Ctx, user: User, change: 'enabled' | 'disabled', type
   )
 }
 
+/** Statements that enable a provider and record the change (event 1002). */
+async function enableWithEvent(
+  c: Ctx,
+  db: ReturnType<typeof createDb>,
+  user: User,
+  type: number,
+  data: unknown,
+  state: { lastUsed?: number } = {},
+) {
+  await batch(db, [
+    ...enableProviderStatements(db, user, type, data, state),
+    ...(await userEventStatements(db, c, user.uuid, EventType.UserUpdated2fa)),
+  ])
+}
+
 async function removeProvider(c: Ctx, user: User, type: number) {
   const db = createDb(c.env.DB)
-  await runBatch(db, [
+  await batch(db, [
     db
       .delete(schema.twofactor)
       .where(and(eq(schema.twofactor.userUuid, user.uuid), eq(schema.twofactor.atype, type))),
     clearRememberStatement(db, user.uuid),
+    ...(await userEventStatements(db, c, user.uuid, EventType.UserDisabled2fa)),
   ])
   announceChange(c, user, 'disabled', type)
 }
@@ -168,10 +187,7 @@ const putAuthenticator = async (c: Ctx) => {
   const step = await verifyTotp(key, body.token, clock.now(), 0)
   if (step === null) throw new ApiError(400, 'Invalid token.')
   const db = createDb(c.env.DB)
-  await runBatch(
-    db,
-    enableProviderStatements(db, user, TwoFactorType.Authenticator, { key }, { lastUsed: step }),
-  )
+  await enableWithEvent(c, db, user, TwoFactorType.Authenticator, { key }, { lastUsed: step })
   announceChange(c, user, 'enabled', TwoFactorType.Authenticator)
   return c.json({ authenticator: { enabled: true, key } })
 }
@@ -217,6 +233,7 @@ const recover = async (c: Ctx) => {
   if (!user || !spent || !user.enabled) {
     throw new ApiError(400, 'Recovery code is incorrect. Try again.')
   }
+  await recordUserEvent(db, c, user.uuid, EventType.UserRecovered2fa)
   later(c, sendNotice(c.env, user.email, recoveryCodeUsedEmail()))
   return c.body(null, 200)
 }
@@ -274,10 +291,7 @@ const putEmail = async (c: Ctx) => {
   if (!(await consumeEmailCode(db, user, row, body.token))) {
     throw new ApiError(400, 'Invalid token.')
   }
-  await runBatch(
-    db,
-    enableProviderStatements(db, user, TwoFactorType.Email, { email, attempts: 0 }),
-  )
+  await enableWithEvent(c, db, user, TwoFactorType.Email, { email, attempts: 0 })
   announceChange(c, user, 'enabled', TwoFactorType.Email)
   return c.json({ email: { enabled: true, email } })
 }
@@ -398,17 +412,13 @@ const putWebAuthn = async (c: Ctx) => {
     },
   ].sort((a, b) => a.id - b.id)
   if (credentials.length > MAX_WEBAUTHN_KEYS) throw new ApiError(400, 'Too many security keys.')
-  await runBatch(
+  await enableWithEvent(
+    c,
     db,
-    enableProviderStatements(
-      db,
-      user,
-      TwoFactorType.WebAuthn,
-      { credentials } satisfies WebAuthnData,
-      {
-        lastUsed: row?.lastUsed ?? 0,
-      },
-    ),
+    user,
+    TwoFactorType.WebAuthn,
+    { credentials } satisfies WebAuthnData,
+    { lastUsed: row?.lastUsed ?? 0 },
   )
   if (!row?.enabled) announceChange(c, user, 'enabled', TwoFactorType.WebAuthn)
   return c.json({ webAuthn: keysJson({ credentials }) })
@@ -431,10 +441,13 @@ twofactor.delete('/api/two-factor/webauthn', requireAuth, async (c) => {
     await removeProvider(c, user, TwoFactorType.WebAuthn)
     return c.json({ webAuthn: keysJson(null) })
   }
-  await db
-    .update(schema.twofactor)
-    .set({ data: JSON.stringify({ credentials }) })
-    .where(eq(schema.twofactor.uuid, row.uuid))
+  await batch(db, [
+    db
+      .update(schema.twofactor)
+      .set({ data: JSON.stringify({ credentials }) })
+      .where(eq(schema.twofactor.uuid, row.uuid)),
+    ...(await userEventStatements(db, c, user.uuid, EventType.UserUpdated2fa)),
+  ])
   return c.json({ webAuthn: keysJson({ credentials }) })
 })
 
@@ -500,7 +513,7 @@ const putDuo = async (c: Ctx) => {
   const db = createDb(c.env.DB)
   const existing = parseData<DuoData>(await providerRow(db, user.uuid, TwoFactorType.Duo))
   const cfg = await checkDuoInput(body, existing)
-  await runBatch(db, enableProviderStatements(db, user, TwoFactorType.Duo, cfg))
+  await enableWithEvent(c, db, user, TwoFactorType.Duo, cfg)
   return c.json({ duo: duoJson(cfg) })
 }
 twofactor.put('/api/two-factor/duo', requireAuth, putDuo)
@@ -670,7 +683,7 @@ const putYubiKey = async (c: Ctx) => {
     }),
   )
   const data: YubiKeyData = { keys, nfc: body.nfc === true, last: kept }
-  await runBatch(db, enableProviderStatements(db, user, TwoFactorType.YubiKey, data))
+  await enableWithEvent(c, db, user, TwoFactorType.YubiKey, data)
   return c.json({ yubiKey: yubiJson(data) })
 }
 twofactor.put('/api/two-factor/yubikey', requireAuth, putYubiKey)

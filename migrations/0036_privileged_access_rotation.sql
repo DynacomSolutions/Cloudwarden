@@ -94,7 +94,7 @@ CREATE TABLE `pam_rotation_jobs` (
 	FOREIGN KEY (`claimed_by_connector_uuid`) REFERENCES `pam_access_connectors`(`uuid`) ON UPDATE no action ON DELETE set null
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `pam_rotation_jobs_open_unique` ON `pam_rotation_jobs` (`config_uuid`) WHERE `status` in (0, 1);--> statement-breakpoint
+CREATE UNIQUE INDEX `pam_rotation_jobs_open_unique` ON `pam_rotation_jobs` (`config_uuid`) WHERE "pam_rotation_jobs"."status" in (0, 1);--> statement-breakpoint
 CREATE INDEX `pam_rotation_jobs_target_idx` ON `pam_rotation_jobs` (`target_system_uuid`,`status`);--> statement-breakpoint
 CREATE INDEX `pam_rotation_jobs_org_idx` ON `pam_rotation_jobs` (`organization_uuid`);--> statement-breakpoint
 CREATE TABLE `pam_target_systems` (

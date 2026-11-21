@@ -44,6 +44,7 @@ import {
   enabledPolicy,
 } from '../orgs/policies'
 import { assertOrgKeys, resetPasswordPolicy } from '../orgs/recovery'
+import { assertSeatsAvailable } from '../orgs/subscription'
 import { authOnce, batch } from '../orgs/util'
 import { activeSso } from '../sso/config'
 import { parseBody } from '../validation'
@@ -269,6 +270,7 @@ orgUsers.post('/api/organizations/:orgId/users/invite', async (c) => {
   if (emails.some((e) => !e.includes('@'))) {
     throw new ApiError(400, 'The request is invalid.', { emails: ['Invalid email address.'] })
   }
+  await assertSeatsAvailable(db, orgUuid, emails.length)
   const now = Date.now()
   const members: Member[] = []
   for (const email of emails) {
@@ -520,7 +522,9 @@ async function confirmStatements(
         .set({ status: Status.Confirmed, akey: key, updatedAt: now })
         .where(eq(schema.usersOrganizations.uuid, id)),
       eventStatement(db, c, {
-        type: EventType.OrganizationUserConfirmed,
+        type: auto
+          ? EventType.OrganizationUserAutomaticallyConfirmed
+          : EventType.OrganizationUserConfirmed,
         organizationUuid: actor.organizationUuid,
         organizationUserUuid: id,
         userUuid: target.userUuid,
@@ -937,7 +941,7 @@ orgUsers.put('/api/organizations/:orgId/users/revoke-self', async (c) => {
       .set({ status: Status.Revoked, updatedAt: now })
       .where(eq(schema.usersOrganizations.uuid, m.uuid)),
     eventStatement(db, c, {
-      type: EventType.OrganizationUserRevoked,
+      type: EventType.OrganizationUserSelfRevoked,
       organizationUuid: orgUuid,
       organizationUserUuid: m.uuid,
       userUuid: m.userUuid,

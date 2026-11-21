@@ -187,6 +187,25 @@ export const organizations = sqliteTable(
   (t) => [uniqueIndex('organizations_identifier_unique').on(sql`lower(${t.identifier})`)],
 )
 
+/**
+ * Seat, storage and machine account limits set through the Public API subscription endpoint
+ * (TASKS #24.429). Null means no limit set. Nothing is billed: the values are stored for
+ * reporting and for tools that read them back. One row per organisation.
+ */
+export const organizationSubscriptions = sqliteTable('organization_subscriptions', {
+  organizationUuid: text('organization_uuid')
+    .primaryKey()
+    .references(() => organizations.uuid, { onDelete: 'cascade' }),
+  seats: integer('seats'),
+  maxAutoscaleSeats: integer('max_autoscale_seats'),
+  storageGb: integer('storage_gb'),
+  smSeats: integer('sm_seats'),
+  smMaxAutoscaleSeats: integer('sm_max_autoscale_seats'),
+  smServiceAccounts: integer('sm_service_accounts'),
+  smMaxAutoscaleServiceAccounts: integer('sm_max_autoscale_service_accounts'),
+  updatedAt: updatedAt(),
+})
+
 export const ciphers = sqliteTable(
   'ciphers',
   {
@@ -497,6 +516,8 @@ export const events = sqliteTable(
     projectUuid: text('project_uuid'),
     serviceAccountUuid: text('service_account_uuid'),
     grantedServiceAccountUuid: text('granted_service_account_uuid'),
+    /** The Send an event about a Send (2500 to 2511) concerns. */
+    sendUuid: text('send_uuid'),
     /** Non-member actor (TASKS #270): 1 SCIM, 2 domain verification, 3 Public API. */
     systemUser: integer('system_user'),
     deviceType: integer('device_type'),
@@ -507,6 +528,7 @@ export const events = sqliteTable(
     index('events_organization_idx').on(t.organizationUuid),
     index('events_user_idx').on(t.userUuid),
     index('events_date_idx').on(t.eventDate),
+    index('events_send_idx').on(t.sendUuid),
   ],
 )
 
@@ -965,6 +987,53 @@ export const securityTasks = sqliteTable(
     index('security_tasks_organization_idx').on(t.organizationUuid),
     index('security_tasks_cipher_idx').on(t.cipherUuid),
   ],
+)
+
+// ----- Access Intelligence reports (TASKS #435) -----
+
+/**
+ * One Access Intelligence (risk insights) report of an organisation. Summary and application data
+ * are small encrypted strings kept in the row; the large report blob lives in R2 under `blob_key`:
+ * either the inline `reportData` of the original flow, or the uploaded file of the file flow
+ * (`file_id` set, `file_validated` once the upload matched its declared size).
+ */
+export const organizationReports = sqliteTable(
+  'organization_reports',
+  {
+    uuid: id(),
+    organizationUuid: text('organization_uuid')
+      .notNull()
+      .references(() => organizations.uuid, { onDelete: 'cascade' }),
+    contentEncryptionKey: text('content_encryption_key'),
+    summaryData: text('summary_data'),
+    applicationData: text('application_data'),
+    /** JSON of the report metrics (counts of applications, members and passwords). */
+    metrics: text('metrics'),
+    blobKey: text('blob_key'),
+    fileId: text('file_id'),
+    fileName: text('file_name'),
+    fileSize: integer('file_size'),
+    fileValidated: integer('file_validated', { mode: 'boolean' }).notNull().default(false),
+    uploadStartedAt: integer('upload_started_at'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index('organization_reports_org_created_idx').on(t.organizationUuid, t.createdAt)],
+)
+
+/** Applications (web addresses) an organisation marked as critical in the password health report. */
+export const passwordHealthReportApplications = sqliteTable(
+  'password_health_report_applications',
+  {
+    uuid: id(),
+    organizationUuid: text('organization_uuid')
+      .notNull()
+      .references(() => organizations.uuid, { onDelete: 'cascade' }),
+    uri: text('uri').notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index('password_health_report_applications_org_idx').on(t.organizationUuid)],
 )
 
 // ----- Single sign-on, trusted devices and claimed domains (TASKS #280 to #289) -----

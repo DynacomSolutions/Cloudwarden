@@ -31,10 +31,10 @@ Directory Connector, SCIM, event integrations; G this audit.
 | | Rows |
 |---|---|
 | Distinct method and path pairs | 625 |
-| Implemented (including self-host answers) | 589 |
+| Implemented (including self-host answers) | 608 |
 | Owned by workstreams A to F, not yet implemented | 0 |
 | Remaining for G | 0 |
-| Not called by any client (SDK-generated only) | 29 |
+| Not called by any client (SDK-generated only) | 10 |
 | Not applicable (not served by the official self-hosted server either) | 7 |
 
 ## Matrix
@@ -542,26 +542,26 @@ Directory Connector, SCIM, event integrations; G this audit.
 | PUT | `/api/push/delete-organization` | sdk | not applicable | - | Relay-side endpoint of the Bitwarden cloud push relay. This server is a relay client (it calls these endpoints, see docs/push-notifications.md) and never serves them |
 | POST | `/api/push/register` | sdk | not applicable | - | Relay-side endpoint of the Bitwarden cloud push relay. This server is a relay client (it calls these endpoints, see docs/push-notifications.md) and never serves them |
 | POST | `/api/push/send` | sdk | not applicable | - | Relay-side endpoint of the Bitwarden cloud push relay. This server is a relay client (it calls these endpoints, see docs/push-notifications.md) and never serves them |
-| GET | `/api/reports/member-access/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| GET | `/api/reports/member-cipher-details/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/reports/organizations/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| DELETE | `/api/reports/organizations/{id}/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| GET | `/api/reports/organizations/{id}/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| PATCH | `/api/reports/organizations/{id}/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/reports/organizations/{id}/{id}/file` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| GET | `/api/reports/organizations/{id}/{id}/file/download` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| GET | `/api/reports/organizations/{id}/{id}/file/renew` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| GET | `/api/reports/organizations/{id}/data/application/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| PATCH | `/api/reports/organizations/{id}/data/application/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| GET | `/api/reports/organizations/{id}/data/summary` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| GET | `/api/reports/organizations/{id}/data/summary/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| PATCH | `/api/reports/organizations/{id}/data/summary/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| GET | `/api/reports/organizations/{id}/latest` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/reports/organizations/file/validate/azure` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
+| GET | `/api/reports/member-access/{id}` | sdk | implemented |  |  |
+| GET | `/api/reports/member-cipher-details/{id}` | sdk | implemented |  |  |
+| POST | `/api/reports/organizations/{id}` | sdk | implemented |  |  |
+| DELETE | `/api/reports/organizations/{id}/{id}` | sdk | implemented |  |  |
+| GET | `/api/reports/organizations/{id}/{id}` | sdk | implemented |  |  |
+| PATCH | `/api/reports/organizations/{id}/{id}` | sdk | implemented |  |  |
+| POST | `/api/reports/organizations/{id}/{id}/file` | sdk | implemented |  |  |
+| GET | `/api/reports/organizations/{id}/{id}/file/download` | sdk | implemented |  |  |
+| GET | `/api/reports/organizations/{id}/{id}/file/renew` | sdk | implemented |  |  |
+| GET | `/api/reports/organizations/{id}/data/application/{id}` | sdk | implemented |  |  |
+| PATCH | `/api/reports/organizations/{id}/data/application/{id}` | sdk | implemented |  |  |
+| GET | `/api/reports/organizations/{id}/data/summary` | sdk | implemented |  |  |
+| GET | `/api/reports/organizations/{id}/data/summary/{id}` | sdk | implemented |  |  |
+| PATCH | `/api/reports/organizations/{id}/data/summary/{id}` | sdk | implemented |  |  |
+| GET | `/api/reports/organizations/{id}/latest` | sdk | implemented |  |  |
+| POST | `/api/reports/organizations/file/validate/azure` | sdk | implemented |  |  |
 | GET | `/api/reports/passkey-directory` | sdk, web | implemented |  |  |
-| DELETE | `/api/reports/password-health-report-application` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/reports/password-health-report-applications` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| GET | `/api/reports/password-health-report-applications/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
+| DELETE | `/api/reports/password-health-report-application` | sdk | implemented |  |  |
+| POST | `/api/reports/password-health-report-applications` | sdk | implemented |  |  |
+| GET | `/api/reports/password-health-report-applications/{id}` | sdk | implemented |  |  |
 | POST | `/api/request-access/request-sm-access` | sdk, web | implemented |  |  |
 | GET | `/api/secret-versions/{id}` | sdk | implemented | D | Open: Secrets Manager versions, import and export (workstream D, open PR) |
 | POST | `/api/secret-versions/delete` | sdk | implemented | D | Open: Secrets Manager versions, import and export (workstream D, open PR) |

@@ -36,8 +36,8 @@ CREATE TABLE `pam_access_requests` (
 --> statement-breakpoint
 CREATE INDEX `pam_access_requests_org_idx` ON `pam_access_requests` (`organization_uuid`,`status`);--> statement-breakpoint
 CREATE INDEX `pam_access_requests_requester_idx` ON `pam_access_requests` (`requester_uuid`);--> statement-breakpoint
-CREATE UNIQUE INDEX `pam_access_requests_pending_unique` ON `pam_access_requests` (`requester_uuid`,`cipher_uuid`) WHERE `status` = 0 and `extension_of_lease_uuid` is null;--> statement-breakpoint
-CREATE UNIQUE INDEX `pam_access_requests_pending_extension_unique` ON `pam_access_requests` (`extension_of_lease_uuid`) WHERE `status` = 0 and `extension_of_lease_uuid` is not null;--> statement-breakpoint
+CREATE UNIQUE INDEX `pam_access_requests_pending_unique` ON `pam_access_requests` (`requester_uuid`,`cipher_uuid`) WHERE "pam_access_requests"."status" = 0 and "pam_access_requests"."extension_of_lease_uuid" is null;--> statement-breakpoint
+CREATE UNIQUE INDEX `pam_access_requests_pending_extension_unique` ON `pam_access_requests` (`extension_of_lease_uuid`) WHERE "pam_access_requests"."status" = 0 and "pam_access_requests"."extension_of_lease_uuid" is not null;--> statement-breakpoint
 CREATE TABLE `pam_access_rules` (
 	`uuid` text PRIMARY KEY NOT NULL,
 	`organization_uuid` text NOT NULL,

@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "abbc2d08-b3f2-4c8c-ac84-46f49b5b8a7c",
-  "prevId": "587cc907-5a04-46c3-8153-456eab78b465",
+  "id": "070115fe-1080-4812-a04a-fe2639e8c3c2",
+  "prevId": "5d2bd5a2-40c8-455a-be1b-a8da2b6d6b46",
   "tables": {
     "admin_rate_limits": {
       "name": "admin_rate_limits",
@@ -2348,6 +2348,138 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
+    "organization_reports": {
+      "name": "organization_reports",
+      "columns": {
+        "uuid": {
+          "name": "uuid",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "organization_uuid": {
+          "name": "organization_uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "content_encryption_key": {
+          "name": "content_encryption_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "summary_data": {
+          "name": "summary_data",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "application_data": {
+          "name": "application_data",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "metrics": {
+          "name": "metrics",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "blob_key": {
+          "name": "blob_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "file_id": {
+          "name": "file_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "file_name": {
+          "name": "file_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "file_size": {
+          "name": "file_size",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "file_validated": {
+          "name": "file_validated",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "upload_started_at": {
+          "name": "upload_started_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "organization_reports_org_created_idx": {
+          "name": "organization_reports_org_created_idx",
+          "columns": [
+            "organization_uuid",
+            "created_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "organization_reports_organization_uuid_organizations_uuid_fk": {
+          "name": "organization_reports_organization_uuid_organizations_uuid_fk",
+          "tableFrom": "organization_reports",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_uuid"
+          ],
+          "columnsTo": [
+            "uuid"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
     "organization_scim": {
       "name": "organization_scim",
       "columns": {
@@ -2386,6 +2518,93 @@
         "organization_scim_organization_uuid_organizations_uuid_fk": {
           "name": "organization_scim_organization_uuid_organizations_uuid_fk",
           "tableFrom": "organization_scim",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_uuid"
+          ],
+          "columnsTo": [
+            "uuid"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "organization_subscriptions": {
+      "name": "organization_subscriptions",
+      "columns": {
+        "organization_uuid": {
+          "name": "organization_uuid",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "seats": {
+          "name": "seats",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "max_autoscale_seats": {
+          "name": "max_autoscale_seats",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "storage_gb": {
+          "name": "storage_gb",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "sm_seats": {
+          "name": "sm_seats",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "sm_max_autoscale_seats": {
+          "name": "sm_max_autoscale_seats",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "sm_service_accounts": {
+          "name": "sm_service_accounts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "sm_max_autoscale_service_accounts": {
+          "name": "sm_max_autoscale_service_accounts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "organization_subscriptions_organization_uuid_organizations_uuid_fk": {
+          "name": "organization_subscriptions_organization_uuid_organizations_uuid_fk",
+          "tableFrom": "organization_subscriptions",
           "tableTo": "organizations",
           "columnsFrom": [
             "organization_uuid"
@@ -2594,6 +2813,73 @@
         }
       },
       "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "password_health_report_applications": {
+      "name": "password_health_report_applications",
+      "columns": {
+        "uuid": {
+          "name": "uuid",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "organization_uuid": {
+          "name": "organization_uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "uri": {
+          "name": "uri",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "password_health_report_applications_org_idx": {
+          "name": "password_health_report_applications_org_idx",
+          "columns": [
+            "organization_uuid"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "password_health_report_applications_organization_uuid_organizations_uuid_fk": {
+          "name": "password_health_report_applications_organization_uuid_organizations_uuid_fk",
+          "tableFrom": "password_health_report_applications",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_uuid"
+          ],
+          "columnsTo": [
+            "uuid"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
@@ -6065,1500 +6351,6 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "pam_access_connectors": {
-      "name": "pam_access_connectors",
-      "columns": {
-        "uuid": {
-          "name": "uuid",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "organization_uuid": {
-          "name": "organization_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "status": {
-          "name": "status",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "api_key_id": {
-          "name": "api_key_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "client_secret_hash": {
-          "name": "client_secret_hash",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "encrypted_payload": {
-          "name": "encrypted_payload",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "key": {
-          "name": "key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "last_heartbeat_at": {
-          "name": "last_heartbeat_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "pam_access_connectors_org_idx": {
-          "name": "pam_access_connectors_org_idx",
-          "columns": [
-            "organization_uuid"
-          ],
-          "isUnique": false
-        },
-        "pam_access_connectors_api_key_unique": {
-          "name": "pam_access_connectors_api_key_unique",
-          "columns": [
-            "api_key_id"
-          ],
-          "isUnique": true
-        }
-      },
-      "foreignKeys": {
-        "pam_access_connectors_organization_uuid_organizations_uuid_fk": {
-          "name": "pam_access_connectors_organization_uuid_organizations_uuid_fk",
-          "tableFrom": "pam_access_connectors",
-          "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_uuid"
-          ],
-          "columnsTo": [
-            "uuid"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "pam_audit": {
-      "name": "pam_audit",
-      "columns": {
-        "uuid": {
-          "name": "uuid",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "organization_uuid": {
-          "name": "organization_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "kind": {
-          "name": "kind",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "actor_uuid": {
-          "name": "actor_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "ref_uuid": {
-          "name": "ref_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "detail": {
-          "name": "detail",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "pam_audit_org_idx": {
-          "name": "pam_audit_org_idx",
-          "columns": [
-            "organization_uuid",
-            "created_at"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "pam_connector_assignments": {
-      "name": "pam_connector_assignments",
-      "columns": {
-        "connector_uuid": {
-          "name": "connector_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "target_system_uuid": {
-          "name": "target_system_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "pam_connector_assignments_target_idx": {
-          "name": "pam_connector_assignments_target_idx",
-          "columns": [
-            "target_system_uuid"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "pam_connector_assignments_connector_uuid_pam_access_connectors_uuid_fk": {
-          "name": "pam_connector_assignments_connector_uuid_pam_access_connectors_uuid_fk",
-          "tableFrom": "pam_connector_assignments",
-          "tableTo": "pam_access_connectors",
-          "columnsFrom": [
-            "connector_uuid"
-          ],
-          "columnsTo": [
-            "uuid"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "pam_connector_assignments_target_system_uuid_pam_target_systems_uuid_fk": {
-          "name": "pam_connector_assignments_target_system_uuid_pam_target_systems_uuid_fk",
-          "tableFrom": "pam_connector_assignments",
-          "tableTo": "pam_target_systems",
-          "columnsFrom": [
-            "target_system_uuid"
-          ],
-          "columnsTo": [
-            "uuid"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "pam_connector_assignments_connector_uuid_target_system_uuid_pk": {
-          "columns": [
-            "connector_uuid",
-            "target_system_uuid"
-          ],
-          "name": "pam_connector_assignments_connector_uuid_target_system_uuid_pk"
-        }
-      },
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "pam_rotation_attempts": {
-      "name": "pam_rotation_attempts",
-      "columns": {
-        "uuid": {
-          "name": "uuid",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "job_uuid": {
-          "name": "job_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "connector_uuid": {
-          "name": "connector_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "cipher_updated": {
-          "name": "cipher_updated",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": false
-        },
-        "status": {
-          "name": "status",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "failure_reason": {
-          "name": "failure_reason",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "sync_state": {
-          "name": "sync_state",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "session_termination": {
-          "name": "session_termination",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "resolved_at": {
-          "name": "resolved_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "pam_rotation_attempts_job_idx": {
-          "name": "pam_rotation_attempts_job_idx",
-          "columns": [
-            "job_uuid"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "pam_rotation_attempts_job_uuid_pam_rotation_jobs_uuid_fk": {
-          "name": "pam_rotation_attempts_job_uuid_pam_rotation_jobs_uuid_fk",
-          "tableFrom": "pam_rotation_attempts",
-          "tableTo": "pam_rotation_jobs",
-          "columnsFrom": [
-            "job_uuid"
-          ],
-          "columnsTo": [
-            "uuid"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "pam_rotation_attempts_connector_uuid_pam_access_connectors_uuid_fk": {
-          "name": "pam_rotation_attempts_connector_uuid_pam_access_connectors_uuid_fk",
-          "tableFrom": "pam_rotation_attempts",
-          "tableTo": "pam_access_connectors",
-          "columnsFrom": [
-            "connector_uuid"
-          ],
-          "columnsTo": [
-            "uuid"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "pam_rotation_configs": {
-      "name": "pam_rotation_configs",
-      "columns": {
-        "uuid": {
-          "name": "uuid",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "organization_uuid": {
-          "name": "organization_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "cipher_uuid": {
-          "name": "cipher_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "target_system_uuid": {
-          "name": "target_system_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "sealed_data": {
-          "name": "sealed_data",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "wrapped_key": {
-          "name": "wrapped_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "schedule_cron": {
-          "name": "schedule_cron",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "rotate_on_access_end": {
-          "name": "rotate_on_access_end",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": false
-        },
-        "next_rotation_at": {
-          "name": "next_rotation_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "enabled": {
-          "name": "enabled",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": true
-        },
-        "last_rotation_at": {
-          "name": "last_rotation_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "awaiting_manual_rotation": {
-          "name": "awaiting_manual_rotation",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": false
-        },
-        "last_on_demand_at": {
-          "name": "last_on_demand_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "pam_rotation_configs_cipher_unique": {
-          "name": "pam_rotation_configs_cipher_unique",
-          "columns": [
-            "cipher_uuid"
-          ],
-          "isUnique": true
-        },
-        "pam_rotation_configs_org_idx": {
-          "name": "pam_rotation_configs_org_idx",
-          "columns": [
-            "organization_uuid"
-          ],
-          "isUnique": false
-        },
-        "pam_rotation_configs_target_idx": {
-          "name": "pam_rotation_configs_target_idx",
-          "columns": [
-            "target_system_uuid"
-          ],
-          "isUnique": false
-        },
-        "pam_rotation_configs_due_idx": {
-          "name": "pam_rotation_configs_due_idx",
-          "columns": [
-            "next_rotation_at"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "pam_rotation_configs_organization_uuid_organizations_uuid_fk": {
-          "name": "pam_rotation_configs_organization_uuid_organizations_uuid_fk",
-          "tableFrom": "pam_rotation_configs",
-          "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_uuid"
-          ],
-          "columnsTo": [
-            "uuid"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "pam_rotation_configs_cipher_uuid_ciphers_uuid_fk": {
-          "name": "pam_rotation_configs_cipher_uuid_ciphers_uuid_fk",
-          "tableFrom": "pam_rotation_configs",
-          "tableTo": "ciphers",
-          "columnsFrom": [
-            "cipher_uuid"
-          ],
-          "columnsTo": [
-            "uuid"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "pam_rotation_configs_target_system_uuid_pam_target_systems_uuid_fk": {
-          "name": "pam_rotation_configs_target_system_uuid_pam_target_systems_uuid_fk",
-          "tableFrom": "pam_rotation_configs",
-          "tableTo": "pam_target_systems",
-          "columnsFrom": [
-            "target_system_uuid"
-          ],
-          "columnsTo": [
-            "uuid"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "pam_rotation_jobs": {
-      "name": "pam_rotation_jobs",
-      "columns": {
-        "uuid": {
-          "name": "uuid",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "config_uuid": {
-          "name": "config_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "organization_uuid": {
-          "name": "organization_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "target_system_uuid": {
-          "name": "target_system_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "source": {
-          "name": "source",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "status": {
-          "name": "status",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "claimed_by_connector_uuid": {
-          "name": "claimed_by_connector_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "claimed_at": {
-          "name": "claimed_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "next_claimable_at": {
-          "name": "next_claimable_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "expires_at": {
-          "name": "expires_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "pam_rotation_jobs_open_unique": {
-          "name": "pam_rotation_jobs_open_unique",
-          "columns": [
-            "config_uuid"
-          ],
-          "isUnique": true,
-          "where": "\"pam_rotation_jobs\".\"status\" in (0, 1)"
-        },
-        "pam_rotation_jobs_target_idx": {
-          "name": "pam_rotation_jobs_target_idx",
-          "columns": [
-            "target_system_uuid",
-            "status"
-          ],
-          "isUnique": false
-        },
-        "pam_rotation_jobs_org_idx": {
-          "name": "pam_rotation_jobs_org_idx",
-          "columns": [
-            "organization_uuid"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "pam_rotation_jobs_config_uuid_pam_rotation_configs_uuid_fk": {
-          "name": "pam_rotation_jobs_config_uuid_pam_rotation_configs_uuid_fk",
-          "tableFrom": "pam_rotation_jobs",
-          "tableTo": "pam_rotation_configs",
-          "columnsFrom": [
-            "config_uuid"
-          ],
-          "columnsTo": [
-            "uuid"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "pam_rotation_jobs_organization_uuid_organizations_uuid_fk": {
-          "name": "pam_rotation_jobs_organization_uuid_organizations_uuid_fk",
-          "tableFrom": "pam_rotation_jobs",
-          "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_uuid"
-          ],
-          "columnsTo": [
-            "uuid"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "pam_rotation_jobs_claimed_by_connector_uuid_pam_access_connectors_uuid_fk": {
-          "name": "pam_rotation_jobs_claimed_by_connector_uuid_pam_access_connectors_uuid_fk",
-          "tableFrom": "pam_rotation_jobs",
-          "tableTo": "pam_access_connectors",
-          "columnsFrom": [
-            "claimed_by_connector_uuid"
-          ],
-          "columnsTo": [
-            "uuid"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "pam_target_systems": {
-      "name": "pam_target_systems",
-      "columns": {
-        "uuid": {
-          "name": "uuid",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "organization_uuid": {
-          "name": "organization_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "method": {
-          "name": "method",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "status": {
-          "name": "status",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 2
-        },
-        "sealed_data": {
-          "name": "sealed_data",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "wrapped_key": {
-          "name": "wrapped_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "pam_target_systems_org_idx": {
-          "name": "pam_target_systems_org_idx",
-          "columns": [
-            "organization_uuid"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "pam_target_systems_organization_uuid_organizations_uuid_fk": {
-          "name": "pam_target_systems_organization_uuid_organizations_uuid_fk",
-          "tableFrom": "pam_target_systems",
-          "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_uuid"
-          ],
-          "columnsTo": [
-            "uuid"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "pam_access_decisions": {
-      "name": "pam_access_decisions",
-      "columns": {
-        "uuid": {
-          "name": "uuid",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "request_uuid": {
-          "name": "request_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "decider_kind": {
-          "name": "decider_kind",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "decider_user_uuid": {
-          "name": "decider_user_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "verdict": {
-          "name": "verdict",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "comment": {
-          "name": "comment",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "decided_at": {
-          "name": "decided_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "pam_access_decisions_request_unique": {
-          "name": "pam_access_decisions_request_unique",
-          "columns": [
-            "request_uuid"
-          ],
-          "isUnique": true
-        }
-      },
-      "foreignKeys": {
-        "pam_access_decisions_request_uuid_pam_access_requests_uuid_fk": {
-          "name": "pam_access_decisions_request_uuid_pam_access_requests_uuid_fk",
-          "tableFrom": "pam_access_decisions",
-          "tableTo": "pam_access_requests",
-          "columnsFrom": [
-            "request_uuid"
-          ],
-          "columnsTo": [
-            "uuid"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "pam_access_decisions_decider_user_uuid_users_uuid_fk": {
-          "name": "pam_access_decisions_decider_user_uuid_users_uuid_fk",
-          "tableFrom": "pam_access_decisions",
-          "tableTo": "users",
-          "columnsFrom": [
-            "decider_user_uuid"
-          ],
-          "columnsTo": [
-            "uuid"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "pam_access_requests": {
-      "name": "pam_access_requests",
-      "columns": {
-        "uuid": {
-          "name": "uuid",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "organization_uuid": {
-          "name": "organization_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "cipher_uuid": {
-          "name": "cipher_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "collection_uuid": {
-          "name": "collection_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "rule_uuid": {
-          "name": "rule_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "requester_uuid": {
-          "name": "requester_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "status": {
-          "name": "status",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "reason": {
-          "name": "reason",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "window_start": {
-          "name": "window_start",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "window_end": {
-          "name": "window_end",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "duration_seconds": {
-          "name": "duration_seconds",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "submitted_at": {
-          "name": "submitted_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "expires_at": {
-          "name": "expires_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "resolved_at": {
-          "name": "resolved_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "extension_of_lease_uuid": {
-          "name": "extension_of_lease_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "pam_access_requests_org_idx": {
-          "name": "pam_access_requests_org_idx",
-          "columns": [
-            "organization_uuid",
-            "status"
-          ],
-          "isUnique": false
-        },
-        "pam_access_requests_requester_idx": {
-          "name": "pam_access_requests_requester_idx",
-          "columns": [
-            "requester_uuid"
-          ],
-          "isUnique": false
-        },
-        "pam_access_requests_pending_unique": {
-          "name": "pam_access_requests_pending_unique",
-          "columns": [
-            "requester_uuid",
-            "cipher_uuid"
-          ],
-          "isUnique": true,
-          "where": "\"pam_access_requests\".\"status\" = 0 and \"pam_access_requests\".\"extension_of_lease_uuid\" is null"
-        },
-        "pam_access_requests_pending_extension_unique": {
-          "name": "pam_access_requests_pending_extension_unique",
-          "columns": [
-            "extension_of_lease_uuid"
-          ],
-          "isUnique": true,
-          "where": "\"pam_access_requests\".\"status\" = 0 and \"pam_access_requests\".\"extension_of_lease_uuid\" is not null"
-        }
-      },
-      "foreignKeys": {
-        "pam_access_requests_organization_uuid_organizations_uuid_fk": {
-          "name": "pam_access_requests_organization_uuid_organizations_uuid_fk",
-          "tableFrom": "pam_access_requests",
-          "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_uuid"
-          ],
-          "columnsTo": [
-            "uuid"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "pam_access_requests_cipher_uuid_ciphers_uuid_fk": {
-          "name": "pam_access_requests_cipher_uuid_ciphers_uuid_fk",
-          "tableFrom": "pam_access_requests",
-          "tableTo": "ciphers",
-          "columnsFrom": [
-            "cipher_uuid"
-          ],
-          "columnsTo": [
-            "uuid"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "pam_access_requests_requester_uuid_users_uuid_fk": {
-          "name": "pam_access_requests_requester_uuid_users_uuid_fk",
-          "tableFrom": "pam_access_requests",
-          "tableTo": "users",
-          "columnsFrom": [
-            "requester_uuid"
-          ],
-          "columnsTo": [
-            "uuid"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "pam_access_rules": {
-      "name": "pam_access_rules",
-      "columns": {
-        "uuid": {
-          "name": "uuid",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "organization_uuid": {
-          "name": "organization_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "enabled": {
-          "name": "enabled",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": true
-        },
-        "conditions": {
-          "name": "conditions",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "single_active_lease": {
-          "name": "single_active_lease",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": false
-        },
-        "default_lease_seconds": {
-          "name": "default_lease_seconds",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "max_lease_seconds": {
-          "name": "max_lease_seconds",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "allows_extensions": {
-          "name": "allows_extensions",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": false
-        },
-        "max_extension_seconds": {
-          "name": "max_extension_seconds",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "pam_access_rules_org_idx": {
-          "name": "pam_access_rules_org_idx",
-          "columns": [
-            "organization_uuid"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "pam_access_rules_organization_uuid_organizations_uuid_fk": {
-          "name": "pam_access_rules_organization_uuid_organizations_uuid_fk",
-          "tableFrom": "pam_access_rules",
-          "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_uuid"
-          ],
-          "columnsTo": [
-            "uuid"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "pam_leases": {
-      "name": "pam_leases",
-      "columns": {
-        "uuid": {
-          "name": "uuid",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "request_uuid": {
-          "name": "request_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "organization_uuid": {
-          "name": "organization_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "cipher_uuid": {
-          "name": "cipher_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "collection_uuid": {
-          "name": "collection_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "requester_uuid": {
-          "name": "requester_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "status": {
-          "name": "status",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "not_before": {
-          "name": "not_before",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "not_after": {
-          "name": "not_after",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "revoked_at": {
-          "name": "revoked_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "revoked_by_user_uuid": {
-          "name": "revoked_by_user_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "revocation_reason": {
-          "name": "revocation_reason",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "last_extension_request_uuid": {
-          "name": "last_extension_request_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "pam_leases_request_unique": {
-          "name": "pam_leases_request_unique",
-          "columns": [
-            "request_uuid"
-          ],
-          "isUnique": true
-        },
-        "pam_leases_cipher_idx": {
-          "name": "pam_leases_cipher_idx",
-          "columns": [
-            "cipher_uuid",
-            "status"
-          ],
-          "isUnique": false
-        },
-        "pam_leases_requester_idx": {
-          "name": "pam_leases_requester_idx",
-          "columns": [
-            "requester_uuid"
-          ],
-          "isUnique": false
-        },
-        "pam_leases_org_idx": {
-          "name": "pam_leases_org_idx",
-          "columns": [
-            "organization_uuid",
-            "status"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "pam_leases_request_uuid_pam_access_requests_uuid_fk": {
-          "name": "pam_leases_request_uuid_pam_access_requests_uuid_fk",
-          "tableFrom": "pam_leases",
-          "tableTo": "pam_access_requests",
-          "columnsFrom": [
-            "request_uuid"
-          ],
-          "columnsTo": [
-            "uuid"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "pam_leases_organization_uuid_organizations_uuid_fk": {
-          "name": "pam_leases_organization_uuid_organizations_uuid_fk",
-          "tableFrom": "pam_leases",
-          "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_uuid"
-          ],
-          "columnsTo": [
-            "uuid"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "pam_leases_cipher_uuid_ciphers_uuid_fk": {
-          "name": "pam_leases_cipher_uuid_ciphers_uuid_fk",
-          "tableFrom": "pam_leases",
-          "tableTo": "ciphers",
-          "columnsFrom": [
-            "cipher_uuid"
-          ],
-          "columnsTo": [
-            "uuid"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "pam_leases_requester_uuid_users_uuid_fk": {
-          "name": "pam_leases_requester_uuid_users_uuid_fk",
-          "tableFrom": "pam_leases",
-          "tableTo": "users",
-          "columnsFrom": [
-            "requester_uuid"
-          ],
-          "columnsTo": [
-            "uuid"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "pam_rule_collections": {
-      "name": "pam_rule_collections",
-      "columns": {
-        "rule_uuid": {
-          "name": "rule_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "collection_uuid": {
-          "name": "collection_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "pam_rule_collections_collection_unique": {
-          "name": "pam_rule_collections_collection_unique",
-          "columns": [
-            "collection_uuid"
-          ],
-          "isUnique": true
-        }
-      },
-      "foreignKeys": {
-        "pam_rule_collections_rule_uuid_pam_access_rules_uuid_fk": {
-          "name": "pam_rule_collections_rule_uuid_pam_access_rules_uuid_fk",
-          "tableFrom": "pam_rule_collections",
-          "tableTo": "pam_access_rules",
-          "columnsFrom": [
-            "rule_uuid"
-          ],
-          "columnsTo": [
-            "uuid"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "pam_rule_collections_collection_uuid_collections_uuid_fk": {
-          "name": "pam_rule_collections_collection_uuid_collections_uuid_fk",
-          "tableFrom": "pam_rule_collections",
-          "tableTo": "collections",
-          "columnsFrom": [
-            "collection_uuid"
-          ],
-          "columnsTo": [
-            "uuid"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "pam_rule_collections_rule_uuid_collection_uuid_pk": {
-          "columns": [
-            "rule_uuid",
-            "collection_uuid"
-          ],
-          "name": "pam_rule_collections_rule_uuid_collection_uuid_pk"
-        }
-      },
       "uniqueConstraints": {},
       "checkConstraints": {}
     }

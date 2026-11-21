@@ -21,11 +21,21 @@ export const PolicyType = {
 
 /** Event codes used on the wire by the official clients. */
 export const EventType = {
+  UserLoggedIn: 1000,
+  UserChangedPassword: 1001,
+  UserUpdated2fa: 1002,
+  UserDisabled2fa: 1003,
+  UserRecovered2fa: 1004,
+  UserFailedLogIn: 1005,
+  UserFailedLogIn2fa: 1006,
+  UserClientExportedVault: 1007,
   UserUpdatedTempPassword: 1008,
   UserRequestedDeviceApproval: 1010,
+  UserTdeOffboardingPasswordSet: 1011,
   CipherCreated: 1100,
   CipherUpdated: 1101,
   CipherDeleted: 1102,
+  CipherAttachmentCreated: 1103,
   CipherAttachmentDeleted: 1104,
   CipherShared: 1105,
   CipherUpdatedCollections: 1106,
@@ -49,9 +59,47 @@ export const EventType = {
   OrganizationUserRestored: 1512,
   OrganizationUserApprovedAuthRequest: 1513,
   OrganizationUserRejectedAuthRequest: 1514,
+  OrganizationUserDeleted: 1515,
+  OrganizationUserLeft: 1516,
+  OrganizationUserAutomaticallyConfirmed: 1517,
+  OrganizationUserSelfRevoked: 1518,
   OrganizationUserAdminResetTwoFactor: 1519,
+  OrganizationUserRevokedTwoFactorNonCompliance: 1520,
+  OrganizationUserInviteLinkAccepted: 1524,
+  OrganizationUserInviteLinkConfirmed: 1526,
   OrganizationUpdated: 1600,
+  OrganizationPurgedVault: 1601,
+  OrganizationVaultAccessed: 1603,
+  OrganizationCollectionManagementUpdated: 1609,
+  OrganizationLimitCollectionCreationEnabled: 1610,
+  OrganizationLimitCollectionCreationDisabled: 1611,
+  OrganizationLimitCollectionDeletionEnabled: 1612,
+  OrganizationLimitCollectionDeletionDisabled: 1613,
+  OrganizationLimitItemDeletionEnabled: 1614,
+  OrganizationLimitItemDeletionDisabled: 1615,
+  OrganizationAllowAdminAccessToAllCollectionItemsEnabled: 1616,
+  OrganizationAllowAdminAccessToAllCollectionItemsDisabled: 1617,
+  OrganizationAutoConfirmEnabledAdmin: 1620,
+  OrganizationAutoConfirmDisabledAdmin: 1621,
+  OrganizationInviteLinkCreated: 1624,
+  OrganizationInviteLinkDomainsEdited: 1625,
+  OrganizationInviteLinkDeleted: 1626,
+  OrganizationInviteLinkRefreshed: 1628,
+  OrganizationInviteLinkConfirmEnabled: 1629,
+  OrganizationInviteLinkConfirmDisabled: 1630,
   PolicyUpdated: 1700,
+  SendCreatedText: 2500,
+  SendCreatedTextWithEmailVerification: 2501,
+  SendCreatedTextWithPasswordProtection: 2502,
+  SendCreatedFile: 2503,
+  SendCreatedFileWithEmailVerification: 2504,
+  SendCreatedFileWithPasswordProtection: 2505,
+  SendEditedText: 2506,
+  SendEditedFile: 2507,
+  SendDeletedText: 2508,
+  SendDeletedFile: 2509,
+  SendAccessedText: 2510,
+  SendAccessedFile: 2511,
   // Secrets Manager (TASKS #220).
   SecretRetrieved: 2100,
   SecretCreated: 2101,
@@ -59,6 +107,7 @@ export const EventType = {
   SecretDeleted: 2103,
   SecretPermanentlyDeleted: 2104,
   SecretRestored: 2105,
+  ProjectRetrieved: 2200,
   ProjectCreated: 2201,
   ProjectEdited: 2202,
   ProjectDeleted: 2203,
@@ -87,7 +136,31 @@ export const PERMISSION_KEYS = [
   'manageUsers',
   'manageResetPassword',
   'manageScim',
+  'manageAccessRules',
 ] as const
+
+/**
+ * The custom permissions the Public API reads and writes. `manageCiphers` is an older
+ * Cloudwarden key that the published Public API model does not have, so it stays internal.
+ */
+export const PUBLIC_PERMISSION_KEYS = [
+  'accessEventLogs',
+  'accessImportExport',
+  'accessReports',
+  'createNewCollections',
+  'editAnyCollection',
+  'deleteAnyCollection',
+  'manageGroups',
+  'managePolicies',
+  'manageSso',
+  'manageUsers',
+  'manageResetPassword',
+  'manageScim',
+  'manageAccessRules',
+] as const
+
+/** Highest policy type of the published Public API (FillAssist). */
+export const MAX_POLICY_TYPE = 22
 
 /**
  * Event codes for admin actions. They sit outside the range used by the official clients

@@ -3,9 +3,11 @@ import { randomB64u, safeEqualStrings, sha256B64u } from '../auth/crypto'
 import { normalizeEmail } from '../auth/users'
 import { type Db, runBatch, schema } from '../db'
 import type { Bindings, User } from '../env'
+import { ApiError } from '../errors'
 import { isStandInUser } from '../federation/standin'
 import { Role, Status } from '../orgs/constants'
 import { orgClaimsEmail } from '../orgs/domains'
+import { assertSeatsAvailable } from '../orgs/subscription'
 import { SsoError } from './errors'
 
 /**
@@ -382,6 +384,11 @@ async function ensureMembership(db: Db, orgUuid: string, user: User, now: number
       .set({ userUuid: user.uuid, status: Status.Accepted, updatedAt: now })
       .where(eq(schema.usersOrganizations.uuid, m.uuid))
     return
+  }
+  try {
+    await assertSeatsAvailable(db, orgUuid)
+  } catch (err) {
+    throw err instanceof ApiError ? new SsoError(err.message) : err
   }
   await db.insert(schema.usersOrganizations).values({
     uuid: crypto.randomUUID(),

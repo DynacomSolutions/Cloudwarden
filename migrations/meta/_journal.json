@@ -236,15 +236,36 @@
     {
       "idx": 33,
       "version": "6",
-      "when": 1795285587732,
-      "tag": "0033_privileged_access_rotation",
+      "when": 1795285258925,
+      "tag": "0033_org_subscription_limits",
       "breakpoints": true
     },
     {
       "idx": 34,
       "version": "6",
-      "when": 1795286925794,
-      "tag": "0034_privileged_access_leases",
+      "when": 1795294306233,
+      "tag": "0034_access_intelligence_reports",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "6",
+      "when": 1795296526670,
+      "tag": "0035_event_send_uuid",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "6",
+      "when": 1795299308173,
+      "tag": "0036_privileged_access_rotation",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "6",
+      "when": 1795299309857,
+      "tag": "0037_privileged_access_leases",
       "breakpoints": true
     }
   ]

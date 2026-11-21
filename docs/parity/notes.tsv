@@ -153,3 +153,14 @@ GET	/api/organizations/{id}/integrations/{id}/teams/channels	implemented	F	Answe
 GET	/api/organizations/integrations/slack/create	implemented	F	Answers 400: no Slack app is configured on this server
 GET	/api/organizations/integrations/teams/create	implemented	F	Answers 400: no Teams app is configured on this server
 POST	/api/organizations/integrations/teams/incoming	implemented	F	Answers 400: no Teams app is configured on this server
+GET	/api/account/billing/subscription/purchase/preview	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+GET	/api/account/billing/subscription/upgrade/preview	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/account/billing/vnext/self-host/license	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+PUT	/api/billing/preview-invoice/organizations/{id}/subscription/update	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+GET	/api/licenses/organization/{id}	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+GET	/api/licenses/user/{id}	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/organization/sponsorship/sync	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/api/organizations/billing/subscription/purchase/preview	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+GET	/api/tax/is-country-supported	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+POST	/identity/accounts/trial/send-verification-email	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation
+GET	/api/providers/{id}/billing/vnext/warnings	self-host	G	No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation

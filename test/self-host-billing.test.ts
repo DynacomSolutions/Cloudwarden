@@ -174,3 +174,82 @@ describe('providers', () => {
     expect((await a.json(`/api/providers/${pid}/events`)).data).toEqual([])
   })
 })
+
+describe('cloud-only routes the SDK lists', () => {
+  const NO_LICENCE = /Licence files are not used by this self-hosted Cloudwarden server/
+
+  it('answers previews, licences, tax and the trial like a server without billing', async () => {
+    const a = await actor('bill-cloud-only@example.com')
+    for (const path of [
+      '/api/account/billing/subscription/purchase/preview',
+      '/api/account/billing/subscription/upgrade/preview',
+    ]) {
+      expect((await a.call(path)).status, path).toBe(404)
+    }
+    const purchase = await a.call(
+      '/api/organizations/billing/subscription/purchase/preview',
+      'POST',
+      {},
+    )
+    expect(purchase.status).toBe(400)
+    expect(((await purchase.json()) as { message: string }).message).toMatch(NO_BILLING)
+
+    // The licence upload is accepted and changes nothing, like the older one.
+    expect((await a.call('/api/account/billing/vnext/self-host/license', 'POST', {})).status).toBe(
+      200,
+    )
+    const user = await a.call(`/api/licenses/user/${a.uuid}`)
+    expect(user.status).toBe(400)
+    expect(((await user.json()) as { message: string }).message).toMatch(NO_LICENCE)
+
+    expect(await a.json('/api/tax/is-country-supported?country=DE')).toBe(false)
+
+    const trial = await SELF.fetch(`${BASE}/identity/accounts/trial/send-verification-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'trial@example.com', name: 'Trial', productTier: 2 }),
+    })
+    expect(trial.status).toBe(400)
+    expect(((await trial.json()) as { message: string }).message).toMatch(NO_BILLING)
+  })
+
+  it('needs authentication except for the trial email', async () => {
+    for (const [path, method] of [
+      ['/api/account/billing/vnext/self-host/license', 'POST'],
+      ['/api/licenses/user/x', 'GET'],
+      ['/api/licenses/organization/x', 'GET'],
+      ['/api/tax/is-country-supported', 'GET'],
+      ['/api/organization/sponsorship/sync', 'POST'],
+      ['/api/organizations/billing/subscription/purchase/preview', 'POST'],
+    ] as const) {
+      expect((await SELF.fetch(`${BASE}${path}`, { method })).status, path).toBe(401)
+    }
+  })
+
+  it('answers organisation licences, update previews and sponsorship sync', async () => {
+    const owner = await actor('bill-cloud-org@example.com')
+    const user = await actor('bill-cloud-member@example.com')
+    const { id } = await createOrg(owner)
+    await addMember(owner, id, user)
+    const lic = await owner.call(`/api/licenses/organization/${id}`)
+    expect(lic.status).toBe(400)
+    expect(((await lic.json()) as { message: string }).message).toMatch(NO_LICENCE)
+    expect((await user.call(`/api/licenses/organization/${id}`)).status).toBe(403)
+
+    const update = `/api/billing/preview-invoice/organizations/${id}/subscription/update`
+    for (const method of ['PUT', 'POST']) {
+      const res = await owner.call(update, method, {})
+      expect(res.status, method).toBe(400)
+      expect(((await res.json()) as { message: string }).message).toMatch(NO_BILLING)
+    }
+    expect((await user.call(update, 'PUT', {})).status).toBe(403)
+
+    expect((await owner.call('/api/organization/sponsorship/sync', 'POST', {})).status).toBe(400)
+  })
+
+  it('has no provider warnings: the provider does not exist', async () => {
+    const a = await actor('bill-cloud-provider@example.com')
+    const pid = '00000000-0000-0000-0000-000000000000'
+    expect((await a.call(`/api/providers/${pid}/billing/vnext/warnings`)).status).toBe(404)
+  })
+})

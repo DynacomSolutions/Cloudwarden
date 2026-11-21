@@ -51,6 +51,7 @@ for (const [method, path] of [
   ['get', `${P}/billing/vnext/credit`],
   ['post', `${P}/billing/vnext/credit/bitpay`],
   ['get', `${P}/billing/vnext/payment-method`],
+  ['get', `${P}/billing/vnext/warnings`],
   ['put', `${P}/billing/vnext/payment-method`],
   ['post', `${P}/billing/vnext/payment-method/verify-bank-account`],
   ['post', `${P}/billing/vnext/subscription/restart`],

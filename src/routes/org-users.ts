@@ -424,7 +424,7 @@ orgUsers.post('/api/organizations/:orgId/users/:id/accept', async (c) => {
         .set({
           userUuid: user.uuid,
           status: Status.Accepted,
-          ...(resetPasswordKey ? { resetPasswordKey } : {}),
+          ...(resetPasswordKey ? { resetPasswordKey, v2UpgradeToken: null } : {}),
           updatedAt: now,
         })
         .where(eq(schema.usersOrganizations.uuid, id)),

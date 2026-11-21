@@ -28,6 +28,11 @@ export const users = sqliteTable(
      * (set by the V2 key rotation and the SSO JIT finish); null for V1 accounts.
      */
     accountKeysV2: text('account_keys_v2'),
+    /**
+     * JSON token of a V1 to V2 key rotation that kept the sessions alive. Clients read it from
+     * sync to finish the upgrade; the next full rotation clears it.
+     */
+    v2UpgradeToken: text('v2_upgrade_token'),
     kdfType: integer('kdf_type').notNull().default(0),
     kdfIterations: integer('kdf_iterations').notNull().default(600000),
     kdfMemory: integer('kdf_memory'),

@@ -411,13 +411,26 @@ export async function downloadAttachmentByToken(c: Ctx) {
   return serveAttachment(c, cipherId, attachmentId)
 }
 
+const MAX_AZURE_EVENTS_BYTES = 64 * 1024
+
 /**
  * `POST /api/ciphers/attachment/validate/azure`: the Azure Event Grid hook. Attachments live in
  * R2, so no storage event ever arrives. Subscription handshakes get the usual answer and every
  * other event is accepted and ignored, as a server that stores files locally does.
  */
 export async function validateAzureEvents(c: Ctx) {
-  const events: unknown = await c.req.json().catch(() => null)
+  // An anonymous endpoint: refuse a large body before it is read.
+  const declared = Number(c.req.header('Content-Length') ?? 0)
+  if (declared > MAX_AZURE_EVENTS_BYTES) throw new ApiError(413, 'The request is too large.')
+  const text = await c.req.text().catch(() => '')
+  if (text.length > MAX_AZURE_EVENTS_BYTES) throw new ApiError(413, 'The request is too large.')
+  const events: unknown = (() => {
+    try {
+      return JSON.parse(text)
+    } catch {
+      return null
+    }
+  })()
   if (!Array.isArray(events)) throw new ApiError(400, 'The request is invalid.')
   for (const event of events) {
     const e = event as { eventType?: unknown; data?: { validationCode?: unknown } }

@@ -154,6 +154,9 @@ export async function pushOrgUpdate(
   ])
 }
 
+/** Why a logout push was sent (`PushNotificationLogOutReason` of the official server). */
+export const LogOutReason = { KdfChange: 0, KeyRotation: 1 } as const
+
 /**
  * Forces every session of the user to sign out, then closes their sockets (except the
  * originating device's). Call after a security stamp rotation.
@@ -162,8 +165,13 @@ export async function pushLogOut(
   env: Bindings,
   userUuid: string,
   originDeviceIdentifier?: string | null,
+  reason?: number,
 ): Promise<void> {
-  const payload = { UserId: userUuid, Date: new Date().toISOString() }
+  const payload = {
+    UserId: userUuid,
+    Date: new Date().toISOString(),
+    ...(reason === undefined ? {} : { Reason: reason }),
+  }
   const relayDone = relaySend(env, {
     type: PushType.LogOut,
     payload,
@@ -176,13 +184,7 @@ export async function pushLogOut(
     }
     await stub.push({
       target: USER_TARGET,
-      args: [
-        notificationArg(
-          PushType.LogOut,
-          { UserId: userUuid, Date: new Date().toISOString() },
-          null,
-        ),
-      ],
+      args: [notificationArg(PushType.LogOut, payload, null)],
       // Every socket is told, then closed so a stale session cannot keep listening.
       closeAfter: true,
       closeExceptDevice: originDeviceIdentifier ?? null,

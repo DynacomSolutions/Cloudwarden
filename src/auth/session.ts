@@ -122,7 +122,33 @@ export interface AccountKeysV2 {
   securityState: { securityState: string | null; securityVersion: number } | null
 }
 
-function storedV2(user: User): Partial<AccountKeysV2> {
+/** The encryption type of an encrypted string (`2.iv|data|mac`, `7.base64`), or null when it has none. */
+export function encryptionType(value: string | null | undefined): number | null {
+  const m = /^(\d+)\./.exec(value ?? '')
+  return m ? Number(m[1]) : null
+}
+
+/** Whether the account holds V2 keys: stored V2 parts or a private key wrapped for a V2 user key. */
+export function hasV2KeyShape(user: Pick<User, 'accountKeysV2' | 'privateKey'>): boolean {
+  const v2 = storedV2(user)
+  return (
+    Boolean(v2.signatureKeyPair || v2.signedPublicKey || v2.securityState) ||
+    encryptionType(user.privateKey) === 7
+  )
+}
+
+/** The V1 to V2 upgrade token kept on the user, parsed; null when there is none. */
+export function userUpgradeToken(user: Pick<User, 'v2UpgradeToken'>) {
+  if (!user.v2UpgradeToken) return null
+  try {
+    return JSON.parse(user.v2UpgradeToken) as { wrappedUserKey1: string; wrappedUserKey2: string }
+  } catch {
+    return null
+  }
+}
+
+/** The stored V2 parts of the account keys; empty for a V1 account. */
+export function storedV2(user: Pick<User, 'accountKeysV2'>): Partial<AccountKeysV2> {
   if (!user.accountKeysV2) return {}
   try {
     return JSON.parse(user.accountKeysV2) as Partial<AccountKeysV2>

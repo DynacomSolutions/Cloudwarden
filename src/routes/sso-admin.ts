@@ -34,7 +34,7 @@ import {
 } from '../orgs/domains'
 import { eventStatement } from '../orgs/events'
 import { assertNotSoleOwner } from '../orgs/members'
-import { parseData } from '../orgs/policies'
+import { assertTwoFactorCompliant, parseData } from '../orgs/policies'
 import { assertOrgKeys, resetPasswordPolicy } from '../orgs/recovery'
 import { authOnce, batch } from '../orgs/util'
 import { rateLimit } from '../ratelimit'
@@ -1089,20 +1089,35 @@ ssoAccounts.get(
  * older flow spread over several calls. SSO sign-in has already created the membership as
  * accepted; `acceptOrganizationInvite` also accepts an invitation that is still pending.
  */
-const acceptInvite = (db: Db, member: { uuid: string; status: number }, accept: boolean) =>
-  accept && member.status === Status.Invited
-    ? [
-        db
-          .update(schema.usersOrganizations)
-          .set({ status: Status.Accepted, updatedAt: Date.now() })
-          .where(
-            and(
-              eq(schema.usersOrganizations.uuid, member.uuid),
-              eq(schema.usersOrganizations.status, Status.Invited),
-            ),
-          ),
-      ]
-    : []
+const acceptInvite = async (
+  db: Db,
+  user: Pick<User, 'uuid'>,
+  org: { uuid: string },
+  member: { uuid: string; status: number },
+  accept: boolean,
+) => {
+  if (!accept || member.status !== Status.Invited) return []
+  // The same gate as accepting an invitation by link: a policy may demand two-step login.
+  await assertTwoFactorCompliant(db, user.uuid, org.uuid)
+  return [
+    db
+      .update(schema.usersOrganizations)
+      .set({ status: Status.Accepted, updatedAt: Date.now() })
+      .where(
+        and(
+          eq(schema.usersOrganizations.uuid, member.uuid),
+          eq(schema.usersOrganizations.status, Status.Invited),
+        ),
+      ),
+  ]
+}
+
+/** The JIT finish sets the first keys of an account: an account with keys keeps them. */
+function assertNoAccountKeys(user: Pick<User, 'publicKey' | 'privateKey'>) {
+  if (user.publicKey || user.privateKey) {
+    throw new ApiError(400, 'User account keys are already initialized.')
+  }
+}
 
 const jitUnlock = unlockData.extend({ containedKeyId: z.string().max(200).nullish() })
 
@@ -1123,11 +1138,12 @@ ssoAccounts.post('/api/sso-jit-provision-finish/password', requireAuth, async (c
   if (hasMasterPassword(user))
     throw new ApiError(400, 'This account already has a master password.')
   if (user.usesKeyConnector) throw new ApiError(400, 'This account unlocks with Key Connector.')
+  assertNoAccountKeys(user)
   if (body.accountKeys && body.keys) {
     throw new ApiError(400, 'Send either account keys or keys, not both.')
   }
   const keys = requestKeys(body.keys, body.accountKeys)
-  if (!keys.publicKey && !user.publicKey)
+  if (!keys.publicKey || !keys.privateKey)
     throw new ApiError(400, 'An account key pair is required.')
   const kdf = checkNested(body.masterPasswordAuthentication, body.masterPasswordUnlock, user.email)
   const found = await memberOrgByIdentifier(c, body.orgIdentifier)
@@ -1151,7 +1167,7 @@ ssoAccounts.post('/api/sso-jit-provision-finish/password', requireAuth, async (c
         updatedAt: Date.now(),
       })
       .where(and(eq(schema.users.uuid, user.uuid), eq(schema.users.passwordHash, ''))),
-    ...acceptInvite(db, found.member, body.acceptOrganizationInvite),
+    ...(await acceptInvite(db, user, found.org, found.member, body.acceptOrganizationInvite)),
   ])
   return c.body(null, 200)
 })
@@ -1164,9 +1180,16 @@ ssoAccounts.post('/api/sso-jit-provision-finish/key-connector', requireAuth, asy
       acceptOrganizationInvite: z.boolean(),
     }),
   )
+  assertNoAccountKeys(c.var.user)
   const found = await setKeyConnectorKey(c, body.keyConnectorKeys)
   const db = createDb(c.env.DB)
-  const accept = acceptInvite(db, found.member, body.acceptOrganizationInvite)
+  const accept = await acceptInvite(
+    db,
+    c.var.user,
+    found.org,
+    found.member,
+    body.acceptOrganizationInvite,
+  )
   if (accept.length > 0) await batch(db, accept)
   return c.body(null, 200)
 })
@@ -1194,6 +1217,7 @@ ssoAccounts.post('/api/sso-jit-provision-finish/trusted-device', requireAuth, as
     }),
   )
   const user = c.var.user
+  assertNoAccountKeys(user)
   const db = createDb(c.env.DB)
   const orgUuid = body.organizationId
   const member = await getMember(db, user.uuid, orgUuid)
@@ -1205,11 +1229,14 @@ ssoAccounts.post('/api/sso-jit-provision-finish/trusted-device', requireAuth, as
   if (data?.memberDecryptionType !== MemberDecryptionType.TrustedDeviceEncryption) {
     throw new ApiError(400, 'This organization does not use trusted device encryption.')
   }
-  if (body.acceptOrganizationInvite && !body.accountRecoveryKey) {
-    throw new ApiError(400, 'An account recovery key is required to accept the invitation.')
-  }
   const policy = await resetPasswordPolicy(db, orgUuid)
-  const enrol = body.acceptOrganizationInvite && body.accountRecoveryKey && policy.enabled
+  if (body.accountRecoveryKey && !policy.enabled) {
+    throw new ApiError(400, 'Organization does not have the account recovery policy enabled.')
+  }
+  if (body.acceptOrganizationInvite && policy.autoEnrollEnabled && !body.accountRecoveryKey) {
+    throw new ApiError(400, 'Master password reset enrolment is required, but was not provided.')
+  }
+  const enrol = body.acceptOrganizationInvite && body.accountRecoveryKey
   if (enrol) assertOrgKeys(await requireOrg(db, orgUuid))
   const device = body.deviceKeys
     ? (
@@ -1248,12 +1275,16 @@ ssoAccounts.post('/api/sso-jit-provision-finish/trusted-device', requireAuth, as
             .where(eq(schema.devices.uuid, device.uuid)),
         ]
       : []),
-    ...acceptInvite(db, member, body.acceptOrganizationInvite),
+    ...(await acceptInvite(db, user, { uuid: orgUuid }, member, body.acceptOrganizationInvite)),
     ...(enrol
       ? [
           db
             .update(schema.usersOrganizations)
-            .set({ resetPasswordKey: body.accountRecoveryKey, updatedAt: now })
+            .set({
+              resetPasswordKey: body.accountRecoveryKey,
+              v2UpgradeToken: null,
+              updatedAt: now,
+            })
             .where(eq(schema.usersOrganizations.uuid, member.uuid)),
           eventStatement(db, c, {
             type: EventType.OrganizationUserResetPasswordEnroll,

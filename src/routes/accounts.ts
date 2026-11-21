@@ -1,4 +1,4 @@
-import { and, eq, isNotNull, isNull, ne, notInArray, or, sql } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, isNull, ne, notInArray, or, sql } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { z } from 'zod'
 import { isAdminEmail } from '../admin/security'
@@ -14,7 +14,14 @@ import { randomB64u } from '../auth/crypto'
 import { requireAuth } from '../auth/middleware'
 import { consumeOtp, issueOtp, MAX_ATTEMPTS } from '../auth/otp'
 import { hashMasterPassword, verifyMasterPassword } from '../auth/passwords'
-import { type AccountKeysV2, accountKeysJson, stampRotationStatements } from '../auth/session'
+import {
+  type AccountKeysV2,
+  accountKeysJson,
+  encryptionType,
+  hasV2KeyShape,
+  stampRotationStatements,
+  storedV2,
+} from '../auth/session'
 import { sealUserSecret, viewUserSecret } from '../auth/user-secrets'
 import { findUserByEmail, normalizeEmail } from '../auth/users'
 import { createDb, type Db, runBatch, schema } from '../db'
@@ -30,9 +37,9 @@ import type { Env, User } from '../env'
 import { ApiError } from '../errors'
 import { federatedProfileOrgs } from '../federation/replica'
 import { MAX_CIPHER_NOTES, MAX_ENC_NAME } from '../limits'
-import { pushLogOut } from '../notifications/publish'
+import { LogOutReason, pushLogOut } from '../notifications/publish'
 import { relayDeleteDevice } from '../notifications/relay'
-import { EventType } from '../orgs/constants'
+import { EventType, Status } from '../orgs/constants'
 import { assertNotClaimed } from '../orgs/domains'
 import { eventStatement } from '../orgs/events'
 import { assertNotSoleOwner } from '../orgs/members'
@@ -43,6 +50,7 @@ import { userAttachmentKeys } from '../vault/attachments'
 import { deleteBlobs } from '../vault/blobs'
 import { fieldsSchema, opaque, packPayload } from '../vault/ciphers'
 import { userSendKeys } from '../vault/sends'
+import { EmergencyStatus } from './emergency-access'
 
 export const accounts = new Hono<Env>()
 
@@ -589,7 +597,10 @@ type RotationInput = Omit<z.infer<typeof rotateSchema>, 'masterPasswordHash' | '
    * key leaves the enrolment on the old key and records the V2 upgrade token for an administrator.
    */
   recovery?: { organizationId: string; resetPasswordKey: string | null }[]
-  /** Emergency access grants whose key copy is re-wrapped (a grant left out keeps its copy). */
+  /**
+   * Emergency access grants whose key copy is re-wrapped. Every confirmed grant must be named
+   * exactly once; the legacy endpoint sends none and is refused while a confirmed grant exists.
+   */
   emergency?: z.infer<typeof emergencyUnlock>
   /** Token that lets an administrator re-wrap the recovery keys left on the old key. */
   recoveryUpgradeToken?: z.infer<typeof upgradeToken> | null
@@ -606,6 +617,8 @@ async function recoveryRotation(
   userUuid: string,
   given: RotationInput['recovery'],
   token: RotationInput['recoveryUpgradeToken'],
+  /** A V1 to V2 upgrade: the keys cannot be re-wrapped and an administrator finishes the job. */
+  upgrade: boolean,
 ) {
   const uo = schema.usersOrganizations
   const enrolled = await db
@@ -629,15 +642,23 @@ async function recoveryRotation(
   ) {
     throw new ApiError(400, 'Rotation must include every account recovery enrolment exactly once.')
   }
-  if (given.some((g) => g.resetPasswordKey === null) && !token) {
-    throw new ApiError(400, 'A recovery key left out needs a V2 upgrade token.')
+  if (upgrade) {
+    // The organisation public key is not trusted during the upgrade, so no key can be re-wrapped.
+    if (given.some((g) => g.resetPasswordKey !== null)) {
+      throw new ApiError(
+        400,
+        'Account recovery keys cannot be rotated during a V1 to V2 upgrade rotation.',
+      )
+    }
+  } else if (given.some((g) => !g.resetPasswordKey)) {
+    throw new ApiError(400, 'Account recovery keys cannot be null or empty during rotation.')
   }
   return enrolled.map((m) => {
     const key = byOrg.get(m.orgUuid) ?? null
     return db
       .update(uo)
       .set(
-        key === null
+        upgrade
           ? { v2UpgradeToken: JSON.stringify(token), updatedAt: now }
           : { resetPasswordKey: key, v2UpgradeToken: null, updatedAt: now },
       )
@@ -729,28 +750,86 @@ export async function passkeyRotation(
   ]
 }
 
-/** Re-wraps the key copy of the confirmed emergency access grants the client names. */
+/**
+ * Re-wraps the key copy of the confirmed emergency access grants. Every grant that holds a key
+ * copy must come back exactly once with a key, or the grantee could no longer open the vault.
+ */
 async function emergencyRotation(
   db: ReturnType<typeof createDb>,
   userUuid: string,
-  given: z.infer<typeof emergencyUnlock>,
+  given: z.infer<typeof emergencyUnlock> | undefined,
 ) {
-  if (given.length === 0) return []
   const ea = schema.emergencyAccess
+  // A grant that is not confirmed holds no key copy, so there is nothing to re-wrap.
   const owned = await db
     .select({ id: ea.uuid })
     .from(ea)
     .where(and(eq(ea.grantorUuid, userUuid), isNotNull(ea.keyEncrypted)))
-  const ids = new Set(owned.map((r) => r.id))
-  // A grant that is not confirmed holds no key copy, so there is nothing to re-wrap.
-  return given
-    .filter((g) => ids.has(g.id))
-    .map((g) =>
-      db
-        .update(ea)
-        .set({ keyEncrypted: g.keyEncrypted, updatedAt: Date.now() })
-        .where(and(eq(ea.uuid, g.id), eq(ea.grantorUuid, userUuid))),
-    )
+  if (owned.length === 0) return []
+  const byId = new Map<string, string | null>()
+  for (const g of given ?? []) {
+    if (byId.has(g.id)) {
+      throw new ApiError(400, 'Rotation must include every emergency access grant exactly once.')
+    }
+    byId.set(g.id, g.keyEncrypted)
+  }
+  for (const { id } of owned) {
+    if (!byId.has(id)) {
+      throw new ApiError(
+        400,
+        'All existing emergency access keys must be included in the rotation.',
+      )
+    }
+    if (!byId.get(id)) {
+      throw new ApiError(400, 'Emergency access keys cannot be set to null during rotation.')
+    }
+  }
+  return owned.map(({ id }) =>
+    db
+      .update(ea)
+      .set({ keyEncrypted: byId.get(id) as string, updatedAt: Date.now() })
+      .where(and(eq(ea.uuid, id), eq(ea.grantorUuid, userUuid), isNotNull(ea.keyEncrypted))),
+  )
+}
+
+/**
+ * The account keys of a rotation, as the official server checks them: a V2 account sends a full
+ * V2 set with the verifying key it already has, a V1 account upgrades with a full V2 set or
+ * keeps a private key wrapped with AES-CBC-HMAC, and partial V2 data is refused.
+ */
+function validateAccountKeys(user: User, body: Pick<RotationInput, 'privateKey' | 'v2Keys'>) {
+  const v2 = body.v2Keys ?? null
+  const sig = v2?.signatureKeyPair ?? null
+  const bad = (message: string): never => {
+    throw new ApiError(400, message)
+  }
+  const requireV2 = () => {
+    if (!v2 || !sig) bad('Signature key pair data is required for V2 encryption.')
+    if (encryptionType(sig?.wrappedSigningKey) !== 7) {
+      bad('The provided signing key data is not wrapped with XChaCha20-Poly1305.')
+    }
+    if (!sig?.verifyingKey) bad('The signature key pair data does not contain a verifying key.')
+    if (encryptionType(body.privateKey) !== 7) {
+      bad('The provided account private key is not wrapped with XChaCha20-Poly1305.')
+    }
+    if (!v2?.signedPublicKey) bad('A signed public key is required for V2 encryption.')
+    if (!v2?.securityState?.securityState) bad('A signed security state is required for V2 users.')
+  }
+  if (hasV2KeyShape(user)) {
+    requireV2()
+    const current = storedV2(user).signatureKeyPair?.verifyingKey
+    if (!current) bad('The account does not have a signature key pair.')
+    if (sig?.verifyingKey !== current) {
+      bad('The provided verifying key does not match the current verifying key.')
+    }
+  } else if (sig) {
+    requireV2()
+  } else {
+    if (v2) bad('Partial V2 account keys are not accepted without a signature key pair.')
+    if (encryptionType(body.privateKey) !== 2) {
+      bad('The provided account private key was not wrapped with AES-256-CBC-HMAC.')
+    }
+  }
 }
 
 async function applyRotation(c: Ctx, user: User, body: RotationInput) {
@@ -794,6 +873,11 @@ async function applyRotation(c: Ctx, user: User, body: RotationInput) {
     throw new ApiError(400, 'Cipher type cannot change during key rotation.')
   }
 
+  validateAccountKeys(user, body)
+  // A token only fits a V1 user moving to V2; the sessions then stay, and an administrator
+  // finishes the account recovery keys. Every other rotation ends all sessions.
+  const upgrade = Boolean(body.recoveryUpgradeToken) && !hasV2KeyShape(user)
+
   const passkeyStatements = await passkeyRotation(db, user.uuid, body.passkeys)
   const deviceStatements = await deviceTrustRotation(db, user.uuid, body.devices ?? [])
   const recoveryStatements = await recoveryRotation(
@@ -801,9 +885,10 @@ async function applyRotation(c: Ctx, user: User, body: RotationInput) {
     user.uuid,
     body.recovery,
     body.recoveryUpgradeToken,
+    upgrade,
   )
 
-  const emergencyStatements = await emergencyRotation(db, user.uuid, body.emergency ?? [])
+  const emergencyStatements = await emergencyRotation(db, user.uuid, body.emergency)
 
   const now = Date.now()
   await runBatch(db, [
@@ -819,6 +904,7 @@ async function applyRotation(c: Ctx, user: User, body: RotationInput) {
         privateKey: body.privateKey,
         ...(body.publicKey ? { publicKey: body.publicKey } : {}),
         accountKeysV2: body.v2Keys ? JSON.stringify(body.v2Keys) : null,
+        v2UpgradeToken: upgrade ? JSON.stringify(body.recoveryUpgradeToken) : null,
         ...(body.credentials
           ? {
               ...(await hashMasterPassword(body.credentials.hash)),
@@ -858,9 +944,16 @@ async function applyRotation(c: Ctx, user: User, body: RotationInput) {
         .set({ akey: s.key, ...(s.name ? { name: s.name } : {}), updatedAt: now })
         .where(eq(schema.sends.uuid, s.id)),
     ),
-    ...stampRotationStatements(db, user.uuid),
+    ...(upgrade ? [] : stampRotationStatements(db, user.uuid)),
   ])
-  c.executionCtx.waitUntil(pushLogOut(c.env, user.uuid, c.var.auth.deviceIdentifier))
+  c.executionCtx.waitUntil(
+    pushLogOut(
+      c.env,
+      user.uuid,
+      c.var.auth.deviceIdentifier,
+      upgrade ? LogOutReason.KeyRotation : undefined,
+    ),
+  )
   return c.body(null, 200)
 }
 
@@ -919,7 +1012,7 @@ const passkeyUnlock = z.array(
 /** The new key id must not follow a key id other than the stored one. */
 function checkOldUserKeyId(user: User, old: string | null | undefined) {
   if (old && user.userKeyId && old !== user.userKeyId) {
-    throw new ApiError(400, 'The user key id does not match the current user key.')
+    throw new ApiError(409, 'The user key id does not match the current user key.')
   }
 }
 
@@ -1078,6 +1171,12 @@ accounts.post('/api/accounts/key-management/rotate-user-keys', requireAuth, asyn
     ) {
       throw new ApiError(400, 'The KDF settings cannot change during this key rotation.')
     }
+    if (m.containedKeyId && m.containedKeyId !== (body.newUserKeyId ?? null)) {
+      throw new ApiError(
+        400,
+        'The key id of the wrapped user key does not match the new user key id.',
+      )
+    }
     key = m.masterKeyWrappedUserKey
   } else if (method.unlockMethod === 2) {
     if (!user.usesKeyConnector) {
@@ -1186,9 +1285,10 @@ accounts.get('/api/accounts/key-management/key-rotation-data', requireAuth, asyn
   })
 })
 
-// Sets the key pair of an account that has none, or re-wraps the existing private key (the same
-// public key) after the client repaired it. An existing public key never changes here: members
-// confirmed with it hold organisation keys that only its private key can open.
+// Replaces the key pair of an account, as the official command does for a client that repaired a
+// lost or broken pair. Organisation keys and emergency access copies were wrapped with the old
+// public key, so every confirmed membership and every grant the user received returns to
+// Accepted and the inviter confirms it again.
 const regenerateKeys = z.object({
   userPublicKey: z.string().min(1).max(10_000),
   userKeyEncryptedUserPrivateKey: z.string().min(1).max(10_000),
@@ -1196,17 +1296,34 @@ const regenerateKeys = z.object({
 accounts.post('/api/accounts/key-management/regenerate-keys', requireAuth, async (c) => {
   const body = await parseBody(c, regenerateKeys)
   const user = c.var.user
-  if (user.publicKey && user.publicKey !== body.userPublicKey) {
-    throw new ApiError(400, 'The account public key cannot change.')
-  }
   const db = createDb(c.env.DB)
+  const now = Date.now()
+  const uo = schema.usersOrganizations
+  const ea = schema.emergencyAccess
   await runBatch(db, [
+    db
+      .update(ea)
+      .set({ status: EmergencyStatus.Accepted, keyEncrypted: null, updatedAt: now })
+      .where(
+        and(
+          eq(ea.granteeUuid, user.uuid),
+          inArray(ea.status, [
+            EmergencyStatus.Confirmed,
+            EmergencyStatus.RecoveryInitiated,
+            EmergencyStatus.RecoveryApproved,
+          ]),
+        ),
+      ),
+    db
+      .update(uo)
+      .set({ status: Status.Accepted, akey: '', updatedAt: now })
+      .where(and(eq(uo.userUuid, user.uuid), eq(uo.status, Status.Confirmed))),
     db
       .update(schema.users)
       .set({
         publicKey: body.userPublicKey,
         privateKey: body.userKeyEncryptedUserPrivateKey,
-        updatedAt: Date.now(),
+        updatedAt: now,
       })
       .where(eq(schema.users.uuid, user.uuid)),
   ])

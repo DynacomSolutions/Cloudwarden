@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, isNotNull } from 'drizzle-orm'
+import { and, asc, eq, gt, isNotNull, sql } from 'drizzle-orm'
 import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { z } from 'zod'
@@ -107,7 +107,7 @@ accountRecovery.put(
     await batch(db, [
       db
         .update(schema.usersOrganizations)
-        .set({ resetPasswordKey: key, updatedAt: now })
+        .set({ resetPasswordKey: key, v2UpgradeToken: null, updatedAt: now })
         .where(eq(schema.usersOrganizations.uuid, member.uuid)),
       eventStatement(db, c, {
         type: key
@@ -294,11 +294,12 @@ accountRecovery.post(
       pending.filter(({ m }) => byId.has(m.uuid)),
     )
     const now = Date.now()
-    // A membership that changed since the read is skipped, not rejected: the key id must still
-    // match and the token must still be there.
-    const statements = allowed.flatMap(({ m, u }) => {
+    // A membership that changed since the read is skipped, not rejected: the check of the user key
+    // id, the token and the key all sit in the UPDATE, so a rotation in between cannot be
+    // overwritten with a key that wraps an old user key.
+    const statements = allowed.flatMap(({ m }) => {
       const up = byId.get(m.uuid)
-      if (!up || up.userKeyId !== u.userKeyId) return []
+      if (!up) return []
       return [
         db
           .update(uo)
@@ -307,7 +308,14 @@ accountRecovery.post(
             v2UpgradeToken: null,
             updatedAt: now,
           })
-          .where(and(eq(uo.uuid, m.uuid), isNotNull(uo.v2UpgradeToken))),
+          .where(
+            and(
+              eq(uo.uuid, m.uuid),
+              isNotNull(uo.v2UpgradeToken),
+              isNotNull(uo.resetPasswordKey),
+              sql`EXISTS (SELECT 1 FROM users WHERE users.uuid = ${uo.userUuid} AND users.user_key_id = ${up.userKeyId})`,
+            ),
+          ),
       ]
     })
     if (statements.length > 0) await batch(db, statements)
@@ -351,6 +359,14 @@ async function recover(
   const db = createDb(c.env.DB)
   const { orgRow, target, user } = await loadTarget(c, db, c.req.param('id') ?? '')
   const password = newPassword(user)
+  if (password && target.v2UpgradeToken) {
+    // The recovery key still wraps the old user key: a reset now would store a key that no
+    // longer opens the vault. An administrator finishes the upgrade first.
+    throw new ApiError(
+      400,
+      'The member upgrades the encryption keys. Complete the pending upgrade before the reset.',
+    )
+  }
   if (!password && !resetTwoFactor) {
     throw new ApiError(400, 'Choose what to recover: the master password, two-step login or both.')
   }

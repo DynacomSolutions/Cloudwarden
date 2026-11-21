@@ -1,7 +1,7 @@
 // Member access and member cipher reports of Access Intelligence (TASKS #435). Both read the same
 // grants as the vault does (direct member grants, group grants and access-all flags), so the
 // report always matches what each member can open.
-import { and, eq, inArray, isNull } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 import type { Db } from '../db'
 import { schema } from '../db'
 import { Status } from './constants'
@@ -42,7 +42,7 @@ interface Grant {
 /** Everything the two reports need for one organisation, loaded in a fixed number of queries. */
 async function load(db: Db, orgUuid: string) {
   const uo = schema.usersOrganizations
-  // Members who can hold access: accepted or confirmed. Invited and revoked members hold none.
+  // Only confirmed members can open items (loadUserAccess), so only they hold access.
   const members = await db
     .select({
       member: uo,
@@ -52,12 +52,7 @@ async function load(db: Db, orgUuid: string) {
     })
     .from(uo)
     .innerJoin(schema.users, eq(schema.users.uuid, uo.userUuid))
-    .where(
-      and(
-        eq(uo.organizationUuid, orgUuid),
-        inArray(uo.status, [Status.Accepted, Status.Confirmed]),
-      ),
-    )
+    .where(and(eq(uo.organizationUuid, orgUuid), eq(uo.status, Status.Confirmed)))
   const [collections, groups, direct, groupMembers, groupGrants, links, withTwoFactor] =
     await Promise.all([
       db

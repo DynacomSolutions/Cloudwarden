@@ -3,7 +3,7 @@
 // the small encrypted summary and application strings stay in D1. Reading and writing need the
 // "access reports" permission (owners, admins and custom members holding it); anyone else
 // gets 404, so the endpoints do not reveal which organisations exist.
-import { and, desc, eq, gt, gte, inArray, lte, sql } from 'drizzle-orm'
+import { and, desc, eq, gt, gte, inArray, isNull, lt, lte, or, sql } from 'drizzle-orm'
 import type { Context, Hono } from 'hono'
 import { z } from 'zod'
 import { requireAuth } from '../auth/middleware'
@@ -18,10 +18,13 @@ import {
   baseUrl,
   deleteBlobs,
   MAX_UPLOAD_BYTES,
+  MULTIPART_OVERHEAD,
   orgReportKey,
+  SizeMismatchError,
   storeMultipartUploadWithin,
   UPLOAD_CLAIM_TTL_MS,
 } from '../vault/blobs'
+import { chunk } from '../vault/ciphers'
 
 type Ctx = Context<Env>
 type ReportRow = typeof schema.organizationReports.$inferSelect
@@ -39,9 +42,17 @@ const PENDING_WINDOW_MS = 24 * 60 * 60 * 1000
 const MAX_APPLICATIONS_PER_REQUEST = 200
 const MAX_APPLICATIONS_PER_ORG = 10_000
 const MAX_LISTED_SUMMARIES = 1000
+/** An organisation keeps its newest reports only; older ones go with their blobs. */
+export const MAX_REPORTS_PER_ORG = 50
 const FILE_UPLOAD_DIRECT = 0
 /** The stored file may differ from its declared size by this much (1 MiB). */
 const SIZE_LEEWAY = 1024 * 1024
+/**
+ * Largest declared file size. Workers cap request bodies at 100 MB on the Free and Pro plans, so
+ * the whole multipart request (file up to the leeway above the declared size, plus framing) must
+ * fit under that cap. The official 500 MB limit needs the Enterprise plan and is not used.
+ */
+export const MAX_REPORT_FILE_BYTES = MAX_UPLOAD_BYTES - MULTIPART_OVERHEAD - SIZE_LEEWAY
 
 const METRIC_KEYS = [
   'totalApplicationCount',
@@ -181,6 +192,35 @@ async function fileJson(c: Ctx, r: ReportRow) {
 /** A report whose file flow never finished is not a usable "latest" report. */
 const complete = sql`(${schema.organizationReports.fileId} is null or ${schema.organizationReports.fileValidated} = 1)`
 
+/**
+ * Keeps the newest MAX_REPORTS_PER_ORG reports of an organisation and deletes older ones with
+ * their blobs. A report whose upload holds a live claim is never deleted.
+ */
+async function pruneReports(c: Ctx, db: Db, orgUuid: string, now: number) {
+  const t = schema.organizationReports
+  const old = await db
+    .select({ uuid: t.uuid, blobKey: t.blobKey })
+    .from(t)
+    .where(
+      and(
+        eq(t.organizationUuid, orgUuid),
+        or(isNull(t.uploadStartedAt), lt(t.uploadStartedAt, now - UPLOAD_CLAIM_TTL_MS)),
+      ),
+    )
+    .orderBy(desc(t.createdAt), desc(t.uuid))
+    .limit(1000)
+    .offset(MAX_REPORTS_PER_ORG)
+  if (old.length === 0) return
+  await runBatch(
+    db,
+    chunk(old.map((r) => r.uuid)).map((part) => db.delete(t).where(inArray(t.uuid, part))),
+  )
+  deleteBlobs(
+    c,
+    old.flatMap((r) => (r.blobKey ? [r.blobKey] : [])),
+  )
+}
+
 export function registerAccessIntelligence(r: Hono<Env>) {
   const writeDb = (c: Ctx) => createDb(c.env.DB_PRIMARY ?? c.env.DB)
 
@@ -271,16 +311,20 @@ export function registerAccessIntelligence(r: Hono<Env>) {
     const ids = body.passwordHealthReportApplicationIds
       .map((i) => i.toLowerCase())
       .filter((i) => UUID.test(i))
-    if (ids.length > 0) {
-      await db
-        .delete(schema.passwordHealthReportApplications)
-        .where(
-          and(
-            eq(schema.passwordHealthReportApplications.organizationUuid, org),
-            inArray(schema.passwordHealthReportApplications.uuid, ids),
+    // D1 allows 100 bound parameters per statement, so the ids go in chunks of one batch.
+    await runBatch(
+      db,
+      chunk([...new Set(ids)]).map((part) =>
+        db
+          .delete(schema.passwordHealthReportApplications)
+          .where(
+            and(
+              eq(schema.passwordHealthReportApplications.organizationUuid, org),
+              inArray(schema.passwordHealthReportApplications.uuid, part),
+            ),
           ),
-        )
-    }
+      ),
+    )
     return c.body(null, 200)
   })
 
@@ -322,7 +366,7 @@ export function registerAccessIntelligence(r: Hono<Env>) {
     if (body.fileSize != null) {
       // File flow: reserve the report and tell the client where to upload the encrypted file.
       if (body.fileSize < 1) throw new ApiError(400, 'The file size is not valid.')
-      if (body.fileSize > MAX_UPLOAD_BYTES) throw new ApiError(413, 'The file is too large.')
+      if (body.fileSize > MAX_REPORT_FILE_BYTES) throw new ApiError(413, 'The file is too large.')
       const [pending] = await db
         .select({ n: sql<number>`count(*)` })
         .from(schema.organizationReports)
@@ -346,6 +390,7 @@ export function registerAccessIntelligence(r: Hono<Env>) {
         fileSize: body.fileSize,
         fileValidated: false,
       })
+      await pruneReports(c, db, orgUuid, now)
       return c.json(await fileJson(c, await loadReport(db, orgUuid, uuid)))
     }
     // Original flow: the report data comes inline and is kept as a blob.
@@ -357,6 +402,7 @@ export function registerAccessIntelligence(r: Hono<Env>) {
       if (blobKey) deleteBlobs(c, [blobKey])
       throw e
     }
+    await pruneReports(c, db, orgUuid, now)
     return c.json(await reportJson(c, await loadReport(db, orgUuid, uuid), true))
   })
 
@@ -397,9 +443,10 @@ export function registerAccessIntelligence(r: Hono<Env>) {
           lte(schema.organizationReports.createdAt, end),
         ),
       )
-      .orderBy(schema.organizationReports.createdAt)
+      .orderBy(desc(schema.organizationReports.createdAt), desc(schema.organizationReports.uuid))
       .limit(MAX_LISTED_SUMMARIES)
-    return c.json(rows.map((row) => summaryJson(row)))
+    // The newest reports win the limit; the list itself reads oldest first.
+    return c.json(rows.reverse().map((row) => summaryJson(row)))
   })
 
   const summaryJson = (row: ReportRow) => ({
@@ -499,6 +546,13 @@ export function registerAccessIntelligence(r: Hono<Env>) {
         ),
       )
     if (changes(claim) === 0) throw new ApiError(409, 'An upload for this report is in progress.')
+    // Every upload writes its own object, so a stale upload can never overwrite or delete the
+    // blob of the upload that took the claim over. The row points at the winner's object.
+    const uploadKey = orgReportKey(report.organizationUuid, report.uuid, `${fileId}-${started}`)
+    const mine = and(
+      eq(schema.organizationReports.uuid, report.uuid),
+      eq(schema.organizationReports.uploadStartedAt, started),
+    )
     let stored = 0
     try {
       // The client may declare the size of the file before it adds framing, so a small
@@ -506,22 +560,37 @@ export function registerAccessIntelligence(r: Hono<Env>) {
       const declared = report.fileSize ?? 0
       stored = await storeMultipartUploadWithin(
         c,
-        report.blobKey,
+        uploadKey,
         Math.max(1, declared - SIZE_LEEWAY),
-        Math.min(declared + SIZE_LEEWAY, MAX_UPLOAD_BYTES),
+        Math.min(declared + SIZE_LEEWAY, MAX_UPLOAD_BYTES - MULTIPART_OVERHEAD),
       )
     } catch (e) {
-      // A file that does not match its declared size makes the whole report unusable.
-      await db
-        .delete(schema.organizationReports)
-        .where(eq(schema.organizationReports.uuid, report.uuid))
-      deleteBlobs(c, [report.blobKey])
+      if (e instanceof SizeMismatchError) {
+        // A file that does not match its declared size makes the whole report unusable.
+        const dropped = await db.delete(schema.organizationReports).where(mine)
+        if (changes(dropped) > 0) deleteBlobs(c, [report.blobKey, uploadKey])
+      } else {
+        // The multipart upload is already aborted. The slot stays valid so the client can renew
+        // and retry; only this upload's claim is released.
+        await db.update(schema.organizationReports).set({ uploadStartedAt: null }).where(mine)
+      }
       throw e
     }
-    await db
+    const done = await db
       .update(schema.organizationReports)
-      .set({ fileValidated: true, fileSize: stored, uploadStartedAt: null, updatedAt: Date.now() })
-      .where(eq(schema.organizationReports.uuid, report.uuid))
+      .set({
+        fileValidated: true,
+        fileSize: stored,
+        blobKey: uploadKey,
+        uploadStartedAt: null,
+        updatedAt: Date.now(),
+      })
+      .where(and(mine, eq(schema.organizationReports.fileValidated, false)))
+    if (changes(done) === 0) {
+      // The claim was taken over or the report is gone: this upload's object belongs to nobody.
+      deleteBlobs(c, [uploadKey])
+      throw new ApiError(409, 'The upload of this report was replaced by another upload.')
+    }
     return c.body(null, 200)
   })
 

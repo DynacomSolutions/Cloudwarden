@@ -176,6 +176,13 @@ export async function storeMultipartUpload(
   }
 }
 
+/** The stored file length lies outside the accepted range: the upload is wrong, not unlucky. */
+export class SizeMismatchError extends ApiError {
+  constructor() {
+    super(400, 'The uploaded file does not match the declared size.')
+  }
+}
+
 /** Part size of a streamed upload whose final size is only known at the end (R2 needs equal parts). */
 const STREAM_PART_BYTES = 8 * 1024 * 1024
 
@@ -211,8 +218,7 @@ export async function storeMultipartUploadWithin(
       const { done, value } = await reader.read()
       if (done) break
       total += value.byteLength
-      if (total > max)
-        throw new ApiError(400, 'The uploaded file does not match the declared size.')
+      if (total > max) throw new SizeMismatchError()
       let at = 0
       while (at < value.byteLength) {
         const take = Math.min(buffer.byteLength - filled, value.byteLength - at)
@@ -226,9 +232,7 @@ export async function storeMultipartUploadWithin(
         }
       }
     }
-    if (total < min || total < 1) {
-      throw new ApiError(400, 'The uploaded file does not match the declared size.')
-    }
+    if (total < min || total < 1) throw new SizeMismatchError()
     if (filled > 0) await flush(buffer.subarray(0, filled))
     await upload.complete(parts)
     return total

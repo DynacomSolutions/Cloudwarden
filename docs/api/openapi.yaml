@@ -15423,7 +15423,7 @@ paths:
       - Reports
       operationId: createOrganizationReport
       summary: Create an organization report
-      description: With `fileSize` (1 byte to 100 MB) the report is reserved and the response names the URL to upload the encrypted file to. Without it the inline `reportData` is stored in R2 and the report is returned. At most 10 unfinished file reports per organization. Needs the access-reports permission.
+      description: With `fileSize` (1 byte to 98.9 MiB, see docs/reports.md) the report is reserved and the response names the URL to upload the encrypted file to. Without it the inline `reportData` is stored in R2 and the report is returned. At most 10 unfinished file reports per organization. Needs the access-reports permission.
       requestBody:
         required: true
         content:
@@ -15446,7 +15446,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
         '413':
-          description: The file is larger than 100 MB.
+          description: The file is larger than 98.9 MiB (the Worker request body cap of 100 MB minus framing).
   /api/reports/organizations/{org}/latest:
     parameters:
     - *ReportOrg
@@ -15690,7 +15690,7 @@ paths:
         '409':
           description: An upload for this report is in progress.
         '413':
-          description: The file is larger than 100 MB.
+          description: The file is larger than 98.9 MiB (the Worker request body cap of 100 MB minus framing).
   /api/reports/organizations/{org}/{report}/file/download:
     parameters:
     - *ReportOrg

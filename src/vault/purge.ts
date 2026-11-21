@@ -1,8 +1,8 @@
-import { and, eq, inArray, isNotNull, isNull, lt, lte } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, isNull, lt, lte, or } from 'drizzle-orm'
 import { createDb, runBatch, schema } from '../db'
 import type { Bindings } from '../env'
 import { errorKind, log } from '../log'
-import { deleteBlobsNow } from './blobs'
+import { deleteBlobsNow, UPLOAD_CLAIM_TTL_MS } from './blobs'
 import { chunk } from './ciphers'
 
 /** Uploads not completed within this window are abandoned. */
@@ -104,6 +104,11 @@ async function purgePendingReports(env: Bindings, now: number): Promise<number> 
         isNotNull(schema.organizationReports.fileId),
         eq(schema.organizationReports.fileValidated, false),
         lt(schema.organizationReports.createdAt, now - PENDING_GRACE_MS),
+        // An upload that holds a live claim is still running: leave it to finish.
+        or(
+          isNull(schema.organizationReports.uploadStartedAt),
+          lt(schema.organizationReports.uploadStartedAt, now - UPLOAD_CLAIM_TTL_MS),
+        ),
       ),
     )
     .limit(BATCH)
@@ -122,11 +127,11 @@ async function purgePendingReports(env: Bindings, now: number): Promise<number> 
 }
 
 /** Only these prefixes are ever listed or deleted by the sweep; other keys (backups) are not ours. */
-const BLOB_PREFIXES = ['attachments/', 'sends/']
+const BLOB_PREFIXES = ['attachments/', 'sends/', 'org-reports/']
 
 /**
  * Sweeps one page of one prefix per run, resuming from a cursor kept in the bucket itself,
- * and deletes objects no attachment or Send row refers to.
+ * and deletes objects no attachment, Send or report row refers to.
  */
 async function purgeOrphans(env: Bindings, now: number): Promise<number> {
   const db = createDb(env.DB)
@@ -147,7 +152,7 @@ async function purgeOrphans(env: Bindings, now: number): Promise<number> {
   )
   const known = new Set<string>()
   for (const part of chunk(objects.map((o) => o.key))) {
-    const [a, s] = await Promise.all([
+    const [a, s, o] = await Promise.all([
       db
         .select({ key: schema.attachments.r2Key })
         .from(schema.attachments)
@@ -156,8 +161,12 @@ async function purgeOrphans(env: Bindings, now: number): Promise<number> {
         .select({ key: schema.sends.r2Key })
         .from(schema.sends)
         .where(inArray(schema.sends.r2Key, part)),
+      db
+        .select({ key: schema.organizationReports.blobKey })
+        .from(schema.organizationReports)
+        .where(inArray(schema.organizationReports.blobKey, part)),
     ])
-    for (const r of [...a, ...s]) if (r.key) known.add(r.key)
+    for (const r of [...a, ...s, ...o]) if (r.key) known.add(r.key)
   }
   const orphans = objects.filter((o) => !known.has(o.key)).map((o) => o.key)
   await deleteBlobsNow(env, orphans)

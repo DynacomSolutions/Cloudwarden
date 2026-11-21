@@ -1,9 +1,18 @@
 import { SELF } from 'cloudflare:test'
 import { env } from 'cloudflare:workers'
 import { expect, it, vi } from 'vitest'
+import { MAX_REPORT_FILE_BYTES, MAX_REPORTS_PER_ORG } from '../src/routes/access-intelligence'
 import { purgeExpired } from '../src/vault/purge'
 import { BASE } from './helpers'
-import { type Actor, actor, addMember, createOrg, loginCipher } from './org-helpers'
+import {
+  type Actor,
+  actor,
+  addMember,
+  createOrg,
+  linkParams,
+  loginCipher,
+  mail,
+} from './org-helpers'
 
 // Each test registers accounts and organisations, which can stall for minutes on a loaded host.
 vi.setConfig({ testTimeout: 900_000 })
@@ -392,6 +401,76 @@ it('reads and patches application data', async () => {
   ).toBe(404)
 })
 
+const blobKeyOf = async (reportId: string) =>
+  (
+    (await env.DB.prepare('select blob_key from organization_reports where uuid = ?')
+      .bind(reportId)
+      .first()) as { blob_key: string }
+  ).blob_key
+
+const rowOf = async (reportId: string) =>
+  (await env.DB.prepare('select * from organization_reports where uuid = ?')
+    .bind(reportId)
+    .first()) as Record<string, unknown> | null
+
+/** Waits until the server has claimed the upload slot, so a hook never runs before the handler. */
+const claimed = async (reportId: string) => {
+  for (let i = 0; i < 600; i++) {
+    if ((await rowOf(reportId))?.upload_started_at != null) return
+    await new Promise((r) => setTimeout(r, 50))
+  }
+  throw new Error('the upload was never claimed')
+}
+
+const objectsOf = async (orgId: string, reportId: string) =>
+  (await env.ATTACHMENTS.list({ prefix: `org-reports/${orgId}/${reportId}/` })).objects
+
+/**
+ * Uploads `bytes` as a multipart body in two halves. `between` runs after the first half is sent
+ * and before the second; it may throw to make the body stream fail partway.
+ */
+const uploadInHalves = (
+  url: string,
+  token: string,
+  bytes: Uint8Array,
+  between: () => Promise<void> | void,
+) => {
+  const enc = new TextEncoder()
+  const head = enc.encode(
+    '--xyz\r\nContent-Disposition: form-data; name="data"; filename="r.bin"\r\nContent-Type: application/octet-stream\r\n\r\n',
+  )
+  const tail = enc.encode('\r\n--xyz--\r\n')
+  const half = Math.floor(bytes.length / 2)
+  let step = 0
+  const body = new ReadableStream<Uint8Array>({
+    async pull(ctrl) {
+      if (step === 0) {
+        step = 1
+        ctrl.enqueue(head)
+        ctrl.enqueue(bytes.subarray(0, half))
+        return
+      }
+      try {
+        await between()
+      } catch (e) {
+        return ctrl.error(e)
+      }
+      ctrl.enqueue(bytes.subarray(half))
+      ctrl.enqueue(tail)
+      ctrl.close()
+    },
+  })
+  return SELF.fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'multipart/form-data; boundary=xyz',
+    },
+    body,
+    duplex: 'half',
+  } as RequestInit)
+}
+
 const reserve = async (who: Actor, orgId: string, size: number) => {
   const res = await who.call(`${R}/organizations/${orgId}`, 'POST', {
     contentEncryptionKey: '2.reportkey',
@@ -468,7 +547,8 @@ it('uploads a report file, serves it back and renews an upload slot', async () =
   ).toBe(404)
 
   // Deleting the report removes its blob.
-  const key = `org-reports/${t.orgId}/${report.id}/${report.reportFile.id}`
+  const key = await blobKeyOf(report.id)
+  expect(key).toContain(`org-reports/${t.orgId}/${report.id}/${report.reportFile.id}`)
   expect(await env.ATTACHMENTS.head(key)).not.toBeNull()
   expect((await t.owner.call(`${R}/organizations/${t.orgId}/${report.id}`, 'DELETE')).status).toBe(
     200,
@@ -500,15 +580,18 @@ it('drops the report when the uploaded file does not match its declared size', a
   expect(
     (await t.owner.call(`${R}/organizations/${t.orgId}/${body.reportResponse.id}`)).status,
   ).toBe(404)
-  const key = `org-reports/${t.orgId}/${body.reportResponse.id}/${body.reportResponse.reportFile.id}`
-  expect(await env.ATTACHMENTS.head(key)).toBeNull()
+  expect(await objectsOf(t.orgId, body.reportResponse.id)).toEqual([])
 })
 
 it('refuses an oversized or invalid file request and caps unfinished uploads', async () => {
   const t = await setup('limits')
   expect((await reserve(t.owner, t.orgId, 101 * 1024 * 1024)).status).toBe(413)
+  // The whole multipart request must fit the 100 MB Worker body cap, so 100 MB itself is refused.
+  expect((await reserve(t.owner, t.orgId, 100 * 1024 * 1024)).status).toBe(413)
+  expect((await reserve(t.owner, t.orgId, MAX_REPORT_FILE_BYTES + 1)).status).toBe(413)
+  expect((await reserve(t.owner, t.orgId, MAX_REPORT_FILE_BYTES)).status).toBe(200)
   expect((await reserve(t.owner, t.orgId, 0)).status).toBe(400)
-  for (let i = 0; i < 10; i++) expect((await reserve(t.owner, t.orgId, 10)).status).toBe(200)
+  for (let i = 0; i < 9; i++) expect((await reserve(t.owner, t.orgId, 10)).status).toBe(200)
   expect((await reserve(t.owner, t.orgId, 10)).status).toBe(400)
 })
 
@@ -553,4 +636,199 @@ it('answers the Azure Event Grid handshake and refuses other events', async () =
     body: JSON.stringify([{ eventType: 'Microsoft.Storage.BlobCreated' }]),
   })
   expect(other.status).toBe(400)
+})
+
+it('drops many critical applications at once, beyond the 100 parameter limit of D1', async () => {
+  const t = await setup('manyapps')
+  const added = (await (
+    await t.owner.call(
+      `${R}/password-health-report-applications`,
+      'POST',
+      Array.from({ length: 160 }, (_, i) => ({
+        organizationId: t.orgId,
+        url: `app${i}.example.com`,
+      })),
+    )
+  ).json()) as { id: string }[]
+  expect(added).toHaveLength(160)
+  const ids = added.slice(0, 150).map((a) => a.id)
+  const drop = await t.owner.call(`${R}/password-health-report-application`, 'DELETE', {
+    organizationId: t.orgId,
+    passwordHealthReportApplicationIds: [...ids, ids[0]],
+  })
+  expect(drop.status).toBe(200)
+  const left = (await t.owner.json(`${R}/password-health-report-applications/${t.orgId}`)) as {
+    uri: string
+  }[]
+  expect(left.map((a) => a.uri)).toEqual(
+    Array.from({ length: 10 }, (_, i) => `app${i + 150}.example.com`),
+  )
+})
+
+it('keeps the report slot when the upload stream fails, so the client can renew and retry', async () => {
+  const t = await setup('streamfail')
+  const bytes = new Uint8Array(300_000).map((_, i) => i % 241)
+  const { body } = await reserve(t.owner, t.orgId, bytes.length)
+  const id = body.reportResponse.id as string
+  const failed = await uploadInHalves(body.reportFileUploadUrl, t.owner.token, bytes, async () => {
+    await claimed(id)
+    throw new Error('connection lost')
+  }).catch(() => null)
+  expect(failed?.status ?? 400).not.toBe(200)
+  // The report is still there with its claim released and no object left behind.
+  const row = await rowOf(id)
+  expect(row).not.toBeNull()
+  expect(row?.upload_started_at).toBeNull()
+  expect(row?.file_validated).toBe(0)
+  expect(await objectsOf(t.orgId, id)).toEqual([])
+  const renew = await t.owner.call(
+    `${R}/organizations/${t.orgId}/${id}/file/renew?reportFileId=${body.reportResponse.reportFile.id}`,
+  )
+  expect(renew.status).toBe(200)
+  // The retry works.
+  expect((await upload(body.reportFileUploadUrl, t.owner.token, bytes)).status).toBe(200)
+  expect(
+    ((await t.owner.json(`${R}/organizations/${t.orgId}/${id}`)) as any).reportFile.validated,
+  ).toBe(true)
+})
+
+it('answers 409 and keeps only the winner blob when the claim was taken over', async () => {
+  const t = await setup('takeover')
+  const bytes = new Uint8Array(300_000).map((_, i) => i % 239)
+  const { body } = await reserve(t.owner, t.orgId, bytes.length)
+  const id = body.reportResponse.id as string
+  const res = await uploadInHalves(body.reportFileUploadUrl, t.owner.token, bytes, async () => {
+    // Another upload takes the claim over while this one still streams.
+    await claimed(id)
+    await env.DB.prepare('update organization_reports set upload_started_at = ? where uuid = ?')
+      .bind(Date.now() + 5, id)
+      .run()
+  })
+  expect(res.status).toBe(409)
+  const row = await rowOf(id)
+  expect(row?.file_validated).toBe(0)
+  expect(row?.upload_started_at).not.toBeNull()
+  // The losing upload removed its own object and nothing else.
+  await new Promise((r) => setTimeout(r, 50))
+  expect(await objectsOf(t.orgId, id)).toEqual([])
+
+  // A report deleted during its upload leaves no object either.
+  const second = await reserve(t.owner, t.orgId, bytes.length)
+  const id2 = second.body.reportResponse.id as string
+  const gone = await uploadInHalves(
+    second.body.reportFileUploadUrl,
+    t.owner.token,
+    bytes,
+    async () => {
+      await claimed(id2)
+      await env.DB.prepare('delete from organization_reports where uuid = ?').bind(id2).run()
+    },
+  )
+  expect(gone.status).toBe(409)
+  await new Promise((r) => setTimeout(r, 50))
+  expect(await objectsOf(t.orgId, id2)).toEqual([])
+})
+
+it('sweeps orphaned report blobs and spares unfinished uploads that hold a live claim', async () => {
+  const t = await setup('sweep')
+  const kept = (await (await addV1(t.owner, t.orgId)).json()) as any
+  const keptKey = `org-reports/${t.orgId}/${kept.id}/data`
+  const stray = `org-reports/${t.orgId}/${crypto.randomUUID()}/stray`
+  await env.ATTACHMENTS.put(stray, 'orphan')
+  const later = Date.now() + 2 * 3600_000
+  // The sweep takes one page of one prefix per run; three prefixes need at most a few runs.
+  for (let i = 0; i < 6 && (await env.ATTACHMENTS.head(stray)); i++) {
+    await purgeExpired(env, later)
+  }
+  expect(await env.ATTACHMENTS.head(stray)).toBeNull()
+  expect(await env.ATTACHMENTS.head(keptKey)).not.toBeNull()
+
+  const { body } = await reserve(t.owner, t.orgId, 10)
+  const id = body.reportResponse.id as string
+  const far = Date.now() + 2 * 24 * 3600_000
+  await env.DB.prepare('update organization_reports set upload_started_at = ? where uuid = ?')
+    .bind(far - 60_000, id)
+    .run()
+  await purgeExpired(env, far)
+  expect(await rowOf(id)).not.toBeNull()
+  await env.DB.prepare('update organization_reports set upload_started_at = null where uuid = ?')
+    .bind(id)
+    .run()
+  await purgeExpired(env, far)
+  expect(await rowOf(id)).toBeNull()
+})
+
+/** Inserts `count` filler reports with created_at from `base + 1` upward (milliseconds). */
+const fillReports = (orgId: string, count: number, base: number) =>
+  env.DB.prepare(
+    `with recursive n(i) as (select 1 union all select i + 1 from n where i < ?)
+     insert into organization_reports (uuid, organization_uuid, summary_data, created_at, updated_at)
+     select 'filler-' || ? || '-' || i, ?, 's' || i, ? + i, ? + i from n`,
+  )
+    .bind(count, orgId, orgId, base, base)
+    .run()
+
+it('keeps only the newest reports of an organisation', async () => {
+  const t = await setup('cap')
+  const old = (await (await addV1(t.owner, t.orgId)).json()) as any
+  const oldKey = `org-reports/${t.orgId}/${old.id}/data`
+  expect(await env.ATTACHMENTS.head(oldKey)).not.toBeNull()
+  await env.DB.prepare('update organization_reports set created_at = 1 where uuid = ?')
+    .bind(old.id)
+    .run()
+  await fillReports(t.orgId, MAX_REPORTS_PER_ORG + 5, 1000)
+  const fresh = (await (await addV1(t.owner, t.orgId)).json()) as any
+  const list = (await t.owner.json(
+    `${R}/organizations/${t.orgId}/data/summary?startDate=1970-01-01T00:00:00Z`,
+  )) as { encryptedData: string }[]
+  expect(list).toHaveLength(MAX_REPORTS_PER_ORG)
+  // The oldest reports are gone, the newest stays, and the pruned report lost its blob.
+  expect(list.some((r) => r.encryptedData === 's1')).toBe(false)
+  expect(list.at(-1)?.encryptedData).toBe('2.summary')
+  expect((await t.owner.call(`${R}/organizations/${t.orgId}/${old.id}`)).status).toBe(404)
+  expect((await t.owner.call(`${R}/organizations/${t.orgId}/${fresh.id}`)).status).toBe(200)
+  await new Promise((r) => setTimeout(r, 50))
+  expect(await env.ATTACHMENTS.head(oldKey)).toBeNull()
+})
+
+it('lists the newest 1000 summaries, oldest first', async () => {
+  const t = await setup('listlimit')
+  await fillReports(t.orgId, 1005, 1000)
+  const list = (await t.owner.json(
+    `${R}/organizations/${t.orgId}/data/summary?startDate=1970-01-01T00:00:00Z`,
+  )) as { encryptedData: string }[]
+  expect(list).toHaveLength(1000)
+  expect(list[0]?.encryptedData).toBe('s6')
+  expect(list.at(-1)?.encryptedData).toBe('s1005')
+})
+
+it('reports only confirmed members, as the vault does', async () => {
+  const t = await setup('confirmed')
+  const invited = await actor('ai-unconfirmed@example.com')
+  const before = mail.sent.length
+  const inv = await t.owner.call(`/api/organizations/${t.orgId}/users/invite`, 'POST', {
+    emails: [invited.email],
+    type: 2,
+    accessAll: true,
+    collections: [],
+    groups: [],
+    permissions: null,
+  })
+  expect(inv.status).toBe(200)
+  const params = linkParams(mail.sent[before])
+  const memberId = params.get('organizationUserId')
+  const accepted = await invited.call(
+    `/api/organizations/${t.orgId}/users/${memberId}/accept`,
+    'POST',
+    { token: params.get('token') },
+  )
+  expect(accepted.status).toBe(200)
+  // Accepted but not confirmed: the member cannot open any item, so the reports skip them.
+  const rows = (await t.owner.json(`${R}/member-access/${t.orgId}`)) as { email: string }[]
+  expect(rows.some((r) => r.email === invited.email)).toBe(false)
+  expect(rows.some((r) => r.email === t.owner.email)).toBe(true)
+  const details = (await t.owner.json(`${R}/member-cipher-details/${t.orgId}`)) as {
+    email: string
+  }[]
+  expect(details.some((r) => r.email === invited.email)).toBe(false)
 })

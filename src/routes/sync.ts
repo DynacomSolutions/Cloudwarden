@@ -48,7 +48,8 @@ sync.get('/api/sync', requireAuth, async (c) => {
       masterPasswordUnlock: masterPasswordUnlockJson(user),
       webAuthnPrfOptions: passkeyRows.map(prfOptionJson).filter((o) => o !== null),
       userKeyId: user.userKeyId ?? null,
-      v2UpgradeToken: userUpgradeToken(user),
+      // Only present while a V1 to V2 upgrade waits for the client to finish it.
+      ...(user.v2UpgradeToken ? { v2UpgradeToken: userUpgradeToken(user) } : {}),
     },
     object: 'sync',
   })

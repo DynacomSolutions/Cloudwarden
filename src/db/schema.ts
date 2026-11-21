@@ -967,6 +967,53 @@ export const securityTasks = sqliteTable(
   ],
 )
 
+// ----- Access Intelligence reports (TASKS #435) -----
+
+/**
+ * One Access Intelligence (risk insights) report of an organisation. Summary and application data
+ * are small encrypted strings kept in the row; the large report blob lives in R2 under `blob_key`:
+ * either the inline `reportData` of the original flow, or the uploaded file of the file flow
+ * (`file_id` set, `file_validated` once the upload matched its declared size).
+ */
+export const organizationReports = sqliteTable(
+  'organization_reports',
+  {
+    uuid: id(),
+    organizationUuid: text('organization_uuid')
+      .notNull()
+      .references(() => organizations.uuid, { onDelete: 'cascade' }),
+    contentEncryptionKey: text('content_encryption_key'),
+    summaryData: text('summary_data'),
+    applicationData: text('application_data'),
+    /** JSON of the report metrics (counts of applications, members and passwords). */
+    metrics: text('metrics'),
+    blobKey: text('blob_key'),
+    fileId: text('file_id'),
+    fileName: text('file_name'),
+    fileSize: integer('file_size'),
+    fileValidated: integer('file_validated', { mode: 'boolean' }).notNull().default(false),
+    uploadStartedAt: integer('upload_started_at'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index('organization_reports_org_created_idx').on(t.organizationUuid, t.createdAt)],
+)
+
+/** Applications (web addresses) an organisation marked as critical in the password health report. */
+export const passwordHealthReportApplications = sqliteTable(
+  'password_health_report_applications',
+  {
+    uuid: id(),
+    organizationUuid: text('organization_uuid')
+      .notNull()
+      .references(() => organizations.uuid, { onDelete: 'cascade' }),
+    uri: text('uri').notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index('password_health_report_applications_org_idx').on(t.organizationUuid)],
+)
+
 // ----- Single sign-on, trusted devices and claimed domains (TASKS #280 to #289) -----
 
 /** One SSO configuration per organisation. `data` is the client's `SsoConfigApi` JSON. */

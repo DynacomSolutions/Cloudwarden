@@ -16,6 +16,7 @@ import { ApiError } from '../errors'
 import { requireMember, requireOrg, requireOwner } from '../orgs/access'
 import { authOnce } from '../orgs/util'
 import { orgJson, profileOrgJson } from '../orgs/views'
+import { rateLimit } from '../ratelimit'
 import { profileJson } from './accounts'
 
 export const selfHostBilling = new Hono<Env>()
@@ -37,6 +38,10 @@ const noLicence = (): never => {
 }
 const noSponsorship = (): never => {
   throw new ApiError(400, NO_SPONSORSHIP_MESSAGE)
+}
+
+const noSubscription = (): never => {
+  throw new ApiError(404, 'No subscription.')
 }
 
 const emptyList = { object: 'list', data: [], continuationToken: null }
@@ -202,6 +207,27 @@ r.post('/api/accounts/premium', authOnce, async (c) =>
 // A premium licence file changes nothing: premium is always on. Accept it so the self-hosted
 // "Update licence" dialog completes.
 r.post('/api/accounts/license', authOnce, (c) => c.body(null, 200))
+// The newer licence upload (multipart `license` file, self-hosted servers only) answers the same
+// way as the one above: the file is not read, because nothing in it can change what an account has.
+r.post('/api/account/billing/vnext/self-host/license', authOnce, (c) => c.body(null, 200))
+
+// Licences are issued by the cloud for installing on a self-hosted server, so this server has none
+// to hand out, to an account or to an organisation.
+r.get('/api/licenses/user/:id', authOnce, noLicence)
+r.get('/api/licenses/organization/:id', authOnce, async (c) => {
+  await owner(c)
+  return noLicence()
+})
+
+// The cloud tax service is not used: no country is supported for a tax ID.
+r.get('/api/tax/is-country-supported', authOnce, (c) => c.json(false))
+
+// Free trials are started on the cloud sign-up page, never on a self-hosted server.
+r.post(
+  '/identity/accounts/trial/send-verification-email',
+  rateLimit('trial-verification-email', 10),
+  noBilling,
+)
 
 r.post('/api/accounts/cancel', authOnce, noBilling)
 
@@ -241,10 +267,15 @@ for (const [method, path] of [
 }
 
 // The preview-driven cart answers 404 when there is no subscription to preview.
-r.get('/api/account/billing/subscription/preview', authOnce, () => {
-  throw new ApiError(404, 'No subscription.')
-})
 for (const path of [
+  '/api/account/billing/subscription/preview',
+  '/api/account/billing/subscription/purchase/preview',
+  '/api/account/billing/subscription/upgrade/preview',
+]) {
+  r.get(path, authOnce, noSubscription)
+}
+for (const path of [
+  '/api/organizations/billing/subscription/purchase/preview',
   '/api/account/billing/subscriptions/organizations/invoice/preview',
   '/api/account/billing/subscriptions/premium/invoice/preview',
   '/api/account/billing/subscriptions/premium/upgrade/invoice/preview',
@@ -261,15 +292,22 @@ for (const path of [
 
 // ----- organisation billing -----
 
+const ownerNoBilling = async (c: Ctx) => {
+  await owner(c)
+  return noBilling()
+}
 for (const path of [
   '/api/billing/preview-invoice/organizations/:orgId/subscription/plan-change',
   '/api/billing/preview-invoice/organizations/:orgId/subscription/update',
 ]) {
-  r.post(path, authOnce, async (c) => {
-    await owner(c)
-    return noBilling()
-  })
+  r.post(path, authOnce, ownerNoBilling)
 }
+// The update preview is a `PUT` in the API contract.
+r.put(
+  '/api/billing/preview-invoice/organizations/:orgId/subscription/update',
+  authOnce,
+  ownerNoBilling,
+)
 
 // `BillingResponse`: no balance, no payment source.
 r.get('/api/organizations/:id/billing', authOnce, async (c) => {
@@ -291,7 +329,7 @@ for (const path of [
 }
 r.get('/api/organizations/:orgId/billing/subscription/preview', authOnce, async (c) => {
   await owner(c)
-  throw new ApiError(404, 'No subscription.')
+  return noSubscription()
 })
 
 const ORG_VNEXT = '/api/organizations/:orgId/billing/vnext'
@@ -405,6 +443,9 @@ for (const path of [`${SPONSOR}/:orgId/sponsored`, `${SPONSOR}/self-hosted/:orgI
     return c.json(emptyList)
   })
 }
+// Never synchronised with the cloud, and the cloud never pushes a sponsorship to this server: the
+// sync call comes from a self-hosted server with an installation key.
+r.post(`${SPONSOR}/sync`, authOnce, noSponsorship)
 // Never synchronised with the cloud.
 r.get(`${SPONSOR}/:orgId/sync-status`, authOnce, async (c) => {
   await owner(c)
@@ -429,6 +470,10 @@ for (const [method, path] of [
   ['delete', `${SPONSOR}/self-hosted/:orgId/:sponsoredFriendlyName/revoke`],
   ['post', `${SPONSOR}/self-hosted/:orgId/families-for-enterprise`],
   ['delete', `${SPONSOR}/sponsored/:orgId`],
+  // Obsolete spellings of the deletes above, still routed by the official server.
+  ['post', `${SPONSOR}/:orgId/delete`],
+  ['post', `${SPONSOR}/self-hosted/:orgId/delete`],
+  ['post', `${SPONSOR}/sponsored/:orgId/remove`],
 ] as const) {
   r[method](path, authOnce, async (c) => {
     await member(c)

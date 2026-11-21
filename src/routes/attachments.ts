@@ -379,6 +379,8 @@ export function registerAttachmentRoutes(r: Hono<Env>) {
   r.delete('/api/ciphers/:id/attachment/:attachmentId', remove)
   r.delete('/api/ciphers/:id/attachment/:attachmentId/admin', remove)
   r.post('/api/ciphers/:id/attachment/:attachmentId/delete', remove)
+  // Obsolete spelling of the `DELETE .../admin` route, still routed by the official server.
+  r.post('/api/ciphers/:id/attachment/:attachmentId/delete-admin', remove)
 }
 
 /** Signed download: `GET /attachments/:cipherId/:attachmentId?token=`. */

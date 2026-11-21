@@ -285,19 +285,19 @@ orgIntegrationsApi.put(
   },
 )
 
-orgIntegrationsApi.delete(
-  '/api/organizations/:orgId/integrations/:integrationId',
-  authOnce,
-  async (c) => {
-    const db = createDb(c.env.DB)
-    const row = await cloudIntegration(c, db)
-    await batch(db, [
-      db.delete(schema.orgIntegrations).where(eq(schema.orgIntegrations.uuid, row.uuid)),
-      audit(c, db),
-    ])
-    return c.body(null, 204)
-  },
-)
+const deleteIntegration = async (c: Context<Env>) => {
+  const db = createDb(c.env.DB)
+  const row = await cloudIntegration(c, db)
+  await batch(db, [
+    db.delete(schema.orgIntegrations).where(eq(schema.orgIntegrations.uuid, row.uuid)),
+    audit(c, db),
+  ])
+  return c.body(null, 204)
+}
+const INTEGRATION = '/api/organizations/:orgId/integrations/:integrationId'
+orgIntegrationsApi.delete(INTEGRATION, authOnce, deleteIntegration)
+// Obsolete spelling, still routed by the official server.
+orgIntegrationsApi.post(`${INTEGRATION}/delete`, authOnce, deleteIntegration)
 
 // ----- configurations -----
 
@@ -432,36 +432,36 @@ orgIntegrationsApi.put(
   authOnce,
   (c) => writeConfiguration(c, c.req.param('configurationId') ?? ''),
 )
-orgIntegrationsApi.delete(
-  '/api/organizations/:orgId/integrations/:integrationId/configurations/:configurationId',
-  authOnce,
-  async (c) => {
-    const db = createDb(c.env.DB)
-    const row = await cloudIntegration(c, db)
-    const configs = await configsOf(db, row.uuid)
-    const id = c.req.param('configurationId') ?? ''
-    if (!configs.some((x) => x.uuid === id)) throw new ApiError(404, 'Configuration not found.')
-    await batch(db, [
-      db
-        .delete(schema.orgIntegrationConfigurations)
-        .where(
-          and(
-            eq(schema.orgIntegrationConfigurations.uuid, id),
-            eq(schema.orgIntegrationConfigurations.integrationUuid, row.uuid),
-          ),
+const deleteConfiguration = async (c: Context<Env>) => {
+  const db = createDb(c.env.DB)
+  const row = await cloudIntegration(c, db)
+  const configs = await configsOf(db, row.uuid)
+  const id = c.req.param('configurationId') ?? ''
+  if (!configs.some((x) => x.uuid === id)) throw new ApiError(404, 'Configuration not found.')
+  await batch(db, [
+    db
+      .delete(schema.orgIntegrationConfigurations)
+      .where(
+        and(
+          eq(schema.orgIntegrationConfigurations.uuid, id),
+          eq(schema.orgIntegrationConfigurations.integrationUuid, row.uuid),
         ),
-      deliveryStatement(
-        db,
-        row,
-        configs.filter((x) => x.uuid !== id),
-        null,
-        true,
       ),
-      audit(c, db),
-    ])
-    return c.body(null, 204)
-  },
-)
+    deliveryStatement(
+      db,
+      row,
+      configs.filter((x) => x.uuid !== id),
+      null,
+      true,
+    ),
+    audit(c, db),
+  ])
+  return c.body(null, 204)
+}
+const CONFIGURATION = `${INTEGRATION}/configurations/:configurationId`
+orgIntegrationsApi.delete(CONFIGURATION, authOnce, deleteConfiguration)
+// Obsolete spelling, still routed by the official server.
+orgIntegrationsApi.post(`${CONFIGURATION}/delete`, authOnce, deleteConfiguration)
 
 // ----- Slack and Teams: no OAuth app on this server -----
 

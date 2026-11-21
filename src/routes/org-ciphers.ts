@@ -423,7 +423,9 @@ async function shareTarget(c: Ctx, db: Db, body: CipherBody, collectionIds: stri
   return requireMember(db, c.var.user.uuid, body.organizationId)
 }
 
-orgCiphers.put('/api/ciphers/share', async (c) => {
+// The `POST` spellings of the bulk routes are obsolete but still routed by the official server.
+// They must be registered before `:id`, which would read `share`, `move` or `delete-admin` as an id.
+orgCiphers.on(['PUT', 'POST'], '/api/ciphers/share', async (c) => {
   const body = await parseBody(
     c,
     z.object({
@@ -595,11 +597,11 @@ orgCiphers.put('/api/ciphers/delete', bulk('soft', false, false))
 orgCiphers.post('/api/ciphers/delete', bulk('hard', false, false))
 orgCiphers.delete('/api/ciphers', bulk('hard', false, false))
 orgCiphers.put('/api/ciphers/restore', bulk('restore', false, true))
-orgCiphers.put('/api/ciphers/delete-admin', bulk('soft', true, false))
+orgCiphers.on(['PUT', 'POST'], '/api/ciphers/delete-admin', bulk('soft', true, false))
 orgCiphers.delete('/api/ciphers/admin', bulk('hard', true, false))
 orgCiphers.put('/api/ciphers/restore-admin', bulk('restore', true, true))
 
-orgCiphers.put('/api/ciphers/move', async (c, next) => {
+orgCiphers.on(['PUT', 'POST'], '/api/ciphers/move', async (c, next) => {
   const body = await parseBody(
     c,
     z.object({
@@ -731,6 +733,7 @@ const getOne = (admin: boolean) => async (c: Ctx, next: Next) =>
   (await resolve(c, idParam(c), admin)) ? respond(c, idParam(c), admin) : next()
 orgCiphers.get('/api/ciphers/:id', getOne(false))
 orgCiphers.get('/api/ciphers/:id/details', getOne(false))
+orgCiphers.get('/api/ciphers/:id/full-details', getOne(false))
 orgCiphers.get('/api/ciphers/:id/admin', getOne(true))
 
 const update = (admin: boolean) => async (c: Ctx, next: Next) => {
@@ -835,7 +838,7 @@ orgCiphers.delete('/api/ciphers/:id', single('hard', false, false))
 orgCiphers.post('/api/ciphers/:id/delete', single('hard', false, false))
 orgCiphers.delete('/api/ciphers/:id/admin', single('hard', true, false))
 orgCiphers.put('/api/ciphers/:id/delete', single('soft', false, false))
-orgCiphers.put('/api/ciphers/:id/delete-admin', single('soft', true, false))
+orgCiphers.on(['PUT', 'POST'], '/api/ciphers/:id/delete-admin', single('soft', true, false))
 orgCiphers.put('/api/ciphers/:id/restore', single('restore', false, true))
 orgCiphers.put('/api/ciphers/:id/restore-admin', single('restore', true, true))
 

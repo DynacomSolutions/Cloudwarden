@@ -8,6 +8,8 @@ const norm = (p) =>
   p
     .replace(/\?.*$/, '')
     .replace(/\/+$/, '')
+    // Hono `:name{regex}` parameters, including a regex that holds `{n}` quantifiers.
+    .replace(/:[A-Za-z_]+\{(?:[^{}]|\{[^{}]*\})*\}/g, '{}')
     .replace(/\([^)]*\)|\{[^}]*\}|:[A-Za-z_]+|\$\{[^}]*\}/g, '{}')
     .toLowerCase()
 
@@ -72,12 +74,24 @@ function serverRoutes() {
       else if (p.endsWith('.ts')) {
         const s = fs.readFileSync(p, 'utf8')
         const prefix = s.match(/const PREFIX = '([^']+)'/)?.[1] ?? ''
+        // File-level string constants (`const BASE = '/api/x'`, `const ID = \`:id{${UUID}}\``), so a
+        // route written as `${BASE}/y` or `BASE` resolves to its path.
+        const consts = new Map()
+        for (const m of s.matchAll(/^(?:export )?const\s+(\w+)\s*=\s*(['`])([^'`]*)\2/gm))
+          consts.set(
+            m[1],
+            m[3].replace(/\$\{(\w+)\}/g, (all, n) => consts.get(n) ?? all),
+          )
         const add = (m, r) => {
-          const route = r.replace(`\${PREFIX}`, prefix)
+          const route = r
+            .replace(`\${PREFIX}`, prefix)
+            .replace(/\$\{(\w+)\}/g, (all, n) => consts.get(n) ?? all)
           if (route.startsWith('/')) out.add(`${m.toUpperCase()} ${norm(route)}`)
         }
         for (const m of s.matchAll(/\.(get|post|put|delete|patch)\(\s*['`]([^'`]+)['`]/g))
           add(m[1], m[2])
+        for (const m of s.matchAll(/\.(get|post|put|delete|patch)\(\s*([A-Z]\w*)\s*[,)]/g))
+          if (consts.has(m[2])) add(m[1], consts.get(m[2]))
         for (const m of s.matchAll(/\.on\(\s*\[([^\]]+)\]\s*,\s*['`]([^'`]+)['`]/g))
           for (const v of m[1].matchAll(/'(\w+)'/g)) add(v[1], m[2])
         for (const [m, r] of loopRoutes(s)) add(m, r)

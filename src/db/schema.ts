@@ -187,6 +187,25 @@ export const organizations = sqliteTable(
   (t) => [uniqueIndex('organizations_identifier_unique').on(sql`lower(${t.identifier})`)],
 )
 
+/**
+ * Seat, storage and machine account limits set through the Public API subscription endpoint
+ * (TASKS #24.429). Null means no limit set. Nothing is billed: the values are stored for
+ * reporting and for tools that read them back. One row per organisation.
+ */
+export const organizationSubscriptions = sqliteTable('organization_subscriptions', {
+  organizationUuid: text('organization_uuid')
+    .primaryKey()
+    .references(() => organizations.uuid, { onDelete: 'cascade' }),
+  seats: integer('seats'),
+  maxAutoscaleSeats: integer('max_autoscale_seats'),
+  storageGb: integer('storage_gb'),
+  smSeats: integer('sm_seats'),
+  smMaxAutoscaleSeats: integer('sm_max_autoscale_seats'),
+  smServiceAccounts: integer('sm_service_accounts'),
+  smMaxAutoscaleServiceAccounts: integer('sm_max_autoscale_service_accounts'),
+  updatedAt: updatedAt(),
+})
+
 export const ciphers = sqliteTable(
   'ciphers',
   {

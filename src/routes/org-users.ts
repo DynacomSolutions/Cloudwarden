@@ -44,6 +44,7 @@ import {
   enabledPolicy,
 } from '../orgs/policies'
 import { assertOrgKeys, resetPasswordPolicy } from '../orgs/recovery'
+import { assertSeatsAvailable } from '../orgs/subscription'
 import { authOnce, batch } from '../orgs/util'
 import { activeSso } from '../sso/config'
 import { parseBody } from '../validation'
@@ -269,6 +270,7 @@ orgUsers.post('/api/organizations/:orgId/users/invite', async (c) => {
   if (emails.some((e) => !e.includes('@'))) {
     throw new ApiError(400, 'The request is invalid.', { emails: ['Invalid email address.'] })
   }
+  await assertSeatsAvailable(db, orgUuid, emails.length)
   const now = Date.now()
   const members: Member[] = []
   for (const email of emails) {

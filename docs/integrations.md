@@ -26,11 +26,12 @@ The Public API is served at `<base>/api/public/*` (the self-hosted layout) and `
 
 | Resource | Operations |
 |---|---|
-| `members` | list, invite, get, update (type, permissions, collections, groups, external id), remove, `group-ids` get and set, `reinvite`, `revoke`, `restore` |
+| `members` | list, invite, get, update (type, name, email, permissions, collections, groups, external id), remove, `group-ids` get and set, `reinvite`, `revoke`, `restore` |
 | `groups` | list, create, get, update, delete, `member-ids` get and set |
 | `collections` | list, get, update (external id and group access), delete. Creating a collection needs its encrypted name, so it stays in the web client |
 | `policies` | list, get, update |
-| `events` | list with `start`, `end`, `actingUserId`, `itemId`, `continuationToken` |
+| `events` | list with `start`, `end`, `actingUserId`, `itemId`, `secretId`, `projectId`, `continuationToken` |
+| `organization/subscription` | get and set seat, storage and machine account limits |
 | `organization/import` | directory import, below |
 
 Policies saved through the Public API go through the same code as the Admin Console (for example,
@@ -38,7 +39,40 @@ requiring two-step login revokes non-compliant members). An organisation that no
 (or, once organisations can be disabled, is disabled) is refused at token issue and on every
 request. Changes made through the Public API act with admin authority: owners can be neither created nor
 changed, matching an admin in the web client. Events they raise carry `systemUser: 3` and no
-acting user. Billing endpoints (`organization/subscription`) are not served: there is no billing.
+acting user.
+
+The official cloud server answers `organization/subscription` and the official self-hosted server
+does not. Cloudwarden answers it, so the official Bitwarden MCP server tools
+`get_org_subscription` and `update_org_subscription` work. There is no billing: `GET` returns the
+limits that `PUT` stored (`passwordManager.seats`, `maxAutoScaleSeats`, `storage`, and
+`secretsManager.seats`, `maxAutoScaleSeats`, `serviceAccounts`, `maxAutoScaleServiceAccounts`),
+and null for a limit that was never set. A missing or null field in `PUT` changes nothing.
+Values must be whole numbers from 0 up. Seats cannot be fewer than the members that hold one, and
+a maximum cannot be below its seats or machine accounts. The limits are stored and reported. They
+are not enforced.
+
+Details that follow the published reference:
+
+- Members have the types 0, 1, 2 and 4. Type 3 (Manager) is refused. The model has no `accessAll`:
+  a member or group keeps the blanket access it already has, and new ones get none.
+- `permissions` has the 13 published keys, including `manageAccessRules` (stored, nothing enforces
+  it yet). `manageCiphers` is not part of the model: it is not listed and not set here.
+- `ssoExternalId` is the external id of the member's SSO link, or null.
+- `name` and `email` in a member update change the account of a claimed member only (an accepted
+  member whose address is on a domain the organization verified). The email also needs an account
+  without a master password and a new address on a verified domain that no other account uses. A
+  different value for any other member returns 400. A new invitation is never claimed, so `name`
+  has no effect on create.
+- Lists hold `object` and `data` only. Only the events list has a `continuationToken`.
+- Events: without `start` the window starts 30 days before `end` (or before now). Without `end` it
+  ends now. A start after the end is swapped. A range over 367 days, or a value that is not a
+  date, returns 400. Only the first filter present applies, in this order: `actingUserId`,
+  `itemId`, `secretId`, `projectId`.
+- Policy `type` is 0 to 22. `metadata` is accepted and checked, not stored (only the organization
+  data ownership policy has any). `data` of the master password, password generator, send options,
+  account recovery and vault timeout policies is checked for field types.
+- The import requires `overwriteExisting`.
+- Events always report `installationId` as null: Cloudwarden has no installations.
 
 The contract is in `docs/api/openapi.yaml` (tag `PublicApi`) and checked by
 `test/public-api.test.ts`.

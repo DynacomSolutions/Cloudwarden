@@ -21,6 +21,7 @@ import { EventType, Role, Status } from '../orgs/constants'
 import { assertNotClaimed } from '../orgs/domains'
 import { eventStatement } from '../orgs/events'
 import { assertNotLastOwner } from '../orgs/members'
+import { loadSubscription } from '../orgs/subscription'
 import { authOnce } from '../orgs/util'
 import { orgJson, profileOrganizations } from '../orgs/views'
 import { parseBody } from '../validation'
@@ -151,7 +152,8 @@ organizations.get('/api/organizations/:id/private-key', async (c) => {
 organizations.get('/api/organizations/:id', async (c) => {
   const id = c.req.param('id')
   await requireManager(c, id)
-  return c.json(orgJson(await requireOrg(createDb(c.env.DB), id)))
+  const db = createDb(c.env.DB)
+  return c.json(orgJson(await requireOrg(db, id), await loadSubscription(db, id)))
 })
 
 const updateSchema = z.object({
@@ -191,7 +193,7 @@ const updateOrg = async (c: Ctx) => {
     eventStatement(db, c, { type: EventType.OrganizationUpdated, organizationUuid: id }),
     bumpOrgRevision(db, id, now),
   ])
-  return c.json(orgJson(await requireOrg(db, id)))
+  return c.json(orgJson(await requireOrg(db, id), await loadSubscription(db, id)))
 }
 organizations.put('/api/organizations/:id', updateOrg)
 organizations.post('/api/organizations/:id', updateOrg)

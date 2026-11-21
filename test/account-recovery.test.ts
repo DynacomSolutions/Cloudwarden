@@ -182,6 +182,8 @@ it('enrols, resets, forces a password change and clears the flag', async () => {
   const types = events.data.map((e: { type: number }) => e.type)
   expect(types).toContain(1506)
   expect(types).toContain(1508)
+  // The member's own change of the temporary password also reaches the organisation log (1008).
+  expect(types).toContain(1008)
 })
 
 it('resets two-step login through recover-account and accepts the legacy reset body', async () => {

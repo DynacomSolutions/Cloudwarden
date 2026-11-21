@@ -116,5 +116,8 @@ it('paginates with a continuation token', async () => {
 it('lists a user their own events', async () => {
   const user = await actor('own-ev@example.com')
   const res = await user.json('/api/events')
-  expect(res).toMatchObject({ object: 'list', data: [] })
+  // Signing in records one User_LoggedIn event (1000) on the account feed.
+  expect(res).toMatchObject({ object: 'list' })
+  expect(res.data.map((e: any) => e.type)).toEqual([1000])
+  expect(res.data[0]).toMatchObject({ actingUserId: user.uuid, organizationId: null })
 })

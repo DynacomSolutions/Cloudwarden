@@ -13,7 +13,7 @@ import { isStandInUser } from '../federation/standin'
 import { PushType, pushAuthRequestResponse, pushUserUpdate } from '../notifications/publish'
 import { can } from '../orgs/access'
 import { EventType, PolicyType, Status } from '../orgs/constants'
-import { eventStatement } from '../orgs/events'
+import { userEventStatements } from '../orgs/events'
 import { defer } from '../orgs/notify'
 import { isRecoveryExcluded } from '../orgs/recovery'
 import { batch } from '../orgs/util'
@@ -406,14 +406,8 @@ authRequests.post('/api/auth-requests/admin-request', requireAuth, async (c) => 
         ),
       ),
     db.insert(schema.authRequests).values(row),
-    ...orgs.map((o) =>
-      eventStatement(db, c, {
-        type: EventType.UserRequestedDeviceApproval,
-        userUuid: user.uuid,
-        organizationUuid: o.orgUuid,
-        organizationUserUuid: o.member,
-      }),
-    ),
+    // One copy for the account's own feed and one for each organisation the user belongs to.
+    ...(await userEventStatements(db, c, user.uuid, EventType.UserRequestedDeviceApproval)),
   ])
   defer(c, notifyApprovers(c, orgs, user.email))
   return c.json(requestJson(row))

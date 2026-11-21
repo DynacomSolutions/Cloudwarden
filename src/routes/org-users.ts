@@ -522,7 +522,9 @@ async function confirmStatements(
         .set({ status: Status.Confirmed, akey: key, updatedAt: now })
         .where(eq(schema.usersOrganizations.uuid, id)),
       eventStatement(db, c, {
-        type: EventType.OrganizationUserConfirmed,
+        type: auto
+          ? EventType.OrganizationUserAutomaticallyConfirmed
+          : EventType.OrganizationUserConfirmed,
         organizationUuid: actor.organizationUuid,
         organizationUserUuid: id,
         userUuid: target.userUuid,
@@ -939,7 +941,7 @@ orgUsers.put('/api/organizations/:orgId/users/revoke-self', async (c) => {
       .set({ status: Status.Revoked, updatedAt: now })
       .where(eq(schema.usersOrganizations.uuid, m.uuid)),
     eventStatement(db, c, {
-      type: EventType.OrganizationUserRevoked,
+      type: EventType.OrganizationUserSelfRevoked,
       organizationUuid: orgUuid,
       organizationUserUuid: m.uuid,
       userUuid: m.userUuid,

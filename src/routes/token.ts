@@ -21,10 +21,13 @@ import { openUserSecret, resealIfNeeded } from '../auth/user-secrets'
 import { findUserByEmail, normalizeEmail } from '../auth/users'
 import { WebAuthnError } from '../auth/webauthn'
 import { createDb, schema } from '../db'
+import { later } from '../email/send'
 import type { Env, User } from '../env'
 import { ApiError, oauthError, sendAccessError } from '../errors'
 import { isStandInUser } from '../federation/standin'
 import { organizationLoginGrant } from '../orgs/api-keys'
+import { EventType } from '../orgs/constants'
+import { recordUserEvent } from '../orgs/events'
 import { rateLimit, resetBudget, spendBudget, tooManyRequests } from '../ratelimit'
 import { MACHINE_SCOPE, machineLoginGrant } from '../sm/auth'
 import { consumeCode, findRedeemableCode } from '../sso/flow'
@@ -79,6 +82,22 @@ function deviceFrom(form: Form): DeviceInput | null {
     type: Number.isFinite(type) ? type : 14,
   }
 }
+
+/**
+ * Records a sign-in event (1000, 1005) after the response: the write is never awaited, so a slow
+ * or failed event write cannot fail a login, and the time a request takes does not show whether
+ * the account exists.
+ */
+const recordLater = (c: Ctx, user: Pick<User, 'uuid'>, type: number, device: DeviceInput) =>
+  later(
+    c,
+    recordUserEvent(createDb(c.env.DB), c, user.uuid, type, { deviceType: device.type }).catch(
+      () => undefined,
+    ),
+  )
+
+const recordLogin = (c: Ctx, user: User, device: DeviceInput) =>
+  recordLater(c, user, EventType.UserLoggedIn, device)
 
 type AuthRequestRow = typeof schema.authRequests.$inferSelect
 
@@ -164,7 +183,12 @@ async function passwordGrant(c: Ctx, form: Form) {
   const ok = form.authRequest
     ? authRequest !== null
     : await verifyMasterPassword(user, form.password)
-  if (!ok || !user) return BAD_LOGIN(c)
+  if (!ok || !user) {
+    // Only a bad master password counts: it already spent the failure budget above. A bad
+    // login-with-device request spends none, so it must not write a row per attempt.
+    if (user && !form.authRequest) recordLater(c, user, EventType.UserFailedLogIn, device)
+    return BAD_LOGIN(c)
+  }
   await resetBudget(c.env.DB, budgetKey)
   if (!user.enabled) {
     return oauthError(
@@ -195,6 +219,7 @@ async function passwordGrant(c: Ctx, form: Form) {
   assertNotStandIn(user)
   const refreshToken = await registerDevice(db, user, device)
   if (state.isNew && state.hasOthers && !form.newDeviceOtp) announceNewDevice(c, user, device)
+  recordLogin(c, user, device)
   const body = await tokenResponse(c.env, user, {
     deviceIdentifier: device.identifier,
     scope: ['api', 'offline_access'],
@@ -264,6 +289,7 @@ async function webauthnGrant(c: Ctx, form: Form) {
 
   assertNotStandIn(user)
   const refreshToken = await registerDevice(db, user, device)
+  recordLogin(c, user, device)
   return c.json(
     await tokenResponse(c.env, user, {
       deviceIdentifier: device.identifier,
@@ -308,6 +334,7 @@ async function authorizationCodeGrant(c: Ctx, form: Form) {
 
   assertNotStandIn(user)
   const refreshToken = await registerDevice(db, user, device)
+  recordLogin(c, user, device)
   const body = await tokenResponse(c.env, user, {
     deviceIdentifier: device.identifier,
     scope: ['api', 'offline_access'],
@@ -415,6 +442,7 @@ async function clientCredentialsGrant(c: Ctx, form: Form) {
   const device = deviceFrom(form) ?? { identifier: crypto.randomUUID(), name: 'API key', type: 14 }
   assertNotStandIn(user)
   await registerDevice(db, user, device)
+  recordLogin(c, user, device)
   // API key sessions get no refresh token: clients re-authenticate with the key.
   return c.json(
     await tokenResponse(c.env, user, {

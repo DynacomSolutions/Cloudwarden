@@ -10,7 +10,7 @@ import { notifyCipher } from '../notifications/vault-events'
 import { bumpOrgRevision, canManageAllCiphers, requireMember } from '../orgs/access'
 import {
   accessToCipher,
-  adminItemAccess,
+  adminItemAccessFor,
   folderLinks,
   type ItemAccess,
   loadCipherById,
@@ -59,6 +59,14 @@ interface Loaded {
   access: ItemAccess | null
 }
 
+/** Attachments are secrets: an item restricted by an access rule shows none without a lease. */
+function restrict(loaded: Loaded): Loaded {
+  if (loaded.access?.restricted) {
+    throw new ApiError(403, 'A lease is required to use the attachments of this item.')
+  }
+  return loaded
+}
+
 /**
  * Resolves the cipher for an attachment route. Personal items belong to their owner. For
  * organisation items, reading needs access through a collection, writing needs edit access, and
@@ -77,7 +85,10 @@ async function authorise(c: Ctx, cipherId: string, write: boolean, admin = false
     if (!canManageAllCiphers(member)) {
       throw new ApiError(403, 'You do not have permission to do this.')
     }
-    return { cipher, access: await adminItemAccess(db, cipher) }
+    return restrict({
+      cipher,
+      access: await adminItemAccessFor(db, c.var.user.uuid, member, cipher),
+    })
   }
   let access = await accessToCipher(db, c.var.user.uuid, cipher)
   if (!access) {
@@ -86,9 +97,10 @@ async function authorise(c: Ctx, cipherId: string, write: boolean, admin = false
     const member = await requireMember(db, c.var.user.uuid, cipher.organizationUuid).catch(
       () => null,
     )
-    if (!canManageAllCiphers(member ?? undefined)) throw new ApiError(404, 'Cipher not found.')
-    access = await adminItemAccess(db, cipher)
+    if (!member || !canManageAllCiphers(member)) throw new ApiError(404, 'Cipher not found.')
+    access = await adminItemAccessFor(db, c.var.user.uuid, member, cipher)
   }
+  if (access.restricted) return restrict({ cipher, access })
   if (write && !access.edit) {
     throw new ApiError(403, 'You do not have permission to edit this item.')
   }

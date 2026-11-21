@@ -114,6 +114,8 @@ export const requireConnectorAuth: MiddlewareHandler<Env> = async (c, next) => {
     )
     .limit(1)
   if (!row || row.status !== ConnectorStatus.Enabled) return unauthorized(c)
+  // A suspended or deleted organisation loses its connectors at once (as `requireOrgApiAuth` does).
+  if (!(await organizationActive(db, row.organizationUuid))) return unauthorized(c)
   const now = Date.now()
   await db
     .update(schema.pamAccessConnectors)

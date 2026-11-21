@@ -206,6 +206,7 @@ async function ownAttempt(c: Ctx, db: Db, id: string) {
       attempt: schema.pamRotationAttempts,
       job: schema.pamRotationJobs,
       config: schema.pamRotationConfigs,
+      targetStatus: schema.pamTargetSystems.status,
     })
     .from(schema.pamRotationAttempts)
     .innerJoin(
@@ -216,6 +217,10 @@ async function ownAttempt(c: Ctx, db: Db, id: string) {
       schema.pamRotationConfigs,
       eq(schema.pamRotationConfigs.uuid, schema.pamRotationJobs.configUuid),
     )
+    .innerJoin(
+      schema.pamTargetSystems,
+      eq(schema.pamTargetSystems.uuid, schema.pamRotationJobs.targetSystemUuid),
+    )
     .where(
       and(
         eq(schema.pamRotationAttempts.uuid, id),
@@ -225,10 +230,16 @@ async function ownAttempt(c: Ctx, db: Db, id: string) {
     )
     .limit(1)
   if (!row) throw new ApiError(404, 'Rotation attempt not found.')
+  // A claim holds while the attempt runs, the job is still claimed by this connector within its
+  // lease, and neither the target system nor the configuration was disabled meanwhile.
   const holds =
     row.attempt.status === AttemptStatus.Executing &&
     row.job.status === JobStatus.Claimed &&
-    row.job.claimedByConnectorUuid === connectorUuid
+    row.job.claimedByConnectorUuid === connectorUuid &&
+    row.job.claimedAt !== null &&
+    row.job.claimedAt + CLAIM_LEASE_MS > Date.now() &&
+    row.targetStatus === TargetStatus.Active &&
+    row.config.enabled
   return { ...row, holds }
 }
 
@@ -283,7 +294,7 @@ pamRotation.put(`${BASE}/attempts/:id{${UUID}}/cipher`, async (c) => {
     throw new ApiError(400, 'The organization must not change.')
   }
   const now = Math.max(Date.now(), cipher.updatedAt + 1)
-  const holds = sql`exists (select 1 from pam_rotation_attempts a join pam_rotation_jobs j on j.uuid = a.job_uuid where a.uuid = ${a.attempt.uuid} and a.status = ${AttemptStatus.Executing} and j.status = ${JobStatus.Claimed} and j.claimed_by_connector_uuid = ${connectorUuid})`
+  const holds = sql`exists (select 1 from pam_rotation_attempts a join pam_rotation_jobs j on j.uuid = a.job_uuid join pam_target_systems t on t.uuid = j.target_system_uuid join pam_rotation_configs g on g.uuid = j.config_uuid where a.uuid = ${a.attempt.uuid} and a.status = ${AttemptStatus.Executing} and j.status = ${JobStatus.Claimed} and j.claimed_by_connector_uuid = ${connectorUuid} and j.claimed_at > ${now - CLAIM_LEASE_MS} and t.status = ${TargetStatus.Active} and g.enabled = 1)`
   const res = await runBatch(db, [
     db
       .update(schema.ciphers)

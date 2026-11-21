@@ -9,7 +9,15 @@
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import { createDb, type Db, schema } from '../db'
 import type { Bindings } from '../env'
-import { ApprovalMode, LeaseStatus, RequestStatus, RotationSource } from './constants'
+import { PushType, pushUserUpdate } from '../notifications/publish'
+import { chunk } from '../vault/ciphers'
+import {
+  APPROVAL_TTL_MS,
+  ApprovalMode,
+  LeaseStatus,
+  RequestStatus,
+  RotationSource,
+} from './constants'
 import { queueJob } from './rotation'
 import { iso } from './views'
 
@@ -34,9 +42,41 @@ export function approvalModeOf(rule: Pick<RuleRow, 'conditions'>): number {
 export const leaseStatusAt = (l: Pick<LeaseRow, 'status' | 'notAfter'>, now: number) =>
   l.status === LeaseStatus.Active && l.notAfter <= now ? LeaseStatus.Expired : l.status
 
-/** SQL: no other live lease exists on the item (the single-active-lease guard). */
-export const noLiveLease = (cipherUuid: string, now: number) =>
-  sql`not exists (select 1 from pam_leases where cipher_uuid = ${cipherUuid} and status = ${LeaseStatus.Active} and not_after > ${now})`
+/**
+ * SQL: no other lease on the item overlaps the window `[from, to)` (the single-active-lease guard).
+ * A lease counts only between its `notBefore` and `notAfter`, so a lease that starts after the new
+ * one ends does not block it. Without `to`, the guard asks about the instant `from`.
+ */
+export const noLiveLease = (cipherUuid: string, from: number, to = from + 1) =>
+  sql`not exists (select 1 from pam_leases where cipher_uuid = ${cipherUuid} and status = ${LeaseStatus.Active} and not_after > ${from} and not_before < ${to})`
+
+/** SQL: the requester holds no lease on the item that has not ended yet, scheduled ones included. */
+export const noOpenLeaseOf = (cipherUuid: string, requesterUuid: string, now: number) =>
+  sql`not exists (select 1 from pam_leases where cipher_uuid = ${cipherUuid} and requester_uuid = ${requesterUuid} and status = ${LeaseStatus.Active} and not_after > ${now})`
+
+/** Expiry of an approval: a day, or until the window ends. A window that starts later gets its own day. */
+export const approvalExpiry = (windowStart: number | null, windowEnd: number | null, now: number) =>
+  Math.min(
+    windowEnd ?? Number.POSITIVE_INFINITY,
+    Math.max(windowStart ?? now, now) + APPROVAL_TTL_MS,
+  )
+
+/** Statement: moves the member's revision date forward, so their clients sync after a lease change. */
+export const bumpMemberRevision = (db: Db, userUuid: string, now: number) =>
+  db
+    .update(schema.users)
+    .set({ updatedAt: sql`max(${schema.users.updatedAt} + 1, ${now})` })
+    .where(eq(schema.users.uuid, userUuid))
+
+/** Tells the member's devices to sync: a lease changes which items they receive in full. */
+export const pushLeaseChange = (env: Bindings, userUuid: string, now: number) =>
+  pushUserUpdate(
+    env,
+    userUuid,
+    PushType.SyncVault,
+    { UserId: userUuid, Date: new Date(now).toISOString() },
+    null,
+  )
 
 export function leaseJson(l: LeaseRow, now: number) {
   return {
@@ -120,16 +160,29 @@ export async function requestViews(db: Db, rows: RequestRow[], now = Date.now())
   if (rows.length === 0) return []
   const ids = rows.map((r) => r.uuid)
   const users = [...new Set(rows.map((r) => r.requesterUuid))]
+  // At most ID_CHUNK ids per statement (D1 allows 100 bound parameters).
   const [decisions, leases, people] = await Promise.all([
-    db
-      .select()
-      .from(schema.pamAccessDecisions)
-      .where(inArray(schema.pamAccessDecisions.requestUuid, ids)),
-    db.select().from(schema.pamLeases).where(inArray(schema.pamLeases.requestUuid, ids)),
-    db
-      .select({ id: schema.users.uuid, name: schema.users.name, email: schema.users.email })
-      .from(schema.users)
-      .where(inArray(schema.users.uuid, users)),
+    Promise.all(
+      chunk(ids).map((part) =>
+        db
+          .select()
+          .from(schema.pamAccessDecisions)
+          .where(inArray(schema.pamAccessDecisions.requestUuid, part)),
+      ),
+    ).then((r) => r.flat()),
+    Promise.all(
+      chunk(ids).map((part) =>
+        db.select().from(schema.pamLeases).where(inArray(schema.pamLeases.requestUuid, part)),
+      ),
+    ).then((r) => r.flat()),
+    Promise.all(
+      chunk(users).map((part) =>
+        db
+          .select({ id: schema.users.uuid, name: schema.users.name, email: schema.users.email })
+          .from(schema.users)
+          .where(inArray(schema.users.uuid, part)),
+      ),
+    ).then((r) => r.flat()),
   ])
   return rows.map((r) =>
     requestJson(
@@ -200,6 +253,11 @@ export async function sweepAccess(env: Bindings, now = Date.now()): Promise<void
         ),
       )
       .returning({ id: schema.pamLeases.uuid })
-    if (res.length > 0) await rotateAfterAccess(db, lease, now)
+    if (res.length > 0) {
+      await rotateAfterAccess(db, lease, now)
+      // The item goes back to its reduced row at the member's next sync.
+      await bumpMemberRevision(db, lease.requesterUuid, now)
+      await pushLeaseChange(env, lease.requesterUuid, now).catch(() => undefined)
+    }
   }
 }

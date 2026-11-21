@@ -5,6 +5,8 @@ import { ApiError } from '../errors'
 import { chunk, cipherJson } from '../vault/ciphers'
 import {
   collectionAccess,
+  isAdminRole,
+  leaseRestricted,
   loadUserAccess,
   type Member,
   manageAll,
@@ -22,6 +24,8 @@ export interface ItemAccess {
   collectionIds: string[]
   /** The organisation limits deleting and restoring to members with Manage access. */
   limitDeletion?: boolean
+  /** An access rule covers the item and the member holds no live lease on it (PAM). */
+  restricted?: boolean
 }
 
 /** A member's own favourite flag and archive date for an organisation item. */
@@ -38,10 +42,59 @@ export interface OrgCipherRow {
   state?: UserCipherState
 }
 
+/**
+ * The reduced row of a restricted (PAM-gated) item, as the official clients expect it: `partialData`
+ * holds the encrypted name and, for logins, the encrypted URIs, and every secret field is null.
+ * The cipher key stays, so the client can decrypt the name. The item is read-only.
+ */
+function restrictedCipherJson({ cipher, folderId, access, state }: OrgCipherRow) {
+  const login = ((): { uris?: unknown } | null => {
+    try {
+      return (JSON.parse(cipher.data) as { login?: { uris?: unknown } }).login ?? null
+    } catch {
+      return null
+    }
+  })()
+  const partial: { name: string; uris?: unknown } = { name: cipher.name }
+  if (cipher.atype === 1 && Array.isArray(login?.uris)) partial.uris = login.uris
+  return {
+    object: 'cipherDetails',
+    id: cipher.uuid,
+    organizationId: cipher.organizationUuid,
+    folderId,
+    type: cipher.atype,
+    name: cipher.name,
+    notes: null,
+    login: null,
+    card: null,
+    identity: null,
+    secureNote: null,
+    sshKey: null,
+    fields: null,
+    passwordHistory: null,
+    attachments: null,
+    data: null,
+    partialData: JSON.stringify(partial),
+    organizationUseTotp: true,
+    favorite: state?.favorite ?? false,
+    revisionDate: new Date(cipher.updatedAt).toISOString(),
+    creationDate: new Date(cipher.createdAt).toISOString(),
+    deletedDate: cipher.deletedAt == null ? null : new Date(cipher.deletedAt).toISOString(),
+    archivedDate: state?.archivedAt == null ? null : new Date(state.archivedAt).toISOString(),
+    reprompt: cipher.reprompt ?? 0,
+    key: cipher.key,
+    edit: false,
+    viewPassword: false,
+    permissions: { delete: false, restore: false },
+    collectionIds: access.collectionIds,
+  }
+}
+
 export function orgCipherJson(
   { cipher, folderId, access, state }: OrgCipherRow,
   attachments: Parameters<typeof cipherJson>[1] = null,
 ) {
+  if (access.restricted) return restrictedCipherJson({ cipher, folderId, access, state })
   const canDelete = access.limitDeletion ? access.manage : access.edit || access.manage
   return {
     ...cipherJson({ cipher, folderId }, attachments),
@@ -148,7 +201,26 @@ async function collectionLinks(db: Db, orgUuids: string[]): Promise<Map<string, 
  * to edit the hidden fields themselves, and the server does not second-guess that, because it
  * cannot see encrypted content. Use `readOnly` to forbid changes.
  */
-export function itemAccess(ua: UserAccess, orgUuid: string, linked: string[]): ItemAccess | null {
+export function itemAccess(
+  ua: UserAccess,
+  orgUuid: string,
+  linked: string[],
+  cipherUuid: string,
+): ItemAccess | null {
+  const full = reach(ua, orgUuid, linked)
+  if (!full || !leaseRestricted(ua, orgUuid, cipherUuid, linked)) return full
+  // Restricted: the member sees the reduced row and cannot change the item without a lease.
+  return {
+    edit: false,
+    viewPassword: false,
+    manage: false,
+    collectionIds: full.collectionIds,
+    limitDeletion: full.limitDeletion,
+    restricted: true,
+  }
+}
+
+function reach(ua: UserAccess, orgUuid: string, linked: string[]): ItemAccess | null {
   if (ua.accessAllOrgs.has(orgUuid)) {
     return { edit: true, viewPassword: true, manage: true, collectionIds: linked }
   }
@@ -208,7 +280,12 @@ export async function listOrgCipherRows(
   ])
   const out: OrgCipherRow[] = []
   for (const cipher of found.values()) {
-    const a = itemAccess(access, cipher.organizationUuid as string, links.get(cipher.uuid) ?? [])
+    const a = itemAccess(
+      access,
+      cipher.organizationUuid as string,
+      links.get(cipher.uuid) ?? [],
+      cipher.uuid,
+    )
     if (a) {
       out.push({
         cipher,
@@ -246,6 +323,7 @@ export async function accessToCipher(
     access,
     cipher.organizationUuid as string,
     await linkedCollections(db, cipher.uuid),
+    cipher.uuid,
   )
 }
 
@@ -257,6 +335,25 @@ export async function adminItemAccess(db: Db, cipher: CipherRecord): Promise<Ite
     manage: true,
     collectionIds: await linkedCollections(db, cipher.uuid),
   }
+}
+
+/**
+ * Access of a member who may manage every item. Owners and admins keep full access to restricted
+ * items. A custom member with that permission is restricted like any other member (PAM).
+ */
+export async function adminItemAccessFor(
+  db: Db,
+  userUuid: string,
+  member: Member,
+  cipher: CipherRecord,
+): Promise<ItemAccess> {
+  const full = await adminItemAccess(db, cipher)
+  if (isAdminRole(member)) return full
+  const ua = await loadUserAccess(db, userUuid)
+  if (!leaseRestricted(ua, cipher.organizationUuid as string, cipher.uuid, full.collectionIds)) {
+    return full
+  }
+  return { ...full, edit: false, viewPassword: false, manage: false, restricted: true }
 }
 
 /** Throws unless every collection exists in the organisation and the member may add items to it. */

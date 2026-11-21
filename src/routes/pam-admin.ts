@@ -26,6 +26,7 @@ import {
   queueJob,
   releaseByConnector,
   releaseByConnectorAndTarget,
+  releaseStatements,
 } from '../pam/rotation'
 import {
   type ConfigRow,
@@ -38,6 +39,7 @@ import {
 } from '../pam/views'
 import { newClientSecret } from '../sm/auth'
 import { parseBody } from '../validation'
+import { chunk } from '../vault/ciphers'
 
 export const pamAdmin = new Hono<Env>()
 
@@ -178,6 +180,8 @@ const setTargetStatus = (enable: boolean) => async (c: Ctx) => {
   }
   const now = Date.now()
   await runBatch(db, [
+    // Disabling a target system takes its running jobs back at once.
+    ...(enable ? [] : releaseStatements(db, sql`target_system_uuid = ${t.uuid}`, now)),
     db
       .update(schema.pamTargetSystems)
       .set({ status: enable ? TargetStatus.Active : TargetStatus.Disabled, updatedAt: now })
@@ -424,6 +428,8 @@ const setEnabled = (enabled: boolean) => async (c: Ctx) => {
   const { config } = await configOf(db, orgUuid, c.req.param('id') ?? '')
   const now = Date.now()
   await runBatch(db, [
+    // Pausing a configuration takes its running job back at once.
+    ...(enabled ? [] : releaseStatements(db, sql`config_uuid = ${config.uuid}`, now)),
     db
       .update(schema.pamRotationConfigs)
       .set({
@@ -535,12 +541,14 @@ const connectorOf = async (db: Db, orgUuid: string, id: string) => {
 const assignedTargets = async (db: Db, connectorUuids: string[]) => {
   const map = new Map<string, string[]>()
   if (connectorUuids.length === 0) return map
-  const rows = await db
-    .select()
-    .from(schema.pamConnectorAssignments)
-    .where(inArray(schema.pamConnectorAssignments.connectorUuid, connectorUuids))
-  for (const r of rows)
-    map.set(r.connectorUuid, [...(map.get(r.connectorUuid) ?? []), r.targetSystemUuid])
+  for (const part of chunk(connectorUuids)) {
+    const rows = await db
+      .select()
+      .from(schema.pamConnectorAssignments)
+      .where(inArray(schema.pamConnectorAssignments.connectorUuid, part))
+    for (const r of rows)
+      map.set(r.connectorUuid, [...(map.get(r.connectorUuid) ?? []), r.targetSystemUuid])
+  }
   return map
 }
 

@@ -11,10 +11,11 @@ import type { Env } from '../env'
 import { ApiError } from '../errors'
 import { collectionAccess, isAdminRole, loadUserAccess, type UserAccess } from '../orgs/access'
 import { accessToCipher, linkedCollections } from '../orgs/ciphers'
+import { Role, Status } from '../orgs/constants'
+import { defer } from '../orgs/notify'
 import { authOnce } from '../orgs/util'
-import { auditStatement } from '../pam/audit'
+import { auditStatement, auditStatementIf } from '../pam/audit'
 import {
-  APPROVAL_TTL_MS,
   ApprovalMode,
   DeciderKind,
   LeaseStatus,
@@ -25,10 +26,14 @@ import {
   Verdict,
 } from '../pam/constants'
 import {
+  approvalExpiry,
   approvalModeOf,
+  bumpMemberRevision,
   type LeaseRow,
   leaseJson,
   noLiveLease,
+  noOpenLeaseOf,
+  pushLeaseChange,
   type RequestRow,
   requestView,
   requestViews,
@@ -63,7 +68,8 @@ const dateText = z
 
 const notFound = (what: string) => new ApiError(404, `${what} not found.`)
 const conflict = (message: string) => new ApiError(409, message)
-const live = (l: Pick<LeaseRow, 'status' | 'notAfter'>, now: number) =>
+/** A lease that has not ended: running now or scheduled for later. It can be revoked or extended. */
+const open = (l: Pick<LeaseRow, 'status' | 'notAfter'>, now: number) =>
   l.status === LeaseStatus.Active && l.notAfter > now
 
 // ----- Who may decide -----
@@ -72,35 +78,25 @@ const live = (l: Pick<LeaseRow, 'status' | 'notAfter'>, now: number) =>
 function approverScope(ua: UserAccess) {
   const orgs = new Set<string>(ua.accessAllOrgs)
   for (const m of ua.members) if (isAdminRole(m)) orgs.add(m.organizationUuid)
-  const collections = [...ua.grants].filter(([, a]) => a.manage).map(([id]) => id)
-  return { orgs, collections }
+  return { orgs }
 }
 
 const canDecide = (ua: UserAccess, orgUuid: string, collectionUuid: string) =>
   approverScope(ua).orgs.has(orgUuid) ||
   collectionAccess(ua, orgUuid, collectionUuid)?.manage === true
 
-/** SQL for rows (with `organization_uuid` and `collection_uuid`) the caller may decide. */
-function approvableSql(ua: UserAccess, orgCol: SQL, collCol: SQL): SQL {
-  const scope = approverScope(ua)
-  const parts: SQL[] = []
-  for (const part of chunk([...scope.orgs])) {
-    parts.push(
-      sql`${orgCol} in (${sql.join(
-        part.map((x) => sql`${x}`),
-        sql`, `,
-      )})`,
-    )
-  }
-  for (const part of chunk(scope.collections)) {
-    parts.push(
-      sql`${collCol} in (${sql.join(
-        part.map((x) => sql`${x}`),
-        sql`, `,
-      )})`,
-    )
-  }
-  return parts.length ? sql`(${sql.join(parts, sql` or `)})` : sql`0`
+/**
+ * SQL for rows (with `organization_uuid` and `collection_uuid`) the caller may decide: owners,
+ * admins and members who reach every collection (directly or through a group) decide the whole
+ * organisation; everyone else decides the collections where they (or a group) hold Manage.
+ * The sets are subqueries, so the statement binds a fixed number of values however many
+ * organisations and collections the caller reaches (D1 allows 100 bound parameters).
+ */
+function approvableSql(userUuid: string, orgCol: SQL, collCol: SQL): SQL {
+  const member = sql`select uo.uuid from users_organizations uo where uo.user_uuid = ${userUuid} and uo.status = ${Status.Confirmed}`
+  const orgs = sql`select uo.organization_uuid from users_organizations uo where uo.user_uuid = ${userUuid} and uo.status = ${Status.Confirmed} and (uo.access_all = 1 or uo.atype in (${Role.Owner}, ${Role.Admin})) union select g.organization_uuid from groups g join groups_users gu on gu.group_uuid = g.uuid join users_organizations uo on uo.uuid = gu.organization_user_uuid where uo.user_uuid = ${userUuid} and uo.status = ${Status.Confirmed} and g.access_all = 1`
+  const collections = sql`select uc.collection_uuid from users_collections uc where uc.manage = 1 and uc.organization_user_uuid in (${member}) union select cg.collection_uuid from collections_groups cg join groups_users gu on gu.group_uuid = cg.group_uuid where cg.manage = 1 and gu.organization_user_uuid in (${member})`
+  return sql`(${orgCol} in (${orgs}) or ${collCol} in (${collections}))`
 }
 
 // ----- Rules, items, requests -----
@@ -124,8 +120,10 @@ async function ruleForCipher(db: Db, ua: UserAccess, userUuid: string, cipherUui
   const reachable = linked.filter((id) =>
     collectionAccess(ua, cipher.organizationUuid as string, id),
   )
-  const rows = reachable.length
-    ? await db
+  const rows = []
+  for (const part of chunk(reachable)) {
+    rows.push(
+      ...(await db
         .select({
           rule: schema.pamAccessRules,
           collectionUuid: schema.pamRuleCollections.collectionUuid,
@@ -137,16 +135,38 @@ async function ruleForCipher(db: Db, ua: UserAccess, userUuid: string, cipherUui
         )
         .where(
           and(
-            inArray(schema.pamRuleCollections.collectionUuid, reachable),
+            inArray(schema.pamRuleCollections.collectionUuid, part),
             eq(schema.pamAccessRules.enabled, true),
           ),
-        )
-    : []
-  const hit = rows[0]
+        )),
+    )
+  }
+  // Several rules can cover one item (through different collections): choose the same one every
+  // time. Human approval first, then the smallest maximum lease, then the oldest rule.
+  const hit = [...rows].sort(
+    (a, b) =>
+      Number(approvalModeOf(b.rule) === ApprovalMode.Human) -
+        Number(approvalModeOf(a.rule) === ApprovalMode.Human) ||
+      a.rule.maxLeaseSeconds - b.rule.maxLeaseSeconds ||
+      a.rule.createdAt - b.rule.createdAt ||
+      a.rule.uuid.localeCompare(b.rule.uuid) ||
+      a.collectionUuid.localeCompare(b.collectionUuid),
+  )[0]
   return { cipher, rule: hit?.rule, collectionUuid: hit?.collectionUuid }
 }
 
-const liveLeaseOn = async (db: Db, cipherUuid: string, now: number, requester?: string) => {
+/**
+ * The lease on the item that overlaps `[from, to)`, optionally of one requester. A lease counts
+ * only between its `notBefore` and `notAfter`, so with `to = from + 1` this is the live lease at
+ * the instant `from`.
+ */
+const leaseOverlapping = async (
+  db: Db,
+  cipherUuid: string,
+  from: number,
+  to: number,
+  requester?: string,
+) => {
   const [l] = await db
     .select()
     .from(schema.pamLeases)
@@ -154,11 +174,33 @@ const liveLeaseOn = async (db: Db, cipherUuid: string, now: number, requester?: 
       and(
         eq(schema.pamLeases.cipherUuid, cipherUuid),
         eq(schema.pamLeases.status, LeaseStatus.Active),
-        sql`${schema.pamLeases.notAfter} > ${now}`,
+        sql`${schema.pamLeases.notAfter} > ${from}`,
+        sql`${schema.pamLeases.notBefore} < ${to}`,
         requester ? eq(schema.pamLeases.requesterUuid, requester) : undefined,
       ),
     )
     .orderBy(desc(schema.pamLeases.notAfter))
+    .limit(1)
+  return l
+}
+
+/** The lease live at `now` (started and not ended). */
+const liveLeaseOn = (db: Db, cipherUuid: string, now: number, requester?: string) =>
+  leaseOverlapping(db, cipherUuid, now, now + 1, requester)
+
+/** The requester's lease that has not ended: live now, or scheduled for later. */
+const unendedLeaseOf = async (db: Db, cipherUuid: string, now: number, requester: string) => {
+  const [l] = await db
+    .select()
+    .from(schema.pamLeases)
+    .where(
+      and(
+        eq(schema.pamLeases.cipherUuid, cipherUuid),
+        eq(schema.pamLeases.requesterUuid, requester),
+        eq(schema.pamLeases.status, LeaseStatus.Active),
+        sql`${schema.pamLeases.notAfter} > ${now}`,
+      ),
+    )
     .limit(1)
   return l
 }
@@ -192,6 +234,7 @@ pamLeases.get(`/api/leases/ciphers/:id{${UUID}}/pre-check`, async (c) => {
   const holder = await liveLeaseOn(db, cipher.uuid, now)
   const mine =
     holder?.requesterUuid === user ? holder : await liveLeaseOn(db, cipher.uuid, now, user)
+  const scheduled = await unendedLeaseOf(db, cipher.uuid, now, user)
   const open = await myOpenRequests(db, user, cipher.uuid, now)
   const blocked = rule.singleActiveLease && holder !== undefined
   return c.json({
@@ -201,7 +244,7 @@ pamLeases.get(`/api/leases/ciphers/:id{${UUID}}/pre-check`, async (c) => {
     hasActiveLease: mine !== undefined,
     defaultDurationSeconds: rule.defaultLeaseSeconds,
     maxDurationSeconds: rule.maxLeaseSeconds,
-    canStartLease: !blocked && mine === undefined && open.length === 0,
+    canStartLease: !blocked && scheduled === undefined && open.length === 0,
     slotFreesAt: blocked ? iso(holder.notAfter) : null,
   })
 })
@@ -213,6 +256,7 @@ pamLeases.get(`/api/leases/ciphers/:id{${UUID}}/state`, async (c) => {
   const { cipher, rule } = await ruleForCipher(db, ua, user, c.req.param('id') ?? '')
   const now = Date.now()
   const mine = await liveLeaseOn(db, cipher.uuid, now, user)
+  const scheduled = await unendedLeaseOf(db, cipher.uuid, now, user)
   const open = await myOpenRequests(db, user, cipher.uuid, now)
   const pending = open.find((r) => r.status === RequestStatus.Pending)
   const approved = open.find((r) => r.status === RequestStatus.Approved)
@@ -229,7 +273,7 @@ pamLeases.get(`/api/leases/ciphers/:id{${UUID}}/state`, async (c) => {
     approvedRequest: approvedView,
     extensionsAllowed: rule?.allowsExtensions ?? false,
     maxExtensionDurationSeconds: rule?.maxExtensionSeconds ?? null,
-    canRequest: Boolean(rule) && !mine && open.length === 0 && !holder,
+    canRequest: Boolean(rule) && !scheduled && open.length === 0 && !holder,
   })
 })
 
@@ -313,12 +357,16 @@ pamLeases.post(`/api/leases/ciphers/:id{${UUID}}`, async (c) => {
     })
   }
 
-  if (await liveLeaseOn(db, cipher.uuid, now, user))
+  if (await unendedLeaseOf(db, cipher.uuid, now, user))
     throw conflict('You already hold a lease on this item.')
   if ((await myOpenRequests(db, user, cipher.uuid, now)).length > 0) {
     throw conflict('You already have an open request for this item.')
   }
-  const holder = rule.singleActiveLease ? await liveLeaseOn(db, cipher.uuid, now) : undefined
+  const from = Math.max(start ?? now, now)
+  const until = end ?? now + duration * 1000
+  const holder = rule.singleActiveLease
+    ? await leaseOverlapping(db, cipher.uuid, from, until)
+    : undefined
   if (holder) throw conflict(`The item is leased to another member until ${iso(holder.notAfter)}.`)
 
   const mode = approvalModeOf(rule)
@@ -337,9 +385,7 @@ pamLeases.post(`/api/leases/ciphers/:id{${UUID}}`, async (c) => {
     windowEnd: end,
     durationSeconds: duration,
     submittedAt: now,
-    expiresAt: auto
-      ? Math.min(end ?? Number.POSITIVE_INFINITY, now + APPROVAL_TTL_MS)
-      : now + PENDING_TTL_MS,
+    expiresAt: auto ? approvalExpiry(start, end, now) : now + PENDING_TTL_MS,
     resolvedAt: auto ? now : null,
     extensionOfLeaseUuid: null,
     createdAt: now,
@@ -370,17 +416,19 @@ pamLeases.post(`/api/leases/ciphers/:id{${UUID}}`, async (c) => {
           collectionUuid,
           requesterUuid: user,
           status: LeaseStatus.Active,
-          notBefore: Math.max(start ?? now, now),
-          notAfter: end ?? now + duration * 1000,
+          notBefore: from,
+          notAfter: until,
           createdAt: now,
         },
-        rule.singleActiveLease
-          ? (and(
-              noLiveLease(cipher.uuid, now),
-              eq(schema.pamAccessRequests.status, RequestStatus.Approved),
-            ) as SQL)
-          : eq(schema.pamAccessRequests.status, RequestStatus.Approved),
+        and(
+          eq(schema.pamAccessRequests.status, RequestStatus.Approved),
+          // One unended lease per member and item, and under a single-lease rule one per item.
+          noOpenLeaseOf(cipher.uuid, user, now),
+          rule.singleActiveLease ? noLiveLease(cipher.uuid, from, until) : undefined,
+        ) as SQL,
       ),
+      // The lease changes which items the member receives in full.
+      bumpMemberRevision(db, user, now),
     )
   }
   let res: D1Result[]
@@ -398,6 +446,7 @@ pamLeases.post(`/api/leases/ciphers/:id{${UUID}}`, async (c) => {
       .where(eq(schema.pamAccessRequests.uuid, id))
     throw conflict('The item was leased to another member a moment ago.')
   }
+  if (auto) defer(c, pushLeaseChange(c.env, user, now))
   const [row] = await db
     .select()
     .from(schema.pamAccessRequests)
@@ -450,8 +499,8 @@ const requestList = async (c: Ctx, where: (ua: UserAccess, now: number) => SQL) 
 pamLeases.get('/api/access-requests/inbox', (c) =>
   requestList(
     c,
-    (ua, now) =>
-      sql`${schema.pamAccessRequests.status} = ${RequestStatus.Pending} and ${schema.pamAccessRequests.expiresAt} > ${now} and ${schema.pamAccessRequests.requesterUuid} != ${c.var.user.uuid} and ${approvableSql(ua, sql`${schema.pamAccessRequests.organizationUuid}`, sql`${schema.pamAccessRequests.collectionUuid}`)}`,
+    (_ua, now) =>
+      sql`${schema.pamAccessRequests.status} = ${RequestStatus.Pending} and ${schema.pamAccessRequests.expiresAt} > ${now} and ${schema.pamAccessRequests.requesterUuid} != ${c.var.user.uuid} and ${approvableSql(c.var.user.uuid, sql`${schema.pamAccessRequests.organizationUuid}`, sql`${schema.pamAccessRequests.collectionUuid}`)}`,
   ),
 )
 pamLeases.get('/api/access-requests/mine', (c) =>
@@ -464,8 +513,8 @@ pamLeases.get('/api/access-requests/mine', (c) =>
 pamLeases.get('/api/access-requests/history', (c) =>
   requestList(
     c,
-    (ua, now) =>
-      sql`(${schema.pamAccessRequests.requesterUuid} = ${c.var.user.uuid} or ${approvableSql(ua, sql`${schema.pamAccessRequests.organizationUuid}`, sql`${schema.pamAccessRequests.collectionUuid}`)}) and not ${openSql(now)}`,
+    (_ua, now) =>
+      sql`(${schema.pamAccessRequests.requesterUuid} = ${c.var.user.uuid} or ${approvableSql(c.var.user.uuid, sql`${schema.pamAccessRequests.organizationUuid}`, sql`${schema.pamAccessRequests.collectionUuid}`)}) and not ${openSql(now)}`,
   ),
 )
 
@@ -499,6 +548,17 @@ pamLeases.post(`/api/access-requests/${ID}/decision`, async (c) => {
   const approve = body.verdict === Verdict.Approve
   const status = approve ? RequestStatus.Approved : RequestStatus.Denied
   const isExtension = row.extensionOfLeaseUuid !== null
+  // An extension applies only while its lease has not ended and the lease stays within the
+  // maximum length of its rule (an approver cannot stretch a lease past it).
+  let extensionGuard: SQL | undefined
+  if (approve && isExtension) {
+    const [rule] = await db
+      .select({ max: schema.pamAccessRules.maxLeaseSeconds })
+      .from(schema.pamAccessRules)
+      .where(eq(schema.pamAccessRules.uuid, row.ruleUuid))
+      .limit(1)
+    extensionGuard = sql`exists (select 1 from pam_leases where uuid = ${row.extensionOfLeaseUuid} and status = ${LeaseStatus.Active} and not_after > ${now} and not_after + ${row.durationSeconds * 1000} - not_before <= ${(rule?.max ?? 0) * 1000})`
+  }
   const decided = sql`exists (select 1 from pam_access_requests where uuid = ${row.uuid} and status = ${status} and resolved_at = ${now})`
   const statements: unknown[] = [
     db
@@ -507,10 +567,11 @@ pamLeases.post(`/api/access-requests/${ID}/decision`, async (c) => {
         status,
         resolvedAt: now,
         updatedAt: now,
-        // An approval is valid for a day, or until the requested window ends.
+        // An approval is valid for a day, or until the requested window ends. A window that
+        // starts later gets its own day from its start.
         expiresAt:
           approve && !isExtension
-            ? Math.min(row.windowEnd ?? Number.POSITIVE_INFINITY, now + APPROVAL_TTL_MS)
+            ? approvalExpiry(row.windowStart, row.windowEnd, now)
             : row.expiresAt,
       })
       .where(
@@ -518,6 +579,7 @@ pamLeases.post(`/api/access-requests/${ID}/decision`, async (c) => {
           eq(schema.pamAccessRequests.uuid, row.uuid),
           eq(schema.pamAccessRequests.status, RequestStatus.Pending),
           sql`${schema.pamAccessRequests.expiresAt} > ${now}`,
+          extensionGuard,
         ),
       ),
     db.insert(schema.pamAccessDecisions).select(
@@ -534,8 +596,11 @@ pamLeases.post(`/api/access-requests/${ID}/decision`, async (c) => {
         .from(schema.pamAccessRequests)
         .where(and(eq(schema.pamAccessRequests.uuid, row.uuid), decided)),
     ),
-    auditStatement(
+    // No decision row, no audit row: a lost race or an ended lease leaves neither.
+    auditStatementIf(
       db,
+      row.uuid,
+      decided,
       row.organizationUuid,
       approve ? 'access_approved' : 'access_denied',
       user,
@@ -545,7 +610,7 @@ pamLeases.post(`/api/access-requests/${ID}/decision`, async (c) => {
     ),
   ]
   if (approve && isExtension) {
-    // The extension applies in the same batch, and only while its lease is still live.
+    // The extension applies in the same batch.
     statements.push(
       db
         .update(schema.pamLeases)
@@ -564,13 +629,23 @@ pamLeases.post(`/api/access-requests/${ID}/decision`, async (c) => {
     )
   }
   const res = await runBatch(db, statements as never)
-  if (changes(res[0]) === 0) throw conflict('The request is no longer pending.')
-  if (approve && isExtension && changes(res[3]) === 0) {
-    await db
-      .update(schema.pamAccessRequests)
-      .set({ status: RequestStatus.Cancelled, updatedAt: now })
-      .where(eq(schema.pamAccessRequests.uuid, row.uuid))
-    throw conflict('The lease ended before the extension was approved.')
+  if (changes(res[0]) === 0) {
+    const fresh = await loadRequest(db, row.uuid)
+    if (approve && isExtension && fresh.status === RequestStatus.Pending && fresh.expiresAt > now) {
+      // Still pending, so the lease ended or the extension would pass the maximum: nothing was
+      // approved, and the request can never be approved now.
+      await db
+        .update(schema.pamAccessRequests)
+        .set({ status: RequestStatus.Cancelled, resolvedAt: now, updatedAt: now })
+        .where(
+          and(
+            eq(schema.pamAccessRequests.uuid, row.uuid),
+            eq(schema.pamAccessRequests.status, RequestStatus.Pending),
+          ),
+        )
+      throw conflict('The lease ended, or the extension would pass its maximum length.')
+    }
+    throw conflict('The request is no longer pending.')
   }
   return c.json(await requestView(db, await loadRequest(db, row.uuid), now))
 })
@@ -594,7 +669,8 @@ pamLeases.post(`/api/access-requests/${ID}/activate`, async (c) => {
     .where(eq(schema.pamAccessRules.uuid, row.ruleUuid))
     .limit(1)
   if (!rule?.enabled) throw conflict('The access rule no longer applies.')
-  if (rule.singleActiveLease && (await liveLeaseOn(db, row.cipherUuid, now))) {
+  const notAfter = row.windowEnd ?? now + row.durationSeconds * 1000
+  if (rule.singleActiveLease && (await leaseOverlapping(db, row.cipherUuid, now, notAfter))) {
     throw conflict('The item is leased to another member.')
   }
   const leaseId = crypto.randomUUID()
@@ -602,8 +678,8 @@ pamLeases.post(`/api/access-requests/${ID}/activate`, async (c) => {
     eq(schema.pamAccessRequests.status, RequestStatus.Approved),
     sql`${schema.pamAccessRequests.expiresAt} > ${now}`,
     sql`not exists (select 1 from pam_leases where request_uuid = ${row.uuid})`,
-    rule.singleActiveLease ? noLiveLease(row.cipherUuid, now) : undefined,
-    sql`not exists (select 1 from pam_leases where cipher_uuid = ${row.cipherUuid} and requester_uuid = ${user} and status = ${LeaseStatus.Active} and not_after > ${now})`,
+    rule.singleActiveLease ? noLiveLease(row.cipherUuid, now, notAfter) : undefined,
+    noOpenLeaseOf(row.cipherUuid, user, now),
   ) as SQL
   let res: D1Result[]
   try {
@@ -619,18 +695,20 @@ pamLeases.post(`/api/access-requests/${ID}/activate`, async (c) => {
           requesterUuid: user,
           status: LeaseStatus.Active,
           notBefore: now,
-          notAfter: row.windowEnd ?? now + row.durationSeconds * 1000,
+          notAfter,
           createdAt: now,
         },
         guard,
       ),
       auditStatement(db, row.organizationUuid, 'lease_activated', user, leaseId, row.uuid, now),
+      bumpMemberRevision(db, user, now),
     ] as never)
   } catch (err) {
     if (unique(err)) throw conflict('The request was already activated.')
     throw err
   }
   if (changes(res[0]) === 0) throw conflict('The request cannot be activated now.')
+  defer(c, pushLeaseChange(c.env, user, now))
   const [lease] = await db
     .select()
     .from(schema.pamLeases)
@@ -654,7 +732,7 @@ async function endLease(c: Ctx, db: Db, lease: LeaseRow, ua: UserAccess, reason:
   const now = Date.now()
   const own = lease.requesterUuid === user
   if (!own && !canDecide(ua, lease.organizationUuid, lease.collectionUuid)) throw notFound('Lease')
-  if (!live(lease, now)) throw conflict('The lease is not active.')
+  if (!open(lease, now)) throw conflict('The lease is not active.')
   const res = await runBatch(db, [
     db
       .update(schema.pamLeases)
@@ -680,8 +758,11 @@ async function endLease(c: Ctx, db: Db, lease: LeaseRow, ua: UserAccess, reason:
       reason,
       now,
     ),
+    // The requester's next sync no longer holds the item in full.
+    bumpMemberRevision(db, lease.requesterUuid, now),
   ])
   if (changes(res[0]) === 0) throw conflict('The lease is not active.')
+  defer(c, pushLeaseChange(c.env, lease.requesterUuid, now))
   await rotateAfterAccess(db, lease, now)
 }
 
@@ -750,11 +831,11 @@ const leaseList = async (c: Ctx, where: (ua: UserAccess, now: number) => SQL) =>
 }
 const liveSql = (now: number) =>
   sql`(${schema.pamLeases.status} = ${LeaseStatus.Active} and ${schema.pamLeases.notAfter} > ${now})`
-const visibleLeases = (c: Ctx, ua: UserAccess) =>
-  sql`(${schema.pamLeases.requesterUuid} = ${c.var.user.uuid} or ${approvableSql(ua, sql`${schema.pamLeases.organizationUuid}`, sql`${schema.pamLeases.collectionUuid}`)})`
+const visibleLeases = (c: Ctx) =>
+  sql`(${schema.pamLeases.requesterUuid} = ${c.var.user.uuid} or ${approvableSql(c.var.user.uuid, sql`${schema.pamLeases.organizationUuid}`, sql`${schema.pamLeases.collectionUuid}`)})`
 
 pamLeases.get('/api/leases/active', (c) =>
-  leaseList(c, (ua, now) => sql`${visibleLeases(c, ua)} and ${liveSql(now)}`),
+  leaseList(c, (_ua, now) => sql`${visibleLeases(c)} and ${liveSql(now)}`),
 )
 pamLeases.get('/api/leases/mine', (c) =>
   leaseList(
@@ -763,7 +844,7 @@ pamLeases.get('/api/leases/mine', (c) =>
   ),
 )
 pamLeases.get('/api/leases/history', (c) =>
-  leaseList(c, (ua, now) => sql`${visibleLeases(c, ua)} and not ${liveSql(now)}`),
+  leaseList(c, (_ua, now) => sql`${visibleLeases(c)} and not ${liveSql(now)}`),
 )
 
 pamLeases.post(`/api/leases/${ID}/revoke`, async (c) => {
@@ -784,7 +865,7 @@ pamLeases.post(`/api/leases/${ID}/extend`, async (c) => {
     z.object({ durationSeconds: seconds.nullish(), reason: z.string().min(1).max(1000) }),
   )
   const now = Date.now()
-  if (!live(lease, now)) throw conflict('The lease is not active.')
+  if (!open(lease, now)) throw conflict('The lease is not active.')
   const [original] = await db
     .select()
     .from(schema.pamAccessRequests)
@@ -804,6 +885,13 @@ pamLeases.post(`/api/leases/${ID}/extend`, async (c) => {
   if (duration > max) {
     throw new ApiError(400, 'The request is invalid.', {
       durationSeconds: ['The duration exceeds the maximum extension of the access rule.'],
+    })
+  }
+  // Extensions never stretch a lease past the maximum length of its rule, so repeated automatic
+  // extensions cannot turn a short lease into permanent access.
+  if (lease.notAfter + duration * 1000 - lease.notBefore > rule.maxLeaseSeconds * 1000) {
+    throw new ApiError(400, 'The request is invalid.', {
+      durationSeconds: ['The lease would pass the maximum length of the access rule.'],
     })
   }
   const auto = approvalModeOf(rule) === ApprovalMode.Automatic
@@ -861,6 +949,7 @@ pamLeases.post(`/api/leases/${ID}/extend`, async (c) => {
             eq(schema.pamLeases.uuid, lease.uuid),
             eq(schema.pamLeases.status, LeaseStatus.Active),
             sql`${schema.pamLeases.notAfter} > ${now}`,
+            sql`${schema.pamLeases.notAfter} + ${duration * 1000} - ${schema.pamLeases.notBefore} <= ${rule.maxLeaseSeconds * 1000}`,
           ),
         ),
     )
@@ -877,7 +966,7 @@ pamLeases.post(`/api/leases/${ID}/extend`, async (c) => {
       .update(schema.pamAccessRequests)
       .set({ status: RequestStatus.Cancelled, updatedAt: now })
       .where(eq(schema.pamAccessRequests.uuid, id))
-    throw conflict('The lease ended before it could be extended.')
+    throw conflict('The lease ended, or the extension would pass its maximum length.')
   }
   return c.json(await requestView(db, await loadRequest(db, id), now))
 })

@@ -676,3 +676,94 @@ describe('rotation sweep', () => {
     expect(detail.jobs.find((j: any) => j.id === jobId).status).toBe(4)
   })
 })
+
+describe('review fixes', () => {
+  async function claimed(name: string, beforeClaim?: (configId: string) => Promise<unknown>) {
+    const dev = await connectorFor(owner, orgId, name)
+    const target = await seal(`fix-${name}`)
+    await admin(`/${dev.reg.id}/assignments`, 'POST', { targetSystemId: target })
+    const { cipherId } = await freshConfig()
+    const cfg = await (
+      await admin('/rotation/configs', 'POST', {
+        cipherId,
+        targetSystemId: target,
+        sealedData: '2.cfg',
+        wrappedKey: '2.cfgkey',
+      })
+    ).json<any>()
+    await beforeClaim?.(cfg.id)
+    await admin(`/rotation/configs/${cfg.id}/rotate`, 'POST')
+    const jobs = await (await dev.call('/jobs')).json<any>()
+    const claim = await (await dev.call(`/jobs/${jobs.data[0].jobId}/claim`, 'POST')).json<any>()
+    return { dev, target, cfg, cipherId, claim, jobId: jobs.data[0].jobId as string }
+  }
+
+  it('sweeps a stale claim even when 100 finished jobs of a deleted connector exist', async () => {
+    // The finished jobs come first in table order, so a wrong filter fills the batch of 100 with them.
+    const { jobId } = await claimed('sweep-many', (configId) =>
+      sql(
+        `with recursive n(i) as (select 1 union all select i + 1 from n where i < 101)
+         insert into pam_rotation_jobs (uuid, config_uuid, organization_uuid, target_system_uuid, source, status, claimed_by_connector_uuid, claimed_at, next_claimable_at, expires_at, created_at)
+         select '!finished-' || i, ?, ?, 'gone', 0, 2, null, 1, 1, 1, 1 from n`,
+        configId,
+        orgId,
+      ),
+    )
+    await sweepRotation(env, Date.now() + 20 * 60_000)
+    const [job] = (await sql('select status from pam_rotation_jobs where uuid = ?', jobId)).results
+    expect(job.status).toBe(0)
+  })
+
+  it('releases the claim when the target system is disabled or the configuration is paused', async () => {
+    const a = await claimed('release-target')
+    expect((await admin(`/rotation/target-systems/${a.target}/disable`, 'POST')).status).toBe(200)
+    const [ja] = (
+      await sql(
+        'select status, claimed_by_connector_uuid c from pam_rotation_jobs where uuid = ?',
+        a.jobId,
+      )
+    ).results
+    expect(ja).toMatchObject({ status: 0, c: null })
+
+    const b = await claimed('release-config')
+    expect((await admin(`/rotation/configs/${b.cfg.id}/pause`, 'POST')).status).toBe(200)
+    const [jb] = (
+      await sql(
+        'select status, claimed_by_connector_uuid c from pam_rotation_jobs where uuid = ?',
+        b.jobId,
+      )
+    ).results
+    expect(jb).toMatchObject({ status: 0, c: null })
+  })
+
+  it('refuses a write once the claim lease ended, while the connector is still polling', async () => {
+    const { dev, claim, jobId } = await claimed('lease-over')
+    const cipher = await (await dev.call(`/attempts/${claim.attemptId}/cipher`)).json<any>()
+    await sql(
+      'update pam_rotation_jobs set claimed_at = ? where uuid = ?',
+      Date.now() - 10 * 60_000,
+      jobId,
+    )
+    const put = await dev.call(`/attempts/${claim.attemptId}/cipher`, 'PUT', {
+      type: 1,
+      name: cipher.name,
+      key: cipher.key,
+      organizationId: orgId,
+      login: { ...cipher.login, password: '2.late' },
+      lastKnownRevisionDate: cipher.revisionDate,
+    })
+    expect(put.status).toBe(409)
+    expect((await dev.call(`/attempts/${claim.attemptId}/cipher`)).status).toBe(409)
+  })
+
+  it('refuses connector requests when the organisation is gone', async () => {
+    const owner2 = await actor('pam-owner2@example.com')
+    const org2 = await orgWithLogin(owner2, 'Suspended Org')
+    const dev = await connectorFor(owner2, org2.id, 'suspended')
+    expect((await dev.call('/jobs')).status).toBe(200)
+    // D1 cascades the delete to the connector, and the request path also checks the organisation
+    // itself (`organizationActive`), so a token of a deleted organisation never passes.
+    await sql('delete from organizations where uuid = ?', org2.id)
+    expect((await dev.call('/jobs')).status).toBe(401)
+  })
+})

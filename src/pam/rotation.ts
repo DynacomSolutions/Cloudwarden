@@ -132,7 +132,7 @@ export async function sweepRotation(env: Bindings, now = Date.now()): Promise<vo
       and(
         eq(schema.pamRotationJobs.status, JobStatus.Claimed),
         sql`${schema.pamRotationJobs.expiresAt} > ${now}`,
-        sql`${schema.pamRotationJobs.claimedAt} is null or ${schema.pamRotationJobs.claimedAt} <= ${now - CLAIM_LEASE_MS}`,
+        sql`(${schema.pamRotationJobs.claimedAt} is null or ${schema.pamRotationJobs.claimedAt} <= ${now - CLAIM_LEASE_MS})`,
         sql`(${schema.pamAccessConnectors.uuid} is null or ${schema.pamAccessConnectors.status} != 0 or ${schema.pamAccessConnectors.lastHeartbeatAt} is null or ${schema.pamAccessConnectors.lastHeartbeatAt} <= ${now - CONNECTOR_OFFLINE_AFTER_MS})`,
       ),
     )

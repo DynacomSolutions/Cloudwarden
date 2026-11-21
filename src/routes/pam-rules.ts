@@ -7,12 +7,13 @@ import { z } from 'zod'
 import { createDb, type Db, runBatch, schema } from '../db'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
-import { isAdminRole, requireMember } from '../orgs/access'
+import { bumpOrgRevision, isAdminRole, requireMember } from '../orgs/access'
 import { authOnce } from '../orgs/util'
 import { auditStatement } from '../pam/audit'
 import { DEFAULT_LEASE_SECONDS, MAX_LEASE_SECONDS, RequestStatus } from '../pam/constants'
 import { iso, list } from '../pam/views'
 import { parseBody } from '../validation'
+import { chunk } from '../vault/ciphers'
 
 export const pamRules = new Hono<Env>()
 
@@ -85,11 +86,13 @@ function ruleJson(r: RuleRow, collections: string[]) {
 const collectionsOf = async (db: Db, ruleUuids: string[]) => {
   const map = new Map<string, string[]>()
   if (ruleUuids.length === 0) return map
-  const rows = await db
-    .select()
-    .from(schema.pamRuleCollections)
-    .where(inArray(schema.pamRuleCollections.ruleUuid, ruleUuids))
-  for (const r of rows) map.set(r.ruleUuid, [...(map.get(r.ruleUuid) ?? []), r.collectionUuid])
+  for (const part of chunk(ruleUuids)) {
+    const rows = await db
+      .select()
+      .from(schema.pamRuleCollections)
+      .where(inArray(schema.pamRuleCollections.ruleUuid, part))
+    for (const r of rows) map.set(r.ruleUuid, [...(map.get(r.ruleUuid) ?? []), r.collectionUuid])
+  }
   return map
 }
 
@@ -132,27 +135,33 @@ function terms(body: RuleBody) {
 async function checkCollections(db: Db, orgUuid: string, ids: string[], ruleUuid: string | null) {
   const unique = [...new Set(ids)]
   if (unique.length === 0) return unique
-  const found = await db
-    .select({ id: schema.collections.uuid })
-    .from(schema.collections)
-    .where(
-      and(
-        eq(schema.collections.organizationUuid, orgUuid),
-        inArray(schema.collections.uuid, unique),
-      ),
-    )
-  if (found.length !== unique.length) {
+  let found = 0
+  for (const part of chunk(unique)) {
+    const rows = await db
+      .select({ id: schema.collections.uuid })
+      .from(schema.collections)
+      .where(
+        and(
+          eq(schema.collections.organizationUuid, orgUuid),
+          inArray(schema.collections.uuid, part),
+        ),
+      )
+    found += rows.length
+  }
+  if (found !== unique.length) {
     throw new ApiError(400, 'The request is invalid.', { collections: ['Unknown collection.'] })
   }
-  const taken = await db
-    .select({
-      id: schema.pamRuleCollections.collectionUuid,
-      rule: schema.pamRuleCollections.ruleUuid,
-    })
-    .from(schema.pamRuleCollections)
-    .where(inArray(schema.pamRuleCollections.collectionUuid, unique))
-  if (taken.some((t) => t.rule !== ruleUuid)) {
-    throw new ApiError(409, 'A collection already belongs to another access rule.')
+  for (const part of chunk(unique)) {
+    const taken = await db
+      .select({
+        id: schema.pamRuleCollections.collectionUuid,
+        rule: schema.pamRuleCollections.ruleUuid,
+      })
+      .from(schema.pamRuleCollections)
+      .where(inArray(schema.pamRuleCollections.collectionUuid, part))
+    if (taken.some((t) => t.rule !== ruleUuid)) {
+      throw new ApiError(409, 'A collection already belongs to another access rule.')
+    }
   }
   return unique
 }
@@ -192,6 +201,8 @@ pamRules.post(BASE, async (c) => {
       db.insert(schema.pamRuleCollections).values({ ruleUuid: row.uuid, collectionUuid }),
     ),
     auditStatement(db, orgUuid, 'rule_created', c.var.user.uuid, row.uuid, null, now),
+    // A rule decides which items members receive in full, so their clients must sync.
+    bumpOrgRevision(db, orgUuid, now),
   ])
   return c.json(ruleJson(row, cols))
 })
@@ -221,6 +232,8 @@ pamRules.put(`${BASE}/:id{${UUID}}`, async (c) => {
       db.insert(schema.pamRuleCollections).values({ ruleUuid: row.uuid, collectionUuid }),
     ),
     auditStatement(db, orgUuid, 'rule_updated', c.var.user.uuid, row.uuid, null, now),
+    // A rule decides which items members receive in full, so their clients must sync.
+    bumpOrgRevision(db, orgUuid, now),
   ])
   return c.json(ruleJson({ ...row, ...values, updatedAt: now }, cols))
 })
@@ -243,6 +256,8 @@ pamRules.delete(`${BASE}/:id{${UUID}}`, async (c) => {
       ),
     db.delete(schema.pamAccessRules).where(eq(schema.pamAccessRules.uuid, row.uuid)),
     auditStatement(db, orgUuid, 'rule_deleted', c.var.user.uuid, row.uuid, null, now),
+    // A rule decides which items members receive in full, so their clients must sync.
+    bumpOrgRevision(db, orgUuid, now),
   ])
   return c.body(null, 200)
 })

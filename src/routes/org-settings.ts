@@ -12,6 +12,7 @@ import {
   collectionAccess,
   getMember,
   isAdminRole,
+  leaseRestricted,
   loadUserAccess,
   manageAll,
   requireMember,
@@ -190,7 +191,8 @@ orgSettings.get('/api/organizations/:orgId/export', async (c) => {
     // Without access to every item, the export holds only what the member can reach.
     const ua = await loadUserAccess(db, c.var.user.uuid)
     const rows = (await listOrgCipherRows(db, c.var.user.uuid, ua)).filter(
-      (r) => r.cipher.organizationUuid === org(c) && r.cipher.deletedAt === null,
+      (r) =>
+        r.cipher.organizationUuid === org(c) && r.cipher.deletedAt === null && !r.access.restricted,
     )
     const own = await db
       .select()
@@ -225,21 +227,31 @@ orgSettings.get('/api/organizations/:orgId/export', async (c) => {
   ])
   const byCipher = new Map<string, string[]>()
   for (const l of links) byCipher.set(l.cipher, [...(byCipher.get(l.cipher) ?? []), l.id])
+  const exportUa = isAdminRole(m) ? null : await loadUserAccess(db, c.var.user.uuid)
   return c.json({
     object: 'organizationExport',
     collections: collections.map(collectionJson),
-    ciphers: ciphers.map((cipher) =>
-      orgCipherJson({
-        cipher,
-        folderId: null,
-        access: {
-          edit: true,
-          viewPassword: true,
-          manage: true,
-          collectionIds: byCipher.get(cipher.uuid) ?? [],
-        },
-      }),
-    ),
+    // An export never holds the reduced row of an item restricted by an access rule.
+    ciphers: ciphers
+      .filter(
+        (cipher) =>
+          !(
+            exportUa &&
+            leaseRestricted(exportUa, org(c), cipher.uuid, byCipher.get(cipher.uuid) ?? [])
+          ),
+      )
+      .map((cipher) =>
+        orgCipherJson({
+          cipher,
+          folderId: null,
+          access: {
+            edit: true,
+            viewPassword: true,
+            manage: true,
+            collectionIds: byCipher.get(cipher.uuid) ?? [],
+          },
+        }),
+      ),
   })
 })
 

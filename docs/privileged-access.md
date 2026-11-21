@@ -59,7 +59,7 @@ Pending --claim--> Claimed --success--> Succeeded
 
 ### Access rule
 
-A rule names collections (a collection belongs to at most one rule) and the lease terms: default and maximum duration, `singleActiveLease`, extensions (`allowsExtensions`, `maxExtensionDurationSeconds`), and `conditions`. `conditions` is an opaque JSON object. Cloudwarden reads `approvalMode`: `"Automatic"` grants at once, anything else (default) needs a human. A disabled rule stops new requests. Existing leases continue. Deleting a rule cancels its pending requests.
+A rule names collections (a collection belongs to at most one rule). Where several rules cover one item, the first of these wins: human approval, then the smallest maximum lease, then the oldest rule and the lease terms: default and maximum duration, `singleActiveLease`, extensions (`allowsExtensions`, `maxExtensionDurationSeconds`), and `conditions`. `conditions` is an opaque JSON object. Cloudwarden reads `approvalMode`: `"Automatic"` grants at once, anything else (default) needs a human. A disabled rule stops new requests. Existing leases continue. Deleting a rule cancels its pending requests.
 
 ### Request and lease state machine
 
@@ -72,9 +72,9 @@ lease:   Active --time--> Expired    Active --approver--> Revoked    Active --re
 
 - **Create.** `POST /api/leases/ciphers/{id}` needs an item in a collection that an enabled rule covers, access to that item, and privileged access. With `start` and `end` the window is fixed. Otherwise `durationSeconds` (default from the rule, at most the maximum). One open request per member and item (partial unique index). A live lease of the member also blocks a new request.
 - **Automatic rule.** The request, an automatic decision and the lease are written in one batch. The result is `approvalMode: 0` and a produced lease.
-- **Human rule.** The request is `Pending`. Approvers see it in `inbox`. `decision` is one guarded update `WHERE status = Pending AND not expired`. One approver wins, the other gets 409. Approval is valid for 24 hours or until the requested window ends.
+- **Human rule.** The request is `Pending`. Approvers see it in `inbox`. `decision` is one guarded update `WHERE status = Pending AND not expired`. One approver wins, the other gets 409. Approval is valid for 24 hours, or until the requested window ends. A window that starts later gets its 24 hours from its start.
 - **Activate.** Only the requester. One guarded insert: it succeeds only while the request is Approved and in time, has no lease yet (unique index on the request), and under `singleActiveLease` no other live lease exists on the item. Zero rows inserted answers 409.
-- **Extend.** `POST /api/leases/{id}/extend` needs a rule that allows extensions and a reason. The duration is at most the maximum extension. An automatic rule moves `notAfter` at once. A human rule creates a Pending request (one per lease). Approval moves `notAfter` in the same batch, only while the lease is live.
+- **Extend.** `POST /api/leases/{id}/extend` needs a rule that allows extensions and a reason. The duration is at most the maximum extension, and the whole lease (from `notBefore` to the new `notAfter`) never passes the maximum lease length of the rule. An automatic rule moves `notAfter` at once. A human rule creates a Pending request (one per lease). Approval moves `notAfter` in the same batch, only while the lease is live.
 - **Revoke.** `POST /api/leases/{id}/revoke`. The requester cancels (status 3), an approver revokes (status 2). `POST /api/access-requests/{id}/revoke` withdraws a request without a lease, or ends its lease.
 - **Read clock.** Status is derived at read time: a stored Active lease past `notAfter` reads as Expired. A Pending or Approved request past its deadline reads as Expired.
 - **Sweep.** The minute cron stores those expiries and queues an `AccessEnd` rotation job when the item has a configuration with `rotateOnAccessEnd`. Revocation queues it at once.
@@ -84,13 +84,23 @@ lease:   Active --time--> Expired    Active --approver--> Revoked    Active --re
 
 `GET /api/leases/ciphers/{id}/pre-check` answers the approval mode, the duration limits, whether a lease can start, and (under a single lease rule) when the slot frees. `GET .../state` answers the caller's live lease, pending or approved request, and whether extensions and new requests are possible.
 
+## Lease enforcement
+
+A lease is enforced on the server. The model follows the official clients: an item that an enabled access rule covers reaches a member without a live lease only as a **reduced row** (a "restricted" or "partial" cipher), and a live lease turns it into the full item. The clients cannot request a lease for an item they cannot see, so the row keeps the name.
+
+- **Who is restricted.** A member who is not an owner or admin of the organisation, holds no Manage access to a covered collection (a decider), and holds no live lease on the item. An item is restricted when any of its collections is covered, even when the member also reaches it through a collection that no rule covers. An item in no covered collection is never restricted.
+- **The reduced row.** `partialData` is a JSON string with the encrypted `name` and, for a login, the encrypted `uris`. The cipher `key` stays, so the client can decrypt the name. `login`, `card`, `identity`, `secureNote`, `sshKey`, `notes`, `fields`, `passwordHistory`, `data` and `attachments` are null. `edit` and `viewPassword` are false, and `permissions.delete` and `permissions.restore` are false.
+- **Where it applies.** `/api/sync`, the item routes (`GET /api/ciphers/{id}` and the bulk and admin variants), `organization-details`, the organisation export, the federation feed and every attachment route. Writes to a restricted item answer 403, and attachments answer 403.
+- **Live lease.** Status Active, between `notBefore` and `notAfter`. A lease on a scheduled window gives nothing before `notBefore`. A revoke or cancel takes the item back at the next sync. Expiry takes it back as soon as `notAfter` passes: the server checks the time on every read, and the minute sweep only stores the status.
+- **Resync.** Activating, revoking, cancelling or expiring a lease moves the member revision date and pushes a sync, so clients fetch the new row at once. Creating, changing or deleting a rule moves the revision date of every member.
+- **Limits.** Custom members with the "manage all items" permission are restricted like members on the item routes, but owners and admins are not. Items the member already holds on a device stay on that device until the next sync: the server cannot recall a copy that a client has decrypted.
+
 ## Limits of this implementation
 
-- Leases are recorded and reported. Cloudwarden does not hide the item from `sync` without a lease: the encrypted item stays readable to members with collection access, as the sync format has no reduced item.
 - Rotation changes only the stored ciphertext. The connector changes the real credential on the target system.
 - No Bitwarden event type exists for this area, so no organisation events are written. The server keeps its own audit table (`pam_audit`) with the kinds `connector_registered`, `rotation_claimed`, `write_rejected`, `report_rejected`, `lease_activated`, `lease_revoked` and others. No route reads it yet.
 - The bypassable-ciphers route of access rules and the access audit routes of the SDK are not served.
 
 ## Data
 
-Migrations `0033` (connectors, target systems, assignments, configurations, jobs, attempts, audit) and `0034` (rules, requests, decisions, leases). Tests: `test/pam-rotation.test.ts`, `test/pam-leases.test.ts`, `test/pam-cron.test.ts`.
+Migrations `MIG_ROTATION` (connectors, target systems, assignments, configurations, jobs, attempts, audit) and `MIG_LEASES` (rules, requests, decisions, leases). Tests: `test/pam-rotation.test.ts`, `test/pam-leases.test.ts`, `test/pam-enforcement.test.ts`, `test/pam-cron.test.ts`.

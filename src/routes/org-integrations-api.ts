@@ -474,6 +474,23 @@ orgIntegrationsApi.get(
   authOnce,
   teams,
 )
+// `complete` ends the OAuth flow that `redirect` starts. Administrators only, like `redirect`.
+const completeBody = z.object({ code: z.string().min(1), state: z.string().min(1) })
+const complete = (what: string) => async (c: Ctx) => {
+  await requireAdmin(c)
+  await parseBody(c, completeBody)
+  return noOAuth(what)()
+}
+orgIntegrationsApi.post(
+  '/api/organizations/:orgId/integrations/slack/complete',
+  authOnce,
+  complete('Slack'),
+)
+orgIntegrationsApi.post(
+  '/api/organizations/:orgId/integrations/teams/complete',
+  authOnce,
+  complete('Teams'),
+)
 orgIntegrationsApi.get('/api/organizations/integrations/slack/create', slack)
 orgIntegrationsApi.get('/api/organizations/integrations/teams/create', teams)
 orgIntegrationsApi.post('/api/organizations/integrations/teams/incoming', teams)

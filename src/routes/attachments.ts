@@ -33,6 +33,7 @@ import {
   MAX_PENDING_PER_CIPHER,
   MAX_UPLOAD_BYTES,
   MULTIPART_OVERHEAD,
+  readBlobToken,
   storeMultipartUpload,
   UPLOAD_CLAIM_TTL_MS,
   verifyBlobToken,
@@ -212,10 +213,11 @@ export function registerAttachmentRoutes(r: Hono<Env>) {
   })
 
   // Legacy single step upload: multipart with a `key` field and the file. Buffered in memory.
-  r.post('/api/ciphers/:id/attachment', async (c) => {
+  // `attachment-admin` is the same upload for members who manage every item of the organisation.
+  const legacyUpload = (admin: boolean) => async (c: Ctx) => {
     const cipherId = c.req.param('id') ?? ''
     const db = createDb(c.env.DB)
-    const loaded = await authorise(c, cipherId, true)
+    const loaded = await authorise(c, cipherId, true, admin)
     // Reject before parsing: formData() buffers the whole body in memory.
     const length = Number(c.req.header('Content-Length') ?? Number.NaN)
     if (Number.isNaN(length)) throw new ApiError(411, 'Content-Length is required.')
@@ -246,7 +248,9 @@ export function registerAttachmentRoutes(r: Hono<Env>) {
     ])
     await announce(c, loaded, now)
     return c.json(await cipherJsonFor(c, loaded))
-  })
+  }
+  r.post('/api/ciphers/:id/attachment', legacyUpload(false))
+  r.post('/api/ciphers/:id/attachment-admin', legacyUpload(true))
 
   // Step 2: the file, streamed into R2 and checked against the declared size.
   r.post('/api/ciphers/:id/attachment/:attachmentId', async (c) => {
@@ -388,6 +392,44 @@ export async function downloadAttachment(c: Ctx) {
     c.req.query('token'),
   )
   if (!ok) throw new ApiError(401, 'Invalid or expired download link.')
+  return serveAttachment(c, cipherId, attachmentId)
+}
+
+/**
+ * `GET /api/ciphers/attachment/download?token=`: the local storage download of the official
+ * server. The signed token names the attachment, so no sign-in is needed. Same tokens as the
+ * path form above.
+ */
+export async function downloadAttachmentByToken(c: Ctx) {
+  const subject = await readBlobToken(c.env, ATTACHMENT_AUD, c.req.query('token'))
+  const [cipherId, attachmentId, ...rest] = (subject ?? '').split('/')
+  if (!cipherId || !attachmentId || rest.length > 0) {
+    throw new ApiError(401, 'Invalid or expired download link.')
+  }
+  return serveAttachment(c, cipherId, attachmentId)
+}
+
+/**
+ * `POST /api/ciphers/attachment/validate/azure`: the Azure Event Grid hook. Attachments live in
+ * R2, so no storage event ever arrives. Subscription handshakes get the usual answer and every
+ * other event is accepted and ignored, as a server that stores files locally does.
+ */
+export async function validateAzureEvents(c: Ctx) {
+  const events: unknown = await c.req.json().catch(() => null)
+  if (!Array.isArray(events)) throw new ApiError(400, 'The request is invalid.')
+  for (const event of events) {
+    const e = event as { eventType?: unknown; data?: { validationCode?: unknown } }
+    if (
+      e?.eventType === 'Microsoft.EventGrid.SubscriptionValidationEvent' &&
+      typeof e.data?.validationCode === 'string'
+    ) {
+      return c.json({ validationResponse: e.data.validationCode })
+    }
+  }
+  return c.body(null, 200)
+}
+
+async function serveAttachment(c: Ctx, cipherId: string, attachmentId: string) {
   const att = await requireAttachment(createDb(c.env.DB), cipherId, attachmentId)
   const object = await c.env.ATTACHMENTS.get(att.r2Key)
   if (!object) throw new ApiError(404, 'Attachment not found.')

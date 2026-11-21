@@ -168,6 +168,6 @@ credential arrive on its single configuration. Tokens and keys are write-only: r
 settings without them, and an update that moves the destination must send the token again.
 Delivery starts with the first configuration and sends the configured event types (a configuration
 without an event type means all). `template` and `filters` are stored and returned, but events keep
-the fixed formats above. Slack and Teams (types 3 and 7, redirect, callback and channel endpoints)
+the fixed formats above. Slack and Teams (types 3 and 7, redirect, `complete`, callback and channel endpoints)
 answer 400: this server has no Slack or Teams app. `POST /api/installations` is a cloud service
 that the official self-hosted server does not expose, so Cloudwarden does not either.

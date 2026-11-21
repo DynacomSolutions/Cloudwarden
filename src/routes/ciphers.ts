@@ -194,7 +194,8 @@ async function ownedIds(c: Ctx, ids: string[]): Promise<string[]> {
   return found
 }
 
-ciphers.put('/api/ciphers/move', async (c) => {
+// `POST` is the obsolete spelling the official server still routes. Both must stay above `:id`.
+ciphers.on(['PUT', 'POST'], '/api/ciphers/move', async (c) => {
   const body = await parseBody(c, idsSchema.extend({ folderId: z.string().nullish() }))
   const db = createDb(c.env.DB)
   if (body.folderId) await requireFolder(db, c.var.user.uuid, body.folderId)
@@ -327,6 +328,8 @@ ciphers.get('/api/ciphers', async (c) => {
 
 ciphers.get('/api/ciphers/:id', (c) => respond(c, c.req.param('id')))
 ciphers.get('/api/ciphers/:id/details', (c) => respond(c, c.req.param('id')))
+// Obsolete name of `details`, still routed by the official server.
+ciphers.get('/api/ciphers/:id/full-details', (c) => respond(c, c.req.param('id')))
 
 const updateCipher = async (c: Ctx) => {
   const id = c.req.param('id') ?? ''

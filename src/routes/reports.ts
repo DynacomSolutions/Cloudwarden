@@ -5,6 +5,7 @@ import { ApiError } from '../errors'
 import type { Fetcher } from '../icons/fetch'
 import { log } from '../log'
 import { overLimit, rateLimit, tooManyRequests } from '../ratelimit'
+import { registerAccessIntelligence } from './access-intelligence'
 
 const HIBP_URL = 'https://haveibeenpwned.com/api/v3/breachedaccount/'
 const PASSKEY_DIRECTORY_URL = 'https://passkeys-api.2fa.directory/v1/all.json'
@@ -137,6 +138,9 @@ export function createReports(fetcher: Fetcher = (u, i) => fetch(u, i)) {
     )
     return c.json(entries)
   })
+
+  // Access Intelligence reports (TASKS #435).
+  registerAccessIntelligence(reports)
 
   return reports
 }

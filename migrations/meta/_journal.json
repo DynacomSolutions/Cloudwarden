@@ -239,6 +239,13 @@
       "when": 1795285258925,
       "tag": "0033_org_subscription_limits",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "6",
+      "when": 1795294306233,
+      "tag": "0034_access_intelligence_reports",
+      "breakpoints": true
     }
   ]
 }

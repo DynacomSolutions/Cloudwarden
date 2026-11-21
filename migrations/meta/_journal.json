@@ -250,8 +250,15 @@
     {
       "idx": 35,
       "version": "6",
-      "when": 1795295398095,
-      "tag": "0035_v2_key_upgrades",
+      "when": 1795296526670,
+      "tag": "0035_event_send_uuid",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "6",
+      "when": 1795299085085,
+      "tag": "0036_v2_key_upgrades",
       "breakpoints": true
     }
   ]

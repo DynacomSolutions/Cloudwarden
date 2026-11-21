@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "13963432-b7af-44a8-8ac6-279b9be6f291",
+  "id": "78b69dd1-a2ab-4720-8124-0d5c0a38fb66",
   "prevId": "070115fe-1080-4812-a04a-fe2639e8c3c2",
   "tables": {
     "admin_rate_limits": {
@@ -1189,6 +1189,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "send_uuid": {
+          "name": "send_uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "system_user": {
           "name": "system_user",
           "type": "integer",
@@ -1237,6 +1244,13 @@
           "name": "events_date_idx",
           "columns": [
             "event_date"
+          ],
+          "isUnique": false
+        },
+        "events_send_idx": {
+          "name": "events_send_idx",
+          "columns": [
+            "send_uuid"
           ],
           "isUnique": false
         }
@@ -4645,20 +4659,6 @@
           "notNull": false,
           "autoincrement": false
         },
-        "account_keys_v2": {
-          "name": "account_keys_v2",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "v2_upgrade_token": {
-          "name": "v2_upgrade_token",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "kdf_type": {
           "name": "kdf_type",
           "type": "integer",
@@ -5079,13 +5079,6 @@
         },
         "reset_password_key": {
           "name": "reset_password_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "v2_upgrade_token": {
-          "name": "v2_upgrade_token",
           "type": "text",
           "primaryKey": false,
           "notNull": false,

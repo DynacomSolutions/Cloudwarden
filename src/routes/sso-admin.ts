@@ -32,7 +32,7 @@ import {
   normalizeDomain,
   orgClaimsEmail,
 } from '../orgs/domains'
-import { eventStatement } from '../orgs/events'
+import { eventStatement, userEventStatements } from '../orgs/events'
 import { assertNotSoleOwner } from '../orgs/members'
 import { assertTwoFactorCompliant, parseData } from '../orgs/policies'
 import { assertOrgKeys, resetPasswordPolicy } from '../orgs/recovery'
@@ -662,7 +662,7 @@ async function deleteClaimedAccount(
   deleteBlobs(c, keys)
   await batch(db, [
     eventStatement(db, c, {
-      type: EventType.OrganizationUserRemoved,
+      type: EventType.OrganizationUserDeleted,
       organizationUuid: orgUuid,
       organizationUserUuid: memberId,
     }),
@@ -833,16 +833,20 @@ ssoAccounts.put('/api/accounts/update-tde-offboarding-password', requireAuth, as
   if (user.usesKeyConnector) throw new ApiError(400, 'This account unlocks with Key Connector.')
   const kdf = checkNested(body.authenticationData, body.unlockData, user.email)
   const stored = await hashMasterPassword(body.authenticationData.masterPasswordAuthenticationHash)
-  await createDb(c.env.DB)
-    .update(schema.users)
-    .set({
-      ...stored,
-      akey: body.unlockData.masterKeyWrappedUserKey,
-      passwordHint: body.masterPasswordHint ?? null,
-      ...kdfColumns(kdf),
-      updatedAt: Date.now(),
-    })
-    .where(and(eq(schema.users.uuid, user.uuid), eq(schema.users.passwordHash, '')))
+  const db = createDb(c.env.DB)
+  await batch(db, [
+    db
+      .update(schema.users)
+      .set({
+        ...stored,
+        akey: body.unlockData.masterKeyWrappedUserKey,
+        passwordHint: body.masterPasswordHint ?? null,
+        ...kdfColumns(kdf),
+        updatedAt: Date.now(),
+      })
+      .where(and(eq(schema.users.uuid, user.uuid), eq(schema.users.passwordHash, ''))),
+    ...(await userEventStatements(db, c, user.uuid, EventType.UserTdeOffboardingPasswordSet)),
+  ])
   return c.body(null, 200)
 })
 

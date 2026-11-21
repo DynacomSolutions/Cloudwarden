@@ -165,17 +165,49 @@ const collectionManagementSchema = z.object({
   allowAdminAccessToAllCollectionItems: z.boolean(),
 })
 
+/** Each collection setting with the event codes for turning it on and off. */
+const COLLECTION_SETTING_EVENTS = [
+  [
+    'limitCollectionCreation',
+    EventType.OrganizationLimitCollectionCreationEnabled,
+    EventType.OrganizationLimitCollectionCreationDisabled,
+  ],
+  [
+    'limitCollectionDeletion',
+    EventType.OrganizationLimitCollectionDeletionEnabled,
+    EventType.OrganizationLimitCollectionDeletionDisabled,
+  ],
+  [
+    'limitItemDeletion',
+    EventType.OrganizationLimitItemDeletionEnabled,
+    EventType.OrganizationLimitItemDeletionDisabled,
+  ],
+  [
+    'allowAdminAccessToAllCollectionItems',
+    EventType.OrganizationAllowAdminAccessToAllCollectionItemsEnabled,
+    EventType.OrganizationAllowAdminAccessToAllCollectionItemsDisabled,
+  ],
+] as const
+
 orgSettings.put('/api/organizations/:orgId/collection-management', async (c) => {
   const body = await parseBody(c, collectionManagementSchema)
   await requireAdmin(c)
   const db = createDb(c.env.DB)
   const now = Date.now()
+  const before = await requireOrg(db, org(c))
+  // One event per setting that changed, and a summary event when any did.
+  const changed = COLLECTION_SETTING_EVENTS.filter(([key]) => before[key] !== body[key])
+  const events = [
+    ...(changed.length > 0 ? [EventType.OrganizationCollectionManagementUpdated] : []),
+    ...changed.map(([key, on, off]) => (body[key] ? on : off)),
+  ]
   await runBatch(db, [
     db
       .update(schema.organizations)
       .set({ ...body, updatedAt: now })
       .where(eq(schema.organizations.uuid, org(c))),
     eventStatement(db, c, { type: EventType.OrganizationUpdated, organizationUuid: org(c) }),
+    ...events.map((type) => eventStatement(db, c, { type, organizationUuid: org(c) })),
     bumpOrgRevision(db, org(c), now),
   ])
   return c.json(orgJson(await requireOrg(db, org(c)), await loadSubscription(db, org(c))))
@@ -295,6 +327,19 @@ const domainList = z
 // The invite is an opaque string of key material the client builds and reads back; the server only stores it.
 const inviteMaterial = z.string().min(1).max(16384)
 
+/** Events for a change of the link's confirmation setting; none when it stays as it was. */
+function confirmToggleEvents(db: Db, c: Ctx, was: boolean, now: boolean | null | undefined) {
+  if (now === null || now === undefined || now === was) return []
+  return [
+    eventStatement(db, c, {
+      type: now
+        ? EventType.OrganizationInviteLinkConfirmEnabled
+        : EventType.OrganizationInviteLinkConfirmDisabled,
+      organizationUuid: org(c),
+    }),
+  ]
+}
+
 async function loadLinkOr404(db: Db, orgUuid: string) {
   const link = await currentLink(db, orgUuid)
   if (!link) throw new ApiError(404, 'Invite link not found.')
@@ -332,6 +377,18 @@ orgSettings.post('/api/organizations/:orgId/invite-link', async (c) => {
       createdAt: now,
       updatedAt: now,
     }),
+    eventStatement(db, c, {
+      type: EventType.OrganizationInviteLinkCreated,
+      organizationUuid: org(c),
+    }),
+    ...(body.supportsConfirmation === true
+      ? [
+          eventStatement(db, c, {
+            type: EventType.OrganizationInviteLinkConfirmEnabled,
+            organizationUuid: org(c),
+          }),
+        ]
+      : []),
   ])
   return c.json(linkJson(await loadLinkOr404(db, org(c))))
 })
@@ -346,6 +403,10 @@ orgSettings.put('/api/organizations/:orgId/invite-link', async (c) => {
       .update(schema.orgInviteLinks)
       .set({ allowedDomains: JSON.stringify(body.allowedDomains), updatedAt: Date.now() })
       .where(eq(schema.orgInviteLinks.uuid, link.uuid)),
+    eventStatement(db, c, {
+      type: EventType.OrganizationInviteLinkDomainsEdited,
+      organizationUuid: org(c),
+    }),
   ])
   return c.json(linkJson(await loadLinkOr404(db, org(c))))
 })
@@ -369,6 +430,11 @@ orgSettings.post('/api/organizations/:orgId/invite-link/refresh', async (c) => {
         updatedAt: Date.now(),
       })
       .where(eq(schema.orgInviteLinks.uuid, link.uuid)),
+    eventStatement(db, c, {
+      type: EventType.OrganizationInviteLinkRefreshed,
+      organizationUuid: org(c),
+    }),
+    ...confirmToggleEvents(db, c, link.supportsConfirmation, body.supportsConfirmation),
   ])
   return c.json(linkJson(await loadLinkOr404(db, org(c))))
 })
@@ -390,6 +456,7 @@ orgSettings.put('/api/organizations/:orgId/invite-link/support-confirm', async (
         updatedAt: Date.now(),
       })
       .where(eq(schema.orgInviteLinks.uuid, link.uuid)),
+    ...confirmToggleEvents(db, c, link.supportsConfirmation, body.supportsConfirmation),
   ])
   return c.json(linkJson(await loadLinkOr404(db, org(c))))
 })
@@ -399,6 +466,10 @@ orgSettings.delete('/api/organizations/:orgId/invite-link', async (c) => {
   const db = createDb(c.env.DB)
   await runBatch(db, [
     db.delete(schema.orgInviteLinks).where(eq(schema.orgInviteLinks.organizationUuid, org(c))),
+    eventStatement(db, c, {
+      type: EventType.OrganizationInviteLinkDeleted,
+      organizationUuid: org(c),
+    }),
   ])
   return c.body(null, 200)
 })
@@ -560,7 +631,9 @@ async function join(c: Ctx, confirming: boolean) {
           ]
         : []),
       eventStatement(db, c, {
-        type: EventType.OrganizationUserConfirmed,
+        type: confirming
+          ? EventType.OrganizationUserInviteLinkConfirmed
+          : EventType.OrganizationUserInviteLinkAccepted,
         organizationUuid: org.uuid,
         organizationUserUuid: memberUuid,
         userUuid: user.uuid,

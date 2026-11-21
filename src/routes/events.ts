@@ -1,4 +1,4 @@
-import { and, eq, notBetween, or, sql } from 'drizzle-orm'
+import { and, eq, isNull, notBetween, or } from 'drizzle-orm'
 import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { z } from 'zod'
@@ -8,9 +8,10 @@ import { ApiError } from '../errors'
 import { getMember, requirePermission } from '../orgs/access'
 import { accessToCipher, loadCipherById } from '../orgs/ciphers'
 import { ADMIN_EVENT_MAX, ADMIN_EVENT_MIN } from '../orgs/constants'
-import { eventStatement, listEvents } from '../orgs/events'
+import { eventStatement, listEvents, userEventStatements } from '../orgs/events'
 import { getTarget } from '../orgs/members'
 import { authOnce, batch } from '../orgs/util'
+import { rateLimit } from '../ratelimit'
 import { parseBody } from '../validation'
 
 export const events = new Hono<Env>()
@@ -28,7 +29,7 @@ const MAX_COLLECT = 100
  * export (1007, 1602), item views, visibility toggles, copies and autofill (1107 to 1114 and
  * 1117 to 1132), the notification banner (1522), invite link copy (1627) and phishing blocker
  * (2400 to 2402). Everything else is a server-side event, so a client may not forge it and it is
- * dropped.
+ * dropped. Like upstream, a phishing blocker event without an organisation is dropped too.
  */
 const CLIENT_EVENT_TYPES = new Set([
   1007,
@@ -41,6 +42,9 @@ const CLIENT_EVENT_TYPES = new Set([
   2401,
   2402,
 ])
+
+/** The vault export is about the account itself, not an item or an organisation. */
+const VAULT_EXPORT = 1007
 
 const collectSchema = z
   .array(
@@ -57,7 +61,7 @@ const collectSchema = z
  * Client-reported events (copy, autofill, view). Events about items the caller cannot see, or
  * about personal items, are dropped silently so one stale entry never fails the batch.
  */
-events.post('/events/collect', async (c) => {
+events.post('/events/collect', rateLimit('events-collect', 120), async (c) => {
   const body = await parseBody(c, collectSchema)
   const db = createDb(c.env.DB)
   const user = c.var.user
@@ -65,6 +69,11 @@ events.post('/events/collect', async (c) => {
   const rows = []
   for (const e of body) {
     if (!CLIENT_EVENT_TYPES.has(e.type)) continue
+    if (e.type === VAULT_EXPORT) {
+      // An account event: copied to every organisation the user belongs to, at server time.
+      rows.push(...(await userEventStatements(db, c, user.uuid, e.type)))
+      continue
+    }
     let orgUuid: string | null = null
     if (e.cipherId) {
       const cipher = await loadCipherById(db, e.cipherId)
@@ -100,6 +109,15 @@ events.get('/api/events', async (c) =>
       and(
         eq(schema.events.userUuid, c.var.user.uuid),
         notBetween(schema.events.eventType, ADMIN_EVENT_MIN, ADMIN_EVENT_MAX),
+        // User and Send events are also copied to each organisation's log; the account's own
+        // feed lists the account copy once.
+        or(
+          isNull(schema.events.organizationUuid),
+          and(
+            notBetween(schema.events.eventType, 1000, 1099),
+            notBetween(schema.events.eventType, 2500, 2599),
+          ),
+        ),
       ),
     ),
   ),
@@ -113,12 +131,21 @@ events.get('/api/organizations/:orgId/events', async (c) => {
   return c.json(await listEvents(db, c, eq(schema.events.organizationUuid, orgId(c))))
 })
 
-// Sends belong to accounts here and no Send event types are recorded, so the list is empty; the
-// permission check still applies, as the Admin Console reads it for members who view event logs.
+// Sends belong to accounts; each Send event is also copied to the log of every organisation the
+// owner is a confirmed member of, so an administrator reads the history of a member's Send here.
 events.get('/api/organizations/:orgId/sends/:id/events', async (c) => {
   const db = createDb(c.env.DB)
   await requirePermission(db, c.var.user.uuid, orgId(c), 'accessEventLogs')
-  return c.json(await listEvents(db, c, sql`1 = 0`))
+  return c.json(
+    await listEvents(
+      db,
+      c,
+      and(
+        eq(schema.events.organizationUuid, orgId(c)),
+        eq(schema.events.sendUuid, c.req.param('id') ?? ''),
+      ),
+    ),
+  )
 })
 
 events.get('/api/organizations/:orgId/users/:id/events', async (c) => {

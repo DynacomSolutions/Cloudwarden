@@ -37,7 +37,7 @@ import { LogOutReason, pushLogOut } from '../notifications/publish'
 import { relayDeleteDevice } from '../notifications/relay'
 import { EventType, Status } from '../orgs/constants'
 import { assertNotClaimed } from '../orgs/domains'
-import { eventStatement } from '../orgs/events'
+import { userEventStatements } from '../orgs/events'
 import { assertNotSoleOwner } from '../orgs/members'
 import { profileOrganizations } from '../orgs/views'
 import { hasMasterPassword } from '../sso/decryption'
@@ -287,6 +287,7 @@ accounts.post('/api/accounts/password', requireAuth, async (c) => {
         forcePasswordReset: false,
       })
       .where(eq(schema.users.uuid, user.uuid)),
+    ...(await userEventStatements(db, c, user.uuid, EventType.UserChangedPassword)),
     ...stampRotationStatements(db, user.uuid),
   ])
   c.executionCtx.waitUntil(pushLogOut(c.env, user.uuid, c.var.auth.deviceIdentifier))
@@ -325,7 +326,7 @@ accounts.put('/api/accounts/update-temp-password', requireAuth, async (c) => {
         ...(change.kdf ? kdfColumns(change.kdf) : {}),
       })
       .where(eq(schema.users.uuid, user.uuid)),
-    eventStatement(db, c, { type: EventType.UserUpdatedTempPassword, userUuid: user.uuid }),
+    ...(await userEventStatements(db, c, user.uuid, EventType.UserUpdatedTempPassword)),
     ...stampRotationStatements(db, user.uuid),
   ])
   c.executionCtx.waitUntil(pushLogOut(c.env, user.uuid, c.var.auth.deviceIdentifier))

@@ -142,6 +142,17 @@ secretsManager.get('/api/projects/:id', async (c) => {
   const ctx = await ctxFor(c, db, p.organizationUuid)
   const rw = projectAccess(ctx, p.uuid)
   check(rw, 'read', 'Project')
+  // Machine accounts reading a project are recorded (event 2200), as for secrets.
+  if (ctx.actor.kind === 'machine') {
+    await batch(db, [
+      eventStatement(db, c, {
+        type: EventType.ProjectRetrieved,
+        organizationUuid: ctx.orgUuid,
+        projectUuid: p.uuid,
+        ...actorEventFields(ctx),
+      }),
+    ])
+  }
   return c.json(projectJson(p, rw))
 })
 

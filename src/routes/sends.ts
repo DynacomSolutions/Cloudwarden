@@ -6,10 +6,14 @@ import { randomB64u, safeEqualStrings } from '../auth/crypto'
 import { requireAuth } from '../auth/middleware'
 import { changes, createDb, runBatch, schema } from '../db'
 import { createEmailTransport } from '../email'
+import { later } from '../email/send'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
 import { PushType } from '../notifications/publish'
 import { notifySend } from '../notifications/vault-events'
+import { EventType } from '../orgs/constants'
+import { userEventStatements } from '../orgs/events'
+import { batch } from '../orgs/util'
 import { rateLimit } from '../ratelimit'
 import { parseBody } from '../validation'
 import {
@@ -39,6 +43,7 @@ import {
   normaliseEmail,
   requireOwnedSend,
   SEND_AUTH_EMAIL,
+  SEND_AUTH_PASSWORD,
   SEND_FILE,
   SEND_FILE_AUD,
   type SendBody,
@@ -56,6 +61,55 @@ export const sends = new Hono<Env>()
 type Ctx = Context<Env>
 
 const canMail = (c: Ctx) => createEmailTransport(c.env).configured
+
+type Kind = 'created' | 'edited' | 'deleted' | 'accessed'
+
+/** The Send event code (2500 to 2511) for an action on a Send of this type and protection. */
+function sendEventType(kind: Kind, send: Pick<SendRow, 'atype' | 'emails' | 'passwordHash'>) {
+  const file = send.atype === SEND_FILE
+  if (kind === 'created') {
+    const auth = authTypeOf(send)
+    const offset = auth === SEND_AUTH_EMAIL ? 1 : auth === SEND_AUTH_PASSWORD ? 2 : 0
+    return (file ? EventType.SendCreatedFile : EventType.SendCreatedText) + offset
+  }
+  const codes = {
+    edited: [EventType.SendEditedText, EventType.SendEditedFile],
+    deleted: [EventType.SendDeletedText, EventType.SendDeletedFile],
+    accessed: [EventType.SendAccessedText, EventType.SendAccessedFile],
+  }[kind]
+  return codes[file ? 1 : 0] as number
+}
+
+/** The protection columns of a new Send, as the event code reads them. */
+const sendAuth = (auth: { emails?: string | null; passwordHash?: string | null }) => ({
+  emails: auth.emails ?? null,
+  passwordHash: auth.passwordHash ?? null,
+})
+
+/** Statements that record an action on a Send for its owner. A recipient has no account. */
+async function sendEvent(
+  c: Ctx,
+  send: Pick<SendRow, 'uuid' | 'userUuid' | 'atype' | 'emails' | 'passwordHash'>,
+  kind: Kind,
+) {
+  if (!send.userUuid) return []
+  return userEventStatements(createDb(c.env.DB), c, send.userUuid, sendEventType(kind, send), {
+    sendUuid: send.uuid,
+    ...(kind === 'accessed' ? { actor: null } : {}),
+  })
+}
+
+/**
+ * Records a Send access after the response. It is not part of an atomic change, so a failed event
+ * write must not fail the access or use one up.
+ */
+const recordAccess = (c: Ctx, send: Parameters<typeof sendEvent>[1]) =>
+  later(
+    c,
+    sendEvent(c, send, 'accessed')
+      .then((statements) => batch(createDb(c.env.DB), statements))
+      .catch(() => undefined),
+  )
 
 const list = (rows: ReturnType<typeof sendJson>[]) => ({
   data: rows,
@@ -82,6 +136,7 @@ async function accessPayload(c: Ctx, sendUuid: string) {
   if (send.atype !== SEND_FILE && !(await claimAccess(db, send.uuid, Date.now()))) {
     throw notAvailable()
   }
+  if (send.atype !== SEND_FILE) recordAccess(c, send)
   return c.json(sendAccessJson(send, await creatorEmail(c, send.userUuid)))
 }
 
@@ -132,7 +187,9 @@ sends.post('/api/sends/access/file/:fileId', rateLimit('send-access', 60), async
   const bearer = await sendFromBearer(c.env, db, c.req.header('Authorization'))
   if (!bearer) throw new ApiError(401, 'Unauthorized')
   const send = await loadForAccess(db, bearer.uuid)
-  return c.json(await fileDownloadUrl(db, c.env, send, c.req.param('fileId') ?? ''))
+  const download = await fileDownloadUrl(db, c.env, send, c.req.param('fileId') ?? '')
+  recordAccess(c, send)
+  return c.json(download)
 })
 
 // Legacy clients: the access id in the path and the password in the body.
@@ -148,7 +205,9 @@ sends.post('/api/sends/:id/access/file/:fileId', rateLimit('send-access', 60), a
   const db = createDb(c.env.DB)
   const send = await loadForAccess(db, c.req.param('id') ?? '')
   await checkLegacyAccess(c, send, body)
-  return c.json(await fileDownloadUrl(db, c.env, send, c.req.param('fileId') ?? ''))
+  const download = await fileDownloadUrl(db, c.env, send, c.req.param('fileId') ?? '')
+  recordAccess(c, send)
+  return c.json(download)
 })
 
 /** Signed download: `GET /send-files/:sendId/:fileId?token=`. */
@@ -199,7 +258,8 @@ sends.post('/api/sends', requireAuth, async (c) => {
   const user = c.var.user
   const id = crypto.randomUUID()
   const now = Date.now()
-  await runBatch(db, [
+  const auth = await authColumns(body, undefined, canMail(c))
+  await batch(db, [
     db.insert(schema.sends).values({
       uuid: id,
       userUuid: user.uuid,
@@ -207,10 +267,15 @@ sends.post('/api/sends', requireAuth, async (c) => {
       data: sendData(body),
       akey: body.key,
       ...sendValues(body, now, true),
-      ...(await authColumns(body, undefined, canMail(c))),
+      ...auth,
       createdAt: now,
       updatedAt: now,
     }),
+    ...(await sendEvent(
+      c,
+      { uuid: id, userUuid: user.uuid, atype: body.type, ...sendAuth(auth) },
+      'created',
+    )),
     bumpRevision(db, user.uuid, now),
   ])
   notifySend(c, PushType.SyncSendCreate, id, now)
@@ -244,7 +309,8 @@ sends.post('/api/sends/file/v2', requireAuth, async (c) => {
   const id = crypto.randomUUID()
   const fileId = randomB64u(12)
   const now = Date.now()
-  await runBatch(db, [
+  const auth = await authColumns(body, undefined, canMail(c))
+  await batch(db, [
     db.insert(schema.sends).values({
       uuid: id,
       userUuid: user.uuid,
@@ -253,10 +319,15 @@ sends.post('/api/sends/file/v2', requireAuth, async (c) => {
       akey: body.key,
       r2Key: sendFileKey(id, fileId),
       ...sendValues(body, now, true),
-      ...(await authColumns(body, undefined, canMail(c))),
+      ...auth,
       createdAt: now,
       updatedAt: now,
     }),
+    ...(await sendEvent(
+      c,
+      { uuid: id, userUuid: user.uuid, atype: SEND_FILE, ...sendAuth(auth) },
+      'created',
+    )),
   ])
   return c.json({
     fileUploadType: 0,
@@ -276,7 +347,7 @@ sends.put('/api/sends/:id', requireAuth, async (c) => {
   if (body.type !== existing.atype) throw new ApiError(400, 'The Send type cannot be changed.')
   const now = Date.now()
   const fileData = existing.atype === SEND_FILE ? { data: existing.data } : { data: sendData(body) }
-  await runBatch(db, [
+  await batch(db, [
     db
       .update(schema.sends)
       .set({
@@ -286,6 +357,7 @@ sends.put('/api/sends/:id', requireAuth, async (c) => {
         updatedAt: now,
       })
       .where(eq(schema.sends.uuid, existing.uuid)),
+    ...(await sendEvent(c, existing, 'edited')),
     bumpRevision(db, user.uuid, now),
   ])
   notifySend(c, PushType.SyncSendUpdate, existing.uuid, now)
@@ -298,7 +370,7 @@ const removeAuth = (all: boolean) => async (c: Ctx) => {
   const user = c.var.user
   const existing = await requireOwnedSend(db, user.uuid, c.req.param('id') ?? '')
   const now = Date.now()
-  await runBatch(db, [
+  await batch(db, [
     db
       .update(schema.sends)
       .set({
@@ -309,6 +381,7 @@ const removeAuth = (all: boolean) => async (c: Ctx) => {
         updatedAt: now,
       })
       .where(eq(schema.sends.uuid, existing.uuid)),
+    ...(await sendEvent(c, existing, 'edited')),
     bumpRevision(db, user.uuid, now),
   ])
   notifySend(c, PushType.SyncSendUpdate, existing.uuid, now)
@@ -321,8 +394,9 @@ sends.delete('/api/sends/:id', requireAuth, async (c) => {
   const db = createDb(c.env.DB)
   const user = c.var.user
   const existing = await requireOwnedSend(db, user.uuid, c.req.param('id'))
-  await runBatch(db, [
+  await batch(db, [
     db.delete(schema.sends).where(eq(schema.sends.uuid, existing.uuid)),
+    ...(await sendEvent(c, existing, 'deleted')),
     bumpRevision(db, user.uuid, Date.now()),
   ])
   deleteBlobs(c, existing.r2Key ? [existing.r2Key] : [])

@@ -497,6 +497,8 @@ export const events = sqliteTable(
     projectUuid: text('project_uuid'),
     serviceAccountUuid: text('service_account_uuid'),
     grantedServiceAccountUuid: text('granted_service_account_uuid'),
+    /** The Send an event about a Send (2500 to 2511) concerns. */
+    sendUuid: text('send_uuid'),
     /** Non-member actor (TASKS #270): 1 SCIM, 2 domain verification, 3 Public API. */
     systemUser: integer('system_user'),
     deviceType: integer('device_type'),
@@ -507,6 +509,7 @@ export const events = sqliteTable(
     index('events_organization_idx').on(t.organizationUuid),
     index('events_user_idx').on(t.userUuid),
     index('events_date_idx').on(t.eventDate),
+    index('events_send_idx').on(t.sendUuid),
   ],
 )
 

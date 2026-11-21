@@ -1,4 +1,4 @@
-import { and, eq, notBetween, or, sql } from 'drizzle-orm'
+import { and, eq, isNull, notBetween, or } from 'drizzle-orm'
 import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { z } from 'zod'
@@ -42,6 +42,9 @@ const CLIENT_EVENT_TYPES = new Set([
   2402,
 ])
 
+/** Client events about the account itself, not an item or an organisation: they need neither. */
+const USER_CLIENT_EVENT_TYPES = new Set([1007, 2400, 2401, 2402])
+
 const collectSchema = z
   .array(
     z.object({
@@ -75,7 +78,7 @@ events.post('/events/collect', async (c) => {
       const m = await getMember(db, user.uuid, e.organizationId)
       if (m && m.status >= 1) orgUuid = e.organizationId
       else continue
-    } else continue
+    } else if (!USER_CLIENT_EVENT_TYPES.has(e.type)) continue
     const when = e.date ? Date.parse(e.date) : now
     rows.push(
       eventStatement(db, c, {
@@ -100,6 +103,15 @@ events.get('/api/events', async (c) =>
       and(
         eq(schema.events.userUuid, c.var.user.uuid),
         notBetween(schema.events.eventType, ADMIN_EVENT_MIN, ADMIN_EVENT_MAX),
+        // User and Send events are also copied to each organisation's log; the account's own
+        // feed lists the account copy once.
+        or(
+          isNull(schema.events.organizationUuid),
+          and(
+            notBetween(schema.events.eventType, 1000, 1099),
+            notBetween(schema.events.eventType, 2500, 2599),
+          ),
+        ),
       ),
     ),
   ),
@@ -113,12 +125,21 @@ events.get('/api/organizations/:orgId/events', async (c) => {
   return c.json(await listEvents(db, c, eq(schema.events.organizationUuid, orgId(c))))
 })
 
-// Sends belong to accounts here and no Send event types are recorded, so the list is empty; the
-// permission check still applies, as the Admin Console reads it for members who view event logs.
+// Sends belong to accounts; each Send event is also copied to the log of every organisation the
+// owner is a confirmed member of, so an administrator reads the history of a member's Send here.
 events.get('/api/organizations/:orgId/sends/:id/events', async (c) => {
   const db = createDb(c.env.DB)
   await requirePermission(db, c.var.user.uuid, orgId(c), 'accessEventLogs')
-  return c.json(await listEvents(db, c, sql`1 = 0`))
+  return c.json(
+    await listEvents(
+      db,
+      c,
+      and(
+        eq(schema.events.organizationUuid, orgId(c)),
+        eq(schema.events.sendUuid, c.req.param('id') ?? ''),
+      ),
+    ),
+  )
 })
 
 events.get('/api/organizations/:orgId/users/:id/events', async (c) => {

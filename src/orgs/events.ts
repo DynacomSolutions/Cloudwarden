@@ -2,8 +2,9 @@ import { and, desc, eq, gte, lt, lte, or, type SQL } from 'drizzle-orm'
 import type { Context } from 'hono'
 import { fromB64u, toB64u, utf8 } from '../auth/crypto'
 import type { Db } from '../db'
-import { schema } from '../db'
+import { runBatch, schema } from '../db'
 import type { Env } from '../env'
+import { Status } from './constants'
 
 export interface EventInput {
   type: number
@@ -20,8 +21,12 @@ export interface EventInput {
   /** Machine account that acted, or that the event is about. */
   serviceAccountUuid?: string | null
   grantedServiceAccountUuid?: string | null
+  /** The Send that a Send event (2500 to 2511) is about. */
+  sendUuid?: string | null
   /** Non-member actor: 1 SCIM, 3 Public API (TASKS #270). */
   systemUser?: number | null
+  /** Device type when the request carries it in the body instead of the `Device-Type` header. */
+  deviceType?: number | null
   date?: number
 }
 
@@ -57,11 +62,74 @@ export function eventStatement(
     projectUuid: e.projectUuid ?? null,
     serviceAccountUuid: e.serviceAccountUuid ?? null,
     grantedServiceAccountUuid: e.grantedServiceAccountUuid ?? null,
+    sendUuid: e.sendUuid ?? null,
     systemUser: e.systemUser ?? null,
-    deviceType: meta.deviceType,
+    deviceType: e.deviceType ?? meta.deviceType,
     ipAddress: meta.ipAddress,
     eventDate: e.date ?? Date.now(),
   })
+}
+
+/** What `userEventStatements` can add to the rows it writes. */
+export type UserEventExtra = Pick<EventInput, 'deviceType' | 'sendUuid'> & {
+  /** Set to null for an event that nobody signed in raised (a recipient opening a Send). */
+  actor?: string | null
+}
+
+/**
+ * Statements that record an event about an account (user events 1000 to 1099 and Send events
+ * 2500 to 2511): one row for the account and one for every organisation the user is a confirmed
+ * member of, so organisation administrators see the member's activity. The user is the acting
+ * user unless `extra.actor` says otherwise.
+ */
+export async function userEventStatements(
+  db: Db,
+  c: Context<Env>,
+  userUuid: string,
+  type: number,
+  extra: UserEventExtra = {},
+) {
+  const { actor = userUuid, ...fields } = extra
+  const memberships = await db
+    .select({
+      orgUuid: schema.usersOrganizations.organizationUuid,
+      memberUuid: schema.usersOrganizations.uuid,
+    })
+    .from(schema.usersOrganizations)
+    .where(
+      and(
+        eq(schema.usersOrganizations.userUuid, userUuid),
+        eq(schema.usersOrganizations.status, Status.Confirmed),
+      ),
+    )
+  return [
+    eventStatement(db, c, { type, userUuid, ...fields }, actor),
+    ...memberships.map((m) =>
+      eventStatement(
+        db,
+        c,
+        {
+          type,
+          userUuid,
+          organizationUuid: m.orgUuid,
+          organizationUserUuid: m.memberUuid,
+          ...fields,
+        },
+        actor,
+      ),
+    ),
+  ]
+}
+
+/** Records a user event on its own, for paths that write nothing else. */
+export async function recordUserEvent(
+  db: Db,
+  c: Context<Env>,
+  userUuid: string,
+  type: number,
+  extra: UserEventExtra = {},
+) {
+  await runBatch(db, (await userEventStatements(db, c, userUuid, type, extra)) as never)
 }
 
 const iso = (ms: number) => new Date(ms).toISOString()
@@ -91,6 +159,7 @@ export function eventJson(e: typeof schema.events.$inferSelect) {
     projectId: e.projectUuid,
     serviceAccountId: e.serviceAccountUuid,
     grantedServiceAccountId: e.grantedServiceAccountUuid,
+    sendId: e.sendUuid,
   }
 }
 

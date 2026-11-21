@@ -122,7 +122,7 @@ export async function assertTwoFactorCompliant(db: Db, userUuid: string, orgUuid
 }
 
 /** Active non-owner members who have no two-step login. */
-const nonCompliantWhere = (db: Db, orgUuid: string) =>
+const nonCompliantWhere = (orgUuid: string) =>
   and(
     eq(schema.usersOrganizations.organizationUuid, orgUuid),
     inArray(schema.usersOrganizations.status, [Status.Accepted, Status.Confirmed]),
@@ -135,7 +135,7 @@ export const revokeNonCompliantMembers = (db: Db, orgUuid: string, now: number) 
   db
     .update(schema.usersOrganizations)
     .set({ status: Status.Revoked, updatedAt: now })
-    .where(nonCompliantWhere(db, orgUuid))
+    .where(nonCompliantWhere(orgUuid))
 
 /** The members `revokeNonCompliantMembers` would revoke, to record an event for each. */
 export const nonCompliantMembers = (db: Db, orgUuid: string) =>
@@ -145,7 +145,7 @@ export const nonCompliantMembers = (db: Db, orgUuid: string) =>
       userUuid: schema.usersOrganizations.userUuid,
     })
     .from(schema.usersOrganizations)
-    .where(nonCompliantWhere(db, orgUuid))
+    .where(nonCompliantWhere(orgUuid))
 
 /** Master password requirements merged across every organisation that enforces them. */
 export async function masterPasswordPolicyFor(db: Db, userUuid: string) {

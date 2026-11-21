@@ -3,15 +3,7 @@
 import { SELF } from 'cloudflare:test'
 import { env } from 'cloudflare:workers'
 import { describe, expect, it } from 'vitest'
-import {
-  type Actor,
-  actor,
-  addMember,
-  createOrg,
-  linkParams,
-  loginCipher,
-  mailbox,
-} from './org-helpers'
+import { actor, addMember, createOrg, linkParams, loginCipher, mailbox } from './org-helpers'
 
 /** Event rows of an organisation, oldest first. */
 async function orgEvents(orgId: string, from = 0, to = 9999) {

@@ -372,6 +372,27 @@ ETA: 2026-10-20 00:00 UTC
 | 410 | Remove the purpose-token raw-key verification fallback after its migration window | done | agent | | | | Done 18 October 2026 in PR #96. |
 | 411 | Serve OpenID discovery documents at the root `.well-known` paths | done | agent | | | | Done 18 October 2026 in PR #96. |
 
+## 24. MCP server support and full Bitwarden API parity
+
+ETA: 2026-11-22 20:00 ICT
+
+- Owner request, 22 Nov 2026: run the official Bitwarden MCP server on both instances and close every remaining API gap.
+
+| ID | Task | Status | Owner | Branch | Depends | ETA | Notes |
+|---|---|---|---|---|---|---|---|
+| 426 | Install the Bitwarden MCP server and register both instances | done | agent | | | | `@bitwarden/cli` 2026.11.0, `@bitwarden/mcp-server` 2026.7.0<br>Wrapper `~/.local/bin/cloudwarden-mcp production\|personal`<br>Personal smoke test: 59 tools, `list folders` OK |
+| 427 | Give the MCP server a working login on production | blocked_on_owner | Thomas | | | | Neither JOBS nor README account can log in on `cloudwarden.dynacom.dev`<br>Needed: an agent account on production (email and master password in `~/.secrets`) |
+| 428 | Organisation API keys for the MCP admin tools on both instances | blocked_on_owner | Thomas | | 24.427 | | Needed: which organisation per instance the MCP admin tools manage<br>Then store `CLOUDWARDEN_<PROD\|PERSONAL>_ORG_CLIENT_ID/_SECRET` |
+| 429 | Public API: subscription GET and PUT, and the 14 field and behaviour mismatches | in_progress | agent | | | 2026-11-22 07:00 ICT | Gap audit of 22 Nov 2026, groups A and B |
+| 430 | Parity generator: regex and wildcard false positives, obsolete aliases, newer client routes | in_progress | agent | | | 2026-11-22 07:00 ICT | Gap audit of 22 Nov 2026, groups D9 and E |
+| 431 | Account key management and `PUT /api/accounts/verify-devices` | in_progress | agent | | | 2026-11-22 07:00 ICT | Gap audit of 22 Nov 2026, group D5 |
+| 432 | Vault and organisation extras, SSO JIT finish, v2 key upgrades, integration completes | in_progress | agent | | | 2026-11-22 08:00 ICT | Gap audit of 22 Nov 2026, groups D6 and E (current) |
+| 433 | Billing, licence and trial routes with self-hosted answers | in_progress | agent | | | 2026-11-22 06:00 ICT | Gap audit of 22 Nov 2026, group D7 |
+| 434 | Emit every Public API event type | in_progress | agent | | | 2026-11-22 10:00 ICT | Gap audit of 22 Nov 2026, group G (95 of 153 codes missing) |
+| 435 | Access Intelligence reports | in_progress | agent | | | 2026-11-22 12:00 ICT | Gap audit of 22 Nov 2026, group D4 |
+| 436 | Privileged access: access connectors and credential rotation | in_progress | agent | | | 2026-11-22 18:00 ICT | Gap audit of 22 Nov 2026, groups D1 and D2 |
+| 437 | Privileged access: access requests, leases and access rules | in_progress | agent | | | 2026-11-22 18:00 ICT | Gap audit of 22 Nov 2026, group D3 |
+
 ## Evidence log
 
 Newest first. One line per verified fact.

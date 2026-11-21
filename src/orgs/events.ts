@@ -4,6 +4,7 @@ import { fromB64u, toB64u, utf8 } from '../auth/crypto'
 import type { Db } from '../db'
 import { schema } from '../db'
 import type { Env } from '../env'
+import { ApiError } from '../errors'
 
 export interface EventInput {
   type: number
@@ -116,15 +117,48 @@ function decodeCursor(token: string | undefined): { date: number; uuid: string }
   return dot > 0 && Number.isFinite(date) ? { date, uuid: text.slice(dot + 1) } : null
 }
 
-/** One page of events, newest first, filtered by `where` and the request's start, end and cursor. */
+const DAY_MS = 24 * 3600 * 1000
+const MAX_RANGE_DAYS = 367
+
+/**
+ * The date range of a Public API event list. A supplied bound is kept and the missing one is
+ * inferred: no start means 30 days before the end (or before now, with no end either), no end
+ * means now. An inverted range is swapped. A range over 367 days is refused. A value that is
+ * not a date is refused.
+ */
+export function publicEventRange(
+  startQuery: string | undefined,
+  endQuery: string | undefined,
+  now = Date.now(),
+): { start: number; end: number } {
+  const read = (name: string, v: string | undefined) => {
+    if (v === undefined || v === '') return null
+    const t = Date.parse(v)
+    if (Number.isNaN(t))
+      throw new ApiError(400, 'The request is invalid.', { [name]: ['Invalid date.'] })
+    return t
+  }
+  const given = { start: read('start', startQuery), end: read('end', endQuery) }
+  const end = given.end ?? now
+  const start = given.start ?? end - 30 * DAY_MS
+  const [from, to] = start > end ? [end, start] : [start, end]
+  if (to - from > MAX_RANGE_DAYS * DAY_MS) throw new ApiError(400, 'Date range must be < 367 days.')
+  return { start: from, end: to }
+}
+
+/**
+ * One page of events, newest first, filtered by `where` and the request's start, end and cursor.
+ * `range` replaces the start and end of the query string.
+ */
 export async function listEvents(
   db: Db,
   c: Context<Env>,
   where: SQL | undefined,
   map: (e: typeof schema.events.$inferSelect) => unknown = eventJson,
+  range?: { start: number; end: number },
 ) {
-  const start = parseDate(c.req.query('start'))
-  const end = parseDate(c.req.query('end'))
+  const start = range ? range.start : parseDate(c.req.query('start'))
+  const end = range ? range.end : parseDate(c.req.query('end'))
   const cursor = decodeCursor(c.req.query('continuationToken'))
   const e = schema.events
   const conditions = [

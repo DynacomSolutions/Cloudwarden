@@ -90,6 +90,8 @@ export const pamRotationConfigs = sqliteTable(
     rotateOnAccessEnd: integer('rotate_on_access_end', { mode: 'boolean' })
       .notNull()
       .default(false),
+    /** An access-end rotation arrived while a job was open: queue it when that job ends. */
+    rotateAfterJob: integer('rotate_after_job', { mode: 'boolean' }).notNull().default(false),
     nextRotationAt: integer('next_rotation_at'),
     enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
     lastRotationAt: integer('last_rotation_at'),

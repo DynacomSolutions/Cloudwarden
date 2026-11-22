@@ -61,6 +61,7 @@ CREATE TABLE `pam_rotation_configs` (
 	`wrapped_key` text NOT NULL,
 	`schedule_cron` text,
 	`rotate_on_access_end` integer DEFAULT false NOT NULL,
+	`rotate_after_job` integer DEFAULT false NOT NULL,
 	`next_rotation_at` integer,
 	`enabled` integer DEFAULT true NOT NULL,
 	`last_rotation_at` integer,

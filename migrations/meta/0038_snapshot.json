@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "e1517fa7-08ef-4672-a01b-7c718618d739",
-  "prevId": "0e49362e-12e9-4108-9a07-ba69070addd8",
+  "id": "2fe4a3e0-033c-425d-9992-40132770848b",
+  "prevId": "9f7cf98b-2919-45cd-bba6-a41fa10b7380",
   "tables": {
     "admin_rate_limits": {
       "name": "admin_rate_limits",
@@ -6819,6 +6819,14 @@
         },
         "rotate_on_access_end": {
           "name": "rotate_on_access_end",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "rotate_after_job": {
+          "name": "rotate_after_job",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,

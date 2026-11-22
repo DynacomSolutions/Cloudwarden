@@ -50,6 +50,14 @@ export const leaseStatusAt = (l: Pick<LeaseRow, 'status' | 'notAfter'>, now: num
 export const noLiveLease = (cipherUuid: string, from: number, to = from + 1) =>
   sql`not exists (select 1 from pam_leases where cipher_uuid = ${cipherUuid} and status = ${LeaseStatus.Active} and not_after > ${from} and not_before < ${to})`
 
+/**
+ * SQL, for a statement on `pam_leases`: no other lease on the item overlaps the stretch that an
+ * extension of `extendMs` adds to this lease. Extensions need it under a single-lease rule, or an
+ * extension would cover a lease that another member scheduled right after this one.
+ */
+export const noExtensionOverlap = (extendMs: number, lease = sql`pam_leases`) =>
+  sql`not exists (select 1 from pam_leases o where o.cipher_uuid = ${lease}.cipher_uuid and o.uuid != ${lease}.uuid and o.status = ${LeaseStatus.Active} and o.not_after > ${lease}.not_after and o.not_before < ${lease}.not_after + ${extendMs})`
+
 /** SQL: the requester holds no lease on the item that has not ended yet, scheduled ones included. */
 export const noOpenLeaseOf = (cipherUuid: string, requesterUuid: string, now: number) =>
   sql`not exists (select 1 from pam_leases where cipher_uuid = ${cipherUuid} and requester_uuid = ${requesterUuid} and status = ${LeaseStatus.Active} and not_after > ${now})`
@@ -213,9 +221,14 @@ export async function rotateAfterAccess(db: Db, lease: Pick<LeaseRow, 'cipherUui
   if (config?.on) await queueJob(db, config.id, RotationSource.AccessEnd, now)
 }
 
+/** A windowed lease that started within this time before a sweep still gets its sync push. */
+const START_LOOKBACK_MS = 10 * 60_000
+
 /**
  * One pass of the access sweep: expires requests nobody decided or activated in time, marks leases
- * whose time ran out as Expired, and queues access-end rotations. Idempotent.
+ * whose time ran out as Expired, queues access-end rotations, and tells the members whose windowed
+ * lease has just started to sync (a lease that starts later changes nothing at the moment of
+ * approval). Idempotent: a repeated push only makes a client sync again.
  */
 export async function sweepAccess(env: Bindings, now = Date.now()): Promise<void> {
   const db = createDb(env.DB)
@@ -259,5 +272,22 @@ export async function sweepAccess(env: Bindings, now = Date.now()): Promise<void
       await bumpMemberRevision(db, lease.requesterUuid, now)
       await pushLeaseChange(env, lease.requesterUuid, now).catch(() => undefined)
     }
+  }
+  const started = await db
+    .selectDistinct({ userUuid: schema.pamLeases.requesterUuid })
+    .from(schema.pamLeases)
+    .where(
+      and(
+        eq(schema.pamLeases.status, LeaseStatus.Active),
+        sql`${schema.pamLeases.notBefore} <= ${now} and ${schema.pamLeases.notBefore} > ${now - START_LOOKBACK_MS}`,
+        // Only a lease scheduled for later starts at a time of its own.
+        sql`${schema.pamLeases.notBefore} > ${schema.pamLeases.createdAt}`,
+        sql`${schema.pamLeases.notAfter} > ${now}`,
+      ),
+    )
+    .limit(200)
+  for (const { userUuid } of started) {
+    await bumpMemberRevision(db, userUuid, now)
+    await pushLeaseChange(env, userUuid, now).catch(() => undefined)
   }
 }

@@ -346,10 +346,12 @@ export async function adminItemAccessFor(
   userUuid: string,
   member: Member,
   cipher: CipherRecord,
+  loaded?: UserAccess,
 ): Promise<ItemAccess> {
   const full = await adminItemAccess(db, cipher)
   if (isAdminRole(member)) return full
-  const ua = await loadUserAccess(db, userUuid)
+  // Callers that handle many items load the member's access once and pass it in.
+  const ua = loaded ?? (await loadUserAccess(db, userUuid))
   if (!leaseRestricted(ua, cipher.organizationUuid as string, cipher.uuid, full.collectionIds)) {
     return full
   }

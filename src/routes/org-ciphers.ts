@@ -547,11 +547,24 @@ function bulk(op: BulkOp, admin: boolean, respondList: boolean) {
       if (!(await manageAll(db, adminMember)))
         throw new ApiError(403, 'You do not have permission to do this.')
     }
-    const ua = admin ? null : await loadUserAccess(db, user.uuid)
+    const ua =
+      admin && adminMember && isAdminRole(adminMember) ? null : await loadUserAccess(db, user.uuid)
     const orgs = new Set<string>()
     for (const row of rows) {
       if (admin) {
         if (row.organizationUuid !== body.organizationId) throw NOT_FOUND()
+        // A custom manager cannot delete or restore an item that an access rule restricts for them.
+        if (
+          ua &&
+          leaseRestricted(
+            ua,
+            body.organizationId as string,
+            row.uuid,
+            await linkedCollections(db, row.uuid),
+          )
+        ) {
+          throw new ApiError(403, 'A lease is required to change this item.')
+        }
       } else if (!row.organizationUuid) {
         if (row.userUuid !== user.uuid) throw NOT_FOUND()
         continue
@@ -595,7 +608,7 @@ function bulk(op: BulkOp, admin: boolean, respondList: boolean) {
     const fresh = await loadMany(db, ids)
     const folders = await folderLinks(db, user.uuid)
     const states = await userCipherStates(db, user.uuid)
-    const accessUa = await loadUserAccess(db, user.uuid)
+    const accessUa = ua ?? (await loadUserAccess(db, user.uuid))
     const out = []
     for (const cipher of fresh) {
       const folderId = folders.get(cipher.uuid) ?? null
@@ -604,7 +617,7 @@ function bulk(op: BulkOp, admin: boolean, respondList: boolean) {
         continue
       }
       const access = admin
-        ? await adminItemAccessFor(db, user.uuid, adminMember as Member, cipher)
+        ? await adminItemAccessFor(db, user.uuid, adminMember as Member, cipher, accessUa)
         : itemAccess(
             accessUa,
             cipher.organizationUuid,
@@ -701,7 +714,12 @@ orgCiphers.post('/api/ciphers/bulk-collections', async (c) => {
   const manager = await manageAll(db, member)
   for (const row of rows) {
     if (row.organizationUuid !== body.organizationId) throw NOT_FOUND()
-    const a = itemAccess(ua, body.organizationId, await linkedCollections(db, row.uuid), row.uuid)
+    const linked = await linkedCollections(db, row.uuid)
+    // A custom manager reaches every item, but not past an access rule that restricts them.
+    if (!isAdminRole(member) && leaseRestricted(ua, body.organizationId, row.uuid, linked)) {
+      throw new ApiError(403, 'A lease is required to change the collections of this item.')
+    }
+    const a = itemAccess(ua, body.organizationId, linked, row.uuid)
     if (!a && !manager) throw NOT_FOUND()
     if (a && !a.manage && !manager)
       throw new ApiError(403, 'You do not have permission to do this.')
@@ -883,6 +901,10 @@ const setCollections = (admin: boolean, v2: boolean) => async (c: Ctx, next: Nex
   const orgUuid = r.cipher.organizationUuid as string
   const member = r.member ?? (await requireMember(db, user.uuid, orgUuid))
   const manager = await manageAll(db, member)
+  // A member whom an access rule restricts cannot move the item out of its covered collections.
+  if (r.access.restricted) {
+    throw new ApiError(403, 'A lease is required to change the collections of this item.')
+  }
   if (!r.access.manage && !manager) {
     throw new ApiError(403, 'You need manage access to change the collections of an item.')
   }

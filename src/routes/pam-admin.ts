@@ -339,6 +339,7 @@ pamAdmin.post(`${BASE}/rotation/configs`, async (c) => {
     wrappedKey: body.wrappedKey,
     scheduleCron,
     rotateOnAccessEnd: body.rotateOnAccessEnd ?? false,
+    rotateAfterJob: false,
     nextRotationAt: nextScheduled(scheduleCron, now),
     enabled: true,
     lastRotationAt: null,

@@ -31,6 +31,7 @@ import {
   bumpMemberRevision,
   type LeaseRow,
   leaseJson,
+  noExtensionOverlap,
   noLiveLease,
   noOpenLeaseOf,
   pushLeaseChange,
@@ -101,7 +102,7 @@ function approvableSql(userUuid: string, orgCol: SQL, collCol: SQL): SQL {
 
 // ----- Rules, items, requests -----
 
-/** The enabled rule that covers the item through a collection the caller can reach. */
+/** The enabled rule that covers the item through any of its collections. */
 async function ruleForCipher(db: Db, ua: UserAccess, userUuid: string, cipherUuid: string) {
   const [cipher] = await db
     .select()
@@ -117,11 +118,10 @@ async function ruleForCipher(db: Db, ua: UserAccess, userUuid: string, cipherUui
     throw new ApiError(403, 'Privileged access is not enabled for you.')
   }
   const linked = await linkedCollections(db, cipher.uuid)
-  const reachable = linked.filter((id) =>
-    collectionAccess(ua, cipher.organizationUuid as string, id),
-  )
+  // Every collection of the item counts, reachable or not: this is the set that restricts the item
+  // for the member (`leaseRestricted`), so a rule on a collection they cannot see still applies.
   const rows = []
-  for (const part of chunk(reachable)) {
+  for (const part of chunk(linked)) {
     rows.push(
       ...(await db
         .select({
@@ -553,11 +553,15 @@ pamLeases.post(`/api/access-requests/${ID}/decision`, async (c) => {
   let extensionGuard: SQL | undefined
   if (approve && isExtension) {
     const [rule] = await db
-      .select({ max: schema.pamAccessRules.maxLeaseSeconds })
+      .select({
+        max: schema.pamAccessRules.maxLeaseSeconds,
+        single: schema.pamAccessRules.singleActiveLease,
+      })
       .from(schema.pamAccessRules)
       .where(eq(schema.pamAccessRules.uuid, row.ruleUuid))
       .limit(1)
-    extensionGuard = sql`exists (select 1 from pam_leases where uuid = ${row.extensionOfLeaseUuid} and status = ${LeaseStatus.Active} and not_after > ${now} and not_after + ${row.durationSeconds * 1000} - not_before <= ${(rule?.max ?? 0) * 1000})`
+    const extendMs = row.durationSeconds * 1000
+    extensionGuard = sql`exists (select 1 from pam_leases l where l.uuid = ${row.extensionOfLeaseUuid} and l.status = ${LeaseStatus.Active} and l.not_after > ${now} and l.not_after + ${extendMs} - l.not_before <= ${(rule?.max ?? 0) * 1000} and ${rule?.single ? noExtensionOverlap(extendMs, sql`l`) : sql`1`})`
   }
   const decided = sql`exists (select 1 from pam_access_requests where uuid = ${row.uuid} and status = ${status} and resolved_at = ${now})`
   const statements: unknown[] = [
@@ -643,7 +647,9 @@ pamLeases.post(`/api/access-requests/${ID}/decision`, async (c) => {
             eq(schema.pamAccessRequests.status, RequestStatus.Pending),
           ),
         )
-      throw conflict('The lease ended, or the extension would pass its maximum length.')
+      throw conflict(
+        'The lease ended, or the extension would pass its maximum length or overlap another lease.',
+      )
     }
     throw conflict('The request is no longer pending.')
   }
@@ -950,6 +956,7 @@ pamLeases.post(`/api/leases/${ID}/extend`, async (c) => {
             eq(schema.pamLeases.status, LeaseStatus.Active),
             sql`${schema.pamLeases.notAfter} > ${now}`,
             sql`${schema.pamLeases.notAfter} + ${duration * 1000} - ${schema.pamLeases.notBefore} <= ${rule.maxLeaseSeconds * 1000}`,
+            rule.singleActiveLease ? noExtensionOverlap(duration * 1000) : undefined,
           ),
         ),
     )
@@ -966,7 +973,9 @@ pamLeases.post(`/api/leases/${ID}/extend`, async (c) => {
       .update(schema.pamAccessRequests)
       .set({ status: RequestStatus.Cancelled, updatedAt: now })
       .where(eq(schema.pamAccessRequests.uuid, id))
-    throw conflict('The lease ended, or the extension would pass its maximum length.')
+    throw conflict(
+      'The lease ended, or the extension would pass its maximum length or overlap another lease.',
+    )
   }
   return c.json(await requestView(db, await loadRequest(db, id), now))
 })

@@ -1,8 +1,10 @@
 // Federation building blocks (TASKS #308): signatures, address checks, identity at rest.
 import { env } from 'cloudflare:workers'
 import { describe, expect, it } from 'vitest'
+import { assertForwardable } from '../src/federation/hosting'
 import { fingerprintOf, loadIdentity, normaliseFingerprint } from '../src/federation/identity'
 import { parsePeerDomain } from '../src/federation/net'
+import { sanitizeCipher } from '../src/federation/sanitize'
 import {
   contentDigest,
   parseSignature,
@@ -85,5 +87,55 @@ describe('instance identity', () => {
     expect(normaliseFingerprint(fp.toLowerCase().replaceAll(':', ' '))).toBe(
       normaliseFingerprint(fp),
     )
+  })
+})
+
+describe('privileged access through federation', () => {
+  const org = '11111111-1111-4111-8111-111111111111'
+  const cipher = '22222222-2222-4222-8222-222222222222'
+  const col = '33333333-3333-4333-8333-333333333333'
+
+  it('keeps partialData, the reduced row of a restricted item', () => {
+    const out = sanitizeCipher(
+      {
+        id: cipher,
+        organizationId: org,
+        collectionIds: [col],
+        type: 1,
+        name: '2.name',
+        login: null,
+        partialData: '{"name":"2.name"}',
+        edit: false,
+        viewPassword: false,
+        evil: 'dropped',
+      },
+      org,
+      new Set([col]),
+      'peer.example.com',
+    )
+    expect(out).toMatchObject({ partialData: '{"name":"2.name"}', login: null, edit: false })
+    expect(out).not.toHaveProperty('evil')
+  })
+
+  it('forwards lease and access request routes, and nothing else new', () => {
+    const none = new Uint8Array()
+    const q = new URLSearchParams()
+    for (const [method, path] of [
+      ['GET', `/api/leases/ciphers/${cipher}/pre-check`],
+      ['GET', `/api/leases/ciphers/${cipher}/state`],
+      ['POST', `/api/leases/ciphers/${cipher}`],
+      ['GET', '/api/leases/mine'],
+      ['POST', `/api/leases/${cipher}/extend`],
+      ['POST', `/api/leases/${cipher}/revoke`],
+      ['GET', '/api/access-requests/inbox'],
+      ['POST', `/api/access-requests/${cipher}/decision`],
+      ['POST', `/api/access-requests/${cipher}/activate`],
+    ] as const) {
+      expect(() => assertForwardable(method, path, q, none), `${method} ${path}`).not.toThrow()
+    }
+    expect(() => assertForwardable('GET', '/api/leasesx', q, none)).toThrow()
+    expect(() =>
+      assertForwardable('GET', '/api/access-connectors/rotation/jobs', q, none),
+    ).toThrow()
   })
 })

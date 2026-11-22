@@ -679,6 +679,9 @@ export async function orgView(env: Bindings, user: User, orgUuid: string) {
 
 const ORG_PATH = /^\/api\/organizations\/([0-9a-f-]{36})(\/.*)?$/
 const CIPHER_PATH = /^\/api\/ciphers(\/.*)?$/
+// Privileged access (PAM): leases and access requests run through the normal routes, which apply
+// the same checks as for a local member.
+const PAM_PATH = /^\/api\/(leases|access-requests)(\/.*)?$/
 const ATTACHMENT_DOWNLOAD = /^\/attachments\/[0-9a-f-]{36}\/[A-Za-z0-9_-]+$/
 
 /** Features that do not cross instances (docs/federation.md, "Not federated"). */
@@ -718,6 +721,7 @@ export function assertForwardable(
     if (rest === '/delete') throw new ApiError(400, NOT_FEDERATED_MESSAGE)
     return
   }
+  if (PAM_PATH.test(path)) return
   const m = CIPHER_PATH.exec(path)
   if (!m) throw new ApiError(403, 'This path cannot be used through federation.')
   const rest = m[1] ?? ''
@@ -743,8 +747,27 @@ async function touchedOrgs(db: Db, path: string, query: URLSearchParams, body: U
   const b = bodyOrgId(body)
   if (b) orgs.add(b)
   const ids: string[] = []
-  const one = /^\/api\/ciphers\/([0-9a-f-]{36})(\/|$)/.exec(path)?.[1]
+  const one = /^\/api\/(?:ciphers|leases\/ciphers)\/([0-9a-f-]{36})(\/|$)/.exec(path)?.[1]
   if (one) ids.push(one)
+  // A lease or an access request names its organisation through its own row.
+  const lease = /^\/api\/leases\/([0-9a-f-]{36})(\/|$)/.exec(path)?.[1]
+  if (lease) {
+    const [row] = await db
+      .select({ org: schema.pamLeases.organizationUuid })
+      .from(schema.pamLeases)
+      .where(eq(schema.pamLeases.uuid, lease))
+      .limit(1)
+    if (row) orgs.add(row.org)
+  }
+  const request = /^\/api\/access-requests\/([0-9a-f-]{36})(\/|$)/.exec(path)?.[1]
+  if (request) {
+    const [row] = await db
+      .select({ org: schema.pamAccessRequests.organizationUuid })
+      .from(schema.pamAccessRequests)
+      .where(eq(schema.pamAccessRequests.uuid, request))
+      .limit(1)
+    if (row) orgs.add(row.org)
+  }
   const att = /^\/attachments\/([0-9a-f-]{36})\//.exec(path)?.[1]
   if (att) ids.push(att)
   try {

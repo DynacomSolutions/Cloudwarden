@@ -25,6 +25,7 @@ import {
   SyncState,
   TargetStatus,
 } from '../pam/constants'
+import { flushRotateAfterJob } from '../pam/rotation'
 import { iso, list } from '../pam/views'
 import { parseBody } from '../validation'
 import { cipherJson, cipherSchema, packPayload } from '../vault/ciphers'
@@ -232,15 +233,19 @@ async function ownAttempt(c: Ctx, db: Db, id: string) {
   if (!row) throw new ApiError(404, 'Rotation attempt not found.')
   // A claim holds while the attempt runs, the job is still claimed by this connector within its
   // lease, and neither the target system nor the configuration was disabled meanwhile.
-  const holds =
+  // A failure report is honest news about the target system, so it is also accepted after the
+  // lease ended, as long as no sweep released the job (`claimant`).
+  const claimant =
     row.attempt.status === AttemptStatus.Executing &&
     row.job.status === JobStatus.Claimed &&
-    row.job.claimedByConnectorUuid === connectorUuid &&
+    row.job.claimedByConnectorUuid === connectorUuid
+  const holds =
+    claimant &&
     row.job.claimedAt !== null &&
     row.job.claimedAt + CLAIM_LEASE_MS > Date.now() &&
     row.targetStatus === TargetStatus.Active &&
     row.config.enabled
-  return { ...row, holds }
+  return { ...row, holds, claimant }
 }
 
 const reject = async (c: Ctx, db: Db, kind: string, jobId: string, attemptId: string) => {
@@ -425,6 +430,7 @@ pamRotation.post(`${BASE}/attempts/:id{${UUID}}/success`, async (c) => {
     a.attempt.uuid,
     now,
   )
+  await flushRotateAfterJob(db, now, a.config.uuid)
   return empty(c)
 })
 
@@ -446,7 +452,7 @@ pamRotation.post(`${BASE}/attempts/:id{${UUID}}/failure`, async (c) => {
       detail: z.string().max(MAX_ERROR_DETAIL).nullish(),
     }),
   )
-  if (!a.holds) return reject(c, db, 'report_rejected', a.job.uuid, a.attempt.uuid)
+  if (!a.claimant) return reject(c, db, 'report_rejected', a.job.uuid, a.attempt.uuid)
   const reason = clean(body.detail ? `${body.errorCode}: ${body.detail}` : body.errorCode).slice(
     0,
     MAX_FAILURE_REASON,
@@ -489,5 +495,6 @@ pamRotation.post(`${BASE}/attempts/:id{${UUID}}/failure`, async (c) => {
     a.attempt.uuid,
     now,
   )
+  await flushRotateAfterJob(db, now, a.config.uuid)
   return empty(c)
 })

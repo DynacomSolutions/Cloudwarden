@@ -186,6 +186,8 @@ const CIPHER_FIELDS = [
   'secureNote',
   'sshKey',
   'data',
+  // The reduced row of an item that an access rule restricts (PAM): the SDK needs it to read the item.
+  'partialData',
   'favorite',
   'reprompt',
   'key',

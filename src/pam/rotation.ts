@@ -10,7 +10,6 @@ import type { Bindings } from '../env'
 import {
   AttemptStatus,
   CLAIM_LEASE_MS,
-  CONNECTOR_OFFLINE_AFTER_MS,
   JOB_LIFETIME_MS,
   JobStatus,
   RotationSource,
@@ -69,7 +68,48 @@ export async function queueJob(
     })
     .onConflictDoNothing()
     .returning({ id: schema.pamRotationJobs.uuid })
-  return inserted.length > 0 ? { jobId: uuid, reason: 'queued' } : { jobId: null, reason: 'busy' }
+  if (inserted.length > 0) return { jobId: uuid, reason: 'queued' }
+  if (source === RotationSource.AccessEnd) {
+    // The open job may have run before access ended: keep the request and queue it when that job ends.
+    await db
+      .update(schema.pamRotationConfigs)
+      .set({ rotateAfterJob: true, updatedAt: now })
+      .where(eq(schema.pamRotationConfigs.uuid, configUuid))
+  }
+  return { jobId: null, reason: 'busy' }
+}
+
+/**
+ * Queues the access-end rotations that waited for an open job. `configUuid` limits the pass to one
+ * configuration (right after its job ended); without it, every waiting configuration without an
+ * open job is served (the sweep).
+ */
+export async function flushRotateAfterJob(db: Db, now: number, configUuid?: string) {
+  const waiting = await db
+    .select({ id: schema.pamRotationConfigs.uuid })
+    .from(schema.pamRotationConfigs)
+    .where(
+      and(
+        eq(schema.pamRotationConfigs.rotateAfterJob, true),
+        configUuid ? eq(schema.pamRotationConfigs.uuid, configUuid) : undefined,
+        sql`not exists (select 1 from pam_rotation_jobs where config_uuid = pam_rotation_configs.uuid and status in (${JobStatus.Pending}, ${JobStatus.Claimed}))`,
+      ),
+    )
+    .limit(SWEEP_BATCH)
+  for (const { id } of waiting) {
+    // Clear the flag first, so two sweeps queue one job; a busy answer sets it again.
+    const cleared = await db
+      .update(schema.pamRotationConfigs)
+      .set({ rotateAfterJob: false })
+      .where(
+        and(
+          eq(schema.pamRotationConfigs.uuid, id),
+          eq(schema.pamRotationConfigs.rotateAfterJob, true),
+        ),
+      )
+      .returning({ id: schema.pamRotationConfigs.uuid })
+    if (cleared.length > 0) await queueJob(db, id, RotationSource.AccessEnd, now)
+  }
 }
 
 /**
@@ -120,20 +160,17 @@ export const nextScheduled = (cron: string | null, after: number): number | null
 export async function sweepRotation(env: Bindings, now = Date.now()): Promise<void> {
   const db = createDb(env.DB)
 
-  // 1. Claims whose lease ended while the connector went quiet go back to the queue.
+  // 1. Claims whose lease ended go back to the queue, whether or not the connector still polls.
+  // A claim has no renewal: past CLAIM_LEASE_MS the claimant can no longer write the item, so
+  // waiting for the connector to go offline would only hold the job until it times out.
   const stale = await db
     .select({ id: schema.pamRotationJobs.uuid })
     .from(schema.pamRotationJobs)
-    .leftJoin(
-      schema.pamAccessConnectors,
-      eq(schema.pamAccessConnectors.uuid, schema.pamRotationJobs.claimedByConnectorUuid),
-    )
     .where(
       and(
         eq(schema.pamRotationJobs.status, JobStatus.Claimed),
         sql`${schema.pamRotationJobs.expiresAt} > ${now}`,
         sql`(${schema.pamRotationJobs.claimedAt} is null or ${schema.pamRotationJobs.claimedAt} <= ${now - CLAIM_LEASE_MS})`,
-        sql`(${schema.pamAccessConnectors.uuid} is null or ${schema.pamAccessConnectors.status} != 0 or ${schema.pamAccessConnectors.lastHeartbeatAt} is null or ${schema.pamAccessConnectors.lastHeartbeatAt} <= ${now - CONNECTOR_OFFLINE_AFTER_MS})`,
       ),
     )
     .limit(SWEEP_BATCH)
@@ -175,7 +212,10 @@ export async function sweepRotation(env: Bindings, now = Date.now()): Promise<vo
     ])
   }
 
-  // 3. Scheduled rotations that are due.
+  // 3. Access-end rotations that waited for an open job.
+  await flushRotateAfterJob(db, now)
+
+  // 4. Scheduled rotations that are due.
   const due = await db
     .select()
     .from(schema.pamRotationConfigs)

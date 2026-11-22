@@ -83,10 +83,29 @@ async function callerAccess(
   return collectionAccess(await loadUserAccess(db, actor.userUuid as string), orgUuid, id)
 }
 
+/**
+ * A custom member's blanket permission (edit or delete any collection) does not reach a collection
+ * that an access rule covers (PAM): they need Manage access of their own, as a decider has. Else
+ * they could grant themselves Manage access, which lifts the restriction, or delete the collection.
+ */
+async function assertOwnManageOnCovered(db: Db, actor: Member, orgUuid: string, ids: string[]) {
+  if (isAdminRole(actor)) return
+  const ua = await loadUserAccess(db, actor.userUuid as string)
+  for (const id of ids) {
+    if (ua.gatedCollections.has(id) && collectionAccess(ua, orgUuid, id)?.manage !== true) {
+      throw new ApiError(
+        403,
+        'An access rule covers this collection. You need Manage access to it.',
+      )
+    }
+  }
+}
+
 async function requireManage(db: Db, actor: Member, orgUuid: string, id: string) {
   const a = await callerAccess(db, actor, id, orgUuid)
   if (!a) throw new ApiError(404, 'Collection not found.')
   if (!a.manage) throw new ApiError(403, 'You do not have permission to manage this collection.')
+  if (can(actor, 'editAnyCollection')) await assertOwnManageOnCovered(db, actor, orgUuid, [id])
 }
 
 /**
@@ -112,7 +131,10 @@ export async function requireCollectionManager(
  */
 async function requireDelete(db: Db, c: Ctx, ids: string[]) {
   const actor = await requireMember(db, c.var.user.uuid, org(c))
-  if (can(actor, 'deleteAnyCollection')) return
+  if (can(actor, 'deleteAnyCollection')) {
+    await assertOwnManageOnCovered(db, actor, org(c), ids)
+    return
+  }
   const o = await requireOrg(db, org(c))
   if (o.limitCollectionDeletion) throw new ApiError(403, 'You do not have permission to do this.')
   for (const id of ids) await requireManage(db, actor, org(c), id)

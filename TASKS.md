@@ -385,8 +385,8 @@ ETA: 2026-11-22 20:00 ICT
 | 428 | Organisation API keys for the MCP admin tools on both instances | dropped | Thomas | | | | Dropped: owner chose no org-admin tools on either instance (22 Nov 2026)<br>MCP vault tools only |
 | 429 | Public API: subscription GET and PUT, and the 14 field and behaviour mismatches | done | agent | | | | Gap audit of 22 Nov 2026, groups A and B<br>PR #129 merged as bba3b36<br>Seat limit enforced on every add path |
 | 430 | Parity generator: regex and wildcard false positives, obsolete aliases, newer client routes | done | agent | | | | PR #127 (merge `541dab5`), CI green<br>Regex constraints parsed, 10 shadowed routes reported, obsolete aliases routed before `:id` |
-| 431 | Account key management and `PUT /api/accounts/verify-devices` | in_progress | agent | | | 2026-11-22 07:00 ICT | Gap audit of 22 Nov 2026, group D5 |
-| 432 | Vault and organisation extras, SSO JIT finish, v2 key upgrades, integration completes | in_progress | agent | | | 2026-11-22 08:00 ICT | Gap audit of 22 Nov 2026, groups D6 and E (current) |
+| 431 | Account key management and `PUT /api/accounts/verify-devices` | done | agent | | | | Gap audit of 22 Nov 2026, group D5<br>PR #130 merged as 1df3b6e<br>Rotation checks match the official validators |
+| 432 | Vault and organisation extras, SSO JIT finish, v2 key upgrades, integration completes | done | agent | | | | Gap audit of 22 Nov 2026, groups D6 and E<br>PR #130 merged as 1df3b6e, migration 0036 |
 | 433 | Billing, licence and trial routes with self-hosted answers | done | agent | | | | PR #127 (merge `541dab5`), CI green<br>`test/self-host-billing.test.ts`, `test/self-host-routes.test.ts` |
 | 434 | Emit every Public API event type | done | agent | | | | Gap audit of 22 Nov 2026, group G<br>PR #128 merged as f2aeb2f, 47 more codes<br>Codes with no Cloudwarden feature listed in docs/events.md |
 | 435 | Access Intelligence reports | done | agent | | | | Gap audit of 22 Nov 2026, group D4<br>PR #133 merged as 24874f4<br>Newest 50 reports per organisation, 99 MB file cap |

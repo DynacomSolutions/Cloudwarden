@@ -30,11 +30,11 @@ Directory Connector, SCIM, event integrations; G this audit.
 
 | | Rows |
 |---|---|
-| Distinct method and path pairs | 625 |
-| Implemented (including self-host answers) | 559 |
+| Distinct method and path pairs | 633 |
+| Implemented (including self-host answers) | 577 |
 | Owned by workstreams A to F, not yet implemented | 0 |
 | Remaining for G | 0 |
-| Not called by any client (SDK-generated only) | 59 |
+| Not called by any client (SDK-generated only) | 49 |
 | Not applicable (not served by the official self-hosted server either) | 7 |
 
 ## Matrix
@@ -93,10 +93,10 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/api/accounts/kdf` | android, ios, sdk | implemented |  |  |
 | GET | `/api/accounts/key-connector/confirmation-details/{orgId}` | sdk, web | implemented | E |  |
 | POST | `/api/accounts/key-connector/enroll` | sdk | implemented | E | Joins an SSO member without a master password to the Key Connector (TASKS #340) |
-| GET | `/api/accounts/key-management/key-rotation-data` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/accounts/key-management/regenerate-keys` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
+| GET | `/api/accounts/key-management/key-rotation-data` | sdk | implemented |  |  |
+| POST | `/api/accounts/key-management/regenerate-keys` | sdk | implemented |  |  |
 | POST | `/api/accounts/key-management/rotate-user-account-keys` | sdk, web | implemented |  |  |
-| POST | `/api/accounts/key-management/rotate-user-keys` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
+| POST | `/api/accounts/key-management/rotate-user-keys` | sdk | implemented |  |  |
 | POST | `/api/accounts/key-management/user-key-id` | sdk | implemented |  |  |
 | GET | `/api/accounts/keys` | sdk | implemented |  |  |
 | POST | `/api/accounts/keys` | android, ios, sdk, web | implemented |  |  |
@@ -121,7 +121,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | PUT | `/api/accounts/update-tde-offboarding-password` | sdk, web | implemented | E |  |
 | PUT | `/api/accounts/update-temp-password` | android, ios, sdk, web | implemented | C | Open: account recovery and device approvals (workstream C) |
 | POST | `/api/accounts/verify-devices` | web | implemented |  |  |
-| PUT | `/api/accounts/verify-devices` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
+| PUT | `/api/accounts/verify-devices` | sdk | implemented |  |  |
 | POST | `/api/accounts/verify-email` | sdk, web | implemented | A |  |
 | POST | `/api/accounts/verify-email-token` | sdk, web | implemented | A |  |
 | POST | `/api/accounts/verify-otp` | android, ios, sdk, web | implemented | A |  |
@@ -151,7 +151,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/ciphers/{id}/admin` | sdk, web | implemented |  |  |
 | PUT | `/api/ciphers/{id}/admin` | sdk, web | implemented |  |  |
 | PUT | `/api/ciphers/{id}/archive` | android, ios, sdk | implemented | B |  |
-| POST | `/api/ciphers/{id}/attachment-admin` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
+| POST | `/api/ciphers/{id}/attachment-admin` | sdk | implemented |  |  |
 | DELETE | `/api/ciphers/{id}/attachment/{attachmentId}` | android, ios, sdk, web | implemented |  |  |
 | GET | `/api/ciphers/{id}/attachment/{attachmentId}` | android, cli, ios, sdk, web | implemented |  |  |
 | POST | `/api/ciphers/{id}/attachment/{attachmentId}` | android, ios, sdk, web | implemented |  |  |
@@ -175,8 +175,8 @@ Directory Connector, SCIM, event integrations; G this audit.
 | DELETE | `/api/ciphers/admin` | sdk, web | implemented |  |  |
 | POST | `/api/ciphers/admin` | sdk, web | implemented |  |  |
 | PUT | `/api/ciphers/archive` | sdk, web | implemented | B |  |
-| GET | `/api/ciphers/attachment/download` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/ciphers/attachment/validate/azure` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
+| GET | `/api/ciphers/attachment/download` | sdk | implemented |  |  |
+| POST | `/api/ciphers/attachment/validate/azure` | sdk | implemented |  |  |
 | POST | `/api/ciphers/bulk-collections` | sdk, web | implemented |  |  |
 | POST | `/api/ciphers/create` | android, ios, sdk, web | implemented |  |  |
 | PUT | `/api/ciphers/delete` | sdk, web | implemented |  |  |
@@ -187,7 +187,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | PUT | `/api/ciphers/move` | sdk, web | implemented |  |  |
 | GET | `/api/ciphers/organization-details` | sdk, web | implemented |  |  |
 | GET | `/api/ciphers/organization-details/assigned` | sdk, web | implemented |  |  |
-| GET | `/api/ciphers/organization-details/logins` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
+| GET | `/api/ciphers/organization-details/logins` | sdk | implemented |  |  |
 | POST | `/api/ciphers/purge` | sdk, web | implemented |  |  |
 | PUT | `/api/ciphers/restore` | sdk, web | implemented |  |  |
 | PUT | `/api/ciphers/restore-admin` | sdk, web | implemented |  |  |
@@ -272,6 +272,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | DELETE | `/api/organization/sponsorship/{orgId}/{sponsoredFriendlyName}/revoke` | sdk, web | self-host | G | No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation |
 | POST | `/api/organization/sponsorship/{orgId}/families-for-enterprise` | sdk, web | self-host | G | No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation |
 | POST | `/api/organization/sponsorship/{orgId}/families-for-enterprise/resend` | sdk, web | self-host | G | No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation |
+| POST | `/api/organization/sponsorship/{id}/families-for-enterprise/resend-self` | sdk | implemented |  |  |
 | GET | `/api/organization/sponsorship/{orgId}/sponsored` | sdk, web | self-host | G | No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation |
 | GET | `/api/organization/sponsorship/{orgId}/sync-status` | sdk, web | self-host | G | No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation |
 | POST | `/api/organization/sponsorship/redeem` | sdk, web | self-host | G | No families sponsorship on a self-hosted server: reads are empty, writes answer 400 with an explanation |
@@ -360,7 +361,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | PUT | `/api/organizations/{orgId}/collections/{id}` | cli, sdk, web | implemented |  |  |
 | GET | `/api/organizations/{orgId}/collections/{id}/details` | cli, sdk, web | implemented |  |  |
 | GET | `/api/organizations/{orgId}/collections/{id}/users` | sdk, web | implemented |  |  |
-| GET | `/api/organizations/{id}/collections/access` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
+| GET | `/api/organizations/{id}/collections/access` | sdk | implemented |  |  |
 | POST | `/api/organizations/{orgId}/collections/bulk-access` | sdk, web | implemented |  |  |
 | GET | `/api/organizations/{orgId}/collections/details` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/{orgId}/delete-recover-token` | sdk, web | implemented | A |  |
@@ -392,7 +393,9 @@ Directory Connector, SCIM, event integrations; G this audit.
 | DELETE | `/api/organizations/{id}/integrations/{id}/configurations/{id}` | sdk | implemented | F |  |
 | PUT | `/api/organizations/{id}/integrations/{id}/configurations/{id}` | sdk | implemented | F |  |
 | GET | `/api/organizations/{id}/integrations/{id}/teams/channels` | sdk | implemented | F | Answers 400: no Teams app is configured on this server |
+| POST | `/api/organizations/{id}/integrations/slack/complete` | sdk | implemented | F |  |
 | GET | `/api/organizations/{id}/integrations/slack/redirect` | sdk | implemented | F | Answers 400: no Slack app is configured on this server |
+| POST | `/api/organizations/{id}/integrations/teams/complete` | sdk | implemented | F |  |
 | GET | `/api/organizations/{id}/integrations/teams/redirect` | sdk | implemented | F | Answers 400: no Teams app is configured on this server |
 | DELETE | `/api/organizations/{orgId}/invite-link` | sdk, web | implemented |  |  |
 | GET | `/api/organizations/{orgId}/invite-link` | sdk, web | implemented |  |  |
@@ -459,6 +462,8 @@ Directory Connector, SCIM, event integrations; G this audit.
 | PUT | `/api/organizations/{orgId}/users/enable-pam` | sdk, web | implemented |  |  |
 | PUT | `/api/organizations/{orgId}/users/enable-secrets-manager` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/{orgId}/users/invite` | sdk, web | implemented |  |  |
+| GET | `/api/organizations/{id}/users/keys/pending-v2-upgrades` | sdk | implemented |  |  |
+| POST | `/api/organizations/{id}/users/keys/v2-upgrades` | sdk | implemented |  |  |
 | GET | `/api/organizations/{orgId}/users/mini-details` | sdk, web | implemented |  |  |
 | GET | `/api/organizations/{orgId}/users/pending-auto-confirm` | sdk, web | implemented |  |  |
 | POST | `/api/organizations/{orgId}/users/public-keys` | sdk, web | implemented |  |  |
@@ -466,7 +471,7 @@ Directory Connector, SCIM, event integrations; G this audit.
 | PUT | `/api/organizations/{orgId}/users/restore` | sdk, web | implemented |  |  |
 | PUT | `/api/organizations/{orgId}/users/revoke` | sdk, web | implemented |  |  |
 | PUT | `/api/organizations/{orgId}/users/revoke-self` | android, ios, sdk, web | implemented |  |  |
-| POST | `/api/organizations/{id}/users/send-invite` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
+| POST | `/api/organizations/{id}/users/send-invite` | sdk | implemented |  |  |
 | POST | `/api/organizations/billing/subscription/purchase/preview` | sdk | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | POST | `/api/organizations/connections/` | sdk, web | self-host | G | Self-hosted answer of the official server with cloud communication disabled: the probe says false, writes answer 400 (create) or 404 (update, delete), there is never a connection to read (TASKS #344) |
 | DELETE | `/api/organizations/connections/{id}` | sdk, web | self-host | G | Self-hosted answer of the official server with cloud communication disabled: the probe says false, writes answer 400 (create) or 404 (update, delete), there is never a connection to read (TASKS #344) |
@@ -610,6 +615,9 @@ Directory Connector, SCIM, event integrations; G this audit.
 | POST | `/api/sm/{id}/import` | sdk | implemented | D | Open: Secrets Manager versions, import and export (workstream D, open PR) |
 | GET | `/api/sm/events/service-accounts/{id}` | sdk | implemented |  |  |
 | GET | `/api/sso-cookie-vendor` | sdk | implemented | E | Confirms the reverse proxy session cookie; 404 unless SSO_COOKIE_VENDOR_COOKIE_NAME is set (TASKS #345) |
+| POST | `/api/sso-jit-provision-finish/key-connector` | sdk | implemented | E |  |
+| POST | `/api/sso-jit-provision-finish/password` | sdk | implemented | E |  |
+| POST | `/api/sso-jit-provision-finish/trusted-device` | sdk | implemented | E |  |
 | GET | `/api/sync` | android, ios, sdk, web | implemented |  |  |
 | GET | `/api/tasks` | sdk, web | implemented |  |  |
 | POST | `/api/tasks/{id}/bulk-create` | sdk | implemented |  |  |
@@ -676,8 +684,6 @@ that calls `next()` for ids it does not own still lets the literal route answer.
 
 | Method | Path | Shadowed by | Where |
 |---|---|---|---|
-| GET | `/api/organizations/{id}/collections/access` | `/api/organizations/:orgId/collections/:id` | `routes/collections.ts`, no route of its own |
-| POST | `/api/organizations/{id}/users/send-invite` | `/api/organizations/:orgId/users/:id` | `routes/org-users.ts`, no route of its own |
 | POST | `/api/ciphers/create` | `/api/ciphers/:id` | `routes/ciphers.ts` after `routes/org-ciphers.ts`, which calls `next()` |
 | POST | `/api/ciphers/delete` | `/api/ciphers/:id` | `routes/ciphers.ts` after `routes/org-ciphers.ts`, which calls `next()` |
 | PUT | `/api/ciphers/delete` | `/api/ciphers/:id` | `routes/ciphers.ts` after `routes/org-ciphers.ts`, which calls `next()` |

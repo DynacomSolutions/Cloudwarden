@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { requireAuth } from '../auth/middleware'
 import { prfOptionJson } from '../auth/passkeys'
-import { masterPasswordUnlockJson } from '../auth/session'
+import { masterPasswordUnlockJson, userUpgradeToken } from '../auth/session'
 import { createDb, schema } from '../db'
 import type { Env } from '../env'
 import { federatedSyncData } from '../federation/replica'
@@ -48,6 +48,8 @@ sync.get('/api/sync', requireAuth, async (c) => {
       masterPasswordUnlock: masterPasswordUnlockJson(user),
       webAuthnPrfOptions: passkeyRows.map(prfOptionJson).filter((o) => o !== null),
       userKeyId: user.userKeyId ?? null,
+      // Only present while a V1 to V2 upgrade waits for the client to finish it.
+      ...(user.v2UpgradeToken ? { v2UpgradeToken: userUpgradeToken(user) } : {}),
     },
     object: 'sync',
   })

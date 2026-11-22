@@ -2,12 +2,13 @@ import { and, eq, inArray, isNotNull, ne } from 'drizzle-orm'
 import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { z } from 'zod'
+import { accountKeysRequest, newAccountKeyColumns, resolveAccountKeys } from '../auth/account-keys'
 import { authenticationData, checkNested, unlockData } from '../auth/credentials'
 import { randomB64u } from '../auth/crypto'
 import { requireAuth } from '../auth/middleware'
 import { hashMasterPassword } from '../auth/passwords'
 import { signPurposeToken } from '../auth/purpose-token'
-import { createDb, runBatch, schema } from '../db'
+import { createDb, type Db, runBatch, schema } from '../db'
 import { later } from '../email/send'
 import type { Env, User } from '../env'
 import { ApiError } from '../errors'
@@ -33,7 +34,8 @@ import {
 } from '../orgs/domains'
 import { eventStatement, userEventStatements } from '../orgs/events'
 import { assertNotSoleOwner } from '../orgs/members'
-import { parseData } from '../orgs/policies'
+import { assertTwoFactorCompliant, parseData } from '../orgs/policies'
+import { assertOrgKeys, resetPasswordPolicy } from '../orgs/recovery'
 import { authOnce, batch } from '../orgs/util'
 import { rateLimit } from '../ratelimit'
 import {
@@ -864,34 +866,65 @@ async function keyConnectorOrg(c: Ctx, identifier: string | null | undefined) {
 }
 
 /**
- * `POST accounts/set-key-connector-key`: a new SSO member of a key connector organisation stores
- * the master-key-wrapped user key and account keys after enrolling with the key connector.
+ * The body of `POST accounts/set-key-connector-key`, in the V1 shape (`key`, `keys` and the KDF
+ * fields) and the V2 shape (`keyConnectorKeyWrappedUserKey`, `accountKeys`, `containedKeyId`).
  */
-ssoAccounts.post('/api/accounts/set-key-connector-key', requireAuth, async (c) => {
-  const body = await parseBody(
-    c,
-    z.object({
-      key: z.string().min(1),
-      keys: keysField,
-      orgIdentifier: z.string().min(1),
-      ...kdfFields,
-    }),
-  )
+const setKeyConnectorKeySchema = z.object({
+  key: z.string().min(1).nullish(),
+  keyConnectorKeyWrappedUserKey: z.string().min(1).nullish(),
+  keys: keysField,
+  accountKeys: accountKeysRequest.nullish(),
+  containedKeyId: z.string().max(200).nullish(),
+  orgIdentifier: z.string().min(1),
+  kdf: z.number().int().nullish(),
+  kdfIterations: z.number().int().nullish(),
+  kdfMemory: z.number().int().nullish(),
+  kdfParallelism: z.number().int().nullish(),
+})
+
+/** Keys of a request: the V2 account keys win over the V1 pair. */
+function requestKeys(
+  keys: { publicKey: string; encryptedPrivateKey: string } | null | undefined,
+  accountKeys: z.infer<typeof accountKeysRequest> | null | undefined,
+) {
+  if (accountKeys) return resolveAccountKeys(accountKeys)
+  return keys
+    ? { publicKey: keys.publicKey, privateKey: keys.encryptedPrivateKey, v2: null }
+    : { publicKey: null, privateKey: null, v2: null }
+}
+
+/**
+ * A new SSO member of a key connector organisation stores the key connector wrapped user key and
+ * account keys after enrolling with the key connector.
+ */
+async function setKeyConnectorKey(c: Ctx, body: z.infer<typeof setKeyConnectorKeySchema>) {
   const user = c.var.user
+  const wrapped = body.keyConnectorKeyWrappedUserKey ?? body.key
+  if (!wrapped) throw new ApiError(400, 'The key connector wrapped user key is required.')
   if (hasMasterPassword(user) || user.usesKeyConnector || user.akey) {
     throw new ApiError(400, 'This account already has its keys.')
   }
-  await keyConnectorOrg(c, body.orgIdentifier)
+  const found = await keyConnectorOrg(c, body.orgIdentifier)
+  const kdf =
+    body.kdf == null || body.kdfIterations == null
+      ? {}
+      : kdfColumns({ ...body, kdf: body.kdf, kdfIterations: body.kdfIterations })
   await createDb(c.env.DB)
     .update(schema.users)
     .set({
-      akey: body.key,
+      akey: wrapped,
       usesKeyConnector: true,
-      ...kdfColumns(body),
-      ...keyColumns(user, body.keys),
+      ...kdf,
+      ...newAccountKeyColumns(user, requestKeys(body.keys, body.accountKeys)),
+      ...(body.containedKeyId ? { userKeyId: body.containedKeyId } : {}),
       updatedAt: Date.now(),
     })
     .where(and(eq(schema.users.uuid, user.uuid), eq(schema.users.usesKeyConnector, false)))
+  return found
+}
+
+ssoAccounts.post('/api/accounts/set-key-connector-key', requireAuth, async (c) => {
+  await setKeyConnectorKey(c, await parseBody(c, setKeyConnectorKeySchema))
   return c.body(null, 200)
 })
 
@@ -1052,3 +1085,219 @@ ssoAccounts.get(
     return c.json({ object: 'keyConnectorConfirmationDetails', organizationName: org.name })
   },
 )
+
+// ----- SSO JIT provision finish (2026.11 clients) -----
+
+/**
+ * A new SSO member finishes provisioning in one call: it sets the unlock secret and keys that the
+ * older flow spread over several calls. SSO sign-in has already created the membership as
+ * accepted; `acceptOrganizationInvite` also accepts an invitation that is still pending.
+ */
+const acceptInvite = async (
+  db: Db,
+  user: Pick<User, 'uuid'>,
+  org: { uuid: string },
+  member: { uuid: string; status: number },
+  accept: boolean,
+) => {
+  if (!accept || member.status !== Status.Invited) return []
+  // The same gate as accepting an invitation by link: a policy may demand two-step login.
+  await assertTwoFactorCompliant(db, user.uuid, org.uuid)
+  return [
+    db
+      .update(schema.usersOrganizations)
+      .set({ status: Status.Accepted, updatedAt: Date.now() })
+      .where(
+        and(
+          eq(schema.usersOrganizations.uuid, member.uuid),
+          eq(schema.usersOrganizations.status, Status.Invited),
+        ),
+      ),
+  ]
+}
+
+/** The JIT finish sets the first keys of an account: an account with keys keeps them. */
+function assertNoAccountKeys(user: Pick<User, 'publicKey' | 'privateKey'>) {
+  if (user.publicKey || user.privateKey) {
+    throw new ApiError(400, 'User account keys are already initialized.')
+  }
+}
+
+const jitUnlock = unlockData.extend({ containedKeyId: z.string().max(200).nullish() })
+
+ssoAccounts.post('/api/sso-jit-provision-finish/password', requireAuth, async (c) => {
+  const body = await parseBody(
+    c,
+    z.object({
+      masterPasswordAuthentication: authenticationData,
+      masterPasswordUnlock: jitUnlock,
+      accountKeys: accountKeysRequest.nullish(),
+      keys: keysField,
+      masterPasswordHint: z.string().max(50).nullish(),
+      orgIdentifier: z.string().min(1),
+      acceptOrganizationInvite: z.boolean(),
+    }),
+  )
+  const user = c.var.user
+  if (hasMasterPassword(user))
+    throw new ApiError(400, 'This account already has a master password.')
+  if (user.usesKeyConnector) throw new ApiError(400, 'This account unlocks with Key Connector.')
+  assertNoAccountKeys(user)
+  if (body.accountKeys && body.keys) {
+    throw new ApiError(400, 'Send either account keys or keys, not both.')
+  }
+  const keys = requestKeys(body.keys, body.accountKeys)
+  if (!keys.publicKey || !keys.privateKey)
+    throw new ApiError(400, 'An account key pair is required.')
+  const kdf = checkNested(body.masterPasswordAuthentication, body.masterPasswordUnlock, user.email)
+  const found = await memberOrgByIdentifier(c, body.orgIdentifier)
+  if (!found) throw new ApiError(400, 'An organization identifier is required.')
+  const stored = await hashMasterPassword(
+    body.masterPasswordAuthentication.masterPasswordAuthenticationHash,
+  )
+  const db = createDb(c.env.DB)
+  await batch(db, [
+    db
+      .update(schema.users)
+      .set({
+        ...stored,
+        akey: body.masterPasswordUnlock.masterKeyWrappedUserKey,
+        passwordHint: body.masterPasswordHint ?? null,
+        ...kdfColumns(kdf),
+        ...newAccountKeyColumns(user, keys),
+        ...(body.masterPasswordUnlock.containedKeyId
+          ? { userKeyId: body.masterPasswordUnlock.containedKeyId }
+          : {}),
+        updatedAt: Date.now(),
+      })
+      .where(and(eq(schema.users.uuid, user.uuid), eq(schema.users.passwordHash, ''))),
+    ...(await acceptInvite(db, user, found.org, found.member, body.acceptOrganizationInvite)),
+  ])
+  return c.body(null, 200)
+})
+
+ssoAccounts.post('/api/sso-jit-provision-finish/key-connector', requireAuth, async (c) => {
+  const body = await parseBody(
+    c,
+    z.object({
+      keyConnectorKeys: setKeyConnectorKeySchema,
+      acceptOrganizationInvite: z.boolean(),
+    }),
+  )
+  assertNoAccountKeys(c.var.user)
+  const found = await setKeyConnectorKey(c, body.keyConnectorKeys)
+  const db = createDb(c.env.DB)
+  const accept = await acceptInvite(
+    db,
+    c.var.user,
+    found.org,
+    found.member,
+    body.acceptOrganizationInvite,
+  )
+  if (accept.length > 0) await batch(db, accept)
+  return c.body(null, 200)
+})
+
+ssoAccounts.post('/api/sso-jit-provision-finish/trusted-device', requireAuth, async (c) => {
+  const body = await parseBody(
+    c,
+    z.object({
+      keys: z.object({
+        publicKey: z.string().min(1),
+        encryptedPrivateKey: z.string().min(1),
+        accountKeys: accountKeysRequest.nullish(),
+        userKeyId: z.string().max(200).nullish(),
+      }),
+      organizationId: z.string().min(1),
+      accountRecoveryKey: z.string().min(1).max(10_000).nullish(),
+      deviceKeys: z
+        .object({
+          encryptedUserKey: z.string().min(1).max(10_000),
+          encryptedPublicKey: z.string().min(1).max(10_000),
+          encryptedPrivateKey: z.string().min(1).max(10_000),
+        })
+        .nullish(),
+      acceptOrganizationInvite: z.boolean(),
+    }),
+  )
+  const user = c.var.user
+  assertNoAccountKeys(user)
+  const db = createDb(c.env.DB)
+  const orgUuid = body.organizationId
+  const member = await getMember(db, user.uuid, orgUuid)
+  if (!member || member.status === Status.Revoked) {
+    throw new ApiError(400, 'You are not a member of this organization.')
+  }
+  const row = await loadSsoConfig(db, orgUuid)
+  const data = row?.enabled ? parseConfigData(row) : null
+  if (data?.memberDecryptionType !== MemberDecryptionType.TrustedDeviceEncryption) {
+    throw new ApiError(400, 'This organization does not use trusted device encryption.')
+  }
+  const policy = await resetPasswordPolicy(db, orgUuid)
+  if (body.accountRecoveryKey && !policy.enabled) {
+    throw new ApiError(400, 'Organization does not have the account recovery policy enabled.')
+  }
+  if (body.acceptOrganizationInvite && policy.autoEnrollEnabled && !body.accountRecoveryKey) {
+    throw new ApiError(400, 'Master password reset enrolment is required, but was not provided.')
+  }
+  const enrol = body.acceptOrganizationInvite && body.accountRecoveryKey
+  if (enrol) assertOrgKeys(await requireOrg(db, orgUuid))
+  const device = body.deviceKeys
+    ? (
+        await db
+          .select({ uuid: schema.devices.uuid })
+          .from(schema.devices)
+          .where(
+            and(
+              eq(schema.devices.userUuid, user.uuid),
+              eq(schema.devices.identifier, c.var.auth.deviceIdentifier),
+            ),
+          )
+          .limit(1)
+      )[0]
+    : undefined
+  if (body.deviceKeys && !device) throw new ApiError(404, 'Device not found.')
+  const keys = requestKeys(
+    { publicKey: body.keys.publicKey, encryptedPrivateKey: body.keys.encryptedPrivateKey },
+    body.keys.accountKeys,
+  )
+  const now = Date.now()
+  await batch(db, [
+    db
+      .update(schema.users)
+      .set({
+        ...newAccountKeyColumns(user, keys),
+        ...(body.keys.userKeyId ? { userKeyId: body.keys.userKeyId } : {}),
+        updatedAt: now,
+      })
+      .where(eq(schema.users.uuid, user.uuid)),
+    ...(device && body.deviceKeys
+      ? [
+          db
+            .update(schema.devices)
+            .set({ ...body.deviceKeys, updatedAt: now })
+            .where(eq(schema.devices.uuid, device.uuid)),
+        ]
+      : []),
+    ...(await acceptInvite(db, user, { uuid: orgUuid }, member, body.acceptOrganizationInvite)),
+    ...(enrol
+      ? [
+          db
+            .update(schema.usersOrganizations)
+            .set({
+              resetPasswordKey: body.accountRecoveryKey,
+              v2UpgradeToken: null,
+              updatedAt: now,
+            })
+            .where(eq(schema.usersOrganizations.uuid, member.uuid)),
+          eventStatement(db, c, {
+            type: EventType.OrganizationUserResetPasswordEnroll,
+            organizationUuid: orgUuid,
+            organizationUserUuid: member.uuid,
+            userUuid: user.uuid,
+          }),
+        ]
+      : []),
+  ])
+  return c.body(null, 200)
+})

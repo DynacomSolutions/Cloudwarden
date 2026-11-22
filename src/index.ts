@@ -8,13 +8,18 @@ import { federation } from './federation/routes'
 import { errorKind, log, requestLogger } from './log'
 import { securityHeaders } from './middleware'
 import { orgChangeNotifier, secretsRevisionOnMemberChange } from './orgs/notify'
+import { rateLimit } from './ratelimit'
 import { accountEmail } from './routes/account-email'
 import { accountRecovery } from './routes/account-recovery'
 import { accounts } from './routes/accounts'
 import { alive } from './routes/alive'
 import { appId } from './routes/app-id'
 import { archive } from './routes/archive'
-import { downloadAttachment } from './routes/attachments'
+import {
+  downloadAttachment,
+  downloadAttachmentByToken,
+  validateAzureEvents,
+} from './routes/attachments'
 import { authRequests } from './routes/auth-requests'
 import { ciphers } from './routes/ciphers'
 import { collectionsRouter } from './routes/collections'
@@ -72,6 +77,13 @@ app.route('/', prelogin)
 app.route('/', register)
 app.route('/', token)
 app.route('/', discovery)
+// Signed attachment download and the storage event hook: no sign-in, so before the cipher routers.
+app.get('/api/ciphers/attachment/download', downloadAttachmentByToken)
+app.post(
+  '/api/ciphers/attachment/validate/azure',
+  rateLimit('azure-validate', 30),
+  validateAzureEvents,
+)
 // SSO browser endpoints and service provider callbacks (TASKS #280 to #282).
 app.route('/', sso)
 app.route('/', devices)

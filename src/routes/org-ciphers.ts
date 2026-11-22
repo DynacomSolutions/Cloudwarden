@@ -296,14 +296,22 @@ orgCiphers.get('/api/ciphers/has-unassigned-ciphers', async (c) => {
   return c.json(row !== undefined)
 })
 
-orgCiphers.get('/api/ciphers/organization-details', async (c) => {
+/** Every item of an organisation for members who manage all items; `loginsOnly` keeps logins. */
+async function organizationDetails(c: Ctx, loginsOnly: boolean) {
   const db = createDb(c.env.DB)
   const orgUuid = c.req.query('organizationId') ?? ''
   const member = await requireMember(db, c.var.user.uuid, orgUuid)
   if (!(await manageAll(db, member)))
     throw new ApiError(403, 'You do not have permission to do this.')
   const [rows, links, folders, states] = await Promise.all([
-    db.select().from(schema.ciphers).where(eq(schema.ciphers.organizationUuid, orgUuid)),
+    db
+      .select()
+      .from(schema.ciphers)
+      .where(
+        loginsOnly
+          ? and(eq(schema.ciphers.organizationUuid, orgUuid), eq(schema.ciphers.atype, 1))
+          : eq(schema.ciphers.organizationUuid, orgUuid),
+      ),
     db
       .select({
         cipher: schema.ciphersCollections.cipherUuid,
@@ -347,7 +355,10 @@ orgCiphers.get('/api/ciphers/organization-details', async (c) => {
       ),
     ),
   )
-})
+}
+
+orgCiphers.get('/api/ciphers/organization-details', (c) => organizationDetails(c, false))
+orgCiphers.get('/api/ciphers/organization-details/logins', (c) => organizationDetails(c, true))
 
 orgCiphers.get('/api/ciphers/organization-details/assigned', async (c) => {
   const db = createDb(c.env.DB)

@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { and, asc, eq, gt, isNotNull, sql } from 'drizzle-orm'
 import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { z } from 'zod'
@@ -107,7 +107,7 @@ accountRecovery.put(
     await batch(db, [
       db
         .update(schema.usersOrganizations)
-        .set({ resetPasswordKey: key, updatedAt: now })
+        .set({ resetPasswordKey: key, v2UpgradeToken: null, updatedAt: now })
         .where(eq(schema.usersOrganizations.uuid, member.uuid)),
       eventStatement(db, c, {
         type: key
@@ -177,6 +177,152 @@ accountRecovery.post(
   },
 )
 
+// ----- administrator: V2 upgrades -----
+
+// A rotation to a V2 user key cannot re-wrap the recovery key for the organisation, so it leaves a
+// token on the membership. An administrator reads the pending members here, unwraps the V2 user
+// key from the token with the V1 key that recovery gives, and posts the key wrapped for the
+// organisation. Only members the caller may recover appear.
+const UPGRADE_PAGE = 100
+
+type MemberRow = typeof schema.usersOrganizations.$inferSelect
+
+async function recoverableByCaller(c: Ctx, db: Db, rows: { m: MemberRow; u: UserRow }[]) {
+  const actor = await requireRecoveryAdmin(db, c.var.user.uuid, org(c))
+  const blocked = await unrecoverableMembers(db, c.env, rows)
+  return rows.filter(({ m }) => {
+    try {
+      assertCanRecover(actor, m)
+      assertRecoverable(m)
+      return !blocked.has(m.uuid)
+    } catch {
+      return false
+    }
+  })
+}
+
+const parseToken = (raw: string | null) => {
+  try {
+    const t = JSON.parse(raw ?? '') as { wrappedUserKey1?: string; wrappedUserKey2?: string }
+    return {
+      wrappedUserKey1: t.wrappedUserKey1 ?? null,
+      wrappedUserKey2: t.wrappedUserKey2 ?? null,
+    }
+  } catch {
+    return null
+  }
+}
+
+accountRecovery.get(
+  '/api/organizations/:orgId/users/keys/pending-v2-upgrades',
+  rateLimit('org-recovery', 30),
+  async (c) => {
+    const db = createDb(c.env.DB)
+    const orgUuid = org(c)
+    await requireRecoveryAdmin(db, c.var.user.uuid, orgUuid)
+    const after = c.req.query('continuationToken')
+    const uo = schema.usersOrganizations
+    const page = await db
+      .select({ m: uo, u: schema.users })
+      .from(uo)
+      .innerJoin(schema.users, eq(schema.users.uuid, uo.userUuid))
+      .where(
+        and(
+          eq(uo.organizationUuid, orgUuid),
+          isNotNull(uo.v2UpgradeToken),
+          isNotNull(uo.resetPasswordKey),
+          ...(after ? [gt(uo.uuid, after)] : []),
+        ),
+      )
+      .orderBy(asc(uo.uuid))
+      .limit(UPGRADE_PAGE + 1)
+    const more = page.length > UPGRADE_PAGE
+    const rows = page.slice(0, UPGRADE_PAGE)
+    const allowed = await recoverableByCaller(c, db, rows)
+    return c.json({
+      object: 'list',
+      data: allowed.flatMap(({ m, u }) =>
+        u.userKeyId && m.resetPasswordKey
+          ? [
+              {
+                object: 'organizationUserPendingV2Upgrade',
+                organizationUserId: m.uuid,
+                userKeyId: u.userKeyId,
+                accountRecoveryKey: m.resetPasswordKey,
+                v2UpgradeToken: parseToken(m.v2UpgradeToken),
+              },
+            ]
+          : [],
+      ),
+      // A page can be empty and still have a token.
+      continuationToken: more ? (rows[rows.length - 1]?.m.uuid ?? null) : null,
+    })
+  },
+)
+
+const v2UpgradesSchema = z.object({
+  upgrades: z
+    .array(
+      z.object({
+        organizationUserId: z.string().min(1),
+        userKeyId: z.string().min(1).max(200),
+        accountRecoveryKey: z.union([encString, z.null()]).optional(),
+      }),
+    )
+    .max(UPGRADE_PAGE),
+})
+
+accountRecovery.post(
+  '/api/organizations/:orgId/users/keys/v2-upgrades',
+  rateLimit('org-recovery', 30),
+  async (c) => {
+    const { upgrades } = await parseBody(c, v2UpgradesSchema)
+    const db = createDb(c.env.DB)
+    const orgUuid = org(c)
+    await requireRecoveryAdmin(db, c.var.user.uuid, orgUuid)
+    const byId = new Map(upgrades.map((u) => [u.organizationUserId, u]))
+    if (byId.size === 0) return c.body(null, 200)
+    const uo = schema.usersOrganizations
+    const pending = await db
+      .select({ m: uo, u: schema.users })
+      .from(uo)
+      .innerJoin(schema.users, eq(schema.users.uuid, uo.userUuid))
+      .where(and(eq(uo.organizationUuid, orgUuid), isNotNull(uo.v2UpgradeToken)))
+    const allowed = await recoverableByCaller(
+      c,
+      db,
+      pending.filter(({ m }) => byId.has(m.uuid)),
+    )
+    const now = Date.now()
+    // A membership that changed since the read is skipped, not rejected: the check of the user key
+    // id, the token and the key all sit in the UPDATE, so a rotation in between cannot be
+    // overwritten with a key that wraps an old user key.
+    const statements = allowed.flatMap(({ m }) => {
+      const up = byId.get(m.uuid)
+      if (!up) return []
+      return [
+        db
+          .update(uo)
+          .set({
+            resetPasswordKey: up.accountRecoveryKey ?? null,
+            v2UpgradeToken: null,
+            updatedAt: now,
+          })
+          .where(
+            and(
+              eq(uo.uuid, m.uuid),
+              isNotNull(uo.v2UpgradeToken),
+              isNotNull(uo.resetPasswordKey),
+              sql`EXISTS (SELECT 1 FROM users WHERE users.uuid = ${uo.userUuid} AND users.user_key_id = ${up.userKeyId})`,
+            ),
+          ),
+      ]
+    })
+    if (statements.length > 0) await batch(db, statements)
+    return c.body(null, 200)
+  },
+)
+
 // ----- administrator: reset -----
 
 const legacyReset = z.object({
@@ -213,6 +359,14 @@ async function recover(
   const db = createDb(c.env.DB)
   const { orgRow, target, user } = await loadTarget(c, db, c.req.param('id') ?? '')
   const password = newPassword(user)
+  if (password && target.v2UpgradeToken) {
+    // The recovery key still wraps the old user key: a reset now would store a key that no
+    // longer opens the vault. An administrator finishes the upgrade first.
+    throw new ApiError(
+      400,
+      'The member upgrades the encryption keys. Complete the pending upgrade before the reset.',
+    )
+  }
   if (!password && !resetTwoFactor) {
     throw new ApiError(400, 'Choose what to recover: the master password, two-step login or both.')
   }

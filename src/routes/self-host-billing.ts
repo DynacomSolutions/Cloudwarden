@@ -466,6 +466,7 @@ for (const [method, path] of [
   ['delete', `${SPONSOR}/:orgId/:sponsoredFriendlyName/revoke`],
   ['post', `${SPONSOR}/:orgId/families-for-enterprise`],
   ['post', `${SPONSOR}/:orgId/families-for-enterprise/resend`],
+  ['post', `${SPONSOR}/:orgId/families-for-enterprise/resend-self`],
   ['delete', `${SPONSOR}/self-hosted/:orgId`],
   ['delete', `${SPONSOR}/self-hosted/:orgId/:sponsoredFriendlyName/revoke`],
   ['post', `${SPONSOR}/self-hosted/:orgId/families-for-enterprise`],

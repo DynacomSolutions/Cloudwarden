@@ -258,6 +258,12 @@ collectionsRouter.get('/api/organizations/:orgId/collections/details', async (c)
   c.json(list(await accessDetails(c))),
 )
 
+// `collections/access` returns the same access details as `collections/details`. It must stay
+// above the `:id` routes, or `access` is read as a collection id.
+collectionsRouter.get('/api/organizations/:orgId/collections/access', async (c) =>
+  c.json(list((await accessDetails(c)).map((row) => ({ ...row, hasEnabledAccessRule: false })))),
+)
+
 collectionsRouter.get('/api/organizations/:orgId/collections', async (c) => {
   const db = createDb(c.env.DB)
   const actor = await requireMember(db, c.var.user.uuid, org(c))

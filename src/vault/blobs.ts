@@ -81,6 +81,17 @@ export async function verifyBlobToken(
   return !!claims && claims.aud === aud && claims.sub === sub
 }
 
+/** The subject of a valid, unexpired token of this audience, or null. */
+export async function readBlobToken(
+  env: Bindings,
+  aud: string,
+  token: string | undefined,
+): Promise<string | null> {
+  if (!token) return null
+  const claims = await verifyJwt<BlobClaims>(token, await verificationKeysFor(env, `blob:${aud}`))
+  return claims && claims.aud === aud ? claims.sub : null
+}
+
 const indexOf = (hay: Uint8Array, needle: Uint8Array): number =>
   Buffer.from(hay.buffer, hay.byteOffset, hay.byteLength).indexOf(needle)
 

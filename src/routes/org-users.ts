@@ -304,6 +304,7 @@ orgUsers.post('/api/organizations/:orgId/users/invite', async (c) => {
       status: Status.Invited,
       atype: body.type,
       resetPasswordKey: null,
+      v2UpgradeToken: null,
       externalId: null,
       accessSecretsManager: body.accessSecretsManager === true,
       accessPam: false,
@@ -362,7 +363,7 @@ async function reinvite(c: Ctx, id: string, actor: Member): Promise<string | nul
   return null
 }
 
-orgUsers.post('/api/organizations/:orgId/users/reinvite', async (c) => {
+const bulkReinvite = async (c: Ctx) => {
   const { ids } = await parseBody(c, idsSchema)
   const actor = await requirePermission(createDb(c.env.DB), c.var.user.uuid, org(c), 'manageUsers')
   const out = []
@@ -370,7 +371,12 @@ orgUsers.post('/api/organizations/:orgId/users/reinvite', async (c) => {
     out.push({ id, error: await reinvite(c, id, actor).catch((e: ApiError) => e.message) })
   }
   return bulkOk(out, c)
-})
+}
+orgUsers.post('/api/organizations/:orgId/users/reinvite', bulkReinvite)
+
+// The members grid "Send invite" action. Members here are invited when they are added, so this
+// sends the invitation again to every listed member who is still invited.
+orgUsers.post('/api/organizations/:orgId/users/send-invite', bulkReinvite)
 
 orgUsers.post('/api/organizations/:orgId/users/:id/reinvite', async (c) => {
   const actor = await requirePermission(createDb(c.env.DB), c.var.user.uuid, org(c), 'manageUsers')
@@ -420,7 +426,7 @@ orgUsers.post('/api/organizations/:orgId/users/:id/accept', async (c) => {
         .set({
           userUuid: user.uuid,
           status: Status.Accepted,
-          ...(resetPasswordKey ? { resetPasswordKey } : {}),
+          ...(resetPasswordKey ? { resetPasswordKey, v2UpgradeToken: null } : {}),
           updatedAt: now,
         })
         .where(eq(schema.usersOrganizations.uuid, id)),

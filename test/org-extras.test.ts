@@ -175,15 +175,22 @@ it('answers the storage event hook like a server that keeps files locally', asyn
 })
 
 it('rate limits the anonymous storage event hook per address', async () => {
-  const hit = () =>
-    SELF.fetch(`${BASE}/api/ciphers/attachment/validate/azure`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': '203.0.113.77' },
-      body: '[]',
-    })
-  // Parallel, so a slow host cannot spread the calls across two limiter windows.
-  const codes = (await Promise.all(Array.from({ length: 40 }, hit))).map((r) => r.status)
-  expect(codes).toContain(429)
+  const ip = '203.0.113.77'
+  // Fill the current and the next fixed window, so a slow host cannot move the call into a free one.
+  const window = Math.floor(Date.now() / 60_000) * 60_000
+  for (const start of [window, window + 60_000]) {
+    await env.DB.prepare(
+      'INSERT OR REPLACE INTO admin_rate_limits (key, window_start, count) VALUES (?1, ?2, 1000)',
+    )
+      .bind(`azure-validate:${ip}`, start)
+      .run()
+  }
+  const res = await SELF.fetch(`${BASE}/api/ciphers/attachment/validate/azure`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': ip },
+    body: '[]',
+  })
+  expect(res.status).toBe(429)
 })
 
 it('sends the invitation again through users/send-invite', async () => {

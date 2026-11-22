@@ -5,19 +5,13 @@ import { z } from 'zod'
 import { createDb, type Db, schema } from '../db'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
-import {
-  bumpOrgRevision,
-  collectionAccess,
-  isAdminRole,
-  loadUserAccess,
-  type Member,
-  requirePermission,
-} from '../orgs/access'
+import { bumpOrgRevision, isAdminRole, type Member, requirePermission } from '../orgs/access'
 import { EventType } from '../orgs/constants'
 import { eventStatement } from '../orgs/events'
 import { accessOf, assertIdsInOrg, dedupeSelections, type Selection } from '../orgs/members'
 import { authOnce, batch } from '../orgs/util'
 import { groupJson, selectionJson } from '../orgs/views'
+import { assertManageGrantsAllowed, grantorOf } from '../pam/manage-guard'
 import { parseBody } from '../validation'
 
 export const groupsRouter = new Hono<Env>()
@@ -64,34 +58,6 @@ async function loadGroup(db: Db, orgUuid: string, id: string) {
   return g
 }
 
-/**
- * A custom member who manages groups may not hand out Manage access to a collection that an access
- * rule covers (PAM) unless they hold Manage access to it themselves: Manage access lifts the
- * restriction, so a group that grants it to the caller (or to anyone) would undo the rule.
- * `kept` lists collections where the group already holds Manage access, which stay allowed (a
- * rename, or a client that sends the group back unchanged).
- */
-async function assertManageGrantsAllowed(
-  db: Db,
-  actor: Member,
-  orgUuid: string,
-  grants: { id: string; manage: boolean }[],
-  kept: Set<string> = new Set(),
-) {
-  if (isAdminRole(actor)) return
-  const wanted = grants.filter((s) => s.manage && !kept.has(s.id))
-  if (wanted.length === 0) return
-  const ua = await loadUserAccess(db, actor.userUuid as string)
-  for (const { id } of wanted) {
-    if (ua.gatedCollections.has(id) && collectionAccess(ua, orgUuid, id)?.manage !== true) {
-      throw new ApiError(
-        403,
-        'An access rule covers this collection. You need Manage access to it.',
-      )
-    }
-  }
-}
-
 /** Collections where the group holds Manage access now. */
 async function manageGrantsOf(db: Db, groupUuid: string) {
   const rows = await db
@@ -122,7 +88,7 @@ async function assertJoinAllowed(
   const manage = collections ? collections.filter((s) => s.manage).map((s) => s.id) : [...held]
   await assertManageGrantsAllowed(
     db,
-    actor,
+    grantorOf(actor),
     orgUuid,
     manage.map((id) => ({ id, manage: true })),
   )
@@ -293,7 +259,7 @@ groupsRouter.post('/api/organizations/:orgId/groups', async (c) => {
   const users = body.users ? [...new Set(body.users)] : null
   const cols = body.collections ? dedupeSelections(body.collections) : null
   await checkRefs(db, org(c), users, cols)
-  if (!body.accessAll) await assertManageGrantsAllowed(db, actor, org(c), cols ?? [])
+  if (!body.accessAll) await assertManageGrantsAllowed(db, grantorOf(actor), org(c), cols ?? [])
   const id = crypto.randomUUID()
   const now = Date.now()
   await batch(db, [
@@ -327,7 +293,13 @@ const updateGroup = async (c: Ctx) => {
   // Omitted collections are left as they are; access-all groups carry no explicit grants.
   const cols = body.accessAll ? [] : body.collections ? dedupeSelections(body.collections) : null
   await checkRefs(db, org(c), users, cols)
-  await assertManageGrantsAllowed(db, actor, org(c), cols ?? [], await manageGrantsOf(db, g.uuid))
+  await assertManageGrantsAllowed(
+    db,
+    grantorOf(actor),
+    org(c),
+    cols ?? [],
+    await manageGrantsOf(db, g.uuid),
+  )
   await assertJoinAllowed(db, actor, org(c), g.uuid, users, cols)
   const now = Date.now()
   await batch(db, [

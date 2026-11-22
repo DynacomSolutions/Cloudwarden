@@ -28,6 +28,7 @@ import {
 } from '../orgs/provisioning'
 import { assertSeatsAvailable } from '../orgs/subscription'
 import { batch } from '../orgs/util'
+import { assertGroupJoinAllowed, groupMemberSet, SCIM_GRANTOR } from '../pam/manage-guard'
 import { clientKey, overLimit } from '../ratelimit'
 import { sendInvite } from '../routes/org-users'
 import { isUuid } from '../sm/auth'
@@ -410,6 +411,14 @@ async function saveGroup(
       : stringOrNull(prop(desired, 'externalId'))
   let members = await memberIdsFrom(db, orgUuid, desired)
   if (members === undefined && replaceMembersWhenAbsent) members = []
+  // The group's Manage access reaches every member the call adds (PAM). A SCIM key may be held by
+  // a non-admin, so the write counts as one (see `SCIM_GRANTOR`). Members already in stay allowed.
+  if (existing && members?.length) {
+    const present = await groupMemberSet(db, existing.uuid)
+    if (members.some((m) => !present.has(m))) {
+      await assertGroupJoinAllowed(db, SCIM_GRANTOR, orgUuid, [existing.uuid])
+    }
+  }
   const now = Date.now()
   const uuid = existing?.uuid ?? crypto.randomUUID()
   await batch(db, [

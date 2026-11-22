@@ -25,6 +25,7 @@ import { eventStatement } from '../orgs/events'
 import { accessOf, assertIdsInOrg, dedupeSelections, type Selection } from '../orgs/members'
 import { authOnce, batch } from '../orgs/util'
 import { collectionDetailsJson, collectionJson, selectionJson } from '../orgs/views'
+import { assertManageGrantsAllowed, grantorOf } from '../pam/manage-guard'
 import { parseBody } from '../validation'
 import { chunk } from '../vault/ciphers'
 
@@ -165,6 +166,28 @@ async function requireDelete(db: Db, c: Ctx, ids: string[]) {
   if (o.limitCollectionDeletion) throw new ApiError(403, 'You do not have permission to do this.')
   const load = accessLoader(db, actor)
   for (const id of ids) await requireManage(db, actor, org(c), id, load)
+}
+
+/**
+ * Shared PAM guard for grants written to collections the caller manages. `requireManage` already
+ * asks for own Manage access on each covered collection, so this holds the line if that changes.
+ */
+async function assertGrantsAllowed(
+  db: Db,
+  actor: Member,
+  orgUuid: string,
+  ids: string[],
+  users: Selection[] | null,
+  groups: Selection[] | null,
+) {
+  const manage = [...(users ?? []), ...(groups ?? [])].some((s) => s.manage)
+  if (!manage) return
+  await assertManageGrantsAllowed(
+    db,
+    grantorOf(actor),
+    orgUuid,
+    ids.map((id) => ({ id, manage: true })),
+  )
 }
 
 /** Statements that replace the user and group grants of a collection. */
@@ -348,6 +371,7 @@ collectionsRouter.post('/api/organizations/:orgId/collections/bulk-access', asyn
   await checkGrants(db, org(c), users, groups)
   const load = accessLoader(db, actor)
   for (const id of body.collectionIds) await requireManage(db, actor, org(c), id, load)
+  await assertGrantsAllowed(db, actor, org(c), body.collectionIds, users, groups)
   await batch(db, [
     ...body.collectionIds.flatMap((id) => [
       ...replaceAccess(db, id, users, groups),
@@ -446,6 +470,7 @@ collectionsRouter.put('/api/organizations/:orgId/collections/:id/users', async (
   await loadCollection(db, org(c), id)
   await requireManage(db, actor, org(c), id)
   await checkGrants(db, org(c), users, null)
+  await assertGrantsAllowed(db, actor, org(c), [id], users, null)
   await batch(db, [...replaceAccess(db, id, users, null), bumpOrgRevision(db, org(c), Date.now())])
   return c.body(null, 200)
 })
@@ -469,6 +494,7 @@ const updateCollection = async (c: Ctx) => {
   const users = body.users ? dedupeSelections(body.users) : null
   const groups = body.groups ? dedupeSelections(body.groups) : null
   await checkGrants(db, org(c), users, groups)
+  await assertGrantsAllowed(db, actor, org(c), [id], users, groups)
   const now = Date.now()
   await batch(db, [
     db

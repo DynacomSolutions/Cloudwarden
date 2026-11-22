@@ -33,6 +33,7 @@ import {
 import { listUserPolicies, policyJson, twoFactorRequired } from '../orgs/policies'
 import { assertSeatsAvailable } from '../orgs/subscription'
 import { collectionDetailsJson, profileOrganizations } from '../orgs/views'
+import { assertGroupJoinAllowed, assertManageGrantsAllowed, grantorOf } from '../pam/manage-guard'
 import { attachmentsByCipher } from '../vault/attachments'
 import { FederationEvent, federationEventStatement } from './events'
 import { federationEnabled } from './identity'
@@ -166,6 +167,10 @@ export async function inviteFederated(
     )
   }
   if (groupIds.length) await assertIdsInOrg(db, 'group', orgUuid, groupIds)
+  // The invited member never receives Manage access on a covered collection from a non-admin (PAM).
+  const grantor = grantorOf(actor)
+  if (body.accessAll !== true) await assertManageGrantsAllowed(db, grantor, orgUuid, collections)
+  await assertGroupJoinAllowed(db, grantor, orgUuid, groupIds)
   return createFederatedInvite(c, orgUuid, {
     org,
     email,

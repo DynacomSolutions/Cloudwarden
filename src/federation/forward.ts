@@ -59,6 +59,13 @@ const BULK_IDS = new Set([
 ])
 const CREATE = new Set(['/api/ciphers', '/api/ciphers/create', '/api/ciphers/admin'])
 
+/** A row of a peer's PAM list: a plain object that carries a string `id`. */
+const isListRow = (row: unknown): boolean =>
+  typeof row === 'object' &&
+  row !== null &&
+  !Array.isArray(row) &&
+  typeof (row as { id?: unknown }).id === 'string'
+
 async function readBody(c: Ctx): Promise<Uint8Array> {
   if (c.req.method === 'GET' || c.req.method === 'HEAD') return new Uint8Array()
   // The org import keeps its local cap when the target is a federated organisation.
@@ -524,7 +531,8 @@ async function pamCall(
       try {
         const res = await forward(c, peer, user)
         const part = res.ok ? ((await res.json()) as { data?: unknown[] }) : null
-        if (Array.isArray(part?.data)) merged.push(...part.data)
+        // A peer is not trusted: keep only rows that look like list rows (an object with an id).
+        if (Array.isArray(part?.data)) merged.push(...part.data.filter(isListRow))
       } catch (err) {
         // A peer that cannot answer leaves its rows out; the local rows still show.
         log('warn', 'federation.pam_list_failed', { errorKind: errorKind(err) }, c.env)

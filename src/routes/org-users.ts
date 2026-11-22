@@ -46,6 +46,13 @@ import {
 import { assertOrgKeys, resetPasswordPolicy } from '../orgs/recovery'
 import { assertSeatsAvailable } from '../orgs/subscription'
 import { authOnce, batch } from '../orgs/util'
+import {
+  assertGroupJoinAllowed,
+  assertManageGrantsAllowed,
+  grantorOf,
+  memberGroups,
+  memberManageGrants,
+} from '../pam/manage-guard'
 import { activeSso } from '../sso/config'
 import { parseBody } from '../validation'
 import { bumpRevision, chunk } from '../vault/ciphers'
@@ -265,6 +272,10 @@ orgUsers.post('/api/organizations/:orgId/users/invite', async (c) => {
       collections.map((s) => s.id),
     )
   if (groupIds.length) await assertIdsInOrg(db, 'group', orgUuid, groupIds)
+  // A new member never receives Manage access on a covered collection from a non-admin (PAM).
+  const grantor = grantorOf(actor)
+  if (!body.accessAll) await assertManageGrantsAllowed(db, grantor, orgUuid, collections)
+  await assertGroupJoinAllowed(db, grantor, orgUuid, groupIds)
 
   const emails = [...new Set(body.emails.map(normalizeEmail))]
   if (emails.some((e) => !e.includes('@'))) {
@@ -1031,6 +1042,29 @@ const updateMember = async (c: Ctx) => {
       collections.map((s) => s.id),
     )
   if (groupIds.length) await assertIdsInOrg(db, 'group', orgUuid, groupIds)
+  // New Manage grants on covered collections, and new groups that hold them, need own Manage
+  // access (PAM). Grants and groups the member holds already stay allowed.
+  if (!isAdminRole(actor)) {
+    const grantor = grantorOf(actor)
+    if (body.collections !== undefined && body.accessAll !== true) {
+      await assertManageGrantsAllowed(
+        db,
+        grantor,
+        orgUuid,
+        collections,
+        await memberManageGrants(db, target.uuid),
+      )
+    }
+    if (body.groups != null) {
+      await assertGroupJoinAllowed(
+        db,
+        grantor,
+        orgUuid,
+        groupIds,
+        await memberGroups(db, target.uuid),
+      )
+    }
+  }
   const now = Date.now()
   const accessAll = body.accessAll === true
   await runBatch(db, [
@@ -1115,6 +1149,13 @@ orgUsers.put('/api/organizations/:orgId/users/:id/groups', async (c) => {
   if (target.uuid === actor.uuid) throw new ApiError(403, 'You cannot change your own groups.')
   const ids = [...new Set(groupIds)]
   if (ids.length) await assertIdsInOrg(db, 'group', org(c), ids)
+  await assertGroupJoinAllowed(
+    db,
+    grantorOf(actor),
+    org(c),
+    ids,
+    await memberGroups(db, target.uuid),
+  )
   await runBatch(db, [
     db.delete(schema.groupsUsers).where(eq(schema.groupsUsers.organizationUserUuid, target.uuid)),
     ...ids.map((g) =>

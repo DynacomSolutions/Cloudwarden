@@ -390,8 +390,8 @@ ETA: 2026-11-22 20:00 ICT
 | 433 | Billing, licence and trial routes with self-hosted answers | done | agent | | | | PR #127 (merge `541dab5`), CI green<br>`test/self-host-billing.test.ts`, `test/self-host-routes.test.ts` |
 | 434 | Emit every Public API event type | done | agent | | | | Gap audit of 22 Nov 2026, group G<br>PR #128 merged as f2aeb2f, 47 more codes<br>Codes with no Cloudwarden feature listed in docs/events.md |
 | 435 | Access Intelligence reports | done | agent | | | | Gap audit of 22 Nov 2026, group D4<br>PR #133 merged as 24874f4<br>Newest 50 reports per organisation, 99 MB file cap |
-| 436 | Privileged access: access connectors and credential rotation | in_progress | agent | | | 2026-11-22 18:00 ICT | Gap audit of 22 Nov 2026, groups D1 and D2 |
-| 437 | Privileged access: access requests, leases and access rules | in_progress | agent | | | 2026-11-22 18:00 ICT | Gap audit of 22 Nov 2026, group D3 |
+| 436 | Privileged access: access connectors and credential rotation | done | agent | | | | Gap audit of 22 Nov 2026, groups D1 and D2<br>PR #132 merged as 9c7a294<br>Four review rounds |
+| 437 | Privileged access: access requests, leases and access rules | done | agent | | | | Gap audit of 22 Nov 2026, group D3<br>PR #132 merged as 9c7a294<br>Leases enforced; one guard on all Manage grants |
 
 ## Evidence log
 

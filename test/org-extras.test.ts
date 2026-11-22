@@ -181,8 +181,8 @@ it('rate limits the anonymous storage event hook per address', async () => {
       headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': '203.0.113.77' },
       body: '[]',
     })
-  const codes: number[] = []
-  for (let i = 0; i < 40; i++) codes.push((await hit()).status)
+  // Parallel, so a slow host cannot spread the calls across two limiter windows.
+  const codes = (await Promise.all(Array.from({ length: 40 }, hit))).map((r) => r.status)
   expect(codes).toContain(429)
 })
 

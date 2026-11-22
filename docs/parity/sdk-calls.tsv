@@ -205,6 +205,7 @@ POST	/api/organization/sponsorship/validate-token	sdk:organization_sponsorships_
 DELETE	/api/organization/sponsorship/{id}	sdk:organization_sponsorships_api
 POST	/api/organization/sponsorship/{id}/families-for-enterprise	sdk:organization_sponsorships_api
 POST	/api/organization/sponsorship/{id}/families-for-enterprise/resend	sdk:organization_sponsorships_api
+POST	/api/organization/sponsorship/{id}/families-for-enterprise/resend-self	sdk:organization_sponsorships_api
 GET	/api/organization/sponsorship/{id}/sponsored	sdk:organization_sponsorships_api
 GET	/api/organization/sponsorship/{id}/sync-status	sdk:organization_sponsorships_api
 DELETE	/api/organization/sponsorship/{id}/{id}/revoke	sdk:organization_sponsorships_api
@@ -329,7 +330,9 @@ DELETE	/api/organizations/{id}/groups/{id}/user/{id}	sdk:groups_api
 GET	/api/organizations/{id}/groups/{id}/users	sdk:groups_api
 POST	/api/organizations/{id}/integrations	sdk:organization_integration_api
 GET	/api/organizations/{id}/integrations	sdk:organization_integration_api
+POST	/api/organizations/{id}/integrations/slack/complete	sdk:slack_integration_api
 GET	/api/organizations/{id}/integrations/slack/redirect	sdk:slack_integration_api
+POST	/api/organizations/{id}/integrations/teams/complete	sdk:teams_integration_api
 GET	/api/organizations/{id}/integrations/teams/redirect	sdk:teams_integration_api
 DELETE	/api/organizations/{id}/integrations/{id}	sdk:organization_integration_api
 PUT	/api/organizations/{id}/integrations/{id}	sdk:organization_integration_api
@@ -387,6 +390,8 @@ DELETE	/api/organizations/{id}/users/delete-account	sdk:organization_users_api
 PUT	/api/organizations/{id}/users/enable-pam	sdk:organization_users_api
 PUT	/api/organizations/{id}/users/enable-secrets-manager	sdk:organization_users_api
 POST	/api/organizations/{id}/users/invite	sdk:organization_users_api
+GET	/api/organizations/{id}/users/keys/pending-v2-upgrades	sdk:organization_users_keys_api
+POST	/api/organizations/{id}/users/keys/v2-upgrades	sdk:organization_users_keys_api
 GET	/api/organizations/{id}/users/mini-details	sdk:organization_users_api
 GET	/api/organizations/{id}/users/pending-auto-confirm	sdk:organization_users_api
 POST	/api/organizations/{id}/users/public-keys	sdk:organization_users_api
@@ -529,6 +534,9 @@ GET	/api/sm/events/service-accounts/{id}	sdk:secrets_manager_events_api
 GET	/api/sm/{id}/export	sdk:secrets_manager_porting_api
 POST	/api/sm/{id}/import	sdk:secrets_manager_porting_api
 GET	/api/sso-cookie-vendor	sdk:sso_cookie_vendor_api
+POST	/api/sso-jit-provision-finish/key-connector	sdk:sso_jit_provision_finish_api
+POST	/api/sso-jit-provision-finish/password	sdk:sso_jit_provision_finish_api
+POST	/api/sso-jit-provision-finish/trusted-device	sdk:sso_jit_provision_finish_api
 GET	/api/sync	sdk:sync_api
 GET	/api/tasks	sdk:security_task_api
 GET	/api/tasks/organization	sdk:security_task_api

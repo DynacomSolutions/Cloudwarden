@@ -86,6 +86,7 @@ tags:
 - name: PrivilegedAccess
   description: 'Privileged access management (docs/privileged-access.md): access connectors, credential rotation, access rules, access requests and leases. Read from the GPL-3.0 generated API client in github.com/bitwarden/sdk-internal (`crates/bitwarden-api-api`). Administration needs an owner or admin; requests and leases need privileged access (`users/enable-pam`). The connector-facing routes under `/api/access-connectors/rotation` accept only an access connector token (scope `api.access-connector`).'
 paths:
+
   /api/accounts:
     delete:
       tags:
@@ -299,6 +300,48 @@ paths:
           $ref: '#/components/responses/Unauthorized'
       x-source-version: web-v2025.8.0
       x-source-file: libs/common/src/services/api.service.ts
+  /api/accounts/key-management/key-rotation-data:
+    get:
+      tags:
+      - Accounts
+      operationId: getKeyRotationData
+      summary: 'Read what a key rotation must re-wrap'
+      description: 'Organisation account recovery enrolments with the organisation public key, confirmed emergency access grants with the grantee public key, trusted devices and passkey keysets that hold a wrapped user key.'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KeyRotationDataResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/accounts_key_management_api.rs
+  /api/accounts/key-management/regenerate-keys:
+    post:
+      tags:
+      - Accounts
+      operationId: regenerateKeys
+      summary: 'Store the key pair of an account that has none'
+      description: 'Sets the key pair of an account without one. For an account with a public key, the same public key re-wraps the private key; another public key answers 400.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KeyRegenerationRequest'
+      responses:
+        '200':
+          description: Success, empty body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/accounts_key_management_api.rs
   /api/accounts/key-management/rotate-user-account-keys:
     post:
       tags:
@@ -320,6 +363,28 @@ paths:
           $ref: '#/components/responses/Unauthorized'
       x-source-version: web-v2026.9.1
       x-source-file: apps/web/src/app/key-management/key-rotation/user-key-rotation-api.service.ts
+  /api/accounts/key-management/rotate-user-keys:
+    post:
+      tags:
+      - Accounts
+      operationId: rotateUserKeys
+      summary: 'Rotate the user key for any unlock method'
+      description: 'The unlock method (trusted device, master password or key connector) must match the account. A master password account keeps its authentication hash and KDF settings. A recovery key sent as null stays on the old key, and the V2 upgrade token lets an administrator re-wrap it (`keys/v2-upgrades`). All other sessions end.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RotateUserKeysRequest'
+      responses:
+        '200':
+          description: Success, empty body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/accounts_key_management_api.rs
   /api/accounts/keys:
     post:
       tags:
@@ -680,6 +745,31 @@ paths:
           $ref: '#/components/responses/Unauthorized'
       x-source-version: web-v2026.9.1
       x-source-file: libs/common/src/auth/services/account-api.service.ts
+    put:
+      tags:
+      - Accounts
+      operationId: setVerifyDevicesPut
+      summary: Toggle new-device verification (current verb)
+      description: The client types the response as a string but does not use it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetVerifyDevicesRequest'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/accounts_api.rs
   /api/accounts/verify-email:
     post:
       tags:
@@ -1067,6 +1157,62 @@ paths:
           $ref: '#/components/responses/Unauthorized'
       x-source-version: web-v2026.9.1
       x-source-file: libs/common/src/vault/services/default-cipher-archive.service.ts
+  /api/ciphers/attachment/download:
+    get:
+      tags:
+      - Attachments
+      operationId: downloadAttachmentByToken
+      summary: 'Download an attachment with a signed token'
+      description: 'The `token` query value comes from the attachment `url`. It needs no sign-in, lasts five minutes and names one attachment.'
+      parameters:
+      - name: token
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: The encrypted file.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/ciphers_api.rs
+  /api/ciphers/attachment/validate/azure:
+    post:
+      tags:
+      - Attachments
+      operationId: validateAzureStorageEvents
+      summary: 'Answer the Azure Event Grid hook'
+      description: 'Attachments live in object storage here, so no event arrives. A subscription validation event gets its validation code back. Other events are accepted and ignored.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+      responses:
+        '200':
+          description: The validation response for a handshake, otherwise an empty body.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  validationResponse:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/ciphers_api.rs
   /api/ciphers/bulk-collections:
     post:
       tags:
@@ -1285,6 +1431,37 @@ paths:
           $ref: '#/components/responses/Unauthorized'
       x-source-version: web-v2026.9.1
       x-source-file: libs/common/src/vault/services/cipher.service.ts
+  /api/ciphers/organization-details/logins:
+    get:
+      tags:
+      - Ciphers
+      operationId: listOrganizationLoginCiphers
+      summary: 'List an organization''s login ciphers'
+      description: 'The login items of organization-details, with the same authorisation.'
+      parameters:
+      - name: organizationId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CipherResponseList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/ciphers_api.rs
   /api/ciphers/purge:
     post:
       tags:
@@ -1590,6 +1767,51 @@ paths:
           $ref: '#/components/responses/Forbidden'
       x-source-version: web-v2026.9.1
       x-source-file: libs/common/src/services/api.service.ts
+  /api/ciphers/{id}/attachment-admin:
+    post:
+      tags:
+      - Attachments
+      operationId: uploadOrganizationAttachmentAdmin
+      summary: 'Upload an attachment as an organisation administrator'
+      description: 'Multipart form with a `key` field and the file in `data`. Needs the right to manage every item of the organisation. Answers the cipher.'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                key:
+                  type: string
+                data:
+                  type: string
+                  format: binary
+              required:
+              - key
+              - data
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CipherResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/ciphers_api.rs
   /api/ciphers/{id}/attachment/v2:
     post:
       tags:
@@ -2790,6 +3012,30 @@ paths:
           $ref: '#/components/responses/NotFound'
       x-source-version: web-v2026.9.1
       x-source-file: libs/common/src/vault/services/folder/folder-api.service.ts
+  /api/organization/sponsorship/{orgId}/families-for-enterprise/resend-self:
+    post:
+      tags:
+      - Billing
+      operationId: resendOwnFamiliesSponsorshipOffer
+      summary: 'Resend the caller''s own families sponsorship offer'
+      description: 'Families sponsorships need the cloud: always 400. Needs organisation membership.'
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/organization_sponsorships_api.rs
   /api/organizations:
     post:
       tags:
@@ -3504,6 +3750,37 @@ paths:
           $ref: '#/components/responses/Forbidden'
       x-source-version: web-v2026.9.1
       x-source-file: libs/common/src/services/api.service.ts
+  /api/organizations/{organizationId}/collections/access:
+    get:
+      tags:
+      - Collections
+      operationId: listOrganizationCollectionAccess
+      summary: 'List collections with access details (current route)'
+      description: 'The same rows as `collections/details`, with `hasEnabledAccessRule` (always false here).'
+      parameters:
+      - name: organizationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionAccessDetailsResponseList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/collections_api.rs
   /api/organizations/{organizationId}/collections/bulk-access:
     post:
       tags:
@@ -3713,6 +3990,72 @@ paths:
           $ref: '#/components/responses/Forbidden'
       x-source-version: web-v2026.9.1
       x-source-file: libs/common/src/services/api.service.ts
+  /api/organizations/{organizationId}/integrations/slack/complete:
+    post:
+      tags:
+      - Organizations
+      operationId: completeSlackIntegration
+      summary: 'End the Slack OAuth flow (answers 400 without a Slack app)'
+      description: 'Needs an owner or admin. This server has no OAuth app, so it always answers 400.'
+      parameters:
+      - name: organizationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationIntegrationOAuthCompleteRequest'
+      responses:
+        '200':
+          description: Never returned on this server.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/slack_integration_api.rs
+  /api/organizations/{organizationId}/integrations/teams/complete:
+    post:
+      tags:
+      - Organizations
+      operationId: completeTeamsIntegration
+      summary: 'End the Teams OAuth flow (answers 400 without a Teams app)'
+      description: 'Needs an owner or admin. This server has no OAuth app, so it always answers 400.'
+      parameters:
+      - name: organizationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationIntegrationOAuthCompleteRequest'
+      responses:
+        '200':
+          description: Never returned on this server.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/teams_integration_api.rs
   /api/organizations/{organizationId}/policies:
     get:
       tags:
@@ -4172,6 +4515,75 @@ paths:
           $ref: '#/components/responses/Forbidden'
       x-source-version: web-v2026.9.1
       x-source-file: libs/admin-console/src/common/organization-user/services/default-organization-user-api.service.ts
+  /api/organizations/{organizationId}/users/keys/pending-v2-upgrades:
+    get:
+      tags:
+      - OrganizationUsers
+      operationId: listPendingV2Upgrades
+      summary: 'List members whose recovery key waits for a V2 upgrade'
+      description: 'Needs the permission to manage account recovery. Lists only members the caller may recover, 100 per page. Read the next page with the continuation token until it is null. A page can be empty and still have a token.'
+      parameters:
+      - name: organizationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: continuationToken
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationUserPendingV2UpgradeList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/organization_users_keys_api.rs
+  /api/organizations/{organizationId}/users/keys/v2-upgrades:
+    post:
+      tags:
+      - OrganizationUsers
+      operationId: postV2Upgrades
+      summary: 'Re-wrap account recovery keys after a V2 upgrade'
+      description: 'A membership that changed since the read is skipped. A null `accountRecoveryKey` unenrols the member from account recovery.'
+      parameters:
+      - name: organizationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationUserV2UpgradesRequest'
+      responses:
+        '200':
+          description: Success, empty body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/organization_users_keys_api.rs
   /api/organizations/{organizationId}/users/public-keys:
     post:
       tags:
@@ -4244,6 +4656,43 @@ paths:
           $ref: '#/components/responses/Forbidden'
       x-source-version: web-v2026.9.1
       x-source-file: libs/admin-console/src/common/organization-user/services/default-organization-user-api.service.ts
+  /api/organizations/{organizationId}/users/send-invite:
+    post:
+      tags:
+      - OrganizationUsers
+      operationId: sendOrganizationUserInvites
+      summary: 'Send invitations to members that are still invited'
+      description: 'The same work as `users/reinvite`: each listed member who is still invited gets the invitation again; any other member gets an error in the list.'
+      parameters:
+      - name: organizationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationUserBulkRequest'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationUserBulkResponseList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/organization_users_api.rs
   /api/organizations/{organizationId}/users/{id}:
     get:
       tags:
@@ -4988,6 +5437,72 @@ paths:
       security: []
       x-source-version: sdk-internal@main
       x-source-file: crates/bitwarden-api-api/src/apis/sso_cookie_vendor_api.rs
+  /api/sso-jit-provision-finish/key-connector:
+    post:
+      tags:
+      - Accounts
+      operationId: ssoJitProvisionFinishKeyConnector
+      summary: 'Finish SSO provisioning (key-connector)'
+      description: 'Stores the key connector wrapped user key and account keys, with the body of `accounts/set-key-connector-key`. `acceptOrganizationInvite` also accepts a pending invitation; SSO sign-in has already accepted the membership otherwise.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SsoJitProvisionFinishKeyConnectorRequest'
+      responses:
+        '200':
+          description: Success, empty body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/sso_jit_provision_finish_api.rs
+  /api/sso-jit-provision-finish/password:
+    post:
+      tags:
+      - Accounts
+      operationId: ssoJitProvisionFinishPassword
+      summary: 'Finish SSO provisioning (password)'
+      description: 'Sets the master password, keys and key id of a new SSO member. Send either `accountKeys` (V2) or `keys` (V1), not both. `acceptOrganizationInvite` also accepts a pending invitation; SSO sign-in has already accepted the membership otherwise.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SsoJitProvisionFinishPasswordRequest'
+      responses:
+        '200':
+          description: Success, empty body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/sso_jit_provision_finish_api.rs
+  /api/sso-jit-provision-finish/trusted-device:
+    post:
+      tags:
+      - Accounts
+      operationId: ssoJitProvisionFinishTrustedDevice
+      summary: 'Finish SSO provisioning (trusted-device)'
+      description: 'Stores the keys, the keys of the calling device and the account recovery key of a new member of a trusted device organisation. Without an enabled account recovery policy the recovery key is not stored. `acceptOrganizationInvite` also accepts a pending invitation; SSO sign-in has already accepted the membership otherwise.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SsoJitProvisionFinishTrustedDeviceRequest'
+      responses:
+        '200':
+          description: Success, empty body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/sso_jit_provision_finish_api.rs
   /api/sync:
     get:
       tags:
@@ -18290,6 +18805,7 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+
   /api/organizations/{orgId}/access-connectors:
     get:
       tags:
@@ -28244,6 +28760,368 @@ components:
       - type
       - name
       - identifier
+
+    KeyRotationDataResponse:
+      type: object
+      properties:
+        object:
+          type: string
+        organizationPasswordResetKeyData:
+          type: array
+          items:
+            type: object
+            properties:
+              object:
+                type: string
+              organizationId:
+                type: string
+                format: uuid
+              organizationName:
+                type: string
+              organizationPublicKey:
+                type:
+                - string
+                - 'null'
+        emergencyAccessKeyData:
+          type: array
+          items:
+            type: object
+            properties:
+              object:
+                type: string
+              id:
+                type: string
+                format: uuid
+              granteeId:
+                type: string
+                format: uuid
+              granteeName:
+                type: string
+              granteeEmail:
+                type: string
+              publicKey:
+                type:
+                - string
+                - 'null'
+        trustedDeviceKeyData:
+          type: array
+          items:
+            type: object
+            properties:
+              object:
+                type: string
+              id:
+                type: string
+                format: uuid
+              encryptedPublicKey:
+                type:
+                - string
+                - 'null'
+              encryptedUserKey:
+                type:
+                - string
+                - 'null'
+        passkeyKeyData:
+          type: array
+          items:
+            type: object
+            properties:
+              object:
+                type: string
+              id:
+                type: string
+                format: uuid
+              encryptedPublicKey:
+                type:
+                - string
+                - 'null'
+              encryptedUserKey:
+                type:
+                - string
+                - 'null'
+    KeyRegenerationRequest:
+      type: object
+      properties:
+        userPublicKey:
+          type: string
+        userKeyEncryptedUserPrivateKey:
+          type: string
+      required:
+      - userPublicKey
+      - userKeyEncryptedUserPrivateKey
+    RotateUserKeysRequest:
+      type: object
+      properties:
+        wrappedAccountCryptographicState:
+          $ref: '#/components/schemas/WrappedAccountCryptographicState'
+        unlockData:
+          type: object
+          properties:
+            emergencyAccessUnlockData:
+              type:
+              - array
+              - 'null'
+              items:
+                type: object
+            organizationAccountRecoveryUnlockData:
+              type:
+              - array
+              - 'null'
+              items:
+                type: object
+                properties:
+                  organizationId:
+                    type: string
+                    format: uuid
+                  resetPasswordKey:
+                    type:
+                    - string
+                    - 'null'
+            passkeyUnlockData:
+              type:
+              - array
+              - 'null'
+              items:
+                type: object
+            deviceKeyUnlockData:
+              type:
+              - array
+              - 'null'
+              items:
+                type: object
+            v2UpgradeToken:
+              $ref: '#/components/schemas/V2UpgradeToken'
+        accountData:
+          type: object
+          properties:
+            ciphers:
+              type: array
+              items:
+                type: object
+            folders:
+              type: array
+              items:
+                type: object
+            sends:
+              type: array
+              items:
+                type: object
+        unlockMethodData:
+          type: object
+          properties:
+            unlockMethod:
+              type: integer
+              enum: [0, 1, 2]
+              description: 0 trusted device, 1 master password, 2 key connector.
+            masterPasswordUnlockData:
+              type:
+              - object
+              - 'null'
+              properties:
+                kdf:
+                  $ref: '#/components/schemas/KdfRequest'
+                masterKeyWrappedUserKey:
+                  type: string
+                salt:
+                  type: string
+                containedKeyId:
+                  type:
+                  - string
+                  - 'null'
+            keyConnectorKeyWrappedUserKey:
+              type:
+              - string
+              - 'null'
+          required:
+          - unlockMethod
+        oldUserKeyId:
+          type:
+          - string
+          - 'null'
+        newUserKeyId:
+          type:
+          - string
+          - 'null'
+      required:
+      - wrappedAccountCryptographicState
+      - unlockData
+      - accountData
+      - unlockMethodData
+    WrappedAccountCryptographicState:
+      type: object
+      properties:
+        publicKeyEncryptionKeyPair:
+          type: object
+          properties:
+            wrappedPrivateKey:
+              type: string
+            publicKey:
+              type: string
+            signedPublicKey:
+              type:
+              - string
+              - 'null'
+          required:
+          - wrappedPrivateKey
+          - publicKey
+        signatureKeyPair:
+          type:
+          - object
+          - 'null'
+          properties:
+            signatureAlgorithm:
+              type:
+              - string
+              - 'null'
+            wrappedSigningKey:
+              type:
+              - string
+              - 'null'
+            verifyingKey:
+              type:
+              - string
+              - 'null'
+        securityState:
+          type:
+          - object
+          - 'null'
+          properties:
+            securityState:
+              type:
+              - string
+              - 'null'
+            securityVersion:
+              type: integer
+      required:
+      - publicKeyEncryptionKeyPair
+    V2UpgradeToken:
+      type:
+      - object
+      - 'null'
+      properties:
+        wrappedUserKey1:
+          type: string
+        wrappedUserKey2:
+          type: string
+    OrganizationUserPendingV2UpgradeList:
+      type: object
+      properties:
+        object:
+          type: string
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              object:
+                type: string
+              organizationUserId:
+                type: string
+                format: uuid
+              userKeyId:
+                type: string
+              accountRecoveryKey:
+                type: string
+              v2UpgradeToken:
+                $ref: '#/components/schemas/V2UpgradeToken'
+        continuationToken:
+          type:
+          - string
+          - 'null'
+      required:
+      - data
+    OrganizationUserV2UpgradesRequest:
+      type: object
+      properties:
+        upgrades:
+          type: array
+          items:
+            type: object
+            properties:
+              organizationUserId:
+                type: string
+                format: uuid
+              userKeyId:
+                type: string
+              accountRecoveryKey:
+                type:
+                - string
+                - 'null'
+            required:
+            - organizationUserId
+            - userKeyId
+      required:
+      - upgrades
+    OrganizationIntegrationOAuthCompleteRequest:
+      type: object
+      properties:
+        code:
+          type: string
+        state:
+          type: string
+      required:
+      - code
+      - state
+    SsoJitProvisionFinishPasswordRequest:
+      type: object
+      properties:
+        masterPasswordAuthentication:
+          type: object
+        masterPasswordUnlock:
+          type: object
+        accountKeys:
+          type:
+          - object
+          - 'null'
+        keys:
+          type:
+          - object
+          - 'null'
+        masterPasswordHint:
+          type:
+          - string
+          - 'null'
+        orgIdentifier:
+          type: string
+        acceptOrganizationInvite:
+          type: boolean
+      required:
+      - masterPasswordAuthentication
+      - masterPasswordUnlock
+      - orgIdentifier
+      - acceptOrganizationInvite
+    SsoJitProvisionFinishKeyConnectorRequest:
+      type: object
+      properties:
+        keyConnectorKeys:
+          $ref: '#/components/schemas/SetKeyConnectorKeyRequest'
+        acceptOrganizationInvite:
+          type: boolean
+      required:
+      - keyConnectorKeys
+      - acceptOrganizationInvite
+    SsoJitProvisionFinishTrustedDeviceRequest:
+      type: object
+      properties:
+        keys:
+          type: object
+        organizationId:
+          type: string
+          format: uuid
+        accountRecoveryKey:
+          type:
+          - string
+          - 'null'
+        deviceKeys:
+          type:
+          - object
+          - 'null'
+        acceptOrganizationInvite:
+          type: boolean
+      required:
+      - keys
+      - organizationId
+      - acceptOrganizationInvite
     PamAccessConnectorStatus:
       type: integer
       description: 0 Enabled, 1 Disabled.

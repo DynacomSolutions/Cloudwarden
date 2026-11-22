@@ -83,6 +83,27 @@ organisation, or it is refused. The legacy `POST /api/accounts/key` carries no r
 it withdraws every enrolment instead of leaving a key that would unlock the old user key (an
 admin reset with it would lock the member out).
 
+`POST /api/accounts/key-management/rotate-user-keys` is the rotation of the newest clients. It names
+the unlock method (0 trusted device, 1 master password, 2 key connector), which must fit the
+account. A master password account keeps its authentication hash, so its KDF settings cannot change
+there. The request carries the V2 account keys (`wrappedAccountCryptographicState`: signature key
+pair and security state, stored in `users.account_keys_v2`) and the new key id. Emergency access
+copies named in `emergencyAccessUnlockData` are re-wrapped; a confirmed grant left out keeps its
+old copy. `GET /api/accounts/key-management/key-rotation-data` lists what the client must re-wrap
+(recovery enrolments with the organisation public key, confirmed emergency grants with the grantee
+public key, trusted devices and passkey keysets). `POST .../regenerate-keys` sets the key pair of an
+account that has none, or re-wraps the private key under the same public key.
+
+### V2 upgrade of recovery keys
+
+A rotation to a V2 user key cannot re-wrap the recovery key for the organisation. The client sends
+`resetPasswordKey: null` with a `v2UpgradeToken`. The old key stays on the membership and the token
+is stored beside it (`users_organizations.v2_upgrade_token`). An administrator with the
+`manageResetPassword` permission reads `GET /api/organizations/{orgId}/users/keys/pending-v2-upgrades`
+(only members they may recover, 100 per page, then the continuation token) and posts
+`POST .../users/keys/v2-upgrades` with the key wrapped for the organisation, or `null` to unenrol the
+member. A membership whose key id changed since the read is skipped.
+
 ## Device approvals (admin approval auth requests)
 
 Auth request types: 0 authenticate and unlock, 1 unlock (both answered by the user's own devices,

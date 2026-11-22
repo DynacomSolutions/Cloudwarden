@@ -257,15 +257,22 @@
     {
       "idx": 36,
       "version": "6",
-      "when": 1795299308173,
-      "tag": "0036_privileged_access_rotation",
+      "when": 1795299085085,
+      "tag": "0036_v2_key_upgrades",
       "breakpoints": true
     },
     {
       "idx": 37,
       "version": "6",
-      "when": 1795299309857,
-      "tag": "0037_privileged_access_leases",
+      "when": 1795317857028,
+      "tag": "0037_privileged_access_rotation",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "6",
+      "when": 1795317858581,
+      "tag": "0038_privileged_access_leases",
       "breakpoints": true
     }
   ]

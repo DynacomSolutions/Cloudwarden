@@ -103,4 +103,4 @@ A lease is enforced on the server. The model follows the official clients: an it
 
 ## Data
 
-Migrations `0036_privileged_access_rotation` (connectors, target systems, assignments, configurations, jobs, attempts, audit) and `0037_privileged_access_leases` (rules, requests, decisions, leases). Tests: `test/pam-rotation.test.ts`, `test/pam-leases.test.ts`, `test/pam-enforcement.test.ts`, `test/pam-cron.test.ts`.
+Migrations `0037_privileged_access_rotation` (connectors, target systems, assignments, configurations, jobs, attempts, audit) and `0038_privileged_access_leases` (rules, requests, decisions, leases). Tests: `test/pam-rotation.test.ts`, `test/pam-leases.test.ts`, `test/pam-enforcement.test.ts`, `test/pam-cron.test.ts`.

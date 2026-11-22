@@ -149,7 +149,7 @@ const verifyDevicesSchema = z.object({
   otp: z.string().nullish(),
   verifyDevices: z.boolean(),
 })
-accountEmail.post('/api/accounts/verify-devices', requireAuth, async (c: Ctx) => {
+const setVerifyDevices = async (c: Ctx) => {
   const user = c.var.user
   const body = await parseBody(c, verifyDevicesSchema)
   const db = createDb(c.env.DB)
@@ -165,7 +165,10 @@ accountEmail.post('/api/accounts/verify-devices', requireAuth, async (c: Ctx) =>
     .set({ verifyDevices: body.verifyDevices, updatedAt: Date.now() })
     .where(eq(schema.users.uuid, user.uuid))
   return c.body(null, 200)
-})
+}
+// PUT is the current verb; the web vault still sends POST.
+accountEmail.put('/api/accounts/verify-devices', requireAuth, setVerifyDevices)
+accountEmail.post('/api/accounts/verify-devices', requireAuth, setVerifyDevices)
 
 // Account deletion by email, for people who cannot give their master password. Answers the
 // same for every address; the signed link goes only to the address on file.

@@ -70,6 +70,7 @@ CREATE TABLE `pam_leases` (
 	`revoked_by_user_uuid` text,
 	`revocation_reason` text,
 	`last_extension_request_uuid` text,
+	`start_notified_at` integer,
 	`created_at` integer NOT NULL,
 	FOREIGN KEY (`request_uuid`) REFERENCES `pam_access_requests`(`uuid`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`organization_uuid`) REFERENCES `organizations`(`uuid`) ON UPDATE no action ON DELETE cascade,

@@ -715,12 +715,13 @@ orgCiphers.post('/api/ciphers/bulk-collections', async (c) => {
   for (const row of rows) {
     if (row.organizationUuid !== body.organizationId) throw NOT_FOUND()
     const linked = await linkedCollections(db, row.uuid)
+    const a = itemAccess(ua, body.organizationId, linked, row.uuid)
+    // An item the caller cannot reach does not exist for them: answer before any restriction.
+    if (!a && !manager) throw NOT_FOUND()
     // A custom manager reaches every item, but not past an access rule that restricts them.
     if (!isAdminRole(member) && leaseRestricted(ua, body.organizationId, row.uuid, linked)) {
       throw new ApiError(403, 'A lease is required to change the collections of this item.')
     }
-    const a = itemAccess(ua, body.organizationId, linked, row.uuid)
-    if (!a && !manager) throw NOT_FOUND()
     if (a && !a.manage && !manager)
       throw new ApiError(403, 'You do not have permission to do this.')
   }

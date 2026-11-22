@@ -33,6 +33,19 @@ export const MAX_FORWARD_BYTES = 25 * 1024 * 1024
 
 const ORG_PATH = /^\/api\/organizations\/([0-9a-f-]{36})(\/.*)?$/
 const CIPHER_ID_PATH = /^\/api\/ciphers\/([0-9a-f-]{36})(\/.*)?$/
+// Privileged access (PAM): leases and access requests belong to the instance that hosts the item.
+const PAM_PATH = /^\/api\/(leases|access-requests)(\/|$)/
+const LEASE_CIPHER_PATH = /^\/api\/leases\/ciphers\/([0-9a-fA-F-]{36})(\/.*)?$/
+const PAM_ID_PATH = /^\/api\/(leases|access-requests)\/([0-9a-fA-F-]{36})(\/.*)?$/
+const PAM_LISTS = new Set([
+  '/api/leases/mine',
+  '/api/leases/active',
+  '/api/leases/history',
+  '/api/access-requests/inbox',
+  '/api/access-requests/mine',
+  '/api/access-requests/history',
+])
+const PAM_LIST_LIMIT = 200
 const BULK_IDS = new Set([
   '/api/ciphers/delete',
   '/api/ciphers/restore',
@@ -126,11 +139,14 @@ async function setFolder(db: Db, user: User, cipherUuid: string, folder: string 
   ] as never)
 }
 
+// `cipherAccessState` (PAM) is the state of an item for a member, not an item.
+const NOT_A_CIPHER = new Set(['cipherAccessState'])
 const isCipher = (o: unknown): o is Record<string, unknown> =>
   !!o &&
   typeof o === 'object' &&
   typeof (o as Record<string, unknown>).object === 'string' &&
-  ((o as Record<string, unknown>).object as string).startsWith('cipher')
+  ((o as Record<string, unknown>).object as string).startsWith('cipher') &&
+  !NOT_A_CIPHER.has((o as Record<string, unknown>).object as string)
 
 async function overlayFolders(db: Db, user: User, value: unknown): Promise<unknown> {
   const items: Record<string, unknown>[] = []
@@ -438,8 +454,98 @@ async function shareInto(
   })
 }
 
+/** Every peer that serves the user an organisation, once each. */
+async function peersOf(db: Db, user: User): Promise<Peer[]> {
+  const rows = await db
+    .select({ p: schema.federationPeers })
+    .from(schema.federationReplicaOrgs)
+    .innerJoin(
+      schema.federationPeers,
+      eq(schema.federationPeers.uuid, schema.federationReplicaOrgs.peerUuid),
+    )
+    .where(eq(schema.federationReplicaOrgs.userUuid, user.uuid))
+  return [...new Map(rows.map((r) => [r.p.uuid, r.p])).values()]
+}
+
+/** True when a lease or an access request with this id exists on this instance. */
+async function localPamRow(db: Db, kind: string, id: string): Promise<boolean> {
+  const table = kind === 'leases' ? schema.pamLeases : schema.pamAccessRequests
+  const [row] = await db.select({ id: table.uuid }).from(table).where(eq(table.uuid, id)).limit(1)
+  return row !== undefined
+}
+
 /**
- * Middleware on `/api/ciphers*` and `/api/organizations/*`. Does nothing unless federation is on
+ * Lease and access request calls. Calls keyed by an item go to the instance that hosts it. Calls
+ * keyed by a lease or request id run locally when this instance holds that row; else the hosting
+ * instances are asked in turn and the first one that knows the id answers. The six list routes
+ * show the local rows and the rows of every peer that serves the member an organisation.
+ */
+async function pamCall(
+  c: Ctx,
+  db: Db,
+  user: User,
+  path: string,
+  next: () => Promise<void>,
+): Promise<Response | undefined> {
+  const method = c.req.method
+  const item = LEASE_CIPHER_PATH.exec(path)?.[1]?.toLowerCase()
+  if (item) {
+    const org = (await federatedCipherOrgs(db, user.uuid, [item])).get(item)
+    const peer = org ? await peerForOrg(db, user, org) : undefined
+    return peer ? forward(c, peer, user) : undefined
+  }
+  const byId = PAM_ID_PATH.exec(path)
+  if (byId) {
+    const id = (byId[2] as string).toLowerCase()
+    if (await localPamRow(db, byId[1] as string, id)) return undefined
+    let failure: unknown
+    for (const peer of await peersOf(db, user)) {
+      try {
+        const res = await forward(c, peer, user)
+        if (res.status !== 404) return res
+      } catch (err) {
+        failure ??= err
+      }
+    }
+    // No peer knows the id: a peer that could not be asked may have it, else the local 404 stands.
+    if (failure) throw failure
+    return undefined
+  }
+  if (PAM_LISTS.has(path) && method === 'GET') {
+    await next()
+    const peers = await peersOf(db, user)
+    if (peers.length === 0 || c.res.status !== 200) return c.res
+    const local = (await c.res
+      .clone()
+      .json()
+      .catch(() => null)) as { data?: unknown[] } | null
+    const merged: unknown[] = Array.isArray(local?.data) ? [...local.data] : []
+    for (const peer of peers) {
+      try {
+        const res = await forward(c, peer, user)
+        const part = res.ok ? ((await res.json()) as { data?: unknown[] }) : null
+        if (Array.isArray(part?.data)) merged.push(...part.data)
+      } catch (err) {
+        // A peer that cannot answer leaves its rows out; the local rows still show.
+        log('warn', 'federation.pam_list_failed', { errorKind: errorKind(err) }, c.env)
+      }
+    }
+    const stamp = (row: unknown) => {
+      const v = pick(row, 'submittedAt', 'notBefore')
+      return typeof v === 'string' ? Date.parse(v) || 0 : 0
+    }
+    merged.sort((a, b) => stamp(b) - stamp(a))
+    return c.json({
+      object: 'list',
+      data: merged.slice(0, PAM_LIST_LIMIT),
+      continuationToken: null,
+    })
+  }
+  return undefined
+}
+
+/**
+ * Middleware on `/api/ciphers*`, `/api/leases*`, `/api/access-requests*` and `/api/organizations/*`. Does nothing unless federation is on
  * and the caller holds a federated organisation, so normal requests pay one indexed lookup.
  */
 export const federationForwarder: MiddlewareHandler<Env> = async (c, next) => {
@@ -467,6 +573,15 @@ export const federationForwarder: MiddlewareHandler<Env> = async (c, next) => {
   if (om) {
     const peer = await peerForOrg(db, user, om[1] as string)
     return peer ? forward(c, peer, user) : next()
+  }
+  if (PAM_PATH.test(path)) {
+    const res = await pamCall(c, db, user, path, next)
+    if (res) {
+      // A merged list replaces the local answer; any other answer comes from a peer.
+      if (res !== c.res) c.res = res
+      return res
+    }
+    return next()
   }
   if (!path.startsWith('/api/ciphers')) return next()
 

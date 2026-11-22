@@ -137,6 +137,8 @@ export const pamLeases = sqliteTable(
     revocationReason: text('revocation_reason'),
     /** The extension request that last moved `notAfter`; makes applying an extension atomic. */
     lastExtensionRequestUuid: text('last_extension_request_uuid'),
+    /** When the member's devices were told to sync for the start of a scheduled window (once). */
+    startNotifiedAt: integer('start_notified_at'),
     createdAt: integer('created_at').notNull(),
   },
   (t) => [

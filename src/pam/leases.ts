@@ -221,14 +221,14 @@ export async function rotateAfterAccess(db: Db, lease: Pick<LeaseRow, 'cipherUui
   if (config?.on) await queueJob(db, config.id, RotationSource.AccessEnd, now)
 }
 
-/** A windowed lease that started within this time before a sweep still gets its sync push. */
+/** A windowed lease that started within this time before a sweep still gets its sync push (once). */
 const START_LOOKBACK_MS = 10 * 60_000
 
 /**
  * One pass of the access sweep: expires requests nobody decided or activated in time, marks leases
  * whose time ran out as Expired, queues access-end rotations, and tells the members whose windowed
  * lease has just started to sync (a lease that starts later changes nothing at the moment of
- * approval). Idempotent: a repeated push only makes a client sync again.
+ * approval). Idempotent: the start push is recorded on the lease, so it happens once.
  */
 export async function sweepAccess(env: Bindings, now = Date.now()): Promise<void> {
   const db = createDb(env.DB)
@@ -274,7 +274,7 @@ export async function sweepAccess(env: Bindings, now = Date.now()): Promise<void
     }
   }
   const started = await db
-    .selectDistinct({ userUuid: schema.pamLeases.requesterUuid })
+    .select({ uuid: schema.pamLeases.uuid, userUuid: schema.pamLeases.requesterUuid })
     .from(schema.pamLeases)
     .where(
       and(
@@ -283,10 +283,20 @@ export async function sweepAccess(env: Bindings, now = Date.now()): Promise<void
         // Only a lease scheduled for later starts at a time of its own.
         sql`${schema.pamLeases.notBefore} > ${schema.pamLeases.createdAt}`,
         sql`${schema.pamLeases.notAfter} > ${now}`,
+        sql`${schema.pamLeases.startNotifiedAt} is null`,
       ),
     )
     .limit(200)
-  for (const { userUuid } of started) {
+  const told = new Set<string>()
+  for (const { uuid, userUuid } of started) {
+    // Record the push first: a sweep that runs twice at once still pushes once.
+    const claimed = await db
+      .update(schema.pamLeases)
+      .set({ startNotifiedAt: now })
+      .where(and(eq(schema.pamLeases.uuid, uuid), sql`${schema.pamLeases.startNotifiedAt} is null`))
+      .returning({ id: schema.pamLeases.uuid })
+    if (claimed.length === 0 || told.has(userUuid)) continue
+    told.add(userUuid)
     await bumpMemberRevision(db, userUuid, now)
     await pushLeaseChange(env, userUuid, now).catch(() => undefined)
   }

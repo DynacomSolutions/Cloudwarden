@@ -365,6 +365,10 @@ refreshes the replica and returns.
   The item gets a new id. Items with attachments must be moved without attachments.
 - Attachments upload through B to A (the upload is buffered to be signed, up to 25 MB) and download
   through B's relay.
+- Privileged access (`/api/leases/*`, `/api/access-requests/*`) is forwarded the same way when the
+  item, lease or request belongs to a federated organisation. The six list routes merge the local
+  rows with the rows of every peer, and A returns only rows of organisations that still qualify
+  for federation. See docs/privileged-access.md, "Lease enforcement".
 
 ### Revocation and key changes
 

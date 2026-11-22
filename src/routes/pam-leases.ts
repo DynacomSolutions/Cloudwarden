@@ -289,7 +289,11 @@ function insertLeaseIf(
   db: Db,
   lease: Omit<
     LeaseRow,
-    'revokedAt' | 'revokedByUserUuid' | 'revocationReason' | 'lastExtensionRequestUuid'
+    | 'revokedAt'
+    | 'revokedByUserUuid'
+    | 'revocationReason'
+    | 'lastExtensionRequestUuid'
+    | 'startNotifiedAt'
   >,
   guard: SQL,
 ) {
@@ -310,6 +314,7 @@ function insertLeaseIf(
         revokedByUserUuid: sql<string | null>`null`.as('revoked_by_user_uuid'),
         revocationReason: sql<string | null>`null`.as('revocation_reason'),
         lastExtensionRequestUuid: sql<string | null>`null`.as('last_extension_request_uuid'),
+        startNotifiedAt: sql<number | null>`null`.as('start_notified_at'),
         createdAt: c(lease.createdAt, 'created_at'),
       })
       .from(schema.pamAccessRequests)

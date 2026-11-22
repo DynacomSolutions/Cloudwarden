@@ -682,6 +682,8 @@ const CIPHER_PATH = /^\/api\/ciphers(\/.*)?$/
 // Privileged access (PAM): leases and access requests run through the normal routes, which apply
 // the same checks as for a local member.
 const PAM_PATH = /^\/api\/(leases|access-requests)(\/.*)?$/
+// The list routes of PAM answer for every organisation the stand-in belongs to.
+const PAM_LIST = /^\/api\/(leases\/(mine|active|history)|access-requests\/(inbox|mine|history))$/
 const ATTACHMENT_DOWNLOAD = /^\/attachments\/[0-9a-f-]{36}\/[A-Za-z0-9_-]+$/
 
 /** Features that do not cross instances (docs/federation.md, "Not federated"). */
@@ -803,6 +805,33 @@ async function assertTouchesFederatableOrgs(
   }
 }
 
+/**
+ * A forwarded list shows only rows of organisations that may serve federated members right now
+ * (no single sign-on, no required two-step login): the same rule as for a call that names one.
+ */
+async function qualifyingList(db: Db, res: Response): Promise<Response> {
+  const json = (await res.json().catch(() => null)) as { data?: unknown } | null
+  if (!json || !Array.isArray(json.data)) {
+    return new Response(JSON.stringify(json), { status: res.status, headers: listHeaders() })
+  }
+  const orgOf = (row: unknown) => (row as { organizationId?: unknown } | null)?.organizationId
+  const ok = new Map<string, boolean>()
+  for (const org of new Set(json.data.map(orgOf))) {
+    if (typeof org === 'string') ok.set(org, await federatableOrg(db, org))
+  }
+  const data = json.data.filter((row) => {
+    const org = orgOf(row)
+    return typeof org === 'string' && ok.get(org) === true
+  })
+  return new Response(JSON.stringify({ ...json, data }), {
+    status: res.status,
+    headers: listHeaders(),
+  })
+}
+
+const listHeaders = () =>
+  new Headers({ 'content-type': 'application/json', 'cache-control': 'no-store' })
+
 /** Runs a forwarded client request as the stand-in account, through the normal routes. */
 export async function executeForwarded(c: Ctx, user: User, device: string | null, rest: string) {
   const url = new URL(c.req.url)
@@ -837,6 +866,9 @@ export async function executeForwarded(c: Ctx, user: User, device: string | null
     ctx = undefined
   }
   const res = await app.fetch(target, c.env, ctx)
+  if (c.req.method === 'GET' && PAM_LIST.test(path) && res.ok) {
+    return qualifyingList(createDb(c.env.DB), res)
+  }
   const out = new Headers()
   for (const h of ['content-type', 'content-disposition', 'content-length']) {
     const v = res.headers.get(h)

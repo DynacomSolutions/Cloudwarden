@@ -97,7 +97,7 @@ export async function flushRotateAfterJob(db: Db, now: number, configUuid?: stri
     )
     .limit(SWEEP_BATCH)
   for (const { id } of waiting) {
-    // Clear the flag first, so two sweeps queue one job; a busy answer sets it again.
+    // Clear the flag first, so two sweeps queue one job; a busy or unusable answer sets it again.
     const cleared = await db
       .update(schema.pamRotationConfigs)
       .set({ rotateAfterJob: false })
@@ -108,7 +108,15 @@ export async function flushRotateAfterJob(db: Db, now: number, configUuid?: stri
         ),
       )
       .returning({ id: schema.pamRotationConfigs.uuid })
-    if (cleared.length > 0) await queueJob(db, id, RotationSource.AccessEnd, now)
+    if (cleared.length === 0) continue
+    const queued = await queueJob(db, id, RotationSource.AccessEnd, now)
+    // A disabled configuration or target cannot take the job: keep the request for when it can.
+    if (queued.reason === 'unusable') {
+      await db
+        .update(schema.pamRotationConfigs)
+        .set({ rotateAfterJob: true })
+        .where(eq(schema.pamRotationConfigs.uuid, id))
+    }
   }
 }
 

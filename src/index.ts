@@ -104,6 +104,10 @@ app.route('/', federation)
 for (const path of [
   '/api/ciphers',
   '/api/ciphers/*',
+  '/api/leases',
+  '/api/leases/*',
+  '/api/access-requests',
+  '/api/access-requests/*',
   '/api/organizations/:orgId',
   '/api/organizations/:orgId/*',
 ]) {

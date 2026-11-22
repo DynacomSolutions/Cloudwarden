@@ -5,12 +5,13 @@ import { z } from 'zod'
 import { createDb, type Db, schema } from '../db'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
-import { bumpOrgRevision, isAdminRole, requirePermission } from '../orgs/access'
+import { bumpOrgRevision, isAdminRole, type Member, requirePermission } from '../orgs/access'
 import { EventType } from '../orgs/constants'
 import { eventStatement } from '../orgs/events'
 import { accessOf, assertIdsInOrg, dedupeSelections, type Selection } from '../orgs/members'
 import { authOnce, batch } from '../orgs/util'
 import { groupJson, selectionJson } from '../orgs/views'
+import { assertManageGrantsAllowed, grantorOf } from '../pam/manage-guard'
 import { parseBody } from '../validation'
 
 export const groupsRouter = new Hono<Env>()
@@ -55,6 +56,42 @@ async function loadGroup(db: Db, orgUuid: string, id: string) {
     .limit(1)
   if (!g) throw new ApiError(404, 'Group not found.')
   return g
+}
+
+/** Collections where the group holds Manage access now. */
+async function manageGrantsOf(db: Db, groupUuid: string) {
+  const rows = await db
+    .select({ id: schema.collectionsGroups.collectionUuid })
+    .from(schema.collectionsGroups)
+    .where(
+      and(
+        eq(schema.collectionsGroups.groupUuid, groupUuid),
+        eq(schema.collectionsGroups.manage, true),
+      ),
+    )
+  return new Set(rows.map((r) => r.id))
+}
+
+/** Members to add to a group need the same check as new grants: the group's Manage access reaches them. */
+async function assertJoinAllowed(
+  db: Db,
+  actor: Member,
+  orgUuid: string,
+  groupUuid: string,
+  users: string[] | null,
+  collections: Selection[] | null,
+) {
+  if (isAdminRole(actor) || !users?.length) return
+  const present = new Set(await groupMembers(db, groupUuid))
+  if (users.every((u) => present.has(u))) return
+  const held = await manageGrantsOf(db, groupUuid)
+  const manage = collections ? collections.filter((s) => s.manage).map((s) => s.id) : [...held]
+  await assertManageGrantsAllowed(
+    db,
+    grantorOf(actor),
+    orgUuid,
+    manage.map((id) => ({ id, manage: true })),
+  )
 }
 
 async function groupDetails(db: Db, g: typeof schema.groups.$inferSelect) {
@@ -179,6 +216,7 @@ groupsRouter.put('/api/organizations/:orgId/groups/:id/users', async (c) => {
   const g = await loadGroup(db, org(c), c.req.param('id'))
   if (g.accessAll && !isAdminRole(actor)) throw new ApiError(403, ADMIN_ONLY)
   if (users.length) await assertIdsInOrg(db, 'member', org(c), users)
+  await assertJoinAllowed(db, actor, org(c), g.uuid, users, null)
   await batch(db, [
     ...groupStatements(db, g.uuid, users, null, false),
     eventStatement(db, c, {
@@ -221,6 +259,7 @@ groupsRouter.post('/api/organizations/:orgId/groups', async (c) => {
   const users = body.users ? [...new Set(body.users)] : null
   const cols = body.collections ? dedupeSelections(body.collections) : null
   await checkRefs(db, org(c), users, cols)
+  if (!body.accessAll) await assertManageGrantsAllowed(db, grantorOf(actor), org(c), cols ?? [])
   const id = crypto.randomUUID()
   const now = Date.now()
   await batch(db, [
@@ -254,6 +293,14 @@ const updateGroup = async (c: Ctx) => {
   // Omitted collections are left as they are; access-all groups carry no explicit grants.
   const cols = body.accessAll ? [] : body.collections ? dedupeSelections(body.collections) : null
   await checkRefs(db, org(c), users, cols)
+  await assertManageGrantsAllowed(
+    db,
+    grantorOf(actor),
+    org(c),
+    cols ?? [],
+    await manageGrantsOf(db, g.uuid),
+  )
+  await assertJoinAllowed(db, actor, org(c), g.uuid, users, cols)
   const now = Date.now()
   await batch(db, [
     db

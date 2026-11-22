@@ -2,6 +2,7 @@ import { and, eq, inArray, sql } from 'drizzle-orm'
 import type { Db } from '../db'
 import { schema } from '../db'
 import { ApiError } from '../errors'
+import { LeaseStatus } from '../pam/constants'
 import { PERMISSION_KEYS, Role, Status } from './constants'
 
 export type Member = typeof schema.usersOrganizations.$inferSelect
@@ -142,13 +143,40 @@ export interface UserAccess {
   grants: Map<string, Access>
   /** Organisations that limit deleting and restoring items to members with Manage access. */
   limitDeletionOrgs: Set<string>
+  /** Collections that an enabled access rule covers, in the user's organisations (PAM). */
+  gatedCollections: Set<string>
+  /** Items on which the user holds a live lease right now (PAM). */
+  leasedCiphers: Set<string>
+}
+
+/**
+ * Whether an item is restricted for the user: an enabled access rule covers one of its collections,
+ * and the user is not an owner or admin of the organisation, holds no Manage access to a covered
+ * collection (a decider), and holds no live lease on the item. A restricted item reaches the user
+ * only as the reduced row of the official clients (name and login URIs, no secrets).
+ */
+export function leaseRestricted(
+  ua: UserAccess,
+  orgUuid: string,
+  cipherUuid: string,
+  linked: string[],
+): boolean {
+  const covered = linked.filter((id) => ua.gatedCollections.has(id))
+  if (covered.length === 0) return false
+  if (ua.members.some((m) => m.organizationUuid === orgUuid && isAdminRole(m))) return false
+  if (covered.some((id) => collectionAccess(ua, orgUuid, id)?.manage === true)) return false
+  return !ua.leasedCiphers.has(cipherUuid)
 }
 
 /** Everything that decides which collections a user can reach, in three queries. */
-export async function loadUserAccess(db: Db, userUuid: string): Promise<UserAccess> {
+export async function loadUserAccess(
+  db: Db,
+  userUuid: string,
+  now = Date.now(),
+): Promise<UserAccess> {
   const uo = schema.usersOrganizations
   const confirmed = and(eq(uo.userUuid, userUuid), eq(uo.status, Status.Confirmed))
-  const [members, direct, viaGroups, groupsAll] = await Promise.all([
+  const [members, direct, viaGroups, groupsAll, leased] = await Promise.all([
     db.select().from(uo).where(confirmed),
     db
       .select({ c: schema.usersCollections })
@@ -170,6 +198,18 @@ export async function loadUserAccess(db: Db, userUuid: string): Promise<UserAcce
       .innerJoin(schema.groupsUsers, eq(schema.groupsUsers.groupUuid, schema.groups.uuid))
       .innerJoin(uo, eq(uo.uuid, schema.groupsUsers.organizationUserUuid))
       .where(and(confirmed, eq(schema.groups.accessAll, true))),
+    // A lease is live between `notBefore` and `notAfter`; a revoke or expiry ends it at once.
+    db
+      .select({ id: schema.pamLeases.cipherUuid })
+      .from(schema.pamLeases)
+      .where(
+        and(
+          eq(schema.pamLeases.requesterUuid, userUuid),
+          eq(schema.pamLeases.status, LeaseStatus.Active),
+          sql`${schema.pamLeases.notBefore} <= ${now}`,
+          sql`${schema.pamLeases.notAfter} > ${now}`,
+        ),
+      ),
   ])
   const accessAllOrgs = new Set<string>([
     ...members.filter((m) => m.accessAll).map((m) => m.organizationUuid),
@@ -194,7 +234,33 @@ export async function loadUserAccess(db: Db, userUuid: string): Promise<UserAcce
               eq(schema.organizations.limitItemDeletion, true),
             ),
           )
-  return { members, accessAllOrgs, grants, limitDeletionOrgs: new Set(limited.map((o) => o.uuid)) }
+  // Rules matter only in organisations where the user is not an owner or admin.
+  const ruleOrgs = members.filter((m) => !isAdminRole(m)).map((m) => m.organizationUuid)
+  const gatedCollections = new Set<string>()
+  for (let i = 0; i < ruleOrgs.length; i += 80) {
+    const rows = await db
+      .select({ id: schema.pamRuleCollections.collectionUuid })
+      .from(schema.pamRuleCollections)
+      .innerJoin(
+        schema.pamAccessRules,
+        eq(schema.pamAccessRules.uuid, schema.pamRuleCollections.ruleUuid),
+      )
+      .where(
+        and(
+          inArray(schema.pamAccessRules.organizationUuid, ruleOrgs.slice(i, i + 80)),
+          eq(schema.pamAccessRules.enabled, true),
+        ),
+      )
+    for (const r of rows) gatedCollections.add(r.id)
+  }
+  return {
+    members,
+    accessAllOrgs,
+    grants,
+    limitDeletionOrgs: new Set(limited.map((o) => o.uuid)),
+    gatedCollections,
+    leasedCiphers: new Set(leased.map((l) => l.id)),
+  }
 }
 
 /** Access a user has to one collection of `orgUuid`, or undefined for none. */

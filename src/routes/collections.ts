@@ -18,12 +18,14 @@ import {
   requireMember,
   requireOrg,
   requirePermission,
+  type UserAccess,
 } from '../orgs/access'
 import { EventType } from '../orgs/constants'
 import { eventStatement } from '../orgs/events'
 import { accessOf, assertIdsInOrg, dedupeSelections, type Selection } from '../orgs/members'
 import { authOnce, batch } from '../orgs/util'
 import { collectionDetailsJson, collectionJson, selectionJson } from '../orgs/views'
+import { assertManageGrantsAllowed, grantorOf } from '../pam/manage-guard'
 import { parseBody } from '../validation'
 import { chunk } from '../vault/ciphers'
 
@@ -72,21 +74,65 @@ async function loadCollection(db: Db, orgUuid: string, id: string) {
   return col
 }
 
+/** Loads the caller's access at most once per request, however many collections the call names. */
+type AccessLoader = () => Promise<UserAccess>
+const accessLoader = (db: Db, actor: Member): AccessLoader => {
+  let loaded: Promise<UserAccess> | undefined
+  return () => {
+    loaded ??= loadUserAccess(db, actor.userUuid as string)
+    return loaded
+  }
+}
+
 /** Access the caller has to a collection: every collection for editAnyCollection holders. */
 async function callerAccess(
   db: Db,
   actor: Member,
   id: string,
   orgUuid: string,
+  load: AccessLoader = accessLoader(db, actor),
 ): Promise<Access | undefined> {
   if (can(actor, 'editAnyCollection')) return FULL_ACCESS
-  return collectionAccess(await loadUserAccess(db, actor.userUuid as string), orgUuid, id)
+  return collectionAccess(await load(), orgUuid, id)
 }
 
-async function requireManage(db: Db, actor: Member, orgUuid: string, id: string) {
-  const a = await callerAccess(db, actor, id, orgUuid)
+/**
+ * A custom member's blanket permission (edit or delete any collection) does not reach a collection
+ * that an access rule covers (PAM): they need Manage access of their own, as a decider has. Else
+ * they could grant themselves Manage access, which lifts the restriction, or delete the collection.
+ */
+async function assertOwnManageOnCovered(
+  db: Db,
+  actor: Member,
+  orgUuid: string,
+  ids: string[],
+  load: AccessLoader = accessLoader(db, actor),
+) {
+  if (isAdminRole(actor)) return
+  const ua = await load()
+  for (const id of ids) {
+    if (ua.gatedCollections.has(id) && collectionAccess(ua, orgUuid, id)?.manage !== true) {
+      throw new ApiError(
+        403,
+        'An access rule covers this collection. You need Manage access to it.',
+      )
+    }
+  }
+}
+
+async function requireManage(
+  db: Db,
+  actor: Member,
+  orgUuid: string,
+  id: string,
+  load: AccessLoader = accessLoader(db, actor),
+) {
+  const a = await callerAccess(db, actor, id, orgUuid, load)
   if (!a) throw new ApiError(404, 'Collection not found.')
   if (!a.manage) throw new ApiError(403, 'You do not have permission to manage this collection.')
+  if (can(actor, 'editAnyCollection')) {
+    await assertOwnManageOnCovered(db, actor, orgUuid, [id], load)
+  }
 }
 
 /**
@@ -112,10 +158,36 @@ export async function requireCollectionManager(
  */
 async function requireDelete(db: Db, c: Ctx, ids: string[]) {
   const actor = await requireMember(db, c.var.user.uuid, org(c))
-  if (can(actor, 'deleteAnyCollection')) return
+  if (can(actor, 'deleteAnyCollection')) {
+    await assertOwnManageOnCovered(db, actor, org(c), ids)
+    return
+  }
   const o = await requireOrg(db, org(c))
   if (o.limitCollectionDeletion) throw new ApiError(403, 'You do not have permission to do this.')
-  for (const id of ids) await requireManage(db, actor, org(c), id)
+  const load = accessLoader(db, actor)
+  for (const id of ids) await requireManage(db, actor, org(c), id, load)
+}
+
+/**
+ * Shared PAM guard for grants written to collections the caller manages. `requireManage` already
+ * asks for own Manage access on each covered collection, so this holds the line if that changes.
+ */
+async function assertGrantsAllowed(
+  db: Db,
+  actor: Member,
+  orgUuid: string,
+  ids: string[],
+  users: Selection[] | null,
+  groups: Selection[] | null,
+) {
+  const manage = [...(users ?? []), ...(groups ?? [])].some((s) => s.manage)
+  if (!manage) return
+  await assertManageGrantsAllowed(
+    db,
+    grantorOf(actor),
+    orgUuid,
+    ids.map((id) => ({ id, manage: true })),
+  )
 }
 
 /** Statements that replace the user and group grants of a collection. */
@@ -297,7 +369,9 @@ collectionsRouter.post('/api/organizations/:orgId/collections/bulk-access', asyn
   const groups = body.groups ? dedupeSelections(body.groups) : null
   await assertIdsInOrg(db, 'collection', org(c), body.collectionIds)
   await checkGrants(db, org(c), users, groups)
-  for (const id of body.collectionIds) await requireManage(db, actor, org(c), id)
+  const load = accessLoader(db, actor)
+  for (const id of body.collectionIds) await requireManage(db, actor, org(c), id, load)
+  await assertGrantsAllowed(db, actor, org(c), body.collectionIds, users, groups)
   await batch(db, [
     ...body.collectionIds.flatMap((id) => [
       ...replaceAccess(db, id, users, groups),
@@ -396,6 +470,7 @@ collectionsRouter.put('/api/organizations/:orgId/collections/:id/users', async (
   await loadCollection(db, org(c), id)
   await requireManage(db, actor, org(c), id)
   await checkGrants(db, org(c), users, null)
+  await assertGrantsAllowed(db, actor, org(c), [id], users, null)
   await batch(db, [...replaceAccess(db, id, users, null), bumpOrgRevision(db, org(c), Date.now())])
   return c.body(null, 200)
 })
@@ -419,6 +494,7 @@ const updateCollection = async (c: Ctx) => {
   const users = body.users ? dedupeSelections(body.users) : null
   const groups = body.groups ? dedupeSelections(body.groups) : null
   await checkGrants(db, org(c), users, groups)
+  await assertGrantsAllowed(db, actor, org(c), [id], users, groups)
   const now = Date.now()
   await batch(db, [
     db

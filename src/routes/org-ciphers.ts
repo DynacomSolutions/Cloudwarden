@@ -12,6 +12,8 @@ import { PushType } from '../notifications/publish'
 import { notifyCiphers } from '../notifications/vault-events'
 import {
   bumpOrgRevision,
+  isAdminRole,
+  leaseRestricted,
   limitsItemDeletion,
   loadUserAccess,
   type Member,
@@ -22,7 +24,7 @@ import {
 } from '../orgs/access'
 import {
   accessToCipher,
-  adminItemAccess,
+  adminItemAccessFor,
   assertWritableCollections,
   folderLinks,
   type ItemAccess,
@@ -91,7 +93,7 @@ async function resolve(c: Ctx, id: string, admin: boolean): Promise<Resolved | n
     const member = await requireMember(db, c.var.user.uuid, cipher.organizationUuid)
     if (!(await manageAll(db, member)))
       throw new ApiError(403, 'You do not have permission to do this.')
-    return { cipher, access: await adminItemAccess(db, cipher), member }
+    return { cipher, access: await adminItemAccessFor(db, c.var.user.uuid, member, cipher), member }
   }
   const access = await accessToCipher(db, c.var.user.uuid, cipher)
   if (!access) throw NOT_FOUND()
@@ -303,6 +305,7 @@ async function organizationDetails(c: Ctx, loginsOnly: boolean) {
   const member = await requireMember(db, c.var.user.uuid, orgUuid)
   if (!(await manageAll(db, member)))
     throw new ApiError(403, 'You do not have permission to do this.')
+  const ua = isAdminRole(member) ? null : await loadUserAccess(db, c.var.user.uuid)
   const [rows, links, folders, states] = await Promise.all([
     db
       .select()
@@ -340,19 +343,23 @@ async function organizationDetails(c: Ctx, loginsOnly: boolean) {
   for (const l of links) byCipher.set(l.cipher, [...(byCipher.get(l.cipher) ?? []), l.id])
   return c.json(
     list(
-      rows.map((cipher) =>
-        orgCipherJson({
+      rows.map((cipher) => {
+        const collectionIds = byCipher.get(cipher.uuid) ?? []
+        // A custom member who manages every item is restricted like any member (owners and admins are not).
+        const restricted = ua ? leaseRestricted(ua, orgUuid, cipher.uuid, collectionIds) : false
+        return orgCipherJson({
           cipher,
           folderId: folders.get(cipher.uuid) ?? null,
           state: states.get(cipher.uuid),
           access: {
-            edit: true,
-            viewPassword: true,
-            manage: true,
-            collectionIds: byCipher.get(cipher.uuid) ?? [],
+            edit: !restricted,
+            viewPassword: !restricted,
+            manage: !restricted,
+            collectionIds,
+            restricted,
           },
-        }),
-      ),
+        })
+      }),
     ),
   )
 }
@@ -469,7 +476,7 @@ orgCiphers.on(['PUT', 'POST'], '/api/ciphers/share', async (c) => {
   for (const ci of body.ciphers) {
     const cipher = await loadCipherById(db, ci.id)
     const access =
-      cipher && itemAccess(ua, member.organizationUuid, await linkedCollections(db, ci.id))
+      cipher && itemAccess(ua, member.organizationUuid, await linkedCollections(db, ci.id), ci.id)
     if (cipher && access) {
       out.push(
         orgCipherJson({
@@ -540,16 +547,31 @@ function bulk(op: BulkOp, admin: boolean, respondList: boolean) {
       if (!(await manageAll(db, adminMember)))
         throw new ApiError(403, 'You do not have permission to do this.')
     }
-    const ua = admin ? null : await loadUserAccess(db, user.uuid)
+    const ua =
+      admin && adminMember && isAdminRole(adminMember) ? null : await loadUserAccess(db, user.uuid)
     const orgs = new Set<string>()
     for (const row of rows) {
       if (admin) {
         if (row.organizationUuid !== body.organizationId) throw NOT_FOUND()
+        // A custom manager cannot delete or restore an item that an access rule restricts for them.
+        if (
+          ua &&
+          leaseRestricted(
+            ua,
+            body.organizationId as string,
+            row.uuid,
+            await linkedCollections(db, row.uuid),
+          )
+        ) {
+          throw new ApiError(403, 'A lease is required to change this item.')
+        }
       } else if (!row.organizationUuid) {
         if (row.userUuid !== user.uuid) throw NOT_FOUND()
         continue
       } else {
-        const a = ua && itemAccess(ua, row.organizationUuid, await linkedCollections(db, row.uuid))
+        const a =
+          ua &&
+          itemAccess(ua, row.organizationUuid, await linkedCollections(db, row.uuid), row.uuid)
         if (!a) throw NOT_FOUND()
         if (!canDelete(a, await limitsItemDeletion(db, row.organizationUuid)))
           throw new ApiError(403, 'You do not have permission to do this.')
@@ -586,7 +608,7 @@ function bulk(op: BulkOp, admin: boolean, respondList: boolean) {
     const fresh = await loadMany(db, ids)
     const folders = await folderLinks(db, user.uuid)
     const states = await userCipherStates(db, user.uuid)
-    const accessUa = await loadUserAccess(db, user.uuid)
+    const accessUa = ua ?? (await loadUserAccess(db, user.uuid))
     const out = []
     for (const cipher of fresh) {
       const folderId = folders.get(cipher.uuid) ?? null
@@ -595,8 +617,13 @@ function bulk(op: BulkOp, admin: boolean, respondList: boolean) {
         continue
       }
       const access = admin
-        ? await adminItemAccess(db, cipher)
-        : itemAccess(accessUa, cipher.organizationUuid, await linkedCollections(db, cipher.uuid))
+        ? await adminItemAccessFor(db, user.uuid, adminMember as Member, cipher, accessUa)
+        : itemAccess(
+            accessUa,
+            cipher.organizationUuid,
+            await linkedCollections(db, cipher.uuid),
+            cipher.uuid,
+          )
       if (access)
         out.push(orgCipherJson({ cipher, folderId, access, state: states.get(cipher.uuid) }))
     }
@@ -637,7 +664,7 @@ orgCiphers.on(['PUT', 'POST'], '/api/ciphers/move', async (c, next) => {
         db.update(schema.ciphers).set({ updatedAt: now }).where(eq(schema.ciphers.uuid, row.uuid)),
       )
     } else {
-      if (!itemAccess(ua, row.organizationUuid, await linkedCollections(db, row.uuid)))
+      if (!itemAccess(ua, row.organizationUuid, await linkedCollections(db, row.uuid), row.uuid))
         throw NOT_FOUND()
       // A folder is private to its owner, so moving an organisation item changes nothing for others.
       statements.push(...userFolderStatements(db, user.uuid, row.uuid, body.folderId ?? null))
@@ -687,8 +714,14 @@ orgCiphers.post('/api/ciphers/bulk-collections', async (c) => {
   const manager = await manageAll(db, member)
   for (const row of rows) {
     if (row.organizationUuid !== body.organizationId) throw NOT_FOUND()
-    const a = itemAccess(ua, body.organizationId, await linkedCollections(db, row.uuid))
+    const linked = await linkedCollections(db, row.uuid)
+    const a = itemAccess(ua, body.organizationId, linked, row.uuid)
+    // An item the caller cannot reach does not exist for them: answer before any restriction.
     if (!a && !manager) throw NOT_FOUND()
+    // A custom manager reaches every item, but not past an access rule that restricts them.
+    if (!isAdminRole(member) && leaseRestricted(ua, body.organizationId, row.uuid, linked)) {
+      throw new ApiError(403, 'A lease is required to change the collections of this item.')
+    }
     if (a && !a.manage && !manager)
       throw new ApiError(403, 'You do not have permission to do this.')
   }
@@ -869,6 +902,10 @@ const setCollections = (admin: boolean, v2: boolean) => async (c: Ctx, next: Nex
   const orgUuid = r.cipher.organizationUuid as string
   const member = r.member ?? (await requireMember(db, user.uuid, orgUuid))
   const manager = await manageAll(db, member)
+  // A member whom an access rule restricts cannot move the item out of its covered collections.
+  if (r.access.restricted) {
+    throw new ApiError(403, 'A lease is required to change the collections of this item.')
+  }
   if (!r.access.manage && !manager) {
     throw new ApiError(403, 'You need manage access to change the collections of an item.')
   }

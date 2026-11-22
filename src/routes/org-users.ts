@@ -46,6 +46,15 @@ import {
 import { assertOrgKeys, resetPasswordPolicy } from '../orgs/recovery'
 import { assertSeatsAvailable } from '../orgs/subscription'
 import { authOnce, batch } from '../orgs/util'
+import {
+  assertGroupJoinAllowed,
+  assertManageGrantsAllowed,
+  assertRestoreAllowed,
+  COVERED_MANAGE_DENIED,
+  grantorOf,
+  memberGroups,
+  memberManageGrants,
+} from '../pam/manage-guard'
 import { activeSso } from '../sso/config'
 import { parseBody } from '../validation'
 import { bumpRevision, chunk } from '../vault/ciphers'
@@ -265,6 +274,10 @@ orgUsers.post('/api/organizations/:orgId/users/invite', async (c) => {
       collections.map((s) => s.id),
     )
   if (groupIds.length) await assertIdsInOrg(db, 'group', orgUuid, groupIds)
+  // A new member never receives Manage access on a covered collection from a non-admin (PAM).
+  const grantor = grantorOf(actor)
+  if (!body.accessAll) await assertManageGrantsAllowed(db, grantor, orgUuid, collections)
+  await assertGroupJoinAllowed(db, grantor, orgUuid, groupIds)
 
   const emails = [...new Set(body.emails.map(normalizeEmail))]
   if (emails.some((e) => !e.includes('@'))) {
@@ -811,6 +824,8 @@ const restoreOp: Op = async (c, db, actor, target) => {
   assertCanAssign(actor, target.atype)
   if (target.status !== Status.Revoked) throw new ApiError(400, 'User is not revoked.')
   if (target.userUuid) await assertTwoFactorCompliant(db, target.userUuid, target.organizationUuid)
+  // Revoking keeps the grants of the member: a restore turns them back on (PAM).
+  await assertRestoreAllowed(db, grantorOf(actor), target)
   return [
     db
       .update(schema.usersOrganizations)
@@ -843,7 +858,7 @@ const removeOp: Op = async (c, db, actor, target) => {
   ]
 }
 
-async function runOps(c: Ctx, ids: string[], op: Op) {
+async function runOps(c: Ctx, ids: string[], op: Op, statuses?: Map<string, number>) {
   const db = createDb(c.env.DB)
   const actor = await requirePermission(db, c.var.user.uuid, org(c), 'manageUsers')
   const out: { id: string; error: string | null }[] = []
@@ -854,6 +869,7 @@ async function runOps(c: Ctx, ids: string[], op: Op) {
       out.push({ id, error: null })
     } catch (e) {
       if (!(e instanceof ApiError)) throw e
+      if (e.message === COVERED_MANAGE_DENIED) statuses?.set(id, e.status)
       out.push({ id, error: e.message })
     }
   }
@@ -863,8 +879,13 @@ async function runOps(c: Ctx, ids: string[], op: Op) {
 }
 
 const single = async (c: Ctx, op: Op) => {
-  const [r] = await runOps(c, [c.req.param('id') ?? ''], op)
-  if (r?.error) throw new ApiError(r.error === 'User not found.' ? 404 : 400, r.error)
+  const statuses = new Map<string, number>()
+  const [r] = await runOps(c, [c.req.param('id') ?? ''], op, statuses)
+  // A grant that the PAM guard refuses keeps its 403; other failures answer 400, a missing member 404.
+  if (r?.error) {
+    const refused = statuses.get(r.id) === 403
+    throw new ApiError(r.error === 'User not found.' ? 404 : refused ? 403 : 400, r.error)
+  }
   return c.body(null, 200)
 }
 
@@ -1031,6 +1052,29 @@ const updateMember = async (c: Ctx) => {
       collections.map((s) => s.id),
     )
   if (groupIds.length) await assertIdsInOrg(db, 'group', orgUuid, groupIds)
+  // New Manage grants on covered collections, and new groups that hold them, need own Manage
+  // access (PAM). Grants and groups the member holds already stay allowed.
+  if (!isAdminRole(actor)) {
+    const grantor = grantorOf(actor)
+    if (body.collections !== undefined && body.accessAll !== true) {
+      await assertManageGrantsAllowed(
+        db,
+        grantor,
+        orgUuid,
+        collections,
+        await memberManageGrants(db, target.uuid),
+      )
+    }
+    if (body.groups != null) {
+      await assertGroupJoinAllowed(
+        db,
+        grantor,
+        orgUuid,
+        groupIds,
+        await memberGroups(db, target.uuid),
+      )
+    }
+  }
   const now = Date.now()
   const accessAll = body.accessAll === true
   await runBatch(db, [
@@ -1115,6 +1159,13 @@ orgUsers.put('/api/organizations/:orgId/users/:id/groups', async (c) => {
   if (target.uuid === actor.uuid) throw new ApiError(403, 'You cannot change your own groups.')
   const ids = [...new Set(groupIds)]
   if (ids.length) await assertIdsInOrg(db, 'group', org(c), ids)
+  await assertGroupJoinAllowed(
+    db,
+    grantorOf(actor),
+    org(c),
+    ids,
+    await memberGroups(db, target.uuid),
+  )
   await runBatch(db, [
     db.delete(schema.groupsUsers).where(eq(schema.groupsUsers.organizationUserUuid, target.uuid)),
     ...ids.map((g) =>

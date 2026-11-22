@@ -83,6 +83,8 @@ tags:
   description: Provider Portal. Providers do not exist on a self-hosted Cloudwarden server; lookups and changes answer 404 and lists are empty.
 - name: x-cloudwarden-federation
   description: 'Cloudwarden federated organisations (docs/federation.md), not part of the Bitwarden API. `/federation/v1/*` is server to server: every request carries an RFC 9421 HTTP Message Signature (Ed25519, components `@method`, `@target-uri`, `content-type`, `content-digest`, `cloudwarden-federated-user`, `cloudwarden-federated-device`, with `created`, `expires`, `nonce` and `keyid` set to the sender instance id) and a Content-Digest; unknown, unapproved or suspended peers get 403, bad or replayed signatures 401. `/api/cloudwarden/federation/*` serves the web client. Everything answers 404 unless `FEDERATION_ENABLED` is true.'
+- name: PrivilegedAccess
+  description: 'Privileged access management (docs/privileged-access.md): access connectors, credential rotation, access rules, access requests and leases. Read from the GPL-3.0 generated API client in github.com/bitwarden/sdk-internal (`crates/bitwarden-api-api`). Administration needs an owner or admin; requests and leases need privileged access (`users/enable-pam`). The connector-facing routes under `/api/access-connectors/rotation` accept only an access connector token (scope `api.access-connector`).'
 paths:
 
   /api/accounts:
@@ -18804,6 +18806,1518 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /api/organizations/{orgId}/access-connectors:
+    get:
+      tags:
+      - PrivilegedAccess
+      operationId: listAccessConnectors
+      summary: List access connectors
+      description: Owners and admins only.
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PamAccessConnectorList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden.
+        '404':
+          description: Not found.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/pam_access_connectors_api.rs
+    post:
+      tags:
+      - PrivilegedAccess
+      operationId: registerAccessConnector
+      summary: Register an access connector
+      description: Returns the client secret once. The connector signs in at `/identity/connect/token` with `grant_type=client_credentials`, `scope=api.access-connector`, `client_id=access-connector.<apiKeyId>` and the secret.
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterAccessConnectorRequest'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterAccessConnectorResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden.
+        '404':
+          description: Not found.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/pam_access_connectors_api.rs
+  /api/organizations/{orgId}/access-connectors/{id}:
+    get:
+      tags:
+      - PrivilegedAccess
+      operationId: getAccessConnector
+      summary: Get an access connector with its recent rotation activity
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PamAccessConnectorDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden.
+        '404':
+          description: Not found.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/pam_access_connectors_api.rs
+    delete:
+      tags:
+      - PrivilegedAccess
+      operationId: deleteAccessConnector
+      summary: Delete an access connector
+      description: Invalidates its credential and puts its running jobs back in the queue.
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success, empty body.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden.
+        '404':
+          description: Not found.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/pam_access_connectors_api.rs
+  /api/organizations/{orgId}/access-connectors/{id}/assignments:
+    post:
+      tags:
+      - PrivilegedAccess
+      operationId: assignAccessConnectorTarget
+      summary: Assign a target system to an access connector
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignAccessConnectorTargetRequest'
+      responses:
+        '200':
+          description: Success, empty body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden.
+        '404':
+          description: Not found.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/pam_access_connectors_api.rs
+  /api/organizations/{orgId}/access-connectors/{id}/assignments/{targetSystemId}:
+    delete:
+      tags:
+      - PrivilegedAccess
+      operationId: unassignAccessConnectorTarget
+      summary: Remove a target system from an access connector
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: targetSystemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success, empty body.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden.
+        '404':
+          description: Not found.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/pam_access_connectors_api.rs
+  /api/organizations/{orgId}/access-connectors/{id}/disable:
+    post:
+      tags:
+      - PrivilegedAccess
+      operationId: disableAccessConnector
+      summary: Disable an access connector
+      description: Reversible. Its running jobs are released.
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success, empty body.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden.
+        '404':
+          description: Not found.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/pam_access_connectors_api.rs
+  /api/organizations/{orgId}/access-connectors/{id}/enable:
+    post:
+      tags:
+      - PrivilegedAccess
+      operationId: enableAccessConnector
+      summary: Enable an access connector
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success, empty body.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden.
+        '404':
+          description: Not found.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/pam_access_connectors_api.rs
+  /api/organizations/{orgId}/access-connectors/rotation/target-systems:
+    get:
+      tags:
+      - PrivilegedAccess
+      operationId: listPamTargetSystems
+      summary: List target systems
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PamTargetSystemList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden.
+        '404':
+          description: Not found.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/pam_access_connector_rotation_target_systems_api.rs
+    post:
+      tags:
+      - PrivilegedAccess
+      operationId: registerPamTargetSystem
+      summary: Register a target system
+      description: The new target system is PendingSeal until a client seals it with the update call.
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterTargetSystemRequest'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PamTargetSystem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden.
+        '404':
+          description: Not found.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/pam_access_connector_rotation_target_systems_api.rs
+  /api/organizations/{orgId}/access-connectors/rotation/target-systems/{id}:
+    put:
+      tags:
+      - PrivilegedAccess
+      operationId: updatePamTargetSystem
+      summary: Seal or rename a target system
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTargetSystemRequest'
+      responses:
+        '200':
+          description: Success, empty body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden.
+        '404':
+          description: Not found.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/pam_access_connector_rotation_target_systems_api.rs
+    delete:
+      tags:
+      - PrivilegedAccess
+      operationId: deletePamTargetSystem
+      summary: Delete a target system
+      description: 409 while a rotation configuration still uses it.
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success, empty body.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden.
+        '404':
+          description: Not found.
+        '409':
+          description: The state does not allow this.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/pam_access_connector_rotation_target_systems_api.rs
+  /api/organizations/{orgId}/access-connectors/rotation/target-systems/{id}/disable:
+    post:
+      tags:
+      - PrivilegedAccess
+      operationId: disablePamTargetSystem
+      summary: Disable a target system
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success, empty body.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden.
+        '404':
+          description: Not found.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/pam_access_connector_rotation_target_systems_api.rs
+  /api/organizations/{orgId}/access-connectors/rotation/target-systems/{id}/enable:
+    post:
+      tags:
+      - PrivilegedAccess
+      operationId: enablePamTargetSystem
+      summary: Enable a target system
+      description: 400 until the target system is sealed.
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success, empty body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden.
+        '404':
+          description: Not found.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/pam_access_connector_rotation_target_systems_api.rs
+  /api/organizations/{orgId}/access-connectors/rotation/configs:
+    get:
+      tags:
+      - PrivilegedAccess
+      operationId: listPamRotationConfigs
+      summary: List rotation configurations
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PamRotationConfigList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden.
+        '404':
+          description: Not found.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/pam_access_connector_rotation_configs_api.rs
+    post:
+      tags:
+      - PrivilegedAccess
+      operationId: createPamRotationConfig
+      summary: Create a rotation configuration
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRotationConfigRequest'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PamRotationConfigDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden.
+        '404':
+          description: Not found.
+        '409':
+          description: The state does not allow this.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/pam_access_connector_rotation_configs_api.rs
+  /api/organizations/{orgId}/access-connectors/rotation/configs/{id}:
+    get:
+      tags:
+      - PrivilegedAccess
+      operationId: getPamRotationConfig
+      summary: Get a rotation configuration
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PamRotationConfigDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden.
+        '404':
+          description: Not found.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/pam_access_connector_rotation_configs_api.rs
+    put:
+      tags:
+      - PrivilegedAccess
+      operationId: updatePamRotationConfig
+      summary: Update a rotation configuration
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRotationConfigRequest'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PamRotationConfigDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden.
+        '404':
+          description: Not found.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/pam_access_connector_rotation_configs_api.rs
+    delete:
+      tags:
+      - PrivilegedAccess
+      operationId: deletePamRotationConfig
+      summary: Delete a rotation configuration
+      description: 409 while a connector holds a job of it.
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success, empty body.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden.
+        '404':
+          description: Not found.
+        '409':
+          description: The state does not allow this.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/pam_access_connector_rotation_configs_api.rs
+  /api/organizations/{orgId}/access-connectors/rotation/configs/{id}/pause:
+    post:
+      tags:
+      - PrivilegedAccess
+      operationId: pausePamRotationConfig
+      summary: Pause a rotation configuration
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success, empty body.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden.
+        '404':
+          description: Not found.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/pam_access_connector_rotation_configs_api.rs
+  /api/organizations/{orgId}/access-connectors/rotation/configs/{id}/resume:
+    post:
+      tags:
+      - PrivilegedAccess
+      operationId: resumePamRotationConfig
+      summary: Resume a rotation configuration
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success, empty body.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden.
+        '404':
+          description: Not found.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/pam_access_connector_rotation_configs_api.rs
+  /api/organizations/{orgId}/access-connectors/rotation/configs/{id}/rotate:
+    post:
+      tags:
+      - PrivilegedAccess
+      operationId: rotatePamRotationConfigNow
+      summary: Rotate now
+      description: Queues an on-demand job, or flags a manual target. 429 inside the per-configuration cooldown (one minute); 409 while a job is open.
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success, empty body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden.
+        '404':
+          description: Not found.
+        '409':
+          description: The state does not allow this.
+        '429':
+          description: Rate limited.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/pam_access_connector_rotation_configs_api.rs
+  /api/organizations/{orgId}/access-connectors/rotation/configs/{id}/record-manual:
+    post:
+      tags:
+      - PrivilegedAccess
+      operationId: recordPamManualRotation
+      summary: Record a manual rotation
+      description: 'For configurations on a manual target system: clears the due obligation.'
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success, empty body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden.
+        '404':
+          description: Not found.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/pam_access_connector_rotation_configs_api.rs
+  /api/access-connectors/rotation/jobs:
+    get:
+      tags:
+      - PrivilegedAccess
+      operationId: listClaimableRotationJobs
+      summary: List the claimable rotation jobs of the calling connector
+      description: Also the heartbeat of the connector. Authenticated with an access connector token.
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimableRotationJobList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      security:
+      - accessConnectorToken: []
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/pam_access_connector_rotation_jobs_api.rs
+  /api/access-connectors/rotation/jobs/{id}/claim:
+    post:
+      tags:
+      - PrivilegedAccess
+      operationId: claimRotationJob
+      summary: Claim a rotation job
+      description: 'Atomic, first claim wins. 409: another connector won. 404: this connector is not eligible. Authenticated with an access connector token.'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RotationClaimResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Not found.
+        '409':
+          description: The state does not allow this.
+      security:
+      - accessConnectorToken: []
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/pam_access_connector_rotation_jobs_api.rs
+  /api/access-connectors/rotation/attempts/{id}/cipher:
+    get:
+      tags:
+      - PrivilegedAccess
+      operationId: getRotationAttemptCipher
+      summary: Read the item of a rotation attempt
+      description: Authenticated with an access connector token.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CipherMiniResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Not found.
+        '409':
+          description: The state does not allow this.
+      security:
+      - accessConnectorToken: []
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/pam_access_connector_rotation_attempts_api.rs
+    put:
+      tags:
+      - PrivilegedAccess
+      operationId: putRotationAttemptCipher
+      summary: Write the rotated item
+      description: 409 when the claim or attempt no longer holds, or the revision moved (audited as `write_rejected`). Authenticated with an access connector token.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RotationCipherUpdateRequest'
+      responses:
+        '200':
+          description: Success, empty body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Not found.
+        '409':
+          description: The state does not allow this.
+      security:
+      - accessConnectorToken: []
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/pam_access_connector_rotation_attempts_api.rs
+  /api/access-connectors/rotation/attempts/{id}/failure:
+    post:
+      tags:
+      - PrivilegedAccess
+      operationId: reportRotationFailure
+      summary: Report a failed rotation attempt
+      description: Authenticated with an access connector token.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportRotationFailedRequest'
+      responses:
+        '200':
+          description: Success, empty body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Not found.
+        '409':
+          description: The state does not allow this.
+      security:
+      - accessConnectorToken: []
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/pam_access_connector_rotation_attempts_api.rs
+  /api/access-connectors/rotation/attempts/{id}/success:
+    post:
+      tags:
+      - PrivilegedAccess
+      operationId: reportRotationSuccess
+      summary: Report a successful rotation attempt
+      description: 409 unless the rotated item was written first (audited as `report_rejected`). Authenticated with an access connector token.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportRotationSucceededRequest'
+      responses:
+        '200':
+          description: Success, empty body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Not found.
+        '409':
+          description: The state does not allow this.
+      security:
+      - accessConnectorToken: []
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/pam_access_connector_rotation_attempts_api.rs
+  /api/organizations/{orgId}/access-rules:
+    get:
+      tags:
+      - PrivilegedAccess
+      operationId: listAccessRules
+      summary: List access rules
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRuleList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden.
+        '404':
+          description: Not found.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/access_rules_api.rs
+    post:
+      tags:
+      - PrivilegedAccess
+      operationId: createAccessRule
+      summary: Create an access rule
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccessRuleRequest'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRule'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden.
+        '404':
+          description: Not found.
+        '409':
+          description: The state does not allow this.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/access_rules_api.rs
+  /api/organizations/{orgId}/access-rules/{id}:
+    get:
+      tags:
+      - PrivilegedAccess
+      operationId: getAccessRule
+      summary: Get an access rule
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRule'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden.
+        '404':
+          description: Not found.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/access_rules_api.rs
+    put:
+      tags:
+      - PrivilegedAccess
+      operationId: updateAccessRule
+      summary: Update an access rule
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccessRuleRequest'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRule'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden.
+        '404':
+          description: Not found.
+        '409':
+          description: The state does not allow this.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/access_rules_api.rs
+    delete:
+      tags:
+      - PrivilegedAccess
+      operationId: deleteAccessRule
+      summary: Delete an access rule
+      description: Pending requests of the rule are cancelled.
+      parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success, empty body.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden.
+        '404':
+          description: Not found.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/access_rules_api.rs
+  /api/access-requests/inbox:
+    get:
+      tags:
+      - PrivilegedAccess
+      operationId: getAccessRequestInbox
+      summary: Pending requests the caller may decide
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRequestDetailsList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/access_requests_api.rs
+  /api/access-requests/mine:
+    get:
+      tags:
+      - PrivilegedAccess
+      operationId: getMyAccessRequests
+      summary: The caller's open requests
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRequestDetailsList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/access_requests_api.rs
+  /api/access-requests/history:
+    get:
+      tags:
+      - PrivilegedAccess
+      operationId: getAccessRequestHistory
+      summary: Resolved requests the caller made or may decide
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRequestDetailsList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/access_requests_api.rs
+  /api/access-requests/{id}:
+    get:
+      tags:
+      - PrivilegedAccess
+      operationId: getAccessRequest
+      summary: Get an access request
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRequestDetails'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Not found.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/access_requests_api.rs
+  /api/access-requests/{id}/decision:
+    post:
+      tags:
+      - PrivilegedAccess
+      operationId: decideAccessRequest
+      summary: Approve or deny a request
+      description: Approvers are owners, admins and members with Manage access to the collection. The requester cannot decide their own request.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccessDecisionRequest'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRequestDetails'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden.
+        '404':
+          description: Not found.
+        '409':
+          description: The state does not allow this.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/access_requests_api.rs
+  /api/access-requests/{id}/activate:
+    post:
+      tags:
+      - PrivilegedAccess
+      operationId: activateAccessRequest
+      summary: Turn an approved request into a lease
+      description: Only the requester. 409 when the request is not approved, expired, already activated, or a single-lease rule is held by another member.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessLease'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Not found.
+        '409':
+          description: The state does not allow this.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/access_requests_api.rs
+  /api/access-requests/{id}/revoke:
+    post:
+      tags:
+      - PrivilegedAccess
+      operationId: revokeAccessRequest
+      summary: Withdraw a request or end its lease
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccessRequestRevokeRequest'
+      responses:
+        '200':
+          description: Success, empty body.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Not found.
+        '409':
+          description: The state does not allow this.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/access_requests_api.rs
+  /api/leases/active:
+    get:
+      tags:
+      - PrivilegedAccess
+      operationId: getActiveLeases
+      summary: Live leases the caller holds or may revoke
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessLeaseList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/leases_api.rs
+  /api/leases/mine:
+    get:
+      tags:
+      - PrivilegedAccess
+      operationId: getMyLeases
+      summary: The caller's live leases
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessLeaseList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/leases_api.rs
+  /api/leases/history:
+    get:
+      tags:
+      - PrivilegedAccess
+      operationId: getLeaseHistory
+      summary: Ended leases the caller held or may see
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessLeaseList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/leases_api.rs
+  /api/leases/{id}/extend:
+    post:
+      tags:
+      - PrivilegedAccess
+      operationId: extendLease
+      summary: Ask to extend a lease
+      description: Needs a rule that allows extensions. An automatic rule applies it at once; a human rule creates a pending request.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccessLeaseExtensionRequest'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRequestDetails'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Not found.
+        '409':
+          description: The state does not allow this.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/leases_api.rs
+  /api/leases/{id}/revoke:
+    post:
+      tags:
+      - PrivilegedAccess
+      operationId: revokeLease
+      summary: Revoke or cancel a lease
+      description: The requester cancels (status 3); an approver revokes (status 2).
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccessLeaseRevokeRequest'
+      responses:
+        '200':
+          description: Success, empty body.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Not found.
+        '409':
+          description: The state does not allow this.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/leases_api.rs
+  /api/leases/ciphers/{id}:
+    post:
+      tags:
+      - PrivilegedAccess
+      operationId: requestCipherLease
+      summary: Request a lease on an item
+      description: The item needs a collection that an enabled access rule covers, and the member needs privileged access.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccessRequestCreateRequest'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRequestResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden.
+        '404':
+          description: Not found.
+        '409':
+          description: The state does not allow this.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/cipher_lease_api.rs
+  /api/leases/ciphers/{id}/pre-check:
+    get:
+      tags:
+      - PrivilegedAccess
+      operationId: preCheckCipherLease
+      summary: Check whether a lease can start on an item
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessPreCheck'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden.
+        '404':
+          description: Not found.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/cipher_lease_api.rs
+  /api/leases/ciphers/{id}/state:
+    get:
+      tags:
+      - PrivilegedAccess
+      operationId: getCipherAccessState
+      summary: The caller's lease state for an item
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CipherAccessState'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden.
+        '404':
+          description: Not found.
+      x-source-version: sdk-internal@main
+      x-source-file: crates/bitwarden-api-api/src/apis/cipher_lease_api.rs
 components:
   securitySchemes:
     federationSignature:
@@ -18834,6 +20348,11 @@ components:
       in: query
       name: access_token
       description: User access token passed as a query parameter on the WebSocket upgrade.
+    accessConnectorToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access connector token from the `client_credentials` grant with scope `api.access-connector` (docs/privileged-access.md).
   responses:
     PublicBadRequest:
       description: Validation failure.
@@ -27603,3 +29122,1186 @@ components:
       - keys
       - organizationId
       - acceptOrganizationInvite
+    PamAccessConnectorStatus:
+      type: integer
+      description: 0 Enabled, 1 Disabled.
+      enum:
+      - 0
+      - 1
+    PamTargetSystemMethod:
+      type: integer
+      description: 0 Automatic (a connector rotates), 1 Manual (an operator rotates and records it).
+      enum:
+      - 0
+      - 1
+    PamTargetSystemStatus:
+      type: integer
+      description: 0 Active, 1 Disabled, 2 PendingSeal (registered, not yet sealed).
+      enum:
+      - 0
+      - 1
+      - 2
+    PamRotationSource:
+      type: integer
+      description: 0 Scheduled, 1 OnDemand, 2 AccessEnd.
+      enum:
+      - 0
+      - 1
+      - 2
+    PamRotationJobStatus:
+      type: integer
+      description: 0 Pending, 1 Claimed, 2 Succeeded, 3 Failed, 4 TimedOut.
+      enum:
+      - 0
+      - 1
+      - 2
+      - 3
+      - 4
+    PamRotationAttemptStatus:
+      type: integer
+      description: 0 Executing, 1 Rotated, 2 Errored, 3 Abandoned.
+      enum:
+      - 0
+      - 1
+      - 2
+      - 3
+    PamRotationSyncState:
+      type: integer
+      description: 0 TargetUnchanged, 1 TargetUpdated, 2 Indeterminate.
+      enum:
+      - 0
+      - 1
+      - 2
+    PamSessionTerminationOutcome:
+      type: integer
+      description: 0 NotRequested, 1 Terminated, 2 TermFailed.
+      enum:
+      - 0
+      - 1
+      - 2
+    AccessApprovalMode:
+      type: integer
+      description: 0 Automatic, 1 Human.
+      enum:
+      - 0
+      - 1
+    AccessDeciderKind:
+      type: integer
+      description: 0 Automatic, 1 Human.
+      enum:
+      - 0
+      - 1
+    AccessDecisionVerdict:
+      type: integer
+      description: 0 Deny, 1 Approve.
+      enum:
+      - 0
+      - 1
+    AccessRequestStatus:
+      type: integer
+      description: 0 Pending, 1 Approved, 2 Denied, 3 Cancelled, 4 Expired.
+      enum:
+      - 0
+      - 1
+      - 2
+      - 3
+      - 4
+    AccessLeaseStatus:
+      type: integer
+      description: 0 Active, 1 Expired, 2 Revoked, 3 Cancelled.
+      enum:
+      - 0
+      - 1
+      - 2
+      - 3
+    RegisterAccessConnectorRequest:
+      type: object
+      description: The payload is the organization key under the connector's own key; the server stores it and returns it in the token response.
+      properties:
+        name:
+          type: string
+        encryptedPayload:
+          type: string
+        key:
+          type: string
+      required:
+      - name
+      - encryptedPayload
+      - key
+    RegisterAccessConnectorResponse:
+      type: object
+      properties:
+        object:
+          type: string
+        id:
+          type: string
+          format: uuid
+        organizationId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        status:
+          $ref: '#/components/schemas/PamAccessConnectorStatus'
+        creationDate:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        apiKeyId:
+          type: string
+          format: uuid
+        clientSecret:
+          type: string
+          description: Shown once. Only a hash is stored.
+    AssignAccessConnectorTargetRequest:
+      type: object
+      properties:
+        targetSystemId:
+          type: string
+          format: uuid
+      required:
+      - targetSystemId
+    PamRotationAttempt:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        jobId:
+          type: string
+          format: uuid
+        claimedByAccessConnectorId:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        cipherUpdated:
+          type: boolean
+        status:
+          $ref: '#/components/schemas/PamRotationAttemptStatus'
+        failureReason:
+          type:
+          - string
+          - 'null'
+        syncState:
+          oneOf:
+          - $ref: '#/components/schemas/PamRotationSyncState'
+          - type: 'null'
+        sessionTermination:
+          oneOf:
+          - $ref: '#/components/schemas/PamSessionTerminationOutcome'
+          - type: 'null'
+        creationDate:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        resolvedDate:
+          type:
+          - string
+          - 'null'
+          format: date-time
+    PamRotationJob:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        rotationConfigId:
+          type: string
+          format: uuid
+        source:
+          $ref: '#/components/schemas/PamRotationSource'
+        status:
+          $ref: '#/components/schemas/PamRotationJobStatus'
+        claimedByAccessConnectorId:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        claimedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        creationDate:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        nextClaimableAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        expiresAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        attempts:
+          type: array
+          items:
+            $ref: '#/components/schemas/PamRotationAttempt'
+    PamAccessConnector:
+      type: object
+      properties:
+        object:
+          type: string
+        id:
+          type: string
+          format: uuid
+        organizationId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        status:
+          $ref: '#/components/schemas/PamAccessConnectorStatus'
+        isConnected:
+          type: boolean
+        lastHeartbeatAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        assignedTargetSystemIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        creationDate:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        revisionDate:
+          type:
+          - string
+          - 'null'
+          format: date-time
+    PamAccessConnectorDetail:
+      type: object
+      properties:
+        object:
+          type: string
+        id:
+          type: string
+          format: uuid
+        organizationId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        status:
+          $ref: '#/components/schemas/PamAccessConnectorStatus'
+        isConnected:
+          type: boolean
+        lastHeartbeatAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        assignedTargetSystemIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        creationDate:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        revisionDate:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        jobs:
+          type: array
+          items:
+            $ref: '#/components/schemas/PamRotationJob'
+    PamAccessConnectorList:
+      type: object
+      properties:
+        object:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PamAccessConnector'
+        continuationToken:
+          type:
+          - string
+          - 'null'
+    RegisterTargetSystemRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        method:
+          $ref: '#/components/schemas/PamTargetSystemMethod'
+      required:
+      - name
+      - method
+    UpdateTargetSystemRequest:
+      type: object
+      description: Sealing completes registration. Both values are client ciphertext.
+      properties:
+        name:
+          type: string
+        sealedData:
+          type: string
+        wrappedKey:
+          type: string
+      required:
+      - name
+      - sealedData
+      - wrappedKey
+    PamTargetSystem:
+      type: object
+      properties:
+        object:
+          type: string
+        id:
+          type: string
+          format: uuid
+        organizationId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        method:
+          $ref: '#/components/schemas/PamTargetSystemMethod'
+        status:
+          $ref: '#/components/schemas/PamTargetSystemStatus'
+        sealedData:
+          type:
+          - string
+          - 'null'
+        wrappedKey:
+          type:
+          - string
+          - 'null'
+        creationDate:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        revisionDate:
+          type:
+          - string
+          - 'null'
+          format: date-time
+    PamTargetSystemList:
+      type: object
+      properties:
+        object:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PamTargetSystem'
+        continuationToken:
+          type:
+          - string
+          - 'null'
+    CreateRotationConfigRequest:
+      type: object
+      properties:
+        cipherId:
+          type: string
+          format: uuid
+        targetSystemId:
+          type: string
+          format: uuid
+        sealedData:
+          type: string
+        wrappedKey:
+          type: string
+        scheduleCron:
+          type:
+          - string
+          - 'null'
+          description: Five-field cron expression in UTC.
+        rotateOnAccessEnd:
+          type:
+          - boolean
+          - 'null'
+      required:
+      - cipherId
+      - targetSystemId
+      - sealedData
+      - wrappedKey
+    UpdateRotationConfigRequest:
+      type: object
+      properties:
+        sealedData:
+          type: string
+        wrappedKey:
+          type: string
+        scheduleCron:
+          type:
+          - string
+          - 'null'
+        rotateOnAccessEnd:
+          type:
+          - boolean
+          - 'null'
+      required:
+      - sealedData
+      - wrappedKey
+    PamRotationConfig:
+      type: object
+      properties:
+        object:
+          type: string
+        id:
+          type: string
+          format: uuid
+        organizationId:
+          type: string
+          format: uuid
+        cipherId:
+          type: string
+          format: uuid
+        targetSystemId:
+          type: string
+          format: uuid
+        targetSystemName:
+          type:
+          - string
+          - 'null'
+        targetSystemMethod:
+          oneOf:
+          - $ref: '#/components/schemas/PamTargetSystemMethod'
+          - type: 'null'
+        sealedData:
+          type: string
+        wrappedKey:
+          type: string
+        scheduleCron:
+          type:
+          - string
+          - 'null'
+        rotateOnAccessEnd:
+          type: boolean
+        nextRotationAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        enabled:
+          type: boolean
+        lastRotationAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        hasActiveJob:
+          type: boolean
+        awaitingManualRotation:
+          type: boolean
+        creationDate:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        revisionDate:
+          type:
+          - string
+          - 'null'
+          format: date-time
+    PamRotationConfigDetail:
+      type: object
+      properties:
+        object:
+          type: string
+        id:
+          type: string
+          format: uuid
+        organizationId:
+          type: string
+          format: uuid
+        cipherId:
+          type: string
+          format: uuid
+        targetSystemId:
+          type: string
+          format: uuid
+        targetSystemName:
+          type:
+          - string
+          - 'null'
+        targetSystemMethod:
+          oneOf:
+          - $ref: '#/components/schemas/PamTargetSystemMethod'
+          - type: 'null'
+        sealedData:
+          type: string
+        wrappedKey:
+          type: string
+        scheduleCron:
+          type:
+          - string
+          - 'null'
+        rotateOnAccessEnd:
+          type: boolean
+        nextRotationAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        enabled:
+          type: boolean
+        lastRotationAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        hasActiveJob:
+          type: boolean
+        awaitingManualRotation:
+          type: boolean
+        creationDate:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        revisionDate:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        jobs:
+          type: array
+          items:
+            $ref: '#/components/schemas/PamRotationJob'
+    PamRotationConfigList:
+      type: object
+      properties:
+        object:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PamRotationConfig'
+        continuationToken:
+          type:
+          - string
+          - 'null'
+    ClaimableRotationJob:
+      type: object
+      properties:
+        object:
+          type: string
+        jobId:
+          type: string
+          format: uuid
+        source:
+          $ref: '#/components/schemas/PamRotationSource'
+        nextClaimableAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        expiresAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        targetSystemId:
+          type: string
+          format: uuid
+    ClaimableRotationJobList:
+      type: object
+      properties:
+        object:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClaimableRotationJob'
+        continuationToken:
+          type:
+          - string
+          - 'null'
+    RotationClaimResponse:
+      type: object
+      properties:
+        attemptId:
+          type: string
+          format: uuid
+        jobId:
+          type: string
+          format: uuid
+        source:
+          $ref: '#/components/schemas/PamRotationSource'
+        targetSystemId:
+          type: string
+          format: uuid
+        targetSystemName:
+          type: string
+        targetSystemSealedData:
+          type:
+          - string
+          - 'null'
+        targetSystemWrappedKey:
+          type:
+          - string
+          - 'null'
+        cipherId:
+          type: string
+          format: uuid
+        rotationConfigSealedData:
+          type: string
+        rotationConfigWrappedKey:
+          type: string
+        executeBy:
+          type:
+          - string
+          - 'null'
+          format: date-time
+    ReportRotationFailedRequest:
+      type: object
+      description: 'Never send raw target system output: it can echo credentials.'
+      properties:
+        syncState:
+          $ref: '#/components/schemas/PamRotationSyncState'
+        errorCode:
+          type: string
+          maxLength: 64
+        detail:
+          type:
+          - string
+          - 'null'
+          maxLength: 256
+      required:
+      - syncState
+      - errorCode
+    ReportRotationSucceededRequest:
+      type: object
+      properties:
+        sessionTermination:
+          $ref: '#/components/schemas/PamSessionTerminationOutcome'
+      required:
+      - sessionTermination
+    AccessRuleRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type:
+          - string
+          - 'null'
+        enabled:
+          type:
+          - boolean
+          - 'null'
+        conditions:
+          type:
+          - object
+          - 'null'
+          description: Opaque JSON. `approvalMode` ("Automatic" or "Human", default Human) picks who approves.
+        singleActiveLease:
+          type:
+          - boolean
+          - 'null'
+        defaultLeaseDurationSeconds:
+          type:
+          - integer
+          - 'null'
+        maxLeaseDurationSeconds:
+          type:
+          - integer
+          - 'null'
+        allowsExtensions:
+          type:
+          - boolean
+          - 'null'
+        maxExtensionDurationSeconds:
+          type:
+          - integer
+          - 'null'
+        collections:
+          type: array
+          items:
+            type: string
+            format: uuid
+      required:
+      - name
+      - collections
+    AccessRule:
+      type: object
+      properties:
+        object:
+          type: string
+        id:
+          type: string
+          format: uuid
+        organizationId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type:
+          - string
+          - 'null'
+        enabled:
+          type: boolean
+        conditions:
+          type:
+          - object
+          - 'null'
+        singleActiveLease:
+          type: boolean
+        defaultLeaseDurationSeconds:
+          type: integer
+        maxLeaseDurationSeconds:
+          type: integer
+        allowsExtensions:
+          type: boolean
+        maxExtensionDurationSeconds:
+          type:
+          - integer
+          - 'null'
+        collections:
+          type: array
+          items:
+            type: string
+            format: uuid
+        creationDate:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        revisionDate:
+          type:
+          - string
+          - 'null'
+          format: date-time
+    AccessRuleList:
+      type: object
+      properties:
+        object:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccessRule'
+        continuationToken:
+          type:
+          - string
+          - 'null'
+    AccessRequestCreateRequest:
+      type: object
+      description: 'Give `start` and `end` together for a fixed window, otherwise a duration (default: the rule default).'
+      properties:
+        durationSeconds:
+          type:
+          - integer
+          - 'null'
+        start:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        end:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        reason:
+          type:
+          - string
+          - 'null'
+    AccessDecisionRequest:
+      type: object
+      properties:
+        verdict:
+          $ref: '#/components/schemas/AccessDecisionVerdict'
+        comment:
+          type:
+          - string
+          - 'null'
+      required:
+      - verdict
+    AccessRequestRevokeRequest:
+      type: object
+      properties:
+        reason:
+          type:
+          - string
+          - 'null'
+    AccessLeaseExtensionRequest:
+      type: object
+      properties:
+        durationSeconds:
+          type:
+          - integer
+          - 'null'
+        reason:
+          type: string
+      required:
+      - reason
+    AccessLeaseRevokeRequest:
+      type: object
+      properties:
+        reason:
+          type:
+          - string
+          - 'null'
+    AccessRequestDecision:
+      type: object
+      properties:
+        deciderKind:
+          $ref: '#/components/schemas/AccessDeciderKind'
+        id:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        name:
+          type:
+          - string
+          - 'null'
+        email:
+          type:
+          - string
+          - 'null'
+        comment:
+          type:
+          - string
+          - 'null'
+        verdict:
+          $ref: '#/components/schemas/AccessDecisionVerdict'
+        decidedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+    AccessRequestDetails:
+      type: object
+      properties:
+        object:
+          type: string
+        id:
+          type: string
+          format: uuid
+        cipherId:
+          type: string
+          format: uuid
+        collectionId:
+          type: string
+          format: uuid
+        organizationId:
+          type: string
+          format: uuid
+        requesterId:
+          type: string
+          format: uuid
+        ruleId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/AccessRequestStatus'
+        leaseNotBefore:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        leaseNotAfter:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        reason:
+          type:
+          - string
+          - 'null'
+        submittedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        resolvedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        decisions:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccessRequestDecision'
+        producedLeaseId:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        producedLeaseStatus:
+          oneOf:
+          - $ref: '#/components/schemas/AccessLeaseStatus'
+          - type: 'null'
+        producedLeaseNotAfter:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        extensionOfLeaseId:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        requesterName:
+          type:
+          - string
+          - 'null'
+        requesterEmail:
+          type:
+          - string
+          - 'null'
+    AccessRequestDetailsList:
+      type: object
+      properties:
+        object:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccessRequestDetails'
+        continuationToken:
+          type:
+          - string
+          - 'null'
+    AccessRequestResult:
+      type: object
+      properties:
+        object:
+          type: string
+        approvalMode:
+          $ref: '#/components/schemas/AccessApprovalMode'
+        request:
+          $ref: '#/components/schemas/AccessRequestDetails'
+    AccessLease:
+      type: object
+      properties:
+        object:
+          type: string
+        id:
+          type: string
+          format: uuid
+        requestId:
+          type: string
+          format: uuid
+        cipherId:
+          type: string
+          format: uuid
+        collectionId:
+          type: string
+          format: uuid
+        ruleId:
+          type: 'null'
+          description: Always null; leases do not record their rule.
+        organizationId:
+          type: string
+          format: uuid
+        requesterId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/AccessLeaseStatus'
+        notBefore:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        notAfter:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        revokedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        revokedByUserId:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        revocationReason:
+          type:
+          - string
+          - 'null'
+    AccessLeaseList:
+      type: object
+      properties:
+        object:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccessLease'
+        continuationToken:
+          type:
+          - string
+          - 'null'
+    AccessPreCheck:
+      type: object
+      properties:
+        object:
+          type: string
+        cipherId:
+          type: string
+          format: uuid
+        approvalMode:
+          $ref: '#/components/schemas/AccessApprovalMode'
+        hasActiveLease:
+          type: boolean
+        defaultDurationSeconds:
+          type: integer
+        maxDurationSeconds:
+          type: integer
+        canStartLease:
+          type: boolean
+        slotFreesAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+    CipherAccessState:
+      type: object
+      properties:
+        object:
+          type: string
+        cipherId:
+          type: string
+          format: uuid
+        activeLease:
+          oneOf:
+          - $ref: '#/components/schemas/AccessLease'
+          - type: 'null'
+        pendingRequest:
+          oneOf:
+          - $ref: '#/components/schemas/AccessRequestDetails'
+          - type: 'null'
+        approvedRequest:
+          oneOf:
+          - $ref: '#/components/schemas/AccessRequestDetails'
+          - type: 'null'
+        extensionsAllowed:
+          type: boolean
+        maxExtensionDurationSeconds:
+          type:
+          - integer
+          - 'null'
+        canRequest:
+          type: boolean
+    CipherMiniResponse:
+      type: object
+      description: The encrypted item as stored. Cloudwarden never returns a reduced partial item.
+      properties:
+        object:
+          type: string
+        id:
+          type: string
+          format: uuid
+        organizationId:
+          type: string
+          format: uuid
+        type:
+          type: integer
+        name:
+          type: string
+        notes:
+          type:
+          - string
+          - 'null'
+        login:
+          type:
+          - object
+          - 'null'
+        fields:
+          type:
+          - array
+          - 'null'
+          items:
+            type: object
+        passwordHistory:
+          type:
+          - array
+          - 'null'
+          items:
+            type: object
+        key:
+          type:
+          - string
+          - 'null'
+        revisionDate:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        creationDate:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        deletedDate:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        partialData:
+          type: 'null'
+    RotationCipherUpdateRequest:
+      type: object
+      description: A login item as the connector rewrote it. The item key and organization must not change.
+      properties:
+        type:
+          type: integer
+          enum:
+          - 1
+        name:
+          type: string
+        notes:
+          type:
+          - string
+          - 'null'
+        organizationId:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        key:
+          type:
+          - string
+          - 'null'
+        login:
+          type:
+          - object
+          - 'null'
+        fields:
+          type:
+          - array
+          - 'null'
+          items:
+            type: object
+        passwordHistory:
+          type:
+          - array
+          - 'null'
+          items:
+            type: object
+        lastKnownRevisionDate:
+          type: string
+          format: date-time
+          description: The revision date from the read.
+      required:
+      - type
+      - name
+      - lastKnownRevisionDate

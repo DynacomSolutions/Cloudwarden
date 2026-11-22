@@ -41,7 +41,7 @@ it('cipherRecipients matches the per-member itemAccess semantics', async () => {
   const linked = await linkedCollections(db, cipher.uuid)
   const old: string[] = []
   for (const m of await activeMemberIds(db, id)) {
-    if (itemAccess(await loadUserAccess(db, m), id, linked)) old.push(m)
+    if (itemAccess(await loadUserAccess(db, m), id, linked, cipher.uuid)) old.push(m)
   }
   const got = await cipherRecipients(db, cipher)
   expect([...got].sort()).toEqual([...old].sort())

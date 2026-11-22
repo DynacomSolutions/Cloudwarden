@@ -11,9 +11,10 @@ import { normalizeEmail } from '../auth/users'
 import { createDb, type Db, schema } from '../db'
 import type { Env } from '../env'
 import { ApiError } from '../errors'
+import { assertGroupJoinAllowed, grantorOf } from '../pam/manage-guard'
 import { sendInvite } from '../routes/org-users'
 import { chunk } from '../vault/ciphers'
-import { bumpOrgRevision, type Member, requireOrg } from './access'
+import { bumpOrgRevision, isAdminRole, type Member, requireOrg } from './access'
 import { dropMemberStateFor } from './ciphers'
 import { EventType, Role, Status } from './constants'
 import { eventStatement } from './events'
@@ -240,6 +241,20 @@ export async function importDirectory(
     .where(eq(schema.groups.organizationUuid, orgUuid))
   const groupsByExternal = new Map(groups.filter((g) => g.externalId).map((g) => [g.externalId, g]))
   const importedGroups = new Set<string>()
+  // Existing groups that gain members. A member of the organisation (not the organisation API key,
+  // which holds owner authority) may not add members to a group that holds Manage access on a
+  // covered collection unless they hold it too (PAM). Checked before any statement runs.
+  const gaining: string[] = []
+  const guarded = actor !== null && !isAdminRole(actor)
+  const presentByGroup = new Map<string, Set<string>>()
+  if (guarded && groups.length > 0) {
+    const pairs = await db
+      .select({ g: schema.groupsUsers.groupUuid, m: schema.groupsUsers.organizationUserUuid })
+      .from(schema.groupsUsers)
+      .innerJoin(schema.groups, eq(schema.groups.uuid, schema.groupsUsers.groupUuid))
+      .where(eq(schema.groups.organizationUuid, orgUuid))
+    for (const { g, m } of pairs) presentByGroup.set(g, (presentByGroup.get(g) ?? new Set()).add(m))
+  }
   for (const g of body.groups ?? []) {
     importedGroups.add(g.externalId)
     const memberUuids = [
@@ -252,6 +267,10 @@ export async function importDirectory(
     ]
     const existing = groupsByExternal.get(g.externalId)
     const groupUuid = existing?.uuid ?? crypto.randomUUID()
+    if (guarded && existing) {
+      const present = presentByGroup.get(existing.uuid)
+      if (memberUuids.some((m) => !present?.has(m))) gaining.push(existing.uuid)
+    }
     if (existing) {
       statements.push(
         db
@@ -293,6 +312,9 @@ export async function importDirectory(
     }
   }
 
+  if (actor && gaining.length > 0) {
+    await assertGroupJoinAllowed(db, grantorOf(actor), orgUuid, gaining)
+  }
   if (statements.length === 0) return result
   // Revision bump first: removed members must resync too.
   // Slices commit one by one, so a failure part way leaves some changes in place. Members match

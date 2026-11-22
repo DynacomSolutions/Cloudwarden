@@ -1183,3 +1183,6 @@ export const instanceSettings = sqliteTable('instance_settings', {
 
 // Federated organisations (TASKS #300); the tables live with the feature.
 export * from '../federation/schema'
+
+// Privileged access management (docs/privileged-access.md).
+export * from '../pam/schema'

@@ -31,29 +31,29 @@ Directory Connector, SCIM, event integrations; G this audit.
 | | Rows |
 |---|---|
 | Distinct method and path pairs | 633 |
-| Implemented (including self-host answers) | 577 |
+| Implemented (including self-host answers) | 626 |
 | Owned by workstreams A to F, not yet implemented | 0 |
 | Remaining for G | 0 |
-| Not called by any client (SDK-generated only) | 49 |
+| Not called by any client (SDK-generated only) | 0 |
 | Not applicable (not served by the official self-hosted server either) | 7 |
 
 ## Matrix
 
 | Method | Path | Callers | Status | Owner | Note |
 |---|---|---|---|---|---|
-| GET | `/api/access-connectors/rotation/attempts/{id}/cipher` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| PUT | `/api/access-connectors/rotation/attempts/{id}/cipher` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/access-connectors/rotation/attempts/{id}/failure` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/access-connectors/rotation/attempts/{id}/success` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| GET | `/api/access-connectors/rotation/jobs` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/access-connectors/rotation/jobs/{id}/claim` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| GET | `/api/access-requests/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/access-requests/{id}/activate` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/access-requests/{id}/decision` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/access-requests/{id}/revoke` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| GET | `/api/access-requests/history` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| GET | `/api/access-requests/inbox` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| GET | `/api/access-requests/mine` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
+| GET | `/api/access-connectors/rotation/attempts/{id}/cipher` | sdk | implemented |  |  |
+| PUT | `/api/access-connectors/rotation/attempts/{id}/cipher` | sdk | implemented |  |  |
+| POST | `/api/access-connectors/rotation/attempts/{id}/failure` | sdk | implemented |  |  |
+| POST | `/api/access-connectors/rotation/attempts/{id}/success` | sdk | implemented |  |  |
+| GET | `/api/access-connectors/rotation/jobs` | sdk | implemented |  |  |
+| POST | `/api/access-connectors/rotation/jobs/{id}/claim` | sdk | implemented |  |  |
+| GET | `/api/access-requests/{id}` | sdk | implemented |  |  |
+| POST | `/api/access-requests/{id}/activate` | sdk | implemented |  |  |
+| POST | `/api/access-requests/{id}/decision` | sdk | implemented |  |  |
+| POST | `/api/access-requests/{id}/revoke` | sdk | implemented |  |  |
+| GET | `/api/access-requests/history` | sdk | implemented |  |  |
+| GET | `/api/access-requests/inbox` | sdk | implemented |  |  |
+| GET | `/api/access-requests/mine` | sdk | implemented |  |  |
 | GET | `/api/account/billing/subscription/preview` | sdk, web | implemented |  |  |
 | GET | `/api/account/billing/subscription/purchase/preview` | sdk | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | GET | `/api/account/billing/subscription/upgrade/preview` | sdk | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
@@ -251,14 +251,14 @@ Directory Connector, SCIM, event integrations; G this audit.
 | GET | `/api/hibp/breach` | sdk, web | implemented |  |  |
 | POST | `/api/installations` | sdk | not applicable | - | Relay-side endpoint of the Bitwarden cloud push relay. This server is a relay client (it calls these endpoints, see docs/push-notifications.md) and never serves them |
 | GET | `/api/installations/{id}` | sdk | not applicable | - | Relay-side endpoint of the Bitwarden cloud push relay. This server is a relay client (it calls these endpoints, see docs/push-notifications.md) and never serves them |
-| POST | `/api/leases/{id}/extend` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/leases/{id}/revoke` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| GET | `/api/leases/active` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/leases/ciphers/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| GET | `/api/leases/ciphers/{id}/pre-check` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| GET | `/api/leases/ciphers/{id}/state` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| GET | `/api/leases/history` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| GET | `/api/leases/mine` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
+| POST | `/api/leases/{id}/extend` | sdk | implemented |  |  |
+| POST | `/api/leases/{id}/revoke` | sdk | implemented |  |  |
+| GET | `/api/leases/active` | sdk | implemented |  |  |
+| POST | `/api/leases/ciphers/{id}` | sdk | implemented |  |  |
+| GET | `/api/leases/ciphers/{id}/pre-check` | sdk | implemented |  |  |
+| GET | `/api/leases/ciphers/{id}/state` | sdk | implemented |  |  |
+| GET | `/api/leases/history` | sdk | implemented |  |  |
+| GET | `/api/leases/mine` | sdk | implemented |  |  |
 | GET | `/api/licenses/organization/{id}` | sdk | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | GET | `/api/licenses/user/{id}` | sdk | self-host | G | No payment provider on a self-hosted server: reads answer an empty subscription state, writes answer 400 with an explanation |
 | GET | `/api/notifications` | sdk, web | implemented |  |  |
@@ -288,37 +288,37 @@ Directory Connector, SCIM, event integrations; G this audit.
 | DELETE | `/api/organizations/{id}` | sdk, web | implemented |  |  |
 | GET | `/api/organizations/{id}` | sdk, web | implemented |  |  |
 | PUT | `/api/organizations/{id}` | sdk, web | implemented |  |  |
-| GET | `/api/organizations/{id}/access-connectors` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/organizations/{id}/access-connectors` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| DELETE | `/api/organizations/{id}/access-connectors/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| GET | `/api/organizations/{id}/access-connectors/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/organizations/{id}/access-connectors/{id}/assignments` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| DELETE | `/api/organizations/{id}/access-connectors/{id}/assignments/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/organizations/{id}/access-connectors/{id}/disable` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/organizations/{id}/access-connectors/{id}/enable` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| GET | `/api/organizations/{id}/access-connectors/rotation/configs` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/organizations/{id}/access-connectors/rotation/configs` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| DELETE | `/api/organizations/{id}/access-connectors/rotation/configs/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| GET | `/api/organizations/{id}/access-connectors/rotation/configs/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| PUT | `/api/organizations/{id}/access-connectors/rotation/configs/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/organizations/{id}/access-connectors/rotation/configs/{id}/pause` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/organizations/{id}/access-connectors/rotation/configs/{id}/record-manual` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/organizations/{id}/access-connectors/rotation/configs/{id}/resume` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/organizations/{id}/access-connectors/rotation/configs/{id}/rotate` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| GET | `/api/organizations/{id}/access-connectors/rotation/target-systems` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/organizations/{id}/access-connectors/rotation/target-systems` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| DELETE | `/api/organizations/{id}/access-connectors/rotation/target-systems/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| PUT | `/api/organizations/{id}/access-connectors/rotation/target-systems/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/organizations/{id}/access-connectors/rotation/target-systems/{id}/disable` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/organizations/{id}/access-connectors/rotation/target-systems/{id}/enable` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
+| GET | `/api/organizations/{id}/access-connectors` | sdk | implemented |  |  |
+| POST | `/api/organizations/{id}/access-connectors` | sdk | implemented |  |  |
+| DELETE | `/api/organizations/{id}/access-connectors/{id}` | sdk | implemented |  |  |
+| GET | `/api/organizations/{id}/access-connectors/{id}` | sdk | implemented |  |  |
+| POST | `/api/organizations/{id}/access-connectors/{id}/assignments` | sdk | implemented |  |  |
+| DELETE | `/api/organizations/{id}/access-connectors/{id}/assignments/{id}` | sdk | implemented |  |  |
+| POST | `/api/organizations/{id}/access-connectors/{id}/disable` | sdk | implemented |  |  |
+| POST | `/api/organizations/{id}/access-connectors/{id}/enable` | sdk | implemented |  |  |
+| GET | `/api/organizations/{id}/access-connectors/rotation/configs` | sdk | implemented |  |  |
+| POST | `/api/organizations/{id}/access-connectors/rotation/configs` | sdk | implemented |  |  |
+| DELETE | `/api/organizations/{id}/access-connectors/rotation/configs/{id}` | sdk | implemented |  |  |
+| GET | `/api/organizations/{id}/access-connectors/rotation/configs/{id}` | sdk | implemented |  |  |
+| PUT | `/api/organizations/{id}/access-connectors/rotation/configs/{id}` | sdk | implemented |  |  |
+| POST | `/api/organizations/{id}/access-connectors/rotation/configs/{id}/pause` | sdk | implemented |  |  |
+| POST | `/api/organizations/{id}/access-connectors/rotation/configs/{id}/record-manual` | sdk | implemented |  |  |
+| POST | `/api/organizations/{id}/access-connectors/rotation/configs/{id}/resume` | sdk | implemented |  |  |
+| POST | `/api/organizations/{id}/access-connectors/rotation/configs/{id}/rotate` | sdk | implemented |  |  |
+| GET | `/api/organizations/{id}/access-connectors/rotation/target-systems` | sdk | implemented |  |  |
+| POST | `/api/organizations/{id}/access-connectors/rotation/target-systems` | sdk | implemented |  |  |
+| DELETE | `/api/organizations/{id}/access-connectors/rotation/target-systems/{id}` | sdk | implemented |  |  |
+| PUT | `/api/organizations/{id}/access-connectors/rotation/target-systems/{id}` | sdk | implemented |  |  |
+| POST | `/api/organizations/{id}/access-connectors/rotation/target-systems/{id}/disable` | sdk | implemented |  |  |
+| POST | `/api/organizations/{id}/access-connectors/rotation/target-systems/{id}/enable` | sdk | implemented |  |  |
 | GET | `/api/organizations/{orgId}/access-policies/people/potential-grantees` | sdk, web | implemented |  |  |
 | GET | `/api/organizations/{id}/access-policies/projects/potential-grantees` | sdk | implemented |  |  |
 | GET | `/api/organizations/{id}/access-policies/service-accounts/potential-grantees` | sdk | implemented |  |  |
-| GET | `/api/organizations/{id}/access-rules` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| POST | `/api/organizations/{id}/access-rules` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| DELETE | `/api/organizations/{id}/access-rules/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| GET | `/api/organizations/{id}/access-rules/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
-| PUT | `/api/organizations/{id}/access-rules/{id}` | sdk | not called | - | Generated in the SDK API client only; no GPL client calls it |
+| GET | `/api/organizations/{id}/access-rules` | sdk | implemented |  |  |
+| POST | `/api/organizations/{id}/access-rules` | sdk | implemented |  |  |
+| DELETE | `/api/organizations/{id}/access-rules/{id}` | sdk | implemented |  |  |
+| GET | `/api/organizations/{id}/access-rules/{id}` | sdk | implemented |  |  |
+| PUT | `/api/organizations/{id}/access-rules/{id}` | sdk | implemented |  |  |
 | POST | `/api/organizations/{id}/api-key` | sdk, web | implemented | F |  |
 | GET | `/api/organizations/{id}/api-key-information` | web | implemented | F |  |
 | GET | `/api/organizations/{id}/api-key-information/{type}` | sdk, web | implemented | F |  |

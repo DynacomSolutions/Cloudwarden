@@ -28,6 +28,8 @@ import { isStandInUser } from '../federation/standin'
 import { organizationLoginGrant } from '../orgs/api-keys'
 import { EventType } from '../orgs/constants'
 import { recordUserEvent } from '../orgs/events'
+import { connectorLoginGrant } from '../pam/connector-auth'
+import { CONNECTOR_SCOPE } from '../pam/constants'
 import { rateLimit, resetBudget, spendBudget, tooManyRequests } from '../ratelimit'
 import { MACHINE_SCOPE, machineLoginGrant } from '../sm/auth'
 import { consumeCode, findRedeemableCode } from '../sso/flow'
@@ -524,6 +526,10 @@ token.post('/identity/connect/token', rateLimit('token', 30), async (c) => {
     case 'client_credentials':
       // Secrets Manager machine accounts log in with their access token (TASKS #220).
       if ((form.scope ?? '').split(' ').includes(MACHINE_SCOPE)) return machineLoginGrant(c, form)
+      // Privileged access connectors (docs/privileged-access.md).
+      if ((form.scope ?? '').split(' ').includes(CONNECTOR_SCOPE)) {
+        return connectorLoginGrant(c, form)
+      }
       // Organisation API key: Public API and Directory Connector (TASKS #270).
       if ((form.client_id ?? '').startsWith('organization.')) return organizationLoginGrant(c, form)
       return clientCredentialsGrant(c, form)

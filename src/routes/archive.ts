@@ -73,7 +73,8 @@ async function reachable(c: Ctx, db: Db, ids: string[]): Promise<Reachable[]> {
       out.push({ cipher, access: null })
       continue
     }
-    const access = ua && itemAccess(ua, cipher.organizationUuid, links.get(cipher.uuid) ?? [])
+    const access =
+      ua && itemAccess(ua, cipher.organizationUuid, links.get(cipher.uuid) ?? [], cipher.uuid)
     if (!access) throw new ApiError(404, 'Cipher not found.')
     out.push({ cipher, access })
   }

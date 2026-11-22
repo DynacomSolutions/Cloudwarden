@@ -143,8 +143,24 @@ export type SmActor =
       accessTokenUuid: string
     }
 
+/** Access connector token claims (privileged access, docs/privileged-access.md). */
+export interface ConnectorTokenClaims {
+  nbf: number
+  exp: number
+  iss: string
+  /** Access connector id. */
+  sub: string
+  organization: string
+  /** The connector's `access-connector.<apiKeyId>` client id. */
+  client_id: string
+  scope: string[]
+  type: 'AccessConnector'
+}
+
 /** Values set on the Hono context by `requireAuth`. */
 export interface Variables {
+  /** Set by `requireConnectorAuth` on the connector-facing rotation routes. */
+  connector?: { uuid: string; organizationUuid: string }
   /** Set by `requireOrgApiAuth` on Public API routes (TASKS #271). */
   orgApi?: { organizationUuid: string }
   /** Set by `requireSmAuth` on Secrets Manager routes. */

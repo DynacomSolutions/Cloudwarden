@@ -333,3 +333,120 @@ describe('owners and holders of Manage access keep their grants (round 4, contro
     expect(await membersOf(deciders)).toEqual([ids.approver, ids.manager].sort())
   })
 })
+
+describe('a restore does not turn old Manage grants back on (round 4, restore)', () => {
+  let direct: Actor
+  let viaGroup: Actor
+  let bulk: Actor
+  let viaScim: Actor
+  let control: Actor
+  // A custom member who manages members and holds no Manage access (the earlier controls made
+  // `manager` a member of the Deciders group).
+  let restorer: Actor
+  const rid: Record<string, string> = {}
+
+  /** An admin (the owner) gives the member Manage access to the covered collection, then revokes them. */
+  const grantAndRevoke = async (who: Actor, key: string, how: 'direct' | 'group') => {
+    rid[key] = await addMember(owner, orgId, who, {
+      type: 2,
+      collections: [readOnly(covered)],
+    })
+    const body =
+      how === 'direct'
+        ? { type: 2, accessAll: false, collections: [grant(covered, true)] }
+        : { type: 2, accessAll: false, groups: [deciders] }
+    expect(
+      (await owner.call(`/api/organizations/${orgId}/users/${rid[key]}`, 'PUT', body)).status,
+    ).toBe(200)
+    expect(
+      (await owner.call(`/api/organizations/${orgId}/users/${rid[key]}/revoke`, 'PUT')).status,
+    ).toBe(200)
+  }
+
+  const statusOf = async (key: string) =>
+    (await sql('select status as s from users_organizations where uuid = ?', rid[key])).results[0]
+      .s as number
+
+  /** The revoked member must not read the item in full. */
+  const notFull = async (who: Actor) => {
+    const res = await who.call('/api/sync')
+    if (res.status !== 200) return
+    const row = ((await res.json<any>()).ciphers as any[]).find((c) => c.id === cipherId)
+    if (row) expect(row.login).toBeNull()
+  }
+
+  beforeAll(async () => {
+    direct = await actor('fix4-restore-direct@example.com')
+    viaGroup = await actor('fix4-restore-group@example.com')
+    bulk = await actor('fix4-restore-bulk@example.com')
+    viaScim = await actor('fix4-restore-scim@example.com')
+    control = await actor('fix4-restore-control@example.com')
+    restorer = await actor('fix4-restorer@example.com')
+    await addMember(owner, orgId, restorer, { type: 4, permissions: { manageUsers: true } })
+    await grantAndRevoke(direct, 'direct', 'direct')
+    await grantAndRevoke(viaGroup, 'group', 'group')
+    await grantAndRevoke(bulk, 'bulk', 'direct')
+    await grantAndRevoke(viaScim, 'scim', 'direct')
+    await grantAndRevoke(control, 'control', 'direct')
+  }, 600_000)
+
+  it('refuses a restore by a custom member of an account that holds Manage access directly', async () => {
+    const res = await restorer.call(
+      `/api/organizations/${orgId}/users/${rid.direct}/restore`,
+      'PUT',
+    )
+    expect(res.status).toBe(403)
+    expect(await statusOf('direct')).toBe(-1)
+    await notFull(direct)
+  })
+
+  it('refuses a restore of an account that holds Manage access through a group', async () => {
+    const res = await restorer.call(`/api/organizations/${orgId}/users/${rid.group}/restore`, 'PUT')
+    expect(res.status).toBe(403)
+    expect(await statusOf('group')).toBe(-1)
+    await notFull(viaGroup)
+  })
+
+  it('refuses a bulk restore with an error row and leaves the member revoked', async () => {
+    const res = await restorer.call(`/api/organizations/${orgId}/users/restore`, 'PUT', {
+      ids: [rid.bulk],
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json<any>()
+    expect(body.data[0].error).toEqual(expect.any(String))
+    expect(await statusOf('bulk')).toBe(-1)
+    await notFull(bulk)
+  })
+
+  it('refuses SCIM active: true for an account that holds Manage access', async () => {
+    const res = await scim(`/Users/${rid.scim}`, 'PATCH', {
+      schemas: ['urn:ietf:params:scim:api:messages:2.0:PatchOp'],
+      Operations: [{ op: 'Replace', path: 'active', value: 'True' }],
+    })
+    expect(res.status).toBe(403)
+    expect(res.body).toMatchObject({
+      schemas: ['urn:ietf:params:scim:api:messages:2.0:Error'],
+      status: '403',
+    })
+    expect(await statusOf('scim')).toBe(-1)
+    await notFull(viaScim)
+  })
+
+  it('lets a member with Manage access restore, and an owner restore anyone', async () => {
+    // The decider holds Manage access to the covered collection, so a restore adds nothing.
+    const byDecider = await decider.call(
+      `/api/organizations/${orgId}/users/${rid.direct}/restore`,
+      'PUT',
+    )
+    expect(byDecider.status).toBe(200)
+    const res = await owner.call(`/api/organizations/${orgId}/users/${rid.control}/restore`, 'PUT')
+    expect(res.status).toBe(200)
+    expect(await statusOf('control')).toBeGreaterThan(-1)
+    // The owner may restore through the bulk route too.
+    const bulkOwner = await owner.call(`/api/organizations/${orgId}/users/restore`, 'PUT', {
+      ids: [rid.group, rid.bulk],
+    })
+    expect(bulkOwner.status).toBe(200)
+    expect(await statusOf('bulk')).toBeGreaterThan(-1)
+  })
+})

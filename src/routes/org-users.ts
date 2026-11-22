@@ -49,6 +49,8 @@ import { authOnce, batch } from '../orgs/util'
 import {
   assertGroupJoinAllowed,
   assertManageGrantsAllowed,
+  assertRestoreAllowed,
+  COVERED_MANAGE_DENIED,
   grantorOf,
   memberGroups,
   memberManageGrants,
@@ -822,6 +824,8 @@ const restoreOp: Op = async (c, db, actor, target) => {
   assertCanAssign(actor, target.atype)
   if (target.status !== Status.Revoked) throw new ApiError(400, 'User is not revoked.')
   if (target.userUuid) await assertTwoFactorCompliant(db, target.userUuid, target.organizationUuid)
+  // Revoking keeps the grants of the member: a restore turns them back on (PAM).
+  await assertRestoreAllowed(db, grantorOf(actor), target)
   return [
     db
       .update(schema.usersOrganizations)
@@ -854,7 +858,7 @@ const removeOp: Op = async (c, db, actor, target) => {
   ]
 }
 
-async function runOps(c: Ctx, ids: string[], op: Op) {
+async function runOps(c: Ctx, ids: string[], op: Op, statuses?: Map<string, number>) {
   const db = createDb(c.env.DB)
   const actor = await requirePermission(db, c.var.user.uuid, org(c), 'manageUsers')
   const out: { id: string; error: string | null }[] = []
@@ -865,6 +869,7 @@ async function runOps(c: Ctx, ids: string[], op: Op) {
       out.push({ id, error: null })
     } catch (e) {
       if (!(e instanceof ApiError)) throw e
+      if (e.message === COVERED_MANAGE_DENIED) statuses?.set(id, e.status)
       out.push({ id, error: e.message })
     }
   }
@@ -874,8 +879,13 @@ async function runOps(c: Ctx, ids: string[], op: Op) {
 }
 
 const single = async (c: Ctx, op: Op) => {
-  const [r] = await runOps(c, [c.req.param('id') ?? ''], op)
-  if (r?.error) throw new ApiError(r.error === 'User not found.' ? 404 : 400, r.error)
+  const statuses = new Map<string, number>()
+  const [r] = await runOps(c, [c.req.param('id') ?? ''], op, statuses)
+  // A grant that the PAM guard refuses keeps its 403; other failures answer 400, a missing member 404.
+  if (r?.error) {
+    const refused = statuses.get(r.id) === 403
+    throw new ApiError(r.error === 'User not found.' ? 404 : refused ? 403 : 400, r.error)
+  }
   return c.body(null, 200)
 }
 

@@ -14,13 +14,16 @@
 //   routes/org-users.ts    invite (collections, groups)        guarded here
 //                          update (collections, groups)        guarded here
 //                          PUT users/:id/groups                guarded here
+//                          restore (single, bulk, vnext)      guarded here: a revoke keeps the grants,
+//                                                              so a restore turns them on again
 //                          bulk routes (reinvite, confirm,     write no grants
-//                          revoke, restore, remove)
+//                          revoke, remove)
 //   routes/groups.ts       create, update, PUT groups/:id/users guarded here (round 3 checks moved)
 //   routes/collections.ts  PUT users, PUT/POST update, bulk-access: guarded here; they also need
 //                          own Manage on the collection already (`requireManage`)
 //                          create: the collection is new, so no rule covers it
 //   scim/routes.ts        Groups POST, PUT, PATCH (`saveGroup`) guarded here, as `SCIM_GRANTOR`
+//                          Users `active: true` (restore) guarded here, as `SCIM_GRANTOR`
 //                          Users routes write no group rows
 //   orgs/directory-import.ts (client import route)           guarded here, as the acting member
 //                          (Public API and Directory Connector: owner authority, skipped)
@@ -152,6 +155,28 @@ export async function assertGroupJoinAllowed(
   // An access-all group holds Manage access on every collection of the organisation.
   const ids = accessAll ? [...(await coveredCollections(db, orgUuid))] : manage
   await assertOwnManage(db, grantor, orgUuid, ids)
+}
+
+/**
+ * A restore turns the stored grants of a revoked member on again: their direct Manage grants, the
+ * groups they belong to, and access to every collection (`accessAll`). The grantor needs the same
+ * authority as for a new grant, so a non-admin cannot restore an account that an admin once gave
+ * Manage access to a covered collection.
+ */
+export async function assertRestoreAllowed(db: Db, grantor: Grantor, member: Member) {
+  if (grantor.admin) return
+  const orgUuid = member.organizationUuid
+  if (member.accessAll) {
+    await assertOwnManage(db, grantor, orgUuid, [...(await coveredCollections(db, orgUuid))])
+  }
+  const held = await memberManageGrants(db, member.uuid)
+  await assertManageGrantsAllowed(
+    db,
+    grantor,
+    orgUuid,
+    [...held].map((id) => ({ id, manage: true })),
+  )
+  await assertGroupJoinAllowed(db, grantor, orgUuid, [...(await memberGroups(db, member.uuid))])
 }
 
 /** Collections where a member holds a direct Manage grant now (the `kept` set of an update). */

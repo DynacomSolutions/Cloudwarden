@@ -28,7 +28,12 @@ import {
 } from '../orgs/provisioning'
 import { assertSeatsAvailable } from '../orgs/subscription'
 import { batch } from '../orgs/util'
-import { assertGroupJoinAllowed, groupMemberSet, SCIM_GRANTOR } from '../pam/manage-guard'
+import {
+  assertGroupJoinAllowed,
+  assertRestoreAllowed,
+  groupMemberSet,
+  SCIM_GRANTOR,
+} from '../pam/manage-guard'
 import { clientKey, overLimit } from '../ratelimit'
 import { sendInvite } from '../routes/org-users'
 import { isUuid } from '../sm/auth'
@@ -327,6 +332,8 @@ async function updateUser(c: Ctx, db: Db, current: UserRow, desired: Json) {
     )
   } else if (active === true && m.status === Status.Revoked) {
     assertCanAssign(systemActor(orgUuid), m.atype)
+    // The grants kept from before the revoke turn on again (PAM); a SCIM key is a non-admin writer.
+    await assertRestoreAllowed(db, SCIM_GRANTOR, m)
     set.status = statusOnRestore(m)
     statements.push(
       ev(db, c, {

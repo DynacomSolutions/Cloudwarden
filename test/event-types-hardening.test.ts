@@ -1,6 +1,6 @@
 // Event writes off the request path: a failed or slow event write never changes a response.
 import { env } from 'cloudflare:workers'
-import { afterEach, expect, it } from 'vitest'
+import { afterEach, expect, it, vi } from 'vitest'
 import { createDb, schema } from '../src/db'
 import { authed, BASE, createSession, freezeRateLimitWindow, login, waitFor } from './helpers'
 import { actor, addMember, createOrg, enableRecoveryPolicy } from './org-helpers'
@@ -116,12 +116,18 @@ const failEvents = () =>
   env.DB.exec(
     "create trigger fail_events before insert on events begin select raise(abort, 'events are down'); end",
   )
-afterEach(() => env.DB.exec('drop trigger if exists fail_events'))
+afterEach(() => {
+  vi.restoreAllMocks()
+  return env.DB.exec('drop trigger if exists fail_events')
+})
 
 it('answers a failed login without waiting for the event, the same for known and unknown accounts', async () => {
   await createSession('hd-known@example.com')
   const known = spyDb(EVENT_SQL)
   const unknown = spyDb(EVENT_SQL)
+  // The rate limiter prunes old windows on a random 5% of calls. Pin the draw so both calls run
+  // the same statements; otherwise the test fails about one run in ten.
+  const random = vi.spyOn(Math, 'random').mockReturnValue(0.5)
   const a = await within(
     call(known.db, '/identity/connect/token', loginForm('hd-known@example.com', 'wrong')),
     'known account',
@@ -130,6 +136,7 @@ it('answers a failed login without waiting for the event, the same for known and
     call(unknown.db, '/identity/connect/token', loginForm('hd-nobody@example.com', 'wrong')),
     'unknown account',
   )
+  random.mockRestore()
   expect(a.res.status).toBe(400)
   expect(b.res.status).toBe(400)
   // Every statement the response waited for is the same; the event work is not among them.

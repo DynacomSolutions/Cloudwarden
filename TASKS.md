@@ -392,7 +392,7 @@ ETA: 2026-11-22 20:00 ICT
 | 435 | Access Intelligence reports | done | agent | | | | Gap audit of 22 Nov 2026, group D4<br>PR #133 merged as 24874f4<br>Newest 50 reports per organisation, 99 MB file cap |
 | 436 | Privileged access: access connectors and credential rotation | done | agent | | | | Gap audit of 22 Nov 2026, groups D1 and D2<br>PR #132 merged as 9c7a294<br>Four review rounds |
 | 437 | Privileged access: access requests, leases and access rules | done | agent | | | | Gap audit of 22 Nov 2026, group D3<br>PR #132 merged as 9c7a294<br>Leases enforced; one guard on all Manage grants |
-| 438 | Share agent secrets with the MCP accounts | blocked_on_owner | Thomas | | | | MCP list works (hang fixed 24 Nov 2026)<br>Production MCP account sees 0 items, personal sees only ContractFinder<br>Owner: put the HoardDB admin token in an org collection the MCP account can read<br>A watcher signals AiSwitcher when it is visible |
+| 438 | Share agent secrets with the MCP accounts | dropped | | | | | Dropped: duplicate of .cluster row 166.710 (Cloudwarden secrets route for agents).<br>MCP list hang fixed 24 Nov 2026 |
 
 ## Evidence log
 
